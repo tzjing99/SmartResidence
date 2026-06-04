@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { AbilityBuilder, type AbilityClass, PureAbility } from '@casl/ability';
+import {
+  AbilityBuilder,
+  type AbilityClass,
+  type ConditionsMatcher,
+  type FieldMatcher,
+  fieldPatternMatcher,
+  mongoQueryMatcher,
+  PureAbility,
+} from '@casl/ability';
 import { RoleId } from '@prisma/client';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 
@@ -57,6 +65,11 @@ export class AbilityFactory {
    * role assignment are combined (union semantics). The owner-empowerment
    * principle is encoded here: a UNIT_OWNER can `read` AuditLog rows scoped
    * to their own unit, etc.
+   *
+   * Conditions/fields matchers must be supplied explicitly: as of
+   * @casl/ability v6.8, PureAbility refuses to construct a rule that has
+   * `conditions` without a `conditionsMatcher`, which would otherwise cause
+   * `/api/auth/me` to 500 and bounce signed-in users back to /sign-in.
    */
   build(user: AuthenticatedUser): AppAbility {
     const { can, build } = new AbilityBuilder<AppAbility>(AppAbility);
@@ -69,7 +82,10 @@ export class AbilityFactory {
       });
     }
 
-    return build();
+    return build({
+      conditionsMatcher: mongoQueryMatcher as ConditionsMatcher<unknown>,
+      fieldMatcher: fieldPatternMatcher as FieldMatcher,
+    });
   }
 
   private applyRole(

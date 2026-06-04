@@ -43,12 +43,16 @@ export class NotificationService {
   }) {
     return this.prisma.pushSubscription.upsert({
       where: { kind_token: { kind: opts.kind, token: opts.token } },
-      update: { userId: opts.userId, deviceInfo: opts.deviceInfo ?? {}, lastSeenAt: new Date() },
+      update: {
+        userId: opts.userId,
+        deviceInfo: (opts.deviceInfo ?? {}) as Prisma.InputJsonValue,
+        lastSeenAt: new Date(),
+      },
       create: {
         userId: opts.userId,
         kind: opts.kind,
         token: opts.token,
-        deviceInfo: opts.deviceInfo ?? {},
+        deviceInfo: (opts.deviceInfo ?? {}) as Prisma.InputJsonValue,
       },
     });
   }
@@ -68,7 +72,7 @@ export class NotificationService {
         kind: opts.kind,
         title: opts.title,
         body: opts.body,
-        data: opts.data ?? {},
+        data: (opts.data ?? {}) as Prisma.InputJsonValue,
       })),
     });
 

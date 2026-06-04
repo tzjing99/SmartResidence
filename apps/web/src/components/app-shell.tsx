@@ -91,8 +91,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-[rgb(var(--sr-border))] pt-4 mt-4 flex flex-col gap-2">
           {me.data ? (
             <div className="text-xs sr-muted px-2 truncate">
-              {/* @ts-expect-error — shape from API */}
-              {me.data.user?.name} · {/* @ts-expect-error */ me.data.user?.email}
+              {(me.data as { user?: { name?: string; email?: string } }).user?.name} ·{' '}
+              {(me.data as { user?: { name?: string; email?: string } }).user?.email}
             </div>
           ) : null}
           <button

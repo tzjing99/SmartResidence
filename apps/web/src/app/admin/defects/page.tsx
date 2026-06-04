@@ -31,7 +31,7 @@ export default function DefectKanbanPage() {
   for (const col of KANBAN_COLUMNS) grouped[col.status] = [];
   for (const d of items) {
     const k = d.status === 'ACK' || d.status === 'REOPENED' ? 'NEW' : d.status;
-    (grouped[k] ?? grouped.NEW).push(d);
+    (grouped[k] ?? grouped.NEW)?.push(d);
   }
 
   async function move(id: string, status: DefectStatus) {

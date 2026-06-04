@@ -224,9 +224,11 @@ async function main() {
 
   const sqft = Number(ownerUnit.sqft ?? 1100);
   const formulaConfig = condo.feeFormulaConfig as Record<string, number>;
-  const maintenanceFee = Number((formulaConfig.maintenanceFeePerSqft * sqft).toFixed(2));
-  const sinkingFund = Number((formulaConfig.sinkingFundPerSqft * sqft).toFixed(2));
-  const garbage = formulaConfig.garbagePerUnit;
+  const maintenanceFeePerSqft = formulaConfig.maintenanceFeePerSqft ?? 0.3;
+  const sinkingFundPerSqft = formulaConfig.sinkingFundPerSqft ?? 0.05;
+  const maintenanceFee = Number((maintenanceFeePerSqft * sqft).toFixed(2));
+  const sinkingFund = Number((sinkingFundPerSqft * sqft).toFixed(2));
+  const garbage = formulaConfig.garbagePerUnit ?? 15;
   const subtotal = maintenanceFee + sinkingFund + garbage;
   const total = subtotal;
 
@@ -248,7 +250,7 @@ async function main() {
           {
             code: 'MAINT',
             description: 'Monthly maintenance fee',
-            formula: `${formulaConfig.maintenanceFeePerSqft}/sqft × ${sqft} sqft`,
+            formula: `${maintenanceFeePerSqft}/sqft × ${sqft} sqft`,
             quantity: 1,
             unitPrice: maintenanceFee,
             amount: maintenanceFee,
@@ -257,7 +259,7 @@ async function main() {
           {
             code: 'SINK',
             description: 'Sinking fund contribution',
-            formula: `${formulaConfig.sinkingFundPerSqft}/sqft × ${sqft} sqft`,
+            formula: `${sinkingFundPerSqft}/sqft × ${sqft} sqft`,
             quantity: 1,
             unitPrice: sinkingFund,
             amount: sinkingFund,

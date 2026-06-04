@@ -40,10 +40,10 @@ export class OwnerController {
         roleId: true,
         unitId: true,
         expiresAt: true,
-        createdAt: true,
+        grantedAt: true,
         user: { select: { id: true, name: true, email: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { grantedAt: 'desc' },
     });
   }
 }

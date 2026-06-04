@@ -61,6 +61,7 @@
     "@nestjs/schematics": "^10.2.3",
     "@nestjs/testing": "^10.4.7",
     "@smartresidence/config-tsconfig": "workspace:*",
+    "@types/express": "^5.0.0",
     "@types/node": "^22.9.0",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",

@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.turbo/
+.expo/
+.expo-shared/
+*.tsbuildinfo
+
+# Coverage / test artifacts
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.*.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.recommended.json
+.idea/
+*.swp
+*.swo
+
+# Generated
+**/generated/
+**/*.generated.ts
+**/*.generated.js
+openapi.json
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Mobile / Expo
+*.orig.*
+web-build/
+.metro-health-check*
+
+# Storybook
+storybook-static/
+
+# Docusaurus
+docs/.docusaurus
+docs/build
+
+# Misc
+*.tgz
+.cache/
+tmp/

@@ -1,0 +1,56 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '@/prisma/prisma.service';
+import type { AuthenticatedUser } from '@/common/types/request-context';
+
+@Injectable()
+export class TenantService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async listMyCondos(user: AuthenticatedUser) {
+    const condoIds = Array.from(new Set(user.roles.map((r) => r.condoId).filter(Boolean) as string[]));
+    if (condoIds.length === 0) return [];
+    return this.prisma.condo.findMany({
+      where: { id: { in: condoIds } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async getCondo(condoId: string) {
+    const condo = await this.prisma.condo.findUnique({
+      where: { id: condoId },
+      include: {
+        _count: { select: { units: true, blocks: true } },
+      },
+    });
+    if (!condo) throw new NotFoundException('Condo not found');
+    return condo;
+  }
+
+  async listUnits(condoId: string, opts: { limit: number; offset: number; search?: string }) {
+    const where = {
+      condoId,
+      ...(opts.search ? { identifier: { contains: opts.search, mode: 'insensitive' as const } } : {}),
+    };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.unit.findMany({
+        where,
+        include: { block: true, ownerships: { where: { status: 'ACTIVE' }, include: { user: true } } },
+        orderBy: [{ block: { position: 'asc' } }, { identifier: 'asc' }],
+        take: opts.limit,
+        skip: opts.offset,
+      }),
+      this.prisma.unit.count({ where }),
+    ]);
+    return { items, total, limit: opts.limit, offset: opts.offset };
+  }
+
+  async getMyUnits(user: AuthenticatedUser) {
+    const unitIds = Array.from(new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]));
+    if (unitIds.length === 0) return [];
+    return this.prisma.unit.findMany({
+      where: { id: { in: unitIds } },
+      include: { block: true, condo: true },
+      orderBy: { identifier: 'asc' },
+    });
+  }
+}

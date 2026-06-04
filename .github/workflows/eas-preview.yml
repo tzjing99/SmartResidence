@@ -1,0 +1,37 @@
+name: EAS preview build
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled, synchronize]
+
+jobs:
+  preview:
+    name: Build mobile preview
+    if: contains(github.event.pull_request.labels.*.name, 'mobile')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - name: Trigger EAS preview build
+        working-directory: apps/mobile
+        run: eas build --platform all --profile preview --non-interactive --no-wait
+      - name: Comment build link on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: '📱 EAS preview build started. Watch the [Expo dashboard](https://expo.dev/accounts/tzjing99/projects/smartresidence/builds) for download links.'
+            });

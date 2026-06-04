@@ -1,0 +1,63 @@
+import * as React from 'react';
+import { Pressable, Text, type PressableProps, type ViewStyle } from 'react-native';
+import { MotiView } from 'moti';
+import { palette, radius, spring } from '../tokens';
+
+export interface ButtonProps extends PressableProps {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
+  size?: 'sm' | 'md' | 'lg';
+  title: string;
+  loading?: boolean;
+}
+
+export const Button: React.FC<ButtonProps> = ({
+  variant = 'primary',
+  size = 'md',
+  title,
+  loading = false,
+  disabled,
+  style,
+  ...props
+}) => {
+  const [pressed, setPressed] = React.useState(false);
+  const heights = { sm: 40, md: 48, lg: 56 };
+  const fontSizes = { sm: 14, md: 15, lg: 16 };
+
+  const palettes: Record<NonNullable<ButtonProps['variant']>, { bg: string; fg: string; border?: string }> = {
+    primary: { bg: palette.coralPrimary, fg: '#FFFFFF' },
+    secondary: { bg: palette.surfaceLight, fg: palette.textLight, border: palette.borderLight },
+    ghost: { bg: 'transparent', fg: palette.textLight },
+    destructive: { bg: '#EF4444', fg: '#FFFFFF' },
+  };
+  const p = palettes[variant];
+
+  return (
+    <Pressable
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      disabled={disabled || loading}
+      style={({ pressed: _pressed }) => style as ViewStyle | undefined}
+      {...props}
+    >
+      <MotiView
+        animate={{ scale: pressed ? 0.97 : 1 }}
+        transition={spring.snappy}
+        style={{
+          height: heights[size],
+          paddingHorizontal: 20,
+          borderRadius: radius.xl,
+          backgroundColor: p.bg,
+          borderWidth: p.border ? 1 : 0,
+          borderColor: p.border,
+          justifyContent: 'center',
+          alignItems: 'center',
+          opacity: disabled || loading ? 0.6 : 1,
+        }}
+      >
+        <Text style={{ color: p.fg, fontWeight: '600', fontSize: fontSizes[size] }}>
+          {loading ? 'Please wait…' : title}
+        </Text>
+      </MotiView>
+    </Pressable>
+  );
+};

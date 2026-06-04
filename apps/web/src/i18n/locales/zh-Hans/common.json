@@ -1,0 +1,28 @@
+{
+  "appName": "SmartResidence",
+  "nav": {
+    "home": "首页",
+    "visitors": "访客",
+    "billing": "费用",
+    "defects": "维修",
+    "announcements": "公告",
+    "activity": "我的动态",
+    "whoViewed": "谁查看了我",
+    "signOut": "登出"
+  },
+  "auth": {
+    "signIn": "登录",
+    "signUp": "创建账户",
+    "welcomeBack": "欢迎回来",
+    "signInBlurb": "登录以管理您单元的访客、费用和维修。"
+  },
+  "billing": {
+    "outstanding": "未付费用",
+    "due": "到期日",
+    "lineItems": "费用明细",
+    "formula": "计算公式",
+    "amount": "金额",
+    "payCard": "用银行卡支付",
+    "payFpx": "用 FPX 支付"
+  }
+}

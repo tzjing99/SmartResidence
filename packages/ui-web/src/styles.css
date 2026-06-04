@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sr-bg: 250 250 250;
+    --sr-fg: 17 24 39;
+    --sr-muted: 107 114 128;
+    --sr-border: 229 231 235;
+    --sr-card: 255 255 255;
+    --sr-coral: 255 90 95;
+    --sr-coral-fg: 255 255 255;
+    --sr-navy: 31 49 72;
+  }
+  .dark {
+    --sr-bg: 11 23 39;
+    --sr-fg: 243 244 246;
+    --sr-muted: 156 163 175;
+    --sr-border: 31 41 55;
+    --sr-card: 20 34 53;
+    --sr-coral: 255 111 96;
+    --sr-coral-fg: 255 255 255;
+    --sr-navy: 209 224 240;
+  }
+  html, body {
+    background: rgb(var(--sr-bg));
+    color: rgb(var(--sr-fg));
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}
+
+@layer components {
+  .sr-card {
+    @apply rounded-2xl bg-[rgb(var(--sr-card))] border border-[rgb(var(--sr-border))] shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06)];
+  }
+  .sr-section-title {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  .sr-muted {
+    @apply text-[rgb(var(--sr-muted))];
+  }
+}

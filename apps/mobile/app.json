@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "SmartResidence",
+    "slug": "smartresidence",
+    "scheme": "smartresidence",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#FF5A5F"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.smartresidence.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "We use the camera so guards can scan visitor QR passes and residents can attach photos to defect reports.",
+        "NSFaceIDUsageDescription": "Face ID lets you unlock SmartResidence quickly without typing your password."
+      }
+    },
+    "android": {
+      "package": "dev.smartresidence.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FF5A5F"
+      },
+      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      "expo-local-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FF5A5F"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

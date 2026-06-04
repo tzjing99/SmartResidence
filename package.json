@@ -1,0 +1,51 @@
+{
+  "name": "smartresidence",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "description": "Open-source condo / strata management platform. Mobile + Web + API.",
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/tzjing99/SmartResidence",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tzjing99/SmartResidence.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tzjing99/SmartResidence/issues"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "clean": "turbo run clean && rimraf node_modules .turbo",
+    "infra:up": "docker compose -f infra/docker/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker/docker-compose.yml down",
+    "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f",
+    "db:migrate": "pnpm --filter @smartresidence/api db:migrate",
+    "db:seed": "pnpm --filter @smartresidence/api db:seed",
+    "db:studio": "pnpm --filter @smartresidence/api db:studio",
+    "api:dev": "pnpm --filter @smartresidence/api dev",
+    "web:dev": "pnpm --filter @smartresidence/web dev",
+    "mobile:dev": "pnpm --filter @smartresidence/mobile dev",
+    "docs:dev": "pnpm --filter @smartresidence/docs dev",
+    "docs:build": "pnpm --filter @smartresidence/docs build",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "turbo run build && changeset publish"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@changesets/cli": "^2.27.9",
+    "rimraf": "^6.0.1",
+    "turbo": "^2.2.3",
+    "typescript": "^5.6.3"
+  }
+}

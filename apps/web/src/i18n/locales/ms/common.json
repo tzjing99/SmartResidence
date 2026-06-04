@@ -1,0 +1,28 @@
+{
+  "appName": "SmartResidence",
+  "nav": {
+    "home": "Utama",
+    "visitors": "Pelawat",
+    "billing": "Yuran",
+    "defects": "Aduan",
+    "announcements": "Pengumuman",
+    "activity": "Aktiviti saya",
+    "whoViewed": "Siapa melihat saya",
+    "signOut": "Log keluar"
+  },
+  "auth": {
+    "signIn": "Log masuk",
+    "signUp": "Buka akaun",
+    "welcomeBack": "Selamat kembali",
+    "signInBlurb": "Log masuk untuk mengurus pelawat, yuran, dan aduan unit anda."
+  },
+  "billing": {
+    "outstanding": "Yuran tertunggak",
+    "due": "tarikh akhir",
+    "lineItems": "Butiran",
+    "formula": "Formula",
+    "amount": "Jumlah",
+    "payCard": "Bayar dengan kad",
+    "payFpx": "Bayar dengan FPX"
+  }
+}

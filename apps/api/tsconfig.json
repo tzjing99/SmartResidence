@@ -1,0 +1,13 @@
+{
+  "extends": "@smartresidence/config-tsconfig/nestjs.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "prisma/seed.ts", "scripts/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"]
+}

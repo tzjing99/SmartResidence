@@ -1,0 +1,28 @@
+{
+  "appName": "SmartResidence",
+  "nav": {
+    "home": "Home",
+    "visitors": "Visitors",
+    "billing": "Fees",
+    "defects": "Defects",
+    "announcements": "Announcements",
+    "activity": "My activity",
+    "whoViewed": "Who viewed me",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "welcomeBack": "Welcome back",
+    "signInBlurb": "Sign in to manage visitors, fees, and defects for your unit."
+  },
+  "billing": {
+    "outstanding": "Outstanding fee",
+    "due": "due",
+    "lineItems": "Line items",
+    "formula": "Formula",
+    "amount": "Amount",
+    "payCard": "Pay with card",
+    "payFpx": "Pay with FPX"
+  }
+}

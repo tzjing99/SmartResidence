@@ -1,0 +1,123 @@
+'use client';
+
+import * as React from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  Bell,
+  CalendarClock,
+  CreditCard,
+  Eye,
+  History,
+  Home,
+  KeyRound,
+  LogOut,
+  Megaphone,
+  ShieldAlert,
+  Wrench,
+} from 'lucide-react';
+import { useMe, useMyCondos } from '@smartresidence/api-client';
+import { api, writeSession } from '@/lib/api';
+import { cn } from '@smartresidence/ui-web';
+
+const NAV_ITEMS = [
+  { href: '/dashboard', label: 'Home', icon: Home },
+  { href: '/visitors', label: 'Visitors', icon: CalendarClock },
+  { href: '/billing', label: 'Fees', icon: CreditCard },
+  { href: '/defects', label: 'Defects', icon: Wrench },
+  { href: '/announcements', label: 'Announcements', icon: Megaphone },
+  { href: '/activity', label: 'My activity', icon: History },
+  { href: '/who-viewed', label: 'Who viewed me', icon: Eye },
+  { href: '/access', label: 'Manage access', icon: KeyRound },
+];
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const me = useMe(api);
+  const condos = useMyCondos(api);
+
+  React.useEffect(() => {
+    if (me.error) {
+      router.push('/sign-in');
+    }
+  }, [me.error, router]);
+
+  const condo = condos.data?.[0];
+
+  async function signOut() {
+    try {
+      await api.signOut();
+    } catch {
+      /* ignore */
+    }
+    writeSession(null);
+    router.push('/sign-in');
+  }
+
+  const isAdmin = pathname.startsWith('/admin');
+
+  return (
+    <div className="min-h-screen flex">
+      <aside className="w-64 border-r border-[rgb(var(--sr-border))] hidden md:flex md:flex-col p-4 sticky top-0 h-screen">
+        <Link href="/dashboard" className="text-xl font-bold tracking-tight px-2 mb-2 mt-2">
+          Smart<span className="text-coral-500">Residence</span>
+        </Link>
+        {condo ? (
+          <div className="px-2 text-xs sr-muted mb-6 truncate">{condo.name}</div>
+        ) : null}
+
+        <nav className="flex-1 flex flex-col gap-1">
+          {NAV_ITEMS.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+                  active
+                    ? 'bg-coral-500/10 text-coral-500'
+                    : 'hover:bg-[rgb(var(--sr-border))]/40',
+                )}
+              >
+                <Icon className="size-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="border-t border-[rgb(var(--sr-border))] pt-4 mt-4 flex flex-col gap-2">
+          {me.data ? (
+            <div className="text-xs sr-muted px-2 truncate">
+              {/* @ts-expect-error — shape from API */}
+              {me.data.user?.name} · {/* @ts-expect-error */ me.data.user?.email}
+            </div>
+          ) : null}
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
+          >
+            <LogOut className="size-4" />
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 min-w-0">
+        <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-6 py-3 flex items-center justify-between">
+          <h1 className="text-base font-semibold tracking-tight">
+            {NAV_ITEMS.find((i) => pathname.startsWith(i.href))?.label ?? 'SmartResidence'}
+          </h1>
+          <div className="flex items-center gap-2">
+            <button className="p-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40">
+              <Bell className="size-5" />
+            </button>
+          </div>
+        </header>
+        <div className="p-6 md:p-10 max-w-5xl">{children}</div>
+      </main>
+    </div>
+  );
+}

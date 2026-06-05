@@ -20,6 +20,7 @@
     "test:e2e": "echo 'Use test:e2e:ios or test:e2e:android with EAS dev-client.'"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
     "@expo/vector-icons": "^14.0.4",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@smartresidence/api-client": "workspace:*",

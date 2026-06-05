@@ -15,9 +15,13 @@ export const WALK_IN_CHECK_IN_WINDOW_MINS = 120;
 /** Active passes and pending walk-in approvals. */
 export const UPCOMING_VISITOR_STATUSES: VisitorStatus[] = [
   VisitorStatus.PENDING_OWNER_APPROVAL,
+  VisitorStatus.PENDING_MANAGEMENT_APPROVAL,
   VisitorStatus.APPROVED,
   VisitorStatus.CHECKED_IN,
 ];
+
+/** Admin list filters for overnight management queues. */
+export type VisitorAdminFilter = 'overnight_pending' | 'urgent_overnight' | 'holiday_review';
 
 /** Completed, expired, or declined visits. */
 export const HISTORY_VISITOR_STATUSES: VisitorStatus[] = [

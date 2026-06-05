@@ -21,8 +21,8 @@ export const queryKeys = {
   myUnits: ['units', 'mine'] as const,
   unitVisitors: (unitId: string, view?: string) =>
     ['visitors', 'unit', unitId, view ?? 'all'] as const,
-  condoVisitors: (condoId: string, view?: string) =>
-    ['visitors', 'condo', condoId, view ?? 'all'] as const,
+  condoVisitors: (condoId: string, view?: string, filter?: string) =>
+    ['visitors', 'condo', condoId, view ?? 'all', filter ?? 'all'] as const,
   unitFavouriteVisitors: (unitId: string) => ['visitors', 'favourites', unitId] as const,
   unitInvoices: (unitId: string) => ['invoices', 'unit', unitId] as const,
   invoice: (id: string) => ['invoices', id] as const,
@@ -107,6 +107,30 @@ export function useCreateVisitor(api: ApiClient) {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.unitVisitors(vars.unitId) });
     },
+  });
+}
+
+export function useOvernightPreview(
+  api: ApiClient,
+  condoId: string | null,
+  expectedAt: Date | null,
+  overnight: boolean,
+) {
+  return useQuery({
+    queryKey: ['visitors', 'overnight-preview', condoId, expectedAt?.toISOString(), overnight] as const,
+    queryFn: () =>
+      condoId && expectedAt
+        ? api.overnightPreview(condoId, expectedAt)
+        : Promise.reject(new Error('missing params')),
+    enabled: Boolean(condoId && expectedAt && overnight),
+  });
+}
+
+export function useApproveOvernightVisitor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (visitorId: string) => api.approveOvernightVisitor(visitorId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
   });
 }
 

@@ -11,7 +11,10 @@ import {
   AuditAction,
   OwnershipStatus,
   type Prisma,
+  RoleId,
   TenancyStatus,
+  VisitorEntryMode,
+  VisitorPurpose,
   VisitorStatus,
   VisitorVisitType,
 } from '@prisma/client';
@@ -32,8 +35,16 @@ import type {
   UpdateFavouriteVisitorDto,
 } from './dto/visitor.dto';
 import {
+  OVERNIGHT_ADVANCE_NOTICE_HOURS,
+  buildOvernightHelperMessage,
+  hoursUntilArrival,
+  nightRangeForArrival,
+  resolveOvernightOutcome,
+} from './overnight-rules';
+import {
   DEFAULT_VISIT_DURATION_MINS,
   PRE_REG_EXPIRY_BUFFER_MINS,
+  type VisitorAdminFilter,
   type VisitorListView,
   WALK_IN_APPROVAL_MINUTES,
   WALK_IN_CHECK_IN_WINDOW_MINS,
@@ -141,13 +152,112 @@ export class VisitorService {
     });
   }
 
+  private async countOvernightSlots(condoId: string, expectedAt: Date): Promise<number> {
+    const { start, end } = nightRangeForArrival(expectedAt);
+    return this.prisma.visitor.count({
+      where: {
+        condoId,
+        overnight: true,
+        status: {
+          in: [
+            VisitorStatus.APPROVED,
+            VisitorStatus.PENDING_MANAGEMENT_APPROVAL,
+            VisitorStatus.CHECKED_IN,
+          ],
+        },
+        expectedAt: { gte: start, lt: end },
+      },
+    });
+  }
+
+  private userIsManagement(user: AuthenticatedUser, condoId: string): boolean {
+    return user.roles.some(
+      (r) =>
+        (r.roleId === RoleId.MANAGEMENT_ADMIN || r.roleId === RoleId.MANAGEMENT_STAFF) &&
+        r.condoId === condoId,
+    );
+  }
+
+  private mapWalkInPurpose(purpose?: string): VisitorPurpose {
+    if (!purpose?.trim()) return VisitorPurpose.VISITOR;
+    const normalized = purpose
+      .trim()
+      .toUpperCase()
+      .replace(/[\s/]+/g, '_');
+    const values = Object.values(VisitorPurpose) as string[];
+    if (values.includes(normalized)) return normalized as VisitorPurpose;
+    return VisitorPurpose.OTHER;
+  }
+
+  private validatePreRegDto(dto: CreateVisitorDto) {
+    const entryMode = dto.entryMode ?? VisitorEntryMode.WALK_IN;
+    if (entryMode === VisitorEntryMode.DRIVE_IN && !dto.vehiclePlate?.trim()) {
+      throw new BadRequestException('Plate number is required for drive-in visitors');
+    }
+    if (dto.overnight) {
+      const hours = hoursUntilArrival(new Date(), dto.expectedAt);
+      if (hours < OVERNIGHT_ADVANCE_NOTICE_HOURS && !dto.urgentReason?.trim()) {
+        throw new BadRequestException(
+          'Urgent overnight visits require a brief reason — visit management office before arrival',
+        );
+      }
+    }
+  }
+
+  async overnightPreview(condoId: string, expectedAt: Date) {
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+    const occupied = await this.countOvernightSlots(condoId, expectedAt);
+    return buildOvernightHelperMessage(new Date(), expectedAt, condo.settings, occupied);
+  }
+
   async create(user: AuthenticatedUser, dto: CreateVisitorDto) {
-    const unit = await this.prisma.unit.findUnique({ where: { id: dto.unitId } });
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: dto.unitId },
+      include: { condo: true },
+    });
     if (!unit) throw new NotFoundException('Unit not found');
 
-    const accessCode = await this.uniqueAccessCode(unit.condoId);
-    const duration = dto.expectedDurationMins ?? DEFAULT_VISIT_DURATION_MINS;
-    const expiresAt = this.computePreRegExpiresAt(dto.expectedAt, duration);
+    this.validatePreRegDto(dto);
+
+    const entryMode = dto.entryMode ?? VisitorEntryMode.WALK_IN;
+    const overnight = dto.overnight ?? false;
+    const now = new Date();
+    let duration = dto.expectedDurationMins ?? DEFAULT_VISIT_DURATION_MINS;
+    let status: VisitorStatus = VisitorStatus.APPROVED;
+    let urgentOvernight = false;
+    let pendingManagementReview = false;
+    let approvedByUserId: string | null = user.id;
+    let approvedAt: Date | null = now;
+    let accessCode: string | null = null;
+    let expiresAt: Date | null = null;
+
+    if (overnight) {
+      const occupied = await this.countOvernightSlots(unit.condoId, dto.expectedAt);
+      try {
+        const outcome = resolveOvernightOutcome(now, dto.expectedAt, unit.condo.settings, occupied);
+        status = outcome.status as VisitorStatus;
+        urgentOvernight = outcome.urgentOvernight;
+        pendingManagementReview = outcome.pendingManagementReview;
+        duration = outcome.expectedDurationMins;
+        if (status === VisitorStatus.PENDING_MANAGEMENT_APPROVAL) {
+          approvedByUserId = null;
+          approvedAt = null;
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message === 'OVERNIGHT_SLOTS_FULL') {
+          throw new BadRequestException(
+            'No overnight slots left tonight — contact management or register as urgent and visit the management office',
+          );
+        }
+        throw err;
+      }
+    }
+
+    if (status === VisitorStatus.APPROVED) {
+      accessCode = await this.uniqueAccessCode(unit.condoId);
+      expiresAt = this.computePreRegExpiresAt(dto.expectedAt, duration);
+    }
 
     const visitor = await this.prisma.visitor.create({
       data: {
@@ -158,27 +268,87 @@ export class VisitorService {
         name: dto.name,
         identification: dto.identification,
         phone: dto.phone,
-        vehiclePlate: dto.vehiclePlate,
-        purpose: dto.purpose,
+        phoneCountryCode: dto.phoneCountryCode ?? '+60',
+        entryMode,
+        vehiclePlate: entryMode === VisitorEntryMode.DRIVE_IN ? dto.vehiclePlate?.trim() : null,
+        purpose: dto.purpose ?? VisitorPurpose.VISITOR,
+        overnight,
+        urgentOvernight,
+        urgentReason: urgentOvernight ? dto.urgentReason?.trim() : null,
+        pendingManagementReview,
         expectedAt: dto.expectedAt,
         expectedDurationMins: duration,
-        status: VisitorStatus.APPROVED,
-        approvedByUserId: user.id,
-        approvedAt: new Date(),
+        status,
+        approvedByUserId,
+        approvedAt,
         expiresAt,
         accessCode,
-        qrPayload: buildQrPayload(unit.condoId, 'pending', accessCode),
+        qrPayload: accessCode ? buildQrPayload(unit.condoId, 'pending', accessCode) : null,
         qrCode: null,
       },
     });
 
-    const pass = this.passFields(unit.condoId, visitor.id, accessCode);
-    const updated = await this.prisma.visitor.update({
-      where: { id: visitor.id },
-      data: pass,
-    });
+    let updated = visitor;
+    if (accessCode) {
+      const pass = this.passFields(unit.condoId, visitor.id, accessCode);
+      updated = await this.prisma.visitor.update({
+        where: { id: visitor.id },
+        data: pass,
+      });
+    }
 
     this.events.emit('visitor.created', { visitorId: updated.id, condoId: updated.condoId });
+    return updated;
+  }
+
+  async approveOvernight(visitorId: string, user: AuthenticatedUser) {
+    await this.expireStale();
+    const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
+    if (!visitor) throw new NotFoundException();
+    if (!this.userIsManagement(user, visitor.condoId)) {
+      throw new ForbiddenException('Only management can approve overnight visitors');
+    }
+    if (visitor.visitType !== VisitorVisitType.PRE_REG || !visitor.overnight) {
+      throw new BadRequestException('Only overnight pre-registrations can be approved here');
+    }
+    if (visitor.status !== VisitorStatus.PENDING_MANAGEMENT_APPROVAL) {
+      throw new BadRequestException(
+        `Visitor is ${visitor.status}, not awaiting management approval`,
+      );
+    }
+
+    const accessCode = await this.uniqueAccessCode(visitor.condoId);
+    const duration = visitor.expectedDurationMins ?? DEFAULT_VISIT_DURATION_MINS;
+    const expiresAt = this.computePreRegExpiresAt(visitor.expectedAt, duration);
+    const pass = this.passFields(visitor.condoId, visitor.id, accessCode);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const v = await tx.visitor.update({
+        where: { id: visitorId },
+        data: {
+          status: VisitorStatus.APPROVED,
+          approvedByUserId: user.id,
+          approvedAt: new Date(),
+          expiresAt,
+          ...pass,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          condoId: visitor.condoId,
+          unitId: visitor.unitId,
+          actorUserId: user.id,
+          actorRole: user.activeRole,
+          action: AuditAction.UPDATE,
+          resourceType: 'Visitor',
+          resourceId: visitorId,
+          metadata: { decision: 'overnight_approved' },
+        },
+      });
+      return v;
+    });
+
+    this.events.emit('visitor.approved', { visitorId, condoId: visitor.condoId });
     return updated;
   }
 
@@ -199,7 +369,7 @@ export class VisitorService {
         name: dto.name,
         phone: dto.phone,
         vehiclePlate: dto.vehiclePlate,
-        purpose: dto.purpose,
+        purpose: this.mapWalkInPurpose(dto.purpose),
         expectedAt: new Date(),
         status: VisitorStatus.PENDING_OWNER_APPROVAL,
         approvalDeadline,
@@ -240,10 +410,14 @@ export class VisitorService {
           name: dto.name,
           phone: dto.phone,
           vehiclePlate: dto.vehiclePlate,
-          purpose: dto.purpose.trim(),
+          purpose: this.mapWalkInPurpose(dto.purpose),
           expectedAt: new Date(),
           status: VisitorStatus.CHECKED_IN,
-          metadata: { createdByGuardId: guard.id, routedTo: 'management' },
+          metadata: {
+            createdByGuardId: guard.id,
+            routedTo: 'management',
+            purposeNote: dto.purpose.trim(),
+          },
         },
       });
       const checkIn = await tx.visitorCheckIn.create({
@@ -425,7 +599,13 @@ export class VisitorService {
 
   async listForCondo(
     condoId: string,
-    opts: { limit: number; offset: number; status?: VisitorStatus; view?: VisitorListView },
+    opts: {
+      limit: number;
+      offset: number;
+      status?: VisitorStatus;
+      view?: VisitorListView;
+      filter?: VisitorAdminFilter;
+    },
   ) {
     await this.expireStale(condoId);
     const viewStatuses = statusesForView(opts.view);
@@ -434,7 +614,22 @@ export class VisitorService {
       : viewStatuses
         ? { status: { in: viewStatuses } }
         : {};
-    const where = { condoId, ...statusFilter };
+    const adminFilter = (() => {
+      switch (opts.filter) {
+        case 'overnight_pending':
+          return {
+            overnight: true,
+            status: VisitorStatus.PENDING_MANAGEMENT_APPROVAL,
+          };
+        case 'urgent_overnight':
+          return { overnight: true, urgentOvernight: true };
+        case 'holiday_review':
+          return { overnight: true, pendingManagementReview: true };
+        default:
+          return {};
+      }
+    })();
+    const where = { condoId, ...statusFilter, ...adminFilter };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.visitor.findMany({
         where,
@@ -515,6 +710,16 @@ export class VisitorService {
         visitor.visitType === VisitorVisitType.WALKIN_UNIT
           ? 'Owner did not respond in time — contact the resident or ask the visitor to leave'
           : 'Visitor pass has expired',
+      );
+    }
+    if (
+      visitor.overnight &&
+      visitor.visitType === VisitorVisitType.PRE_REG &&
+      visitor.status === VisitorStatus.APPROVED &&
+      visitor.expectedAt > new Date()
+    ) {
+      throw new BadRequestException(
+        `Pass not yet active — valid from ${visitor.expectedAt.toLocaleString()}`,
       );
     }
     return visitor;
@@ -613,6 +818,8 @@ export class VisitorService {
         unitId: dto.unitId,
         name: dto.name,
         phone: dto.phone,
+        phoneCountryCode: dto.phoneCountryCode ?? '+60',
+        entryMode: dto.entryMode ?? VisitorEntryMode.WALK_IN,
         vehiclePlate: dto.vehiclePlate,
         notes: dto.notes,
       },

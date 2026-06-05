@@ -10,6 +10,8 @@ type VerifiedVisitor = {
   name: string;
   accessCode?: string | null;
   visitType?: string;
+  entryMode?: 'WALK_IN' | 'DRIVE_IN';
+  vehiclePlate?: string | null;
   unit?: { identifier?: string; block?: { name?: string } };
   status: string;
 };
@@ -88,6 +90,16 @@ export default function GuardCheckInPage() {
                 {visitor.accessCode}
               </p>
             ) : null}
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {visitor.entryMode ? (
+                <span className="inline-flex items-center rounded-full border border-[rgb(var(--sr-border))] px-2 py-0.5 text-xs font-medium">
+                  {visitor.entryMode === 'DRIVE_IN' ? 'Drive in' : 'Walk in'}
+                </span>
+              ) : null}
+              {visitor.entryMode === 'DRIVE_IN' && visitor.vehiclePlate ? (
+                <span className="font-mono text-sm font-semibold">{visitor.vehiclePlate}</span>
+              ) : null}
+            </div>
             <p className="text-xs sr-muted mt-1 capitalize">
               {visitor.status.toLowerCase().replace(/_/g, ' ')}
             </p>

@@ -68,6 +68,7 @@ describe('AbilityFactory', () => {
     );
     expect(ability.can('read', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
     expect(ability.can('approve', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
+    expect(ability.can('approve-overnight', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
     expect(ability.can('reject', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
     expect(ability.can('create', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
   });

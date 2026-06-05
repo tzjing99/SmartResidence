@@ -1,7 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { VisitorEntryMode, VisitorPurpose } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDate,
+  IsEnum,
   IsInt,
   IsOptional,
   IsString,
@@ -9,6 +12,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateVisitorDto {
@@ -27,23 +31,33 @@ export class CreateVisitorDto {
   @MaxLength(60)
   identification?: string;
 
+  @ApiPropertyOptional({ default: '+60' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(6)
+  phoneCountryCode?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(30)
   phone?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.WALK_IN })
   @IsOptional()
+  @IsEnum(VisitorEntryMode)
+  entryMode?: VisitorEntryMode;
+
+  @ApiPropertyOptional()
+  @ValidateIf((o: CreateVisitorDto) => o.entryMode === VisitorEntryMode.DRIVE_IN)
   @IsString()
   @MaxLength(20)
   vehiclePlate?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ enum: VisitorPurpose, default: VisitorPurpose.VISITOR })
   @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  purpose?: string;
+  @IsEnum(VisitorPurpose)
+  purpose?: VisitorPurpose;
 
   @ApiProperty({ type: String, format: 'date-time' })
   @Type(() => Date)
@@ -55,6 +69,18 @@ export class CreateVisitorDto {
   @IsInt()
   @Min(1)
   expectedDurationMins?: number;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  overnight?: boolean;
+
+  @ApiPropertyOptional({ description: 'Required when urgent overnight (<24h notice)' })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(200)
+  urgentReason?: string;
 }
 
 export class CreateWalkInUnitDto {
@@ -151,11 +177,22 @@ export class CreateFavouriteVisitorDto {
   @MaxLength(120)
   name!: string;
 
+  @ApiPropertyOptional({ default: '+60' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(6)
+  phoneCountryCode?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(30)
   phone?: string;
+
+  @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.WALK_IN })
+  @IsOptional()
+  @IsEnum(VisitorEntryMode)
+  entryMode?: VisitorEntryMode;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -180,8 +217,19 @@ export class UpdateFavouriteVisitorDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(6)
+  phoneCountryCode?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   @MaxLength(30)
   phone?: string;
+
+  @ApiPropertyOptional({ enum: VisitorEntryMode })
+  @IsOptional()
+  @IsEnum(VisitorEntryMode)
+  entryMode?: VisitorEntryMode;
 
   @ApiPropertyOptional()
   @IsOptional()

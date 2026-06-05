@@ -4,6 +4,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -27,7 +28,7 @@ import {
   RejectVisitorDto,
   UpdateFavouriteVisitorDto,
 } from './dto/visitor.dto';
-import type { VisitorListView } from './visitor.constants';
+import type { VisitorAdminFilter, VisitorListView } from './visitor.constants';
 import { VisitorService } from './visitor.service';
 
 @ApiTags('Visitors')
@@ -35,6 +36,20 @@ import { VisitorService } from './visitor.service';
 @Controller('visitors')
 export class VisitorController {
   constructor(private readonly visitors: VisitorService) {}
+
+  @Get('overnight-preview/:condoId')
+  @CheckAbility({ action: 'read', subject: 'Visitor' })
+  @ApiOperation({ summary: 'Preview overnight rules, slots, and helper message for a date' })
+  overnightPreview(
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('expectedAt') expectedAtRaw: string,
+  ) {
+    const expectedAt = new Date(expectedAtRaw);
+    if (Number.isNaN(expectedAt.getTime())) {
+      throw new BadRequestException('expectedAt query param must be a valid ISO date-time');
+    }
+    return this.visitors.overnightPreview(condoId, expectedAt);
+  }
 
   @Post()
   @CheckAbility({ action: 'create', subject: 'Visitor' })
@@ -65,6 +80,17 @@ export class VisitorController {
   @Audit({ action: AuditAction.UPDATE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })
   approve(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.visitors.approve(id, user);
+  }
+
+  @Post(':id/approve-overnight')
+  @CheckAbility({ action: 'approve-overnight', subject: 'Visitor' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })
+  @ApiOperation({ summary: 'Management approves an overnight pre-registration' })
+  approveOvernight(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.visitors.approveOvernight(id, user);
   }
 
   @Post(':id/reject')
@@ -155,8 +181,9 @@ export class VisitorController {
     @Query() page: PaginationDto,
     @Query('status') status?: VisitorStatus,
     @Query('view') view?: VisitorListView,
+    @Query('filter') filter?: VisitorAdminFilter,
   ) {
-    return this.visitors.listForCondo(condoId, { ...page, status, view });
+    return this.visitors.listForCondo(condoId, { ...page, status, view, filter });
   }
 
   @Get(':id/qr')

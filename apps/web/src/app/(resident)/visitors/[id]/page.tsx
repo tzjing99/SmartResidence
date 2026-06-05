@@ -8,7 +8,7 @@ import {
   useVisitorQr,
 } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -59,12 +59,35 @@ export default function VisitorPassPage() {
             </Badge>
           </header>
 
+          {visitor.status === 'PENDING_MANAGEMENT_APPROVAL' ? (
+            <Card className="flex gap-3 border-amber-500/30 bg-amber-500/5 p-4">
+              <AlertTriangle className="size-5 shrink-0 text-amber-600" />
+              <p className="text-sm">
+                {visitor.urgentOvernight
+                  ? 'Urgent overnight — please visit the management office before your guest arrives. Management will issue the pass after review.'
+                  : 'Submitted for management approval. You will receive the access code once approved (within 1 working day).'}
+              </p>
+            </Card>
+          ) : null}
+
+          {visitor.pendingManagementReview && visitor.status === 'APPROVED' ? (
+            <Card className="flex gap-3 border-[rgb(var(--sr-primary)/0.25)] bg-[rgb(var(--sr-primary)/0.05)] p-4">
+              <AlertTriangle className="size-5 shrink-0 text-[rgb(var(--sr-primary))]" />
+              <p className="text-sm">
+                Auto-approved for tonight. Management will review this overnight stay on the next
+                working day. Your pass is valid from the expected arrival time.
+              </p>
+            </Card>
+          ) : null}
+
           {visitor.accessCode ? (
             <Card className="text-center py-8">
               <p className="text-xs uppercase tracking-widest sr-muted mb-2">Access code</p>
               <p className="font-mono text-4xl font-bold tracking-[0.3em]">{visitor.accessCode}</p>
               <p className="text-xs sr-muted mt-3">
-                Tell the guard this code or show the QR below.
+                {visitor.overnight
+                  ? 'Active from expected arrival time. Tell the guard this code or show the QR below.'
+                  : 'Tell the guard this code or show the QR below.'}
               </p>
             </Card>
           ) : null}

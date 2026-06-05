@@ -365,8 +365,23 @@ enum VisitorVisitType {
   WALKIN_OFFICE
 }
 
+enum VisitorEntryMode {
+  WALK_IN
+  DRIVE_IN
+}
+
+enum VisitorPurpose {
+  VISITOR
+  CONTRACTOR
+  GOVERNMENT_UTILITIES
+  DELIVERY
+  MAINTENANCE
+  OTHER
+}
+
 enum VisitorStatus {
   PENDING_OWNER_APPROVAL
+  PENDING_MANAGEMENT_APPROVAL
   APPROVED
   REJECTED
   CHECKED_IN
@@ -387,8 +402,14 @@ model Visitor {
   name          String
   identification String?
   phone         String?
+  phoneCountryCode String       @default("+60")
+  entryMode     VisitorEntryMode @default(WALK_IN)
   vehiclePlate  String?
-  purpose       String?
+  purpose       VisitorPurpose @default(VISITOR)
+  overnight     Boolean          @default(false)
+  urgentOvernight Boolean        @default(false)
+  urgentReason  String?
+  pendingManagementReview Boolean @default(false)
   expectedAt    DateTime
   expectedDurationMins Int?
   qrCode        String?          @unique
@@ -443,6 +464,8 @@ model FavouriteVisitor {
   unit         Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
   name         String
   phone        String?
+  phoneCountryCode String @default("+60")
+  entryMode    VisitorEntryMode @default(WALK_IN)
   vehiclePlate String?
   notes        String?
   createdAt    DateTime @default(now())

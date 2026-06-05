@@ -3,28 +3,23 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
 import { Alert, Text, View } from 'react-native';
+import {
+  type GuardVerifiedVisitor,
+  VisitorGuardPassCard,
+  guardPassSummary,
+} from '../../src/components/visitor-guard-pass';
 import { api } from '../../src/lib/api';
 import { enqueueCheckIn, flushQueue, pendingCount } from '../../src/lib/guard-queue';
-
-type VerifiedVisitor = {
-  name: string;
-  accessCode?: string;
-  unit?: { identifier?: string; block?: { name?: string } };
-  expectedAt?: string | Date;
-};
-
-function unitLabel(visitor: VerifiedVisitor) {
-  const block = visitor.unit?.block?.name;
-  const unit = visitor.unit?.identifier;
-  if (block && unit) return `${block} · ${unit}`;
-  return unit ?? '—';
-}
+import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
 export default function ScanScreen() {
+  const { isTablet, isLandscape, contentMaxWidth } = useTabletLayout();
   const [permission, requestPermission] = useCameraPermissions();
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<string | null>(null);
   const [pending, setPending] = useState(0);
+  const [scannedPass, setScannedPass] = useState<string | null>(null);
+  const [visitor, setVisitor] = useState<GuardVerifiedVisitor | null>(null);
 
   useEffect(() => {
     void pendingCount().then(setPending);
@@ -38,11 +33,9 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <View
-        style={{ flex: 1, padding: 24, justifyContent: 'center', backgroundColor: palette.bgLight }}
+        style={{ flex: 1, padding: 24, justifyContent: 'center', backgroundColor: palette.bgLight, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }}
       >
-        <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 8 }}>
-          Camera permission needed
-        </Text>
+        <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 8 }}>Camera permission needed</Text>
         <Text style={{ color: palette.mutedLight, marginBottom: 16 }}>
           Guards scan visitor QR passes at the gate.
         </Text>
@@ -51,10 +44,12 @@ export default function ScanScreen() {
     );
   }
 
-  async function confirmCheckIn(pass: string, visitor: VerifiedVisitor) {
+  async function confirmCheckIn(pass: string, v: GuardVerifiedVisitor) {
     try {
       await api.checkInVisitor(pass, { gateLocation: 'Main gate' });
-      Alert.alert('Welcome', `${visitor.name} checked in.`);
+      Alert.alert('Welcome', `${v.name} checked in.`);
+      setVisitor(null);
+      setScannedPass(null);
     } catch {
       await enqueueCheckIn({ qrCode: pass, gateLocation: 'Main gate' });
       Alert.alert('Queued', 'Network unavailable — check-in will sync automatically.');
@@ -68,44 +63,71 @@ export default function ScanScreen() {
     setLast(value);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
-      const visitor = (await api.verifyQr(value)) as VerifiedVisitor;
-      Alert.alert(
-        'Confirm check-in',
-        `${visitor.name}\nUnit: ${unitLabel(visitor)}\nCode: ${visitor.accessCode ?? '—'}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Check in', onPress: () => void confirmCheckIn(value, visitor) },
-        ],
-      );
+      const v = (await api.verifyQr(value)) as GuardVerifiedVisitor;
+      setScannedPass(value);
+      setVisitor(v);
+      if (!isTablet) {
+        Alert.alert('Confirm check-in', guardPassSummary(v), [
+          { text: 'Cancel', style: 'cancel', onPress: () => setVisitor(null) },
+          { text: 'Check in', onPress: () => void confirmCheckIn(value, v) },
+        ]);
+      }
     } catch (err) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Unknown pass', (err as Error).message);
+      setVisitor(null);
+      setScannedPass(null);
     } finally {
       setTimeout(() => setBusy(false), 1500);
     }
   }
 
+  const splitView = isTablet && isLandscape;
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
-      <CameraView
-        style={{ flex: 1 }}
-        facing="back"
-        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-        onBarcodeScanned={(e) => onScan(e.data)}
-      />
-      <View style={{ position: 'absolute', top: 16, left: 16, right: 16 }}>
-        <Card>
-          <View
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <Text style={{ fontWeight: '700' }}>Scan a visitor QR</Text>
-            <Pill
-              tone={pending > 0 ? 'warning' : 'success'}
-              label={pending > 0 ? `${pending} queued` : 'online'}
-            />
-          </View>
-        </Card>
+    <View style={{ flex: 1, flexDirection: splitView ? 'row' : 'column', backgroundColor: '#000' }}>
+      <View style={{ flex: splitView ? 1.3 : 1 }}>
+        <CameraView
+          style={{ flex: 1 }}
+          facing="back"
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          onBarcodeScanned={(e) => onScan(e.data)}
+        />
+        <View style={{ position: 'absolute', top: 16, left: 16, right: splitView ? 16 : 16 }}>
+          <Card>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontWeight: '700' }}>Scan a visitor QR</Text>
+              <Pill
+                tone={pending > 0 ? 'warning' : 'success'}
+                label={pending > 0 ? `${pending} queued` : 'online'}
+              />
+            </View>
+          </Card>
+        </View>
       </View>
+
+      {splitView ? (
+        <View
+          style={{
+            flex: 0.7,
+            backgroundColor: palette.bgLight,
+            padding: 24,
+            justifyContent: 'center',
+          }}
+        >
+          {visitor && scannedPass ? (
+            <VisitorGuardPassCard
+              visitor={visitor}
+              onCheckIn={() => void confirmCheckIn(scannedPass, visitor)}
+              checkInDisabled={visitor.status !== 'APPROVED'}
+            />
+          ) : (
+            <Text style={{ color: palette.mutedLight, textAlign: 'center' }}>
+              Scan a QR code to see visitor details and check in.
+            </Text>
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }

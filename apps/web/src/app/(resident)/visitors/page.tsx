@@ -5,7 +5,6 @@ import { api } from '@/lib/api';
 import {
   useApproveVisitor,
   useCreateFavouriteVisitor,
-  useCreateVisitor,
   useDeleteFavouriteVisitor,
   useFavouriteVisitors,
   useMyUnits,
@@ -13,6 +12,7 @@ import {
   useUnitVisitors,
 } from '@smartresidence/api-client';
 import type { FavouriteVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
+import { favouriteToPreRegParams } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { Heart, Plus, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -199,7 +199,6 @@ function FavouritesPanel({
   const router = useRouter();
   const createFav = useCreateFavouriteVisitor(api);
   const deleteFav = useDeleteFavouriteVisitor(api);
-  const createVisitor = useCreateVisitor(api);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -212,8 +211,10 @@ function FavouritesPanel({
       await createFav.mutateAsync({
         unitId,
         name: name.trim(),
+        phoneCountryCode: '+60',
         phone: phone.trim() || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
+        entryMode: vehiclePlate.trim() ? 'DRIVE_IN' : 'WALK_IN',
       });
       setName('');
       setPhone('');
@@ -225,21 +226,9 @@ function FavouritesPanel({
     }
   }
 
-  async function onQuickPass(fav: FavouriteVisitor) {
-    if (!unitId) return;
-    try {
-      const created = await createVisitor.mutateAsync({
-        unitId,
-        name: fav.name,
-        phone: fav.phone ?? undefined,
-        vehiclePlate: fav.vehiclePlate ?? undefined,
-        expectedAt: new Date(Date.now() + 30 * 60 * 1000),
-      });
-      toast.success('Pass created');
-      router.push(`/visitors/${created.id}`);
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
+  function onPreFillFromFavourite(fav: FavouriteVisitor) {
+    const params = new URLSearchParams(favouriteToPreRegParams(fav));
+    router.push(`/visitors/new?${params.toString()}`);
   }
 
   async function onDelete(id: string) {
@@ -331,12 +320,8 @@ function FavouritesPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    onClick={() => onQuickPass(fav)}
-                    disabled={createVisitor.isPending}
-                  >
-                    Quick pass
+                  <Button size="sm" onClick={() => onPreFillFromFavourite(fav)}>
+                    Pre-register
                   </Button>
                   <Button
                     size="sm"

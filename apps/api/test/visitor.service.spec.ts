@@ -9,6 +9,7 @@ import { VisitorService } from '../src/visitor/visitor.service';
 
 function service() {
   const prisma: any = {
+    condo: { findUnique: vi.fn() },
     unit: { findUnique: vi.fn(), findFirst: vi.fn() },
     visitor: {
       create: vi.fn(),
@@ -74,7 +75,12 @@ describe('VisitorService', () => {
   it('creates a PRE_REG visitor with access code and expiry', async () => {
     const { svc, prisma, events } = service();
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
-    prisma.unit.findUnique.mockResolvedValueOnce({ id: 'u1', condoId: 'c1' });
+    prisma.unit.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: { id: 'c1', settings: {} },
+    });
+    prisma.visitor.count.mockResolvedValue(0);
     prisma.visitor.findUnique.mockResolvedValue(null);
     prisma.visitor.create.mockResolvedValueOnce({ id: 'v1', condoId: 'c1' });
     prisma.visitor.update.mockResolvedValueOnce({
@@ -92,6 +98,49 @@ describe('VisitorService', () => {
     } as any);
     expect(v.accessCode).toBeTruthy();
     expect(events.emit).toHaveBeenCalledWith('visitor.created', expect.any(Object));
+  });
+
+  it('requires urgent reason for overnight pre-reg under 24h', async () => {
+    const { svc, prisma } = service();
+    prisma.unit.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: { id: 'c1', settings: {} },
+    });
+    await expect(
+      svc.create(host, {
+        unitId: 'u1',
+        name: 'Late guest',
+        expectedAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        overnight: true,
+      } as any),
+    ).rejects.toThrow(/urgent/i);
+    expect(prisma.visitor.create).not.toHaveBeenCalled();
+  });
+
+  it('creates overnight pre-reg as PENDING_MANAGEMENT_APPROVAL without pass', async () => {
+    const { svc, prisma } = service();
+    prisma.unit.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: { id: 'c1', settings: { visitor: { workingDays: { weekdays: [1, 2, 3, 4, 5] } } } },
+    });
+    prisma.visitor.count.mockResolvedValue(0);
+    prisma.visitor.create.mockResolvedValueOnce({
+      id: 'v-overnight',
+      status: 'PENDING_MANAGEMENT_APPROVAL',
+      accessCode: null,
+      overnight: true,
+      urgentOvernight: false,
+    });
+    const v = await svc.create(host, {
+      unitId: 'u1',
+      name: 'Weekend guest',
+      expectedAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+      overnight: true,
+    } as any);
+    expect(v.status).toBe('PENDING_MANAGEMENT_APPROVAL');
+    expect(v.accessCode).toBeNull();
   });
 
   it('creates walk-in unit as PENDING_OWNER_APPROVAL', async () => {

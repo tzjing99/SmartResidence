@@ -282,6 +282,13 @@ export class ApiClient {
   createVisitor(input: CreateVisitorInput) {
     return this.request<Visitor>('POST', '/api/visitors', input);
   }
+  overnightPreview(condoId: string, expectedAt: Date) {
+    const qs = new URLSearchParams({ expectedAt: expectedAt.toISOString() });
+    return this.request<import('@smartresidence/shared-types').OvernightPreview>(
+      'GET',
+      `/api/visitors/overnight-preview/${condoId}?${qs.toString()}`,
+    );
+  }
   visitorsForUnit(
     unitId: string,
     params: { limit?: number; offset?: number; view?: VisitorListView } = {},
@@ -293,11 +300,21 @@ export class ApiClient {
   }
   visitorsForCondo(
     condoId: string,
-    params: { status?: string; view?: VisitorListView; limit?: number; offset?: number } = {},
+    params: {
+      status?: string;
+      view?: VisitorListView;
+      filter?: import('@smartresidence/shared-types').VisitorAdminFilter;
+      limit?: number;
+      offset?: number;
+    } = {},
   ) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
     return this.request<{ items: Visitor[]; total: number }>(
       'GET',
-      `/api/visitors/condo/${condoId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
+      `/api/visitors/condo/${condoId}?${qs.toString()}`,
     );
   }
   favouriteVisitorsForUnit(unitId: string) {
@@ -326,6 +343,9 @@ export class ApiClient {
   }
   approveVisitor(visitorId: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve`);
+  }
+  approveOvernightVisitor(visitorId: string) {
+    return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve-overnight`);
   }
   rejectVisitor(visitorId: string, reason?: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/reject`, { reason });

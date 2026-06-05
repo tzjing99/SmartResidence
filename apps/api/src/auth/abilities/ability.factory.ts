@@ -51,6 +51,7 @@ export type Action =
   | 'delete'
   | 'resolve'
   | 'approve'
+  | 'approve-overnight'
   | 'reject'
   | 'check-in'
   | 'check-out'
@@ -116,6 +117,7 @@ export class AbilityFactory {
         // export it, but approving/rejecting visitors belongs to residents.
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
         can('export', 'Visitor', { condoId: scope.condoId ?? '' });
+        can('approve-overnight', 'Visitor', { condoId: scope.condoId ?? '' });
         can('manage', 'Invoice', { condoId: scope.condoId ?? '' });
         can('manage', 'Payment');
         can('manage', 'Defect', { condoId: scope.condoId ?? '' });

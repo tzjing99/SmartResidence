@@ -1,7 +1,6 @@
 import {
   useApproveVisitor,
   useCreateFavouriteVisitor,
-  useCreateVisitor,
   useDeleteFavouriteVisitor,
   useFavouriteVisitors,
   useMyUnits,
@@ -9,11 +8,14 @@ import {
   useUnitVisitors,
 } from '@smartresidence/api-client';
 import type { FavouriteVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
+import { favouriteToPreRegParams } from '@smartresidence/shared-types';
 import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
+import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { api } from '../../src/lib/api';
+import { api } from '../../../src/lib/api';
+import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
 
 type VisitorTab = VisitorListView | 'favourites';
 
@@ -24,6 +26,8 @@ const TABS: { id: VisitorTab; label: string }[] = [
 ];
 
 export default function VisitorsScreen() {
+  const router = useRouter();
+  const { contentMaxWidth, horizontalPadding } = useTabletLayout();
   const [tab, setTab] = useState<VisitorTab>('upcoming');
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
@@ -35,48 +39,66 @@ export default function VisitorsScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
+      contentContainerStyle={{
+        paddingVertical: 20,
+        paddingBottom: 40,
+        alignItems: 'center',
+        gap: 16,
+      }}
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Visitors</Text>
+      <View style={{ width: '100%', maxWidth: contentMaxWidth, paddingHorizontal: horizontalPadding, gap: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 24, fontWeight: '700' }}>Visitors</Text>
+          <Button
+            title="Pre-register"
+            size="sm"
+            onPress={() => router.push('/(resident)/visitors/new' as Href)}
+          />
+        </View>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <Pressable
-              key={t.id}
-              onPress={() => setTab(t.id)}
-              style={{
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: radius.full,
-                backgroundColor: active ? 'rgba(255, 90, 95, 0.12)' : 'transparent',
-                borderWidth: active ? 1 : 0,
-                borderColor: active ? 'rgba(255, 90, 95, 0.25)' : 'transparent',
-              }}
-            >
-              <Text
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <Pressable
+                key={t.id}
+                onPress={() => setTab(t.id)}
                 style={{
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: active ? palette.coralPrimary : palette.mutedLight,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: radius.full,
+                  backgroundColor: active ? 'rgba(255, 90, 95, 0.12)' : 'transparent',
+                  borderWidth: active ? 1 : 0,
+                  borderColor: active ? 'rgba(255, 90, 95, 0.25)' : 'transparent',
                 }}
               >
-                {t.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '600',
+                    color: active ? palette.coralPrimary : palette.mutedLight,
+                  }}
+                >
+                  {t.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
-      {tab === 'favourites' ? (
-        <FavouritesTab
-          unitId={unit?.id}
-          items={(favourites.data?.items ?? []) as FavouriteVisitor[]}
-        />
-      ) : (
-        <VisitorsTab tab={tab} items={(visitors.data?.items ?? []) as Visitor[]} />
-      )}
+        {tab === 'favourites' ? (
+          <FavouritesTab
+            unitId={unit?.id}
+            items={(favourites.data?.items ?? []) as FavouriteVisitor[]}
+            onPreRegister={(fav) => {
+              const qs = new URLSearchParams(favouriteToPreRegParams(fav)).toString();
+              router.push(`/(resident)/visitors/new?${qs}` as Href);
+            }}
+          />
+        ) : (
+          <VisitorsTab tab={tab} items={(visitors.data?.items ?? []) as Visitor[]} />
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -120,55 +142,36 @@ function VisitorsTab({ tab, items }: { tab: VisitorListView; items: Visitor[] })
     <>
       {items.map((v) => (
         <Card key={v.id}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-            }}
-          >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={{ fontWeight: '600' }}>{v.name}</Text>
               <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
                 {new Date(v.expectedAt).toLocaleString()}
               </Text>
               {v.accessCode && tab === 'upcoming' ? (
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: '700',
-                    letterSpacing: 2,
-                    marginTop: 8,
-                  }}
-                >
+                <Text style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}>
                   {v.accessCode}
                 </Text>
               ) : null}
-              <View style={{ marginTop: 8, flexDirection: 'row' }}>
+              <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 <Pill
                   tone={
                     v.status === 'CHECKED_IN'
                       ? 'success'
-                      : v.status === 'PENDING_OWNER_APPROVAL'
+                      : v.status === 'PENDING_OWNER_APPROVAL' || v.status === 'PENDING_MANAGEMENT_APPROVAL'
                         ? 'warning'
-                        : v.status === 'CANCELLED' ||
-                            v.status === 'REJECTED' ||
-                            v.status === 'EXPIRED'
+                        : v.status === 'CANCELLED' || v.status === 'REJECTED' || v.status === 'EXPIRED'
                           ? 'danger'
                           : 'primary'
                   }
                   label={v.status.toLowerCase().replace(/_/g, ' ')}
                 />
+                {v.urgentOvernight ? <Pill tone="warning" label="Urgent" /> : null}
               </View>
               {v.status === 'PENDING_OWNER_APPROVAL' ? (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
                   <Button title="Approve" size="sm" onPress={() => onApprove(v.id)} />
-                  <Button
-                    title="Reject"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => onReject(v.id)}
-                  />
+                  <Button title="Reject" size="sm" variant="secondary" onPress={() => onReject(v.id)} />
                 </View>
               ) : null}
             </View>
@@ -187,13 +190,14 @@ function VisitorsTab({ tab, items }: { tab: VisitorListView; items: Visitor[] })
 function FavouritesTab({
   unitId,
   items,
+  onPreRegister,
 }: {
   unitId?: string;
   items: FavouriteVisitor[];
+  onPreRegister: (fav: FavouriteVisitor) => void;
 }) {
   const createFav = useCreateFavouriteVisitor(api);
   const deleteFav = useDeleteFavouriteVisitor(api);
-  const createVisitor = useCreateVisitor(api);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -205,8 +209,10 @@ function FavouritesTab({
       await createFav.mutateAsync({
         unitId,
         name: name.trim(),
+        phoneCountryCode: '+60',
         phone: phone.trim() || undefined,
         vehiclePlate: plate.trim() || undefined,
+        entryMode: plate.trim() ? 'DRIVE_IN' : 'WALK_IN',
       });
       setName('');
       setPhone('');
@@ -215,22 +221,6 @@ function FavouritesTab({
       Alert.alert('Saved', 'Favourite visitor added.');
     } catch (err) {
       Alert.alert('Could not save', (err as Error).message);
-    }
-  }
-
-  async function onQuickPass(fav: FavouriteVisitor) {
-    if (!unitId) return;
-    try {
-      await createVisitor.mutateAsync({
-        unitId,
-        name: fav.name,
-        phone: fav.phone ?? undefined,
-        vehiclePlate: fav.vehiclePlate ?? undefined,
-        expectedAt: new Date(Date.now() + 30 * 60 * 1000),
-      });
-      Alert.alert('Pass created', `${fav.name} can enter with the new access code.`);
-    } catch (err) {
-      Alert.alert('Could not create pass', (err as Error).message);
     }
   }
 
@@ -279,7 +269,7 @@ function FavouritesTab({
       {items.length === 0 ? (
         <EmptyState
           title="No favourites yet"
-          description="Save frequent guests for one-tap pre-registration."
+          description="Save frequent guests for quick pre-registration."
         />
       ) : (
         items.map((fav) => (
@@ -288,16 +278,12 @@ function FavouritesTab({
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '600' }}>{fav.name}</Text>
                 <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                  {[fav.phone, fav.vehiclePlate].filter(Boolean).join(' · ') || 'No details'}
+                  {[fav.phoneCountryCode, fav.phone, fav.vehiclePlate].filter(Boolean).join(' · ') ||
+                    'No details'}
                 </Text>
               </View>
               <View style={{ gap: 8 }}>
-                <Button
-                  title="Quick pass"
-                  size="sm"
-                  loading={createVisitor.isPending}
-                  onPress={() => onQuickPass(fav)}
-                />
+                <Button title="Pre-register" size="sm" onPress={() => onPreRegister(fav)} />
                 <Button title="Remove" size="sm" variant="ghost" onPress={() => onDelete(fav.id)} />
               </View>
             </View>

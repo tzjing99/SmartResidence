@@ -2,42 +2,90 @@
 
 import { api } from '@/lib/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCreateVisitor, useMyUnits } from '@smartresidence/api-client';
-import { type CreateVisitorInput, CreateVisitorSchema } from '@smartresidence/shared-types';
-import { Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
+import { useCreateVisitor, useMyCondos, useMyUnits, useOvernightPreview } from '@smartresidence/api-client';
+import {
+  type CreateVisitorInput,
+  CreateVisitorSchema,
+  defaultExpectedArrival,
+  PHONE_COUNTRY_CODES,
+  toDatetimeLocalValue,
+  VISITOR_PURPOSE_OPTIONS,
+} from '@smartresidence/shared-types';
+import { Button, Card, Input, Label } from '@smartresidence/ui-web';
+import { Car, Footprints, Info } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useMemo } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 
 export default function NewVisitorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const units = useMyUnits(api);
+  const condos = useMyCondos(api);
   const unit = units.data?.[0] as { id: string; identifier: string } | undefined;
+  const condoId = (condos.data?.[0] as { id: string } | undefined)?.id ?? null;
   const create = useCreateVisitor(api);
 
   const form = useForm<CreateVisitorInput>({
     resolver: zodResolver(CreateVisitorSchema),
-    defaultValues: { unitId: unit?.id ?? '' },
+    defaultValues: {
+      unitId: unit?.id ?? '',
+      entryMode: 'WALK_IN',
+      phoneCountryCode: '+60',
+      purpose: 'VISITOR',
+      overnight: false,
+      expectedAt: defaultExpectedArrival(),
+    },
   });
+
+  const entryMode = useWatch({ control: form.control, name: 'entryMode' });
+  const overnight = useWatch({ control: form.control, name: 'overnight' });
+  const expectedAt = useWatch({ control: form.control, name: 'expectedAt' });
+
+  const preview = useOvernightPreview(
+    api,
+    condoId,
+    expectedAt instanceof Date && !Number.isNaN(expectedAt.getTime()) ? expectedAt : null,
+    Boolean(overnight),
+  );
 
   useEffect(() => {
     if (unit?.id) form.setValue('unitId', unit.id);
     const name = searchParams.get('name');
     const phone = searchParams.get('phone');
+    const phoneCountryCode = searchParams.get('phoneCountryCode');
     const vehiclePlate = searchParams.get('vehiclePlate');
+    const entry = searchParams.get('entryMode');
     if (name) form.setValue('name', name);
     if (phone) form.setValue('phone', phone);
+    if (phoneCountryCode) form.setValue('phoneCountryCode', phoneCountryCode);
     if (vehiclePlate) form.setValue('vehiclePlate', vehiclePlate);
+    if (entry === 'WALK_IN' || entry === 'DRIVE_IN') form.setValue('entryMode', entry);
   }, [unit?.id, searchParams, form]);
+
+  const slotsBlocked = Boolean(overnight && preview.data?.slotsFull);
+  const showUrgentReason = Boolean(overnight && preview.data?.isUrgent);
+
+  const datetimeValue = useMemo(() => {
+    if (!(expectedAt instanceof Date) || Number.isNaN(expectedAt.getTime())) return '';
+    return toDatetimeLocalValue(expectedAt);
+  }, [expectedAt]);
 
   async function onSubmit(values: CreateVisitorInput) {
     if (!unit) return;
+    if (slotsBlocked) {
+      toast.error('No overnight slots left tonight — contact management');
+      return;
+    }
     const payload: CreateVisitorInput = { ...values, unitId: unit.id };
     try {
       const created = await create.mutateAsync(payload);
-      toast.success('Visitor pass created');
+      if (created.status === 'PENDING_MANAGEMENT_APPROVAL') {
+        toast.success('Submitted for management approval');
+      } else {
+        toast.success('Visitor pass created');
+      }
       router.push(`/visitors/${created.id}`);
     } catch (err) {
       toast.error((err as Error).message);
@@ -48,38 +96,156 @@ export default function NewVisitorPage() {
     <div className="max-w-xl">
       <h2 className="sr-section-title mb-1">Pre-register a visitor</h2>
       <p className="sr-muted mb-6">
-        A QR pass and short access code are generated automatically for the guard.
+        Choose how they arrive, set their expected time, and we handle the rest.
       </p>
       <Card>
-        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="flex flex-col gap-2">
+            <Label>How are they arriving?</Label>
+            <div className="grid grid-cols-2 gap-3">
+              {(
+                [
+                  { id: 'WALK_IN' as const, label: 'Walk in', icon: Footprints },
+                  { id: 'DRIVE_IN' as const, label: 'Drive in', icon: Car },
+                ] as const
+              ).map((mode) => {
+                const active = entryMode === mode.id;
+                const Icon = mode.icon;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => form.setValue('entryMode', mode.id)}
+                    className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-colors ${
+                      active
+                        ? 'border-[rgb(var(--sr-primary))] bg-[rgb(var(--sr-primary)/0.08)]'
+                        : 'border-[rgb(var(--sr-border))] hover:bg-[rgb(var(--sr-surface-elevated))]'
+                    }`}
+                  >
+                    <Icon className="size-6" />
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Visitor name</Label>
             <Input id="name" {...form.register('name')} />
+            {form.formState.errors.name ? (
+              <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
+            ) : null}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-[7rem_1fr] gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phoneCountryCode">Code</Label>
+              <select
+                id="phoneCountryCode"
+                className="h-10 rounded-lg border border-[rgb(var(--sr-border))] bg-transparent px-2 text-sm"
+                {...form.register('phoneCountryCode')}
+              >
+                {PHONE_COUNTRY_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="phone">Phone (optional)</Label>
               <Input id="phone" {...form.register('phone')} />
             </div>
+          </div>
+
+          {entryMode === 'DRIVE_IN' ? (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="vehiclePlate">Plate number</Label>
               <Input id="vehiclePlate" {...form.register('vehiclePlate')} />
+              {form.formState.errors.vehiclePlate ? (
+                <p className="text-xs text-red-600">{form.formState.errors.vehiclePlate.message}</p>
+              ) : null}
             </div>
-          </div>
+          ) : null}
+
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="expectedAt">Expected arrival</Label>
             <Input
               id="expectedAt"
               type="datetime-local"
-              {...form.register('expectedAt', {
-                setValueAs: (v) => (v ? new Date(v) : v),
-              })}
+              value={datetimeValue}
+              onChange={(e) => {
+                const v = e.target.value;
+                form.setValue('expectedAt', v ? new Date(v) : defaultExpectedArrival(), {
+                  shouldValidate: true,
+                });
+              }}
             />
           </div>
+
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-[rgb(var(--sr-border))] px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Overnight stay</p>
+              <p className="text-xs sr-muted">Visitor stays past midnight</p>
+            </div>
+            <input
+              type="checkbox"
+              className="size-5 accent-[rgb(var(--sr-primary))]"
+              checked={Boolean(overnight)}
+              onChange={(e) => form.setValue('overnight', e.target.checked)}
+            />
+          </label>
+
+          {overnight && preview.data ? (
+            <Card className="flex gap-3 border-[rgb(var(--sr-primary)/0.25)] bg-[rgb(var(--sr-primary)/0.05)] p-4">
+              <Info className="size-5 shrink-0 text-[rgb(var(--sr-primary))]" />
+              <div className="flex flex-col gap-2 text-sm">
+                <p>{preview.data.helperMessage}</p>
+                {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
+                  <p className="font-medium">
+                    {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left
+                    tonight
+                  </p>
+                ) : null}
+                {preview.data.slotsFull ? (
+                  <p className="text-red-600 font-medium">
+                    No slots — contact management or register urgent and visit the office
+                  </p>
+                ) : null}
+              </div>
+            </Card>
+          ) : null}
+
+          {showUrgentReason ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="urgentReason">Why is this urgent? (required)</Label>
+              <Input
+                id="urgentReason"
+                placeholder="e.g. Family emergency travel"
+                {...form.register('urgentReason')}
+              />
+              {form.formState.errors.urgentReason ? (
+                <p className="text-xs text-red-600">{form.formState.errors.urgentReason.message}</p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="purpose">Purpose (optional)</Label>
-            <Textarea id="purpose" {...form.register('purpose')} />
+            <Label htmlFor="purpose">Purpose</Label>
+            <select
+              id="purpose"
+              className="h-10 rounded-lg border border-[rgb(var(--sr-border))] bg-transparent px-3 text-sm"
+              {...form.register('purpose')}
+            >
+              {VISITOR_PURPOSE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
+
           <div className="flex justify-end gap-3 mt-2">
             <Button
               type="button"
@@ -89,8 +255,8 @@ export default function NewVisitorPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Creating…' : 'Create pass'}
+            <Button type="submit" disabled={form.formState.isSubmitting || slotsBlocked}>
+              {form.formState.isSubmitting ? 'Submitting…' : 'Create pass'}
             </Button>
           </div>
         </form>

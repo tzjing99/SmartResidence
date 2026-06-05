@@ -1,19 +1,24 @@
 'use client';
 
-import { type HTMLMotionProps, motion } from 'framer-motion';
+import { type HTMLMotionProps, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { cn } from '../lib/cn';
+import { iosSpring, tapScale } from '../motion';
 
 export const Card = React.forwardRef<HTMLDivElement, HTMLMotionProps<'div'>>(
-  ({ className, ...props }, ref) => (
-    <motion.div
-      ref={ref}
-      whileHover={{ y: -2 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-      className={cn('sr-card p-6', className)}
-      {...props}
-    />
-  ),
+  ({ className, ...props }, ref) => {
+    const reduceMotion = useReducedMotion();
+    return (
+      <motion.div
+        ref={ref}
+        whileHover={reduceMotion ? undefined : { y: -2 }}
+        whileTap={reduceMotion ? undefined : { scale: tapScale }}
+        transition={iosSpring.gentle}
+        className={cn('sr-card p-6', className)}
+        {...props}
+      />
+    );
+  },
 );
 Card.displayName = 'Card';
 

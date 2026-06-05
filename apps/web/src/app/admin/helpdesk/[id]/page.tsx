@@ -241,7 +241,7 @@ export default function AdminThreadPage() {
 
           {pending ? (
             <div
-              className="rounded-xl border border-sky-400/40 bg-sky-400/10 px-3 py-2 text-sm flex items-center gap-2"
+              className="relative overflow-hidden rounded-xl border border-sky-200/70 bg-sky-50/60 dark:bg-sky-950/20 dark:border-sky-700/40 pl-4 pr-4 py-3 text-sm flex items-center gap-2 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-sky-500"
               title="Tap a management message below to change which reply counts as the fix."
             >
               <CheckCircle2 className="size-4 text-sky-600 shrink-0" />
@@ -249,7 +249,7 @@ export default function AdminThreadPage() {
             </div>
           ) : null}
 
-          <Card className="p-4">
+          <Card className="p-5 shadow-sm">
             <ThreadMessageList
               messages={t.messages}
               variant="admin"
@@ -293,8 +293,8 @@ export default function AdminThreadPage() {
 
         {/* Sidebar — metadata + actions */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-4">
-          <Card className="p-4 flex flex-col gap-3">
-            <h3 className="text-sm font-medium">Details</h3>
+          <Card className="p-5 flex flex-col gap-4 shadow-sm">
+            <h3 className="text-sm font-semibold">Details</h3>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1">
                 <span className="text-[11px] sr-muted uppercase tracking-wide">Priority</span>
@@ -367,8 +367,8 @@ export default function AdminThreadPage() {
             </div>
           </Card>
 
-          <Card className="p-4 flex flex-col gap-3">
-            <h3 className="text-sm font-medium">Wrap up</h3>
+          <Card className="p-5 flex flex-col gap-4 shadow-sm">
+            <h3 className="text-sm font-semibold">Wrap up</h3>
 
             {awaitingResident ? (
               <ActionHint>

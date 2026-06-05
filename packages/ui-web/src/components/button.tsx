@@ -1,10 +1,14 @@
+'use client';
+
 import { Slot } from '@radix-ui/react-slot';
 import { type VariantProps, cva } from 'class-variance-authority';
+import { motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { cn } from '../lib/cn';
+import { iosSpring, tapScale } from '../motion';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium leading-none transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[rgb(var(--sr-coral))] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium leading-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[rgb(var(--sr-coral))] disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -33,11 +37,29 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+const MotionButton = motion.button;
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button';
+  ({ className, variant, size, asChild = false, type = 'button', ...props }, ref) => {
+    const reduceMotion = useReducedMotion();
+
+    if (asChild) {
+      return (
+        <Slot ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />
+      );
+    }
+
+    const { onDrag, onDragStart, onDragEnd, onAnimationStart, onAnimationEnd, ...rest } = props;
+
     return (
-      <Comp ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />
+      <MotionButton
+        ref={ref}
+        type={type}
+        whileTap={reduceMotion ? undefined : { scale: tapScale }}
+        transition={iosSpring.snappy}
+        className={cn(buttonVariants({ variant, size }), className)}
+        {...rest}
+      />
     );
   },
 );

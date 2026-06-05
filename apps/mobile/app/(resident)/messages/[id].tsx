@@ -22,6 +22,7 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { ThreadMessageList } from '../../../src/components/thread-message-list';
 import { api } from '../../../src/lib/api';
+import { hapticLight } from '../../../src/lib/haptics';
 
 const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = {
   OPEN: 'info',
@@ -82,15 +83,21 @@ export default function MessageDetailScreen() {
           {proposed ? (
             <View
               style={{
-                backgroundColor: '#e0f2fe',
+                backgroundColor: palette.surfaceLight,
                 padding: 12,
-                borderRadius: radius.md,
+                borderRadius: radius.lg,
                 marginBottom: 10,
                 gap: 4,
+                borderWidth: 1,
+                borderLeftWidth: 4,
+                borderColor: '#0ea5e9',
               }}
             >
-              <AppText variant="caption" style={{ color: '#0369a1', fontWeight: '700' }}>
-                Proposed solution
+              <AppText
+                variant="caption"
+                style={{ color: '#0369a1', fontWeight: '700', textTransform: 'uppercase' }}
+              >
+                Suggested fix
               </AppText>
               <AppText variant="bodySm">{proposed.body}</AppText>
             </View>
@@ -98,7 +105,10 @@ export default function MessageDetailScreen() {
           <Stack gap={8}>
             <Button
               title="Confirm resolved"
-              onPress={() => confirm.mutate({ id: threadId, confirmed: true })}
+              onPress={() => {
+                void hapticLight();
+                confirm.mutate({ id: threadId, confirmed: true });
+              }}
             />
             <Button title="Not resolved" variant="secondary" onPress={() => setRejectMode(true)} />
           </Stack>
@@ -196,6 +206,7 @@ export default function MessageDetailScreen() {
             <Button
               title="Send"
               onPress={() => {
+                void hapticLight();
                 post.mutate({ id: threadId, body });
                 setBody('');
               }}

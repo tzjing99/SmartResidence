@@ -13,6 +13,12 @@ export const palette = {
   textDark: '#F3F4F6',
   mutedLight: '#6B7280',
   mutedDark: '#9CA3AF',
+  messageResidentBg: '#FAFAF9',
+  messageResidentBorder: '#E7E5E4',
+  messageMgmtCoralBg: '#FFF1F0',
+  messageMgmtSkyBg: '#F0F9FF',
+  messageMgmtSkyBorder: '#BAE6FD',
+  messageMgmtSkyText: '#0C4A6E',
 } as const;
 
 export const radius = {

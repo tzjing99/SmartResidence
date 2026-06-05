@@ -15,8 +15,16 @@ import {
 } from '@/lib/thread-ui';
 import { useThreads } from '@smartresidence/api-client';
 import type { ThreadCategory, ThreadPriority, ThreadStatus } from '@smartresidence/api-client';
-import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Badge,
+  Card,
+  EmptyState,
+  Skeleton,
+  cn,
+  iosSpring,
+  listStaggerDelay,
+} from '@smartresidence/ui-web';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Inbox } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
@@ -54,6 +62,7 @@ const SLA_OPTIONS = [
 const selectCls = 'sr-select w-auto';
 
 export default function HelpdeskPage() {
+  const reduceMotion = useReducedMotion();
   const [status, setStatus] = React.useState<ThreadStatus | ''>('');
   const [priority, setPriority] = React.useState<ThreadPriority | ''>('');
   const [category, setCategory] = React.useState('');
@@ -186,61 +195,80 @@ export default function HelpdeskPage() {
 
           <ul className="flex flex-col gap-2">
             <AnimatePresence initial={false}>
-              {visible.map((t) => (
-                <motion.li
-                  key={t.id}
-                  layout
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <Link href={`/admin/helpdesk/${t.id}`}>
-                    <Card className="transition-colors hover:border-[rgb(var(--sr-coral))]/40">
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:items-center">
-                        <div className="lg:col-span-5 min-w-0">
-                          <div className="font-medium truncate leading-tight">{t.subject}</div>
-                          <div className="text-meta-row mt-0.5">
-                            <Badge tone="neutral">{categoryLabel(t.category)}</Badge>
-                            <span className="text-meta-sep">·</span>
-                            <span>
-                              {t._count?.messages ?? 0} msg
+              {visible.map((t, index) => {
+                const needsAttention =
+                  t.status === 'AWAITING_MANAGEMENT' || t.status === 'REOPENED';
+                return (
+                  <motion.li
+                    key={t.id}
+                    layout
+                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
+                    transition={
+                      reduceMotion
+                        ? { duration: 0 }
+                        : { ...iosSpring.default, delay: listStaggerDelay(index) }
+                    }
+                  >
+                    <Link href={`/admin/helpdesk/${t.id}`}>
+                      <Card
+                        className={cn(
+                          'transition-all duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25',
+                          needsAttention &&
+                            'border-l-[3px] border-l-coral-500/70 bg-coral-50/20 dark:bg-coral-950/10',
+                        )}
+                      >
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:items-center">
+                          <div className="lg:col-span-5 min-w-0">
+                            <div
+                              className={cn(
+                                'truncate leading-tight',
+                                needsAttention ? 'font-semibold' : 'font-medium',
+                              )}
+                            >
+                              {t.subject}
+                            </div>
+                            <div className="text-meta-row mt-0.5">
+                              <Badge tone="neutral">{categoryLabel(t.category)}</Badge>
+                              <span className="text-meta-sep">·</span>
+                              <span>{t._count?.messages ?? 0} msg</span>
+                              <span className="text-meta-sep">·</span>
+                              <span>updated {new Date(t.lastMessageAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <div className="lg:col-span-2 text-sm min-w-0">
+                            <div className="truncate">{t.createdBy?.name ?? 'Resident'}</div>
+                            {t.unit?.identifier ? (
+                              <div className="text-meta">Unit {t.unit.identifier}</div>
+                            ) : null}
+                          </div>
+                          <div className="lg:col-span-1">
+                            <Badge tone={PRIORITY_TONE[t.priority]}>
+                              {priorityLabel(t.priority)}
+                            </Badge>
+                          </div>
+                          <div className="lg:col-span-2 flex flex-col gap-1 justify-center">
+                            <Badge tone={STATUS_TONE[t.status]} className="self-start">
+                              {statusLabel(t.status)}
+                            </Badge>
+                            <span className="text-meta truncate">
+                              {t.assignedTo?.name ?? 'No one assigned yet'}
                             </span>
-                            <span className="text-meta-sep">·</span>
-                            <span>updated {new Date(t.lastMessageAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="lg:col-span-2">
+                            <SlaChip
+                              slaState={t.slaState}
+                              firstResponseDueAt={t.firstResponseDueAt}
+                              resolutionDueAt={t.resolutionDueAt}
+                            />
                           </div>
                         </div>
-                        <div className="lg:col-span-2 text-sm min-w-0">
-                          <div className="truncate">{t.createdBy?.name ?? 'Resident'}</div>
-                          {t.unit?.identifier ? (
-                            <div className="text-meta">Unit {t.unit.identifier}</div>
-                          ) : null}
-                        </div>
-                        <div className="lg:col-span-1">
-                          <Badge tone={PRIORITY_TONE[t.priority]}>
-                            {priorityLabel(t.priority)}
-                          </Badge>
-                        </div>
-                        <div className="lg:col-span-2 flex flex-col gap-1 justify-center">
-                          <Badge tone={STATUS_TONE[t.status]} className="self-start">
-                            {statusLabel(t.status)}
-                          </Badge>
-                          <span className="text-meta truncate">
-                            {t.assignedTo?.name ?? 'No one assigned yet'}
-                          </span>
-                        </div>
-                        <div className="lg:col-span-2">
-                          <SlaChip
-                            slaState={t.slaState}
-                            firstResponseDueAt={t.firstResponseDueAt}
-                            resolutionDueAt={t.resolutionDueAt}
-                          />
-                        </div>
-                      </div>
-                    </Card>
-                  </Link>
-                </motion.li>
-              ))}
+                      </Card>
+                    </Link>
+                  </motion.li>
+                );
+              })}
             </AnimatePresence>
           </ul>
         </>

@@ -39,9 +39,9 @@ export function SlaChip({
   const dueText = due ? formatDeadline(due.dueAt, due.kind) : null;
   const pop =
     slaState === 'BREACHED'
-      ? 'ring-1 ring-red-500/40 font-semibold'
+      ? 'font-semibold shadow-sm'
       : slaState === 'AT_RISK'
-        ? 'ring-1 ring-amber-500/40 font-semibold'
+        ? 'font-medium'
         : '';
 
   return (

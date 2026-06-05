@@ -28,6 +28,15 @@ export function authorInitials(name?: string | null): string {
 }
 
 export type MessageAlignment = 'left' | 'right';
+export type MessageRole = 'resident' | 'management';
+
+export function messageRole(
+  message: ThreadMessageItem,
+  opts: { residentId?: string },
+): MessageRole {
+  const isResidentAuthor = Boolean(opts.residentId && message.author?.id === opts.residentId);
+  return isResidentAuthor ? 'resident' : 'management';
+}
 
 export function messageAlignment(
   message: ThreadMessageItem,

@@ -12,6 +12,12 @@
     --sr-coral: 255 90 95;
     --sr-coral-fg: 255 255 255;
     --sr-navy: 31 49 72;
+    --message-resident-bg: 250 250 249;
+    --message-resident-border: 231 229 228;
+    --message-mgmt-coral-bg: 255 241 240;
+    --message-mgmt-coral-border: 255 177 168;
+    --message-mgmt-sky-bg: 240 249 255;
+    --message-mgmt-sky-border: 186 230 253;
   }
   .dark {
     --sr-bg: 11 23 39;
@@ -22,6 +28,12 @@
     --sr-coral: 255 111 96;
     --sr-coral-fg: 255 255 255;
     --sr-navy: 209 224 240;
+    --message-resident-bg: 28 25 23;
+    --message-resident-border: 68 64 60;
+    --message-mgmt-coral-bg: 110 27 31;
+    --message-mgmt-coral-border: 185 47 53;
+    --message-mgmt-sky-bg: 12 35 64;
+    --message-mgmt-sky-border: 3 105 161;
   }
   html,
   body {
@@ -33,7 +45,19 @@
 
 @layer components {
   .sr-card {
-    @apply rounded-2xl bg-[rgb(var(--sr-card))] border border-[rgb(var(--sr-border))] shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06)];
+    @apply rounded-xl bg-[rgb(var(--sr-card))] border border-[rgb(var(--sr-border))]/80 shadow-sm;
+  }
+  .message-bubble-resident {
+    @apply bg-[rgb(var(--message-resident-bg))] border border-[rgb(var(--message-resident-border))]/80 text-[rgb(var(--sr-fg))];
+  }
+  .message-bubble-mgmt-coral {
+    @apply bg-[rgb(var(--sr-coral))] text-[rgb(var(--sr-coral-fg))] shadow-sm;
+  }
+  .message-bubble-mgmt-sky {
+    @apply bg-[rgb(var(--message-mgmt-sky-bg))] border border-[rgb(var(--message-mgmt-sky-border))]/70 text-sky-950 dark:text-sky-100;
+  }
+  .message-bubble-proposed {
+    @apply relative overflow-hidden border border-sky-200/70 dark:border-sky-700/50 bg-[rgb(var(--sr-card))] shadow-sm text-[rgb(var(--sr-fg))] pl-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-sky-500;
   }
   .sr-section-title {
     @apply text-2xl font-semibold tracking-tight text-left leading-tight;

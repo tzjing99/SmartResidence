@@ -6,5 +6,8 @@ export * from './components/Text';
 export * from './components/MetaLine';
 export * from './components/AlignRow';
 export * from './components/Input';
+export * from './components/FadeInView';
+export * from './components/AnimatedPressable';
+export * from './hooks/useReducedMotion';
 export * from './typography';
 export * from './tokens';

@@ -3,13 +3,15 @@
 import { api } from '@/lib/api';
 import { PRIORITY_TONE, STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
 import { useThreads } from '@smartresidence/api-client';
-import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
+import { Badge, Button, Card, EmptyState, Skeleton, iosSpring, listStaggerDelay } from '@smartresidence/ui-web';
+import { motion, useReducedMotion } from 'framer-motion';
 import { MessageSquarePlus } from 'lucide-react';
 import Link from 'next/link';
 
 const SKELETON_KEYS = ['s1', 's2', 's3'];
 
 export default function MessagesPage() {
+  const reduceMotion = useReducedMotion();
   const threads = useThreads(api);
 
   return (
@@ -45,10 +47,19 @@ export default function MessagesPage() {
         />
       ) : (
         <ul className="flex flex-col gap-3">
-          {threads.data?.items.map((t) => (
-            <li key={t.id}>
+          {threads.data?.items.map((t, index) => (
+            <motion.li
+              key={t.id}
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : { ...iosSpring.default, delay: listStaggerDelay(index) }
+              }
+            >
               <Link href={`/messages/${t.id}`}>
-                <Card className="transition-colors hover:border-[rgb(var(--sr-coral))]/40">
+                <Card className="transition-all duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25">
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="font-medium truncate leading-tight">{t.subject}</div>
@@ -67,7 +78,7 @@ export default function MessagesPage() {
                   </div>
                 </Card>
               </Link>
-            </li>
+            </motion.li>
           ))}
         </ul>
       )}

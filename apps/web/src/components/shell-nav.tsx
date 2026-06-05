@@ -88,9 +88,9 @@ export function PageFade({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       key={pathname}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
+      initial={{ opacity: 0, x: 10, y: 2 }}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.9 }}
     >
       {children}
     </motion.div>

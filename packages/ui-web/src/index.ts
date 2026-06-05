@@ -5,4 +5,5 @@ export * from './components/badge';
 export * from './components/skeleton';
 export * from './components/empty-state';
 export * from './lib/cn';
+export * from './motion';
 export * from './tokens';

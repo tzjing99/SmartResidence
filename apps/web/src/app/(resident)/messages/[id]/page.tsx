@@ -198,19 +198,21 @@ export default function ResidentThreadPage() {
       </header>
 
       {pending && !rejectMode ? (
-        <div className="rounded-2xl border border-sky-400/40 bg-sky-400/10 px-4 py-4 flex flex-col gap-3">
+        <div className="relative overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/60 dark:bg-sky-950/20 dark:border-sky-700/40 pl-5 pr-4 py-4 flex flex-col gap-4 before:absolute before:left-0 before:top-3 before:bottom-3 before:w-1 before:rounded-full before:bg-sky-500">
           <div className="flex items-start gap-2 text-sm">
             <CheckCircle2 className="size-5 text-sky-600 shrink-0" />
             <div>
-              <div className="font-medium">
+              <div className="font-semibold">
                 Management says this is fixed. Does that match what you see?
               </div>
             </div>
           </div>
           {proposedMsg ? (
-            <div className="rounded-xl bg-white/60 dark:bg-black/20 px-3 py-2 text-sm ring-2 ring-sky-500">
-              <div className="text-[11px] font-semibold text-sky-700 mb-1">Suggested fix</div>
-              <div className="whitespace-pre-line">{proposedMsg.body}</div>
+            <div className="message-bubble-proposed rounded-xl px-4 py-3 text-sm">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-400 mb-1">
+                Suggested fix
+              </div>
+              <div className="whitespace-pre-line leading-relaxed">{proposedMsg.body}</div>
             </div>
           ) : null}
           <div className="flex flex-wrap gap-2">
@@ -289,7 +291,7 @@ export default function ResidentThreadPage() {
         </Card>
       ) : null}
 
-      <Card className="p-4">
+      <Card className="p-5 shadow-sm">
         <ThreadMessageList
           messages={t.messages}
           variant="resident"

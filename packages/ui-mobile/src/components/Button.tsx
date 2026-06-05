@@ -1,6 +1,7 @@
 import { MotiView } from 'moti';
 import * as React from 'react';
 import { Pressable, type PressableProps, Text, type ViewStyle } from 'react-native';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { palette, radius, spring } from '../tokens';
 import { textBase, typography } from '../typography';
 
@@ -20,6 +21,7 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   ...props
 }) => {
+  const reduceMotion = useReducedMotion();
   const [pressed, setPressed] = React.useState(false);
   const heights = { sm: 36, md: 44, lg: 52 };
   const textVariants = { sm: typography.bodySm, md: typography.body, lg: typography.subheading };
@@ -44,7 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       <MotiView
-        animate={{ scale: pressed ? 0.97 : 1 }}
+        animate={{ scale: !reduceMotion && pressed ? 0.97 : 1 }}
         transition={spring.snappy}
         style={{
           height: heights[size],

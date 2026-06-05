@@ -57,8 +57,6 @@ export default function ResidentTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="messages/[id]" options={{ href: null }} />
-      <Tabs.Screen name="messages/new" options={{ href: null }} />
       <Tabs.Screen
         name="settings"
         options={{

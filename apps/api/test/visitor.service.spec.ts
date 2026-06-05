@@ -114,6 +114,7 @@ describe('VisitorService', () => {
     const v = await svc.create(host, {
       unitId: 'u1',
       name: 'Jane Doe',
+      phone: '123456789',
       vehiclePlate: 'ABC1234',
       expectedAt: new Date('2026-06-10T10:00:00Z'),
     } as any);
@@ -134,6 +135,7 @@ describe('VisitorService', () => {
       svc.create(host, {
         unitId: 'u1',
         name: 'Late guest',
+        phone: '123456789',
         vehiclePlate: 'ABC1234',
         vehiclePlatePhotoUrl: 'uploads/plate.jpg',
         expectedAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
@@ -169,6 +171,7 @@ describe('VisitorService', () => {
     const v = await svc.create(host, {
       unitId: 'u1',
       name: 'Weekday guest',
+      phone: '123456789',
       vehiclePlate: 'WXY9876',
       vehiclePlatePhotoUrl: 'uploads/plate2.jpg',
       expectedAt,

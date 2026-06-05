@@ -28,7 +28,10 @@ describe('ListVisitorsQueryDto', () => {
 
   it('rejects unknown query params', async () => {
     await expect(
-      pipe.transform({ view: 'upcoming', foo: 'bar' }, { type: 'query', metatype: ListVisitorsQueryDto }),
+      pipe.transform(
+        { view: 'upcoming', foo: 'bar' },
+        { type: 'query', metatype: ListVisitorsQueryDto },
+      ),
     ).rejects.toThrow('Bad Request Exception');
   });
 });

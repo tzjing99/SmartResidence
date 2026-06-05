@@ -16,15 +16,7 @@ import {
   defaultExpectedArrival,
   toDatetimeLocalValue,
 } from '@smartresidence/shared-types';
-import {
-  Button,
-  Card,
-  Input,
-  Label,
-  NativeSelect,
-  Select,
-  cn,
-} from '@smartresidence/ui-web';
+import { Button, Input, Label, NativeSelect, Select, cn } from '@smartresidence/ui-web';
 import { Car, Footprints, Info, Upload } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -190,226 +182,234 @@ export default function NewVisitorPage() {
         still available if they arrive on foot.
       </p>
       <form className="flex flex-col gap-4 overflow-visible" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormSection title="How are they arriving?">
-            <div className="grid grid-cols-2 gap-3">
-              {(
-                [
-                  { id: 'DRIVE_IN' as const, label: 'Drive in', icon: Car },
-                  { id: 'WALK_IN' as const, label: 'Walk in', icon: Footprints },
-                ] as const
-              ).map((mode) => {
-                const active = entryMode === mode.id;
-                const Icon = mode.icon;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => form.setValue('entryMode', mode.id)}
-                    className={cn(
-                      'flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-semibold transition-colors',
-                      active
-                        ? 'border-[rgb(var(--sr-coral))] bg-[rgb(var(--sr-coral)/0.08)] text-[rgb(var(--sr-coral))] shadow-sm'
-                        : 'border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] text-[rgb(var(--sr-fg))] hover:border-stone-300 hover:bg-stone-50/80 dark:hover:bg-stone-900/30',
-                    )}
-                  >
-                    <Icon className={cn('size-6', active ? 'text-[rgb(var(--sr-coral))]' : 'sr-muted')} />
-                    {mode.label}
-                  </button>
-                );
-              })}
-            </div>
-          </FormSection>
+        <FormSection title="How are they arriving?">
+          <div className="grid grid-cols-2 gap-3">
+            {(
+              [
+                { id: 'DRIVE_IN' as const, label: 'Drive in', icon: Car },
+                { id: 'WALK_IN' as const, label: 'Walk in', icon: Footprints },
+              ] as const
+            ).map((mode) => {
+              const active = entryMode === mode.id;
+              const Icon = mode.icon;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => form.setValue('entryMode', mode.id)}
+                  className={cn(
+                    'flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-semibold transition-colors',
+                    active
+                      ? 'border-[rgb(var(--sr-coral))] bg-[rgb(var(--sr-coral)/0.08)] text-[rgb(var(--sr-coral))] shadow-sm'
+                      : 'border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] text-[rgb(var(--sr-fg))] hover:border-stone-300 hover:bg-stone-50/80 dark:hover:bg-stone-900/30',
+                  )}
+                >
+                  <Icon
+                    className={cn('size-6', active ? 'text-[rgb(var(--sr-coral))]' : 'sr-muted')}
+                  />
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+        </FormSection>
 
-          <FormSection title="Guest details" description="Name and contact for the gate pass.">
+        <FormSection title="Guest details" description="Name and contact for the gate pass.">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="name">Visitor name</Label>
+            <Input
+              id="name"
+              className="bg-white dark:bg-[rgb(var(--sr-card))]"
+              {...form.register('name')}
+            />
+            {form.formState.errors.name ? (
+              <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-[7rem_1fr] gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="name">Visitor name</Label>
-              <Input id="name" className="bg-white dark:bg-[rgb(var(--sr-card))]" {...form.register('name')} />
-              {form.formState.errors.name ? (
-                <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
+              <Label htmlFor="phoneCountryCode">Code</Label>
+              <NativeSelect id="phoneCountryCode" {...form.register('phoneCountryCode')}>
+                {PHONE_COUNTRY_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                className="bg-white dark:bg-[rgb(var(--sr-card))]"
+                required
+                {...form.register('phone')}
+              />
+              {form.formState.errors.phone ? (
+                <p className="text-xs text-red-600">{form.formState.errors.phone.message}</p>
               ) : null}
             </div>
+          </div>
 
-            <div className="grid grid-cols-[7rem_1fr] gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="phoneCountryCode">Code</Label>
-                <NativeSelect id="phoneCountryCode" {...form.register('phoneCountryCode')}>
-                  {PHONE_COUNTRY_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  className="bg-white dark:bg-[rgb(var(--sr-card))]"
-                  required
-                  {...form.register('phone')}
-                />
-                {form.formState.errors.phone ? (
-                  <p className="text-xs text-red-600">{form.formState.errors.phone.message}</p>
-                ) : null}
-              </div>
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="purpose">Purpose</Label>
+            <Select
+              id="purpose"
+              aria-label="Visit purpose"
+              value={purpose ?? 'VISITOR'}
+              onValueChange={(v) => form.setValue('purpose', v as CreateVisitorInput['purpose'])}
+              options={VISITOR_PURPOSE_OPTIONS}
+            />
+          </div>
+        </FormSection>
 
+        {entryMode === 'DRIVE_IN' || overnight ? (
+          <FormSection title="Vehicle">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="purpose">Purpose</Label>
-              <Select
-                id="purpose"
-                aria-label="Visit purpose"
-                value={purpose ?? 'VISITOR'}
-                onValueChange={(v) => form.setValue('purpose', v as CreateVisitorInput['purpose'])}
-                options={VISITOR_PURPOSE_OPTIONS}
-              />
-            </div>
-          </FormSection>
-
-          {entryMode === 'DRIVE_IN' || overnight ? (
-            <FormSection title="Vehicle">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="vehiclePlate">Plate number</Label>
-                <Input
-                  id="vehiclePlate"
-                  className="bg-white dark:bg-[rgb(var(--sr-card))]"
-                  {...form.register('vehiclePlate')}
-                />
-                {overnight ? (
-                  <p className="text-xs sr-muted">
-                    Must match the plate in your photo — management may flag mismatches
-                  </p>
-                ) : null}
-                {form.formState.errors.vehiclePlate ? (
-                  <p className="text-xs text-red-600">{form.formState.errors.vehiclePlate.message}</p>
-                ) : null}
-              </div>
-            </FormSection>
-          ) : null}
-
-          <FormSection title="Arrival">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="expectedAt">Expected arrival</Label>
+              <Label htmlFor="vehiclePlate">Plate number</Label>
               <Input
-                id="expectedAt"
+                id="vehiclePlate"
                 className="bg-white dark:bg-[rgb(var(--sr-card))]"
-                type="datetime-local"
-                value={datetimeValue}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  form.setValue('expectedAt', v ? new Date(v) : defaultExpectedArrival(), {
-                    shouldValidate: true,
-                  });
-                }}
+                {...form.register('vehiclePlate')}
               />
+              {overnight ? (
+                <p className="text-xs sr-muted">
+                  Must match the plate in your photo — management may flag mismatches
+                </p>
+              ) : null}
+              {form.formState.errors.vehiclePlate ? (
+                <p className="text-xs text-red-600">{form.formState.errors.vehiclePlate.message}</p>
+              ) : null}
             </div>
           </FormSection>
+        ) : null}
 
-          <FormSection title="Overnight stay" description="Optional — visitor stays past midnight.">
-            <label
-              className={cn(
-                'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors',
-                overnight
-                  ? 'border-[rgb(var(--sr-coral)/0.35)] bg-[rgb(var(--sr-coral)/0.04)]'
-                  : 'border-[rgb(var(--sr-border))] bg-stone-50/50 dark:bg-stone-900/20',
-              )}
-            >
-              <div>
-                <p className="text-sm font-semibold">Enable overnight</p>
-                <p className="text-xs sr-muted">Drive-in only · plate photo required</p>
+        <FormSection title="Arrival">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="expectedAt">Expected arrival</Label>
+            <Input
+              id="expectedAt"
+              className="bg-white dark:bg-[rgb(var(--sr-card))]"
+              type="datetime-local"
+              value={datetimeValue}
+              onChange={(e) => {
+                const v = e.target.value;
+                form.setValue('expectedAt', v ? new Date(v) : defaultExpectedArrival(), {
+                  shouldValidate: true,
+                });
+              }}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="Overnight stay" description="Optional — visitor stays past midnight.">
+          <label
+            className={cn(
+              'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors',
+              overnight
+                ? 'border-[rgb(var(--sr-coral)/0.35)] bg-[rgb(var(--sr-coral)/0.04)]'
+                : 'border-[rgb(var(--sr-border))] bg-stone-50/50 dark:bg-stone-900/20',
+            )}
+          >
+            <div>
+              <p className="text-sm font-semibold">Enable overnight</p>
+              <p className="text-xs sr-muted">Drive-in only · plate photo required</p>
+            </div>
+            <input
+              type="checkbox"
+              className="size-5 accent-[rgb(var(--sr-coral))]"
+              checked={Boolean(overnight)}
+              onChange={(e) => form.setValue('overnight', e.target.checked)}
+            />
+          </label>
+
+          {overnight ? (
+            <div className="flex flex-col gap-4 rounded-xl border border-[rgb(var(--sr-border))] bg-stone-50/60 p-4 dark:bg-stone-900/25">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={platePhotoInputId}>Plate photo (required)</Label>
+                <div className="flex h-11 items-center gap-2 rounded-xl border border-[rgb(var(--sr-border))] bg-white px-2 dark:bg-[rgb(var(--sr-card))]">
+                  <input
+                    ref={platePhotoRef}
+                    id={platePhotoInputId}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    disabled={uploadingPhoto}
+                    className="sr-only"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      await onPlatePhotoChange(file);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-9 shrink-0 rounded-lg"
+                    disabled={uploadingPhoto}
+                    onClick={() => platePhotoRef.current?.click()}
+                  >
+                    <Upload className="size-4" />
+                    {uploadingPhoto ? 'Uploading…' : 'Choose file'}
+                  </Button>
+                  {platePhotoName ? (
+                    <span className="inline-flex min-w-0 max-w-[55%] items-center truncate rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-[rgb(var(--sr-fg))] dark:bg-stone-800">
+                      {platePhotoName}
+                    </span>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate text-sm sr-muted">No file chosen</span>
+                  )}
+                </div>
+                {platePhotoKey ? (
+                  <p className="text-xs text-emerald-700">Photo ready — verify plate matches</p>
+                ) : null}
               </div>
-              <input
-                type="checkbox"
-                className="size-5 accent-[rgb(var(--sr-coral))]"
-                checked={Boolean(overnight)}
-                onChange={(e) => form.setValue('overnight', e.target.checked)}
-              />
-            </label>
 
-            {overnight ? (
-              <div className="flex flex-col gap-4 rounded-xl border border-[rgb(var(--sr-border))] bg-stone-50/60 p-4 dark:bg-stone-900/25">
+              {showUrgentReason ? (
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor={platePhotoInputId}>Plate photo (required)</Label>
-                  <div className="flex h-11 items-center gap-2 rounded-xl border border-[rgb(var(--sr-border))] bg-white px-2 dark:bg-[rgb(var(--sr-card))]">
-                    <input
-                      ref={platePhotoRef}
-                      id={platePhotoInputId}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      disabled={uploadingPhoto}
-                      className="sr-only"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        await onPlatePhotoChange(file);
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-9 shrink-0 rounded-lg"
-                      disabled={uploadingPhoto}
-                      onClick={() => platePhotoRef.current?.click()}
-                    >
-                      <Upload className="size-4" />
-                      {uploadingPhoto ? 'Uploading…' : 'Choose file'}
-                    </Button>
-                    {platePhotoName ? (
-                      <span className="inline-flex min-w-0 max-w-[55%] items-center truncate rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-[rgb(var(--sr-fg))] dark:bg-stone-800">
-                        {platePhotoName}
-                      </span>
-                    ) : (
-                      <span className="min-w-0 flex-1 truncate text-sm sr-muted">No file chosen</span>
-                    )}
-                  </div>
-                  {platePhotoKey ? (
-                    <p className="text-xs text-emerald-700">Photo ready — verify plate matches</p>
+                  <Label htmlFor="urgentReason">Why is this urgent? (required)</Label>
+                  <Input
+                    id="urgentReason"
+                    placeholder="e.g. Family emergency travel"
+                    {...form.register('urgentReason')}
+                  />
+                  {form.formState.errors.urgentReason ? (
+                    <p className="text-xs text-red-600">
+                      {form.formState.errors.urgentReason.message}
+                    </p>
                   ) : null}
                 </div>
+              ) : null}
 
-                {showUrgentReason ? (
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="urgentReason">Why is this urgent? (required)</Label>
-                    <Input
-                      id="urgentReason"
-                      placeholder="e.g. Family emergency travel"
-                      {...form.register('urgentReason')}
-                    />
-                    {form.formState.errors.urgentReason ? (
-                      <p className="text-xs text-red-600">{form.formState.errors.urgentReason.message}</p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {preview.data ? (
-                  <div className="relative overflow-hidden rounded-xl border border-sky-200/70 bg-sky-50/60 pl-4 pr-4 py-3 text-sm dark:border-sky-700/40 dark:bg-sky-950/20">
-                    <div
-                      className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-sky-500"
-                      aria-hidden
-                    />
-                    <div className="flex gap-3">
-                      <Info className="size-5 shrink-0 text-sky-600 dark:text-sky-400" />
-                      <div className="flex flex-col gap-2">
-                        <p>{preview.data.helperMessage}</p>
-                        {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
-                          <p className="font-medium">
-                            {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots
-                            left tonight
-                          </p>
-                        ) : null}
-                        {preview.data.slotsFull ? (
-                          <p className="font-medium text-red-600">
-                            No slots — contact management or register urgent and visit the office
-                          </p>
-                        ) : null}
-                      </div>
+              {preview.data ? (
+                <div className="relative overflow-hidden rounded-xl border border-sky-200/70 bg-sky-50/60 pl-4 pr-4 py-3 text-sm dark:border-sky-700/40 dark:bg-sky-950/20">
+                  <div
+                    className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-sky-500"
+                    aria-hidden
+                  />
+                  <div className="flex gap-3">
+                    <Info className="size-5 shrink-0 text-sky-600 dark:text-sky-400" />
+                    <div className="flex flex-col gap-2">
+                      <p>{preview.data.helperMessage}</p>
+                      {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
+                        <p className="font-medium">
+                          {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots
+                          left tonight
+                        </p>
+                      ) : null}
+                      {preview.data.slotsFull ? (
+                        <p className="font-medium text-red-600">
+                          No slots — contact management or register urgent and visit the office
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                ) : null}
-              </div>
-            ) : null}
-          </FormSection>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </FormSection>
 
         <div className="flex justify-end gap-3 rounded-xl border border-[rgb(var(--sr-border))]/80 bg-white p-4 shadow-sm dark:bg-[rgb(var(--sr-card))]">
           <Button

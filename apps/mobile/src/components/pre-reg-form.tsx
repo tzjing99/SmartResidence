@@ -347,7 +347,10 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
       </View>
 
       <View style={{ gap: 12 }}>
-        <SectionTitle title="Overnight stay" description="Optional — visitor stays past midnight." />
+        <SectionTitle
+          title="Overnight stay"
+          description="Optional — visitor stays past midnight."
+        />
         <Card
           style={{
             borderColor: overnight ? 'rgba(255, 90, 95, 0.35)' : palette.borderLight,
@@ -380,69 +383,69 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
             }}
           >
             <View style={{ gap: 12 }}>
-            <Text style={fieldLabelStyle}>Plate photo (required)</Text>
-            {platePhotoUri ? (
-              <Image
-                source={{ uri: platePhotoUri }}
-                style={{ height: 140, borderRadius: radius.lg }}
-              />
-            ) : null}
-            <Button
-              title={
-                uploadingPhoto
-                  ? 'Uploading…'
-                  : platePhotoKey
-                    ? 'Retake photo'
-                    : 'Capture plate photo'
-              }
-              variant="secondary"
-              size="md"
-              onPress={capturePlatePhoto}
-              disabled={uploadingPhoto}
-            />
-
-            {showUrgentReason ? (
-              <View>
-                <Text style={[fieldLabelStyle, { marginBottom: 6 }]}>
-                  Why is this urgent? (required)
-                </Text>
-                <TextInput
-                  value={form.watch('urgentReason') ?? ''}
-                  onChangeText={(v) => form.setValue('urgentReason', v)}
-                  style={inputStyle}
-                  placeholder="e.g. Family emergency travel"
+              <Text style={fieldLabelStyle}>Plate photo (required)</Text>
+              {platePhotoUri ? (
+                <Image
+                  source={{ uri: platePhotoUri }}
+                  style={{ height: 140, borderRadius: radius.lg }}
                 />
-              </View>
-            ) : null}
+              ) : null}
+              <Button
+                title={
+                  uploadingPhoto
+                    ? 'Uploading…'
+                    : platePhotoKey
+                      ? 'Retake photo'
+                      : 'Capture plate photo'
+                }
+                variant="secondary"
+                size="md"
+                onPress={capturePlatePhoto}
+                disabled={uploadingPhoto}
+              />
 
-            {preview.data ? (
-              <View
-                style={{
-                  borderRadius: radius.lg,
-                  borderWidth: 1,
-                  borderColor: 'rgba(14, 165, 233, 0.35)',
-                  backgroundColor: 'rgba(240, 249, 255, 0.9)',
-                  padding: 12,
-                  borderLeftWidth: 4,
-                  borderLeftColor: '#0ea5e9',
-                }}
-              >
-                <Text style={{ fontSize: 14, color: palette.textLight }}>
-                  {preview.data.helperMessage}
-                </Text>
-                {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
-                  <Text style={{ fontWeight: '700', marginTop: 8, color: palette.textLight }}>
-                    {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left
-                    tonight
+              {showUrgentReason ? (
+                <View>
+                  <Text style={[fieldLabelStyle, { marginBottom: 6 }]}>
+                    Why is this urgent? (required)
                   </Text>
-                ) : null}
-                {preview.data.slotsFull ? (
-                  <Text style={{ color: '#b91c1c', fontWeight: '700', marginTop: 8 }}>
-                    No slots — contact management or register urgent and visit the office
+                  <TextInput
+                    value={form.watch('urgentReason') ?? ''}
+                    onChangeText={(v) => form.setValue('urgentReason', v)}
+                    style={inputStyle}
+                    placeholder="e.g. Family emergency travel"
+                  />
+                </View>
+              ) : null}
+
+              {preview.data ? (
+                <View
+                  style={{
+                    borderRadius: radius.lg,
+                    borderWidth: 1,
+                    borderColor: 'rgba(14, 165, 233, 0.35)',
+                    backgroundColor: 'rgba(240, 249, 255, 0.9)',
+                    padding: 12,
+                    borderLeftWidth: 4,
+                    borderLeftColor: '#0ea5e9',
+                  }}
+                >
+                  <Text style={{ fontSize: 14, color: palette.textLight }}>
+                    {preview.data.helperMessage}
                   </Text>
-                ) : null}
-              </View>
-            ) : null}
+                  {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
+                    <Text style={{ fontWeight: '700', marginTop: 8, color: palette.textLight }}>
+                      {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left
+                      tonight
+                    </Text>
+                  ) : null}
+                  {preview.data.slotsFull ? (
+                    <Text style={{ color: '#b91c1c', fontWeight: '700', marginTop: 8 }}>
+                      No slots — contact management or register urgent and visit the office
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
           </Card>
         ) : null}

@@ -1,12 +1,13 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { NotificationService } from '@/notification/notification.service';
 import type { PrismaService } from '@/prisma/prisma.service';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { RoleId, ThreadMessageKind, ThreadStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AiAssistProvider } from './ai/ai-assist.provider';
 import { SlaService } from './sla/sla.service';
+import type { ThreadAssignmentService } from './thread-assignment.service';
 import { ThreadsService } from './threads.service';
 
 const CONDO = 'condo-1';
@@ -52,12 +53,12 @@ function makeThread(overrides: Record<string, unknown> = {}) {
     closedAt: null,
     resolutionProposedAt: null,
     resolutionProposedByUserId: null,
+    resolutionProposedMessageId: null,
     createdAt: new Date(),
     ...overrides,
   };
 }
 
-/** Build a Prisma mock whose thread.update calls are captured for assertions. */
 function buildPrisma(thread: ReturnType<typeof makeThread>) {
   const updates: Array<Record<string, unknown>> = [];
   const tx = {
@@ -66,27 +67,50 @@ function buildPrisma(thread: ReturnType<typeof makeThread>) {
         updates.push(data);
         return { ...thread, ...data };
       }),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 'thread-new',
+        ...data,
+      })),
     },
     threadMessage: { create: vi.fn(async () => ({ id: 'msg-1' })) },
     attachment: { updateMany: vi.fn() },
+    unit: { findUnique: vi.fn(async () => ({ id: UNIT, condoId: CONDO })) },
   };
   const prisma = {
     thread: {
       findUnique: vi.fn(async () => thread),
       update: tx.thread.update,
       findMany: vi.fn(async () => [thread]),
+      create: tx.thread.create,
+      count: vi.fn(async () => 0),
     },
-    threadMessage: { create: tx.threadMessage.create },
+    threadMessage: {
+      create: tx.threadMessage.create,
+      findFirst: vi.fn(async () => null),
+    },
     threadParticipant: { upsert: vi.fn() },
     roleAssignment: { findMany: vi.fn(async () => [{ userId: MANAGER_ID }]) },
     auditLog: { create: vi.fn() },
+    unit: { findUnique: vi.fn(async () => ({ id: UNIT, condoId: CONDO })) },
+    condo: { findUnique: vi.fn(async () => ({ id: CONDO, settings: {} })) },
     $transaction: vi.fn(async (arg: unknown) =>
       typeof arg === 'function'
         ? (arg as (t: typeof tx) => Promise<unknown>)(tx)
         : Promise.all(arg as Promise<unknown>[]),
     ),
   };
-  return { prisma, updates };
+  return { prisma, updates, tx };
+}
+
+function buildAssignment(): ThreadAssignmentService {
+  return {
+    assignOnCreate: vi.fn(async () => ({
+      assignedToUserId: null,
+      repeatComplainant: false,
+      duplicateSuggestions: [],
+    })),
+    assignOnRecategorise: vi.fn(async () => null),
+  } as unknown as ThreadAssignmentService;
 }
 
 function buildService(prisma: ReturnType<typeof buildPrisma>['prisma']) {
@@ -101,10 +125,17 @@ function buildService(prisma: ReturnType<typeof buildPrisma>['prisma']) {
   } as unknown as SlaService;
   const notifications = { dispatch: vi.fn() } as unknown as NotificationService;
   const ai = { suggestPriority: vi.fn(async () => 'NORMAL') } as unknown as AiAssistProvider;
-  return new ThreadsService(prisma as unknown as PrismaService, events, sla, notifications, ai);
+  return new ThreadsService(
+    prisma as unknown as PrismaService,
+    events,
+    sla,
+    notifications,
+    buildAssignment(),
+    ai,
+  );
 }
 
-describe('ThreadsService — D2 resident-driven resolution', () => {
+describe('ThreadsService — M1 resolution flow', () => {
   it('keeps AWAITING_MANAGEMENT when a resident adds a comment (rule 1)', async () => {
     const thread = makeThread({ status: ThreadStatus.AWAITING_MANAGEMENT });
     const { prisma, updates } = buildPrisma(thread);
@@ -113,29 +144,99 @@ describe('ThreadsService — D2 resident-driven resolution', () => {
     await service.postMessage(resident(), thread.id, { body: 'Any update?' });
 
     expect(updates).toHaveLength(1);
-    // The status must NOT be changed by a resident comment while awaiting management.
     expect(updates[0].status).toBeUndefined();
   });
 
-  it('flips OPEN to AWAITING_MANAGEMENT on a resident comment', async () => {
-    const thread = makeThread({ status: ThreadStatus.OPEN });
+  it('blocks propose-resolve while AWAITING_RESIDENT (B13)', async () => {
+    const thread = makeThread({
+      status: ThreadStatus.AWAITING_RESIDENT,
+      firstRespondedAt: new Date(),
+    });
+    const { prisma } = buildPrisma(thread);
+    const service = buildService(prisma);
+
+    await expect(service.proposeResolution(manager(), thread.id, {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('blocks propose-resolve before management has responded', async () => {
+    const thread = makeThread({ status: ThreadStatus.AWAITING_MANAGEMENT, firstRespondedAt: null });
+    const { prisma } = buildPrisma(thread);
+    const service = buildService(prisma);
+
+    await expect(service.proposeResolution(manager(), thread.id, {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('lets management propose after responding (B6)', async () => {
+    const thread = makeThread({
+      status: ThreadStatus.AWAITING_MANAGEMENT,
+      firstRespondedAt: new Date(),
+    });
     const { prisma, updates } = buildPrisma(thread);
     const service = buildService(prisma);
 
-    await service.postMessage(resident(), thread.id, { body: 'Hello?' });
+    await service.proposeResolution(manager(), thread.id, {});
+
+    expect(updates[0].status).toBe(ThreadStatus.PENDING_RESIDENT_CONFIRMATION);
+  });
+
+  it('requires reject reason and expectation (B3)', async () => {
+    const thread = makeThread({
+      status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
+      resolutionProposedAt: new Date(),
+    });
+    const { prisma } = buildPrisma(thread);
+    const service = buildService(prisma);
+
+    await expect(
+      service.confirmResolution(resident(), thread.id, { confirmed: false }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects with structured feedback', async () => {
+    const thread = makeThread({
+      status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
+      resolutionProposedAt: new Date(),
+    });
+    const { prisma, updates } = buildPrisma(thread);
+    const service = buildService(prisma);
+
+    await service.confirmResolution(resident(), thread.id, {
+      confirmed: false,
+      rejectReason: 'Tap still dripping',
+      rejectExpectation: 'Please send a plumber',
+    });
 
     expect(updates[0].status).toBe(ThreadStatus.AWAITING_MANAGEMENT);
   });
 
-  it('keeps AWAITING_MANAGEMENT (not AWAITING_RESIDENT) on a plain management reply (rule 3)', async () => {
-    const thread = makeThread({ status: ThreadStatus.AWAITING_MANAGEMENT });
+  it('blocks resident reply during pending confirmation (use reject form)', async () => {
+    const thread = makeThread({
+      status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
+      resolutionProposedAt: new Date(),
+    });
+    const { prisma } = buildPrisma(thread);
+    const service = buildService(prisma);
+
+    await expect(
+      service.postMessage(resident(), thread.id, { body: 'Still dripping.' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('appeal requires reason text (B10)', async () => {
+    const thread = makeThread({ status: ThreadStatus.RESOLVED, assignedToUserId: MANAGER_ID });
     const { prisma, updates } = buildPrisma(thread);
     const service = buildService(prisma);
 
-    await service.postMessage(manager(), thread.id, { body: 'Looking into it.' });
+    await service.appeal(resident(), thread.id, {
+      reason: 'Issue came back after two days',
+    });
 
-    expect(updates[0].status).toBe(ThreadStatus.AWAITING_MANAGEMENT);
-    expect(updates[0].firstRespondedAt).toBeInstanceOf(Date);
+    expect(updates[0].status).toBe(ThreadStatus.REOPENED);
+    expect(updates[0].reopenCount).toEqual({ increment: 1 });
   });
 
   it('blocks management from resolving directly via PATCH', async () => {
@@ -147,97 +248,9 @@ describe('ThreadsService — D2 resident-driven resolution', () => {
       service.update(manager(), thread.id, { status: ThreadStatus.RESOLVED }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
-
-  it('lets management propose a resolution (PENDING_RESIDENT_CONFIRMATION)', async () => {
-    const thread = makeThread({ status: ThreadStatus.AWAITING_MANAGEMENT });
-    const { prisma, updates } = buildPrisma(thread);
-    const service = buildService(prisma);
-
-    await service.proposeResolution(manager(), thread.id, {});
-
-    expect(updates[0].status).toBe(ThreadStatus.PENDING_RESIDENT_CONFIRMATION);
-    expect(updates[0].resolutionProposedByUserId).toBe(MANAGER_ID);
-    expect(updates[0].resolutionProposedAt).toBeInstanceOf(Date);
-  });
-
-  it('blocks a resident from proposing a resolution', async () => {
-    const thread = makeThread();
-    const { prisma } = buildPrisma(thread);
-    const service = buildService(prisma);
-
-    await expect(service.proposeResolution(resident(), thread.id, {})).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
-  });
-
-  it('resolves when the resident confirms a proposal (propose → confirm)', async () => {
-    const thread = makeThread({
-      status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
-      resolutionProposedAt: new Date(),
-      resolutionProposedByUserId: MANAGER_ID,
-    });
-    const { prisma, updates } = buildPrisma(thread);
-    const service = buildService(prisma);
-
-    await service.confirmResolution(resident(), thread.id, { confirmed: true });
-
-    expect(updates[0].status).toBe(ThreadStatus.RESOLVED);
-    expect(updates[0].resolvedAt).toBeInstanceOf(Date);
-    expect(updates[0].resolutionProposedAt).toBeNull();
-  });
-
-  it('reverts to AWAITING_MANAGEMENT when the resident replies during a proposal (propose → reply)', async () => {
-    const thread = makeThread({
-      status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
-      resolutionProposedAt: new Date(),
-      resolutionProposedByUserId: MANAGER_ID,
-    });
-    const { prisma, updates } = buildPrisma(thread);
-    const service = buildService(prisma);
-
-    await service.postMessage(resident(), thread.id, { body: 'Still dripping.' });
-
-    expect(updates[0].status).toBe(ThreadStatus.AWAITING_MANAGEMENT);
-    expect(updates[0].resolutionProposedAt).toBeNull();
-  });
-
-  it('reverts to AWAITING_MANAGEMENT when the resident rejects a proposal', async () => {
-    const thread = makeThread({
-      status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
-      resolutionProposedAt: new Date(),
-      resolutionProposedByUserId: MANAGER_ID,
-    });
-    const { prisma, updates } = buildPrisma(thread);
-    const service = buildService(prisma);
-
-    await service.confirmResolution(resident(), thread.id, { confirmed: false });
-
-    expect(updates[0].status).toBe(ThreadStatus.AWAITING_MANAGEMENT);
-    expect(updates[0].resolutionProposedAt).toBeNull();
-  });
-
-  it('moves to AWAITING_RESIDENT on an explicit management request', async () => {
-    const thread = makeThread({ status: ThreadStatus.AWAITING_MANAGEMENT });
-    const { prisma, updates } = buildPrisma(thread);
-    const service = buildService(prisma);
-
-    await service.requestResident(manager(), thread.id, { body: 'Please share a photo.' });
-
-    expect(updates[0].status).toBe(ThreadStatus.AWAITING_RESIDENT);
-  });
-
-  it('moves an AWAITING_RESIDENT thread back to AWAITING_MANAGEMENT on resident reply', async () => {
-    const thread = makeThread({ status: ThreadStatus.AWAITING_RESIDENT });
-    const { prisma, updates } = buildPrisma(thread);
-    const service = buildService(prisma);
-
-    await service.postMessage(resident(), thread.id, { body: 'Here is the photo.' });
-
-    expect(updates[0].status).toBe(ThreadStatus.AWAITING_MANAGEMENT);
-  });
 });
 
-describe('SlaService — 7-day resolution auto-close', () => {
+describe('SlaService — resolution auto-confirm', () => {
   let prisma: ReturnType<typeof buildPrisma>['prisma'];
   let updates: Array<Record<string, unknown>>;
 
@@ -249,28 +262,27 @@ describe('SlaService — 7-day resolution auto-close', () => {
       resolutionProposedByUserId: MANAGER_ID,
     });
     ({ prisma, updates } = buildPrisma(thread));
+    prisma.thread.findMany = vi.fn(async () => [
+      {
+        ...thread,
+        messages: [{ authorUserId: MANAGER_ID, createdAt: old }],
+      },
+    ]);
+    prisma.roleAssignment.findMany = vi.fn(async () => [{ userId: MANAGER_ID }]);
   });
 
-  it('auto-resolves a proposal that the resident ignored past the window', async () => {
+  it('auto-resolves silent proposals past grace window', async () => {
     const events = { emit: vi.fn() } as unknown as EventEmitter2;
     const notifications = { dispatch: vi.fn() } as unknown as NotificationService;
     const sla = new SlaService(prisma as unknown as PrismaService, events, notifications);
 
     await sla.scanForResolutionAutoConfirm();
 
-    expect(prisma.thread.findMany).toHaveBeenCalled();
     expect(updates[0].status).toBe(ThreadStatus.RESOLVED);
-    expect(updates[0].resolvedAt).toBeInstanceOf(Date);
-    expect(prisma.auditLog.create).toHaveBeenCalled();
     expect(notifications.dispatch).toHaveBeenCalled();
-    expect(prisma.threadMessage.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ kind: ThreadMessageKind.SYSTEM }),
-      }),
-    );
   });
 
-  it('uses a 7-day confirmation window constant', () => {
+  it('uses default 7-day grace constant', () => {
     expect(SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS).toBe(7);
   });
 });

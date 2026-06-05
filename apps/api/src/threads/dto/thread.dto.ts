@@ -67,6 +67,11 @@ export class UpdateThreadDto {
   @IsEnum(ThreadPriority)
   priority?: ThreadPriority;
 
+  @ApiPropertyOptional({ enum: ThreadCategory })
+  @IsOptional()
+  @IsEnum(ThreadCategory)
+  category?: ThreadCategory;
+
   @ApiPropertyOptional({ enum: ThreadStatus })
   @IsOptional()
   @IsEnum(ThreadStatus)
@@ -79,6 +84,13 @@ export class UpdateThreadDto {
 }
 
 export class ProposeResolutionDto {
+  @ApiPropertyOptional({
+    description: 'Management message to mark as the proposed solution (B1).',
+  })
+  @IsOptional()
+  @IsUUID()
+  messageId?: string;
+
   @ApiPropertyOptional({ description: 'Optional note shown to the resident with the proposal.' })
   @IsOptional()
   @IsString()
@@ -90,6 +102,30 @@ export class ConfirmResolutionDto {
   @ApiProperty({ description: 'true = resident confirms resolved; false = not resolved.' })
   @IsBoolean()
   confirmed!: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Required when rejecting: why the solution is not acceptable.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  rejectReason?: string;
+
+  @ApiPropertyOptional({
+    description: 'Required when rejecting: what the resident still wants.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  rejectExpectation?: string;
+}
+
+export class AppealThreadDto {
+  @ApiProperty({ description: 'Required reason for reopen/appeal (B10).' })
+  @IsString()
+  @MinLength(10)
+  @MaxLength(4000)
+  reason!: string;
 }
 
 export class RequestResidentDto {

@@ -20,6 +20,7 @@ import {
 } from '@prisma/client';
 import { AI_ASSIST_PROVIDER, type AiAssistProvider } from './ai/ai-assist.provider';
 import type {
+  AppealThreadDto,
   ConfirmResolutionDto,
   CreateThreadDto,
   ListThreadsDto,
@@ -28,6 +29,7 @@ import type {
   RequestResidentDto,
   UpdateThreadDto,
 } from './dto/thread.dto';
+import { ThreadAssignmentService } from './thread-assignment.service';
 import { SlaService } from './sla/sla.service';
 
 const MANAGEMENT_ROLES: RoleId[] = [
@@ -47,6 +49,7 @@ export class ThreadsService {
     private readonly events: EventEmitter2,
     private readonly sla: SlaService,
     private readonly notifications: NotificationService,
+    private readonly assignment: ThreadAssignmentService,
     @Inject(AI_ASSIST_PROVIDER) private readonly ai: AiAssistProvider,
   ) {}
 
@@ -58,6 +61,13 @@ export class ThreadsService {
 
   private unitIds(user: AuthenticatedUser): string[] {
     return unique(user.roles.map((r) => r.unitId));
+  }
+
+  /** D2: any household member linked to the unit may confirm resolution. */
+  private canActAsResident(user: AuthenticatedUser, thread: { unitId: string | null }): boolean {
+    if (this.isManagement(user)) return false;
+    if (thread.unitId && this.unitIds(user).includes(thread.unitId)) return true;
+    return false;
   }
 
   private managementCondoIds(user: AuthenticatedUser): string[] {
@@ -104,6 +114,13 @@ export class ThreadsService {
       category: dto.category,
     });
     const due = await this.sla.computeDueDates(condoId, priority);
+    const assign = await this.assignment.assignOnCreate({
+      condoId,
+      unitId,
+      createdByUserId: user.id,
+      category: dto.category,
+      subject: dto.subject,
+    });
 
     const thread = await this.prisma.$transaction(async (tx) => {
       const created = await tx.thread.create({
@@ -111,6 +128,7 @@ export class ThreadsService {
           condoId,
           unitId,
           createdByUserId: user.id,
+          assignedToUserId: assign.assignedToUserId,
           subject: dto.subject,
           category: dto.category,
           priority,
@@ -119,6 +137,10 @@ export class ThreadsService {
           firstResponseDueAt: due.firstResponseDueAt,
           resolutionDueAt: due.resolutionDueAt,
           lastMessageAt: new Date(),
+          metadata: {
+            repeatComplainant: assign.repeatComplainant,
+            duplicateSuggestions: assign.duplicateSuggestions,
+          } as Prisma.InputJsonValue,
           participants: { create: { userId: user.id, lastReadAt: new Date() } },
         },
       });
@@ -144,10 +166,17 @@ export class ThreadsService {
     });
 
     this.events.emit('thread.created', { threadId: thread.id, condoId: thread.condoId });
+    const notifyIds = assign.assignedToUserId
+      ? [assign.assignedToUserId]
+      : await this.managementUserIds(condoId);
     await this.notifications.dispatch({
-      userIds: await this.managementUserIds(condoId),
-      kind: NotificationKind.THREAD_MESSAGE,
-      title: `New ${dto.category.toLowerCase()} thread`,
+      userIds: notifyIds,
+      kind: assign.assignedToUserId
+        ? NotificationKind.THREAD_ASSIGNED
+        : NotificationKind.THREAD_MESSAGE,
+      title: assign.assignedToUserId
+        ? 'Thread assigned to you'
+        : `New ${dto.category.toLowerCase()} thread`,
       body: dto.subject,
       data: { threadId: thread.id },
     });
@@ -280,25 +309,26 @@ export class ThreadsService {
             data.status = ThreadStatus.AWAITING_MANAGEMENT;
             data.resolutionProposedAt = null;
             data.resolutionProposedByUserId = null;
+            data.resolutionProposedMessage = { disconnect: true };
             if (!thread.firstRespondedAt) data.firstRespondedAt = now;
           }
         } else if (
           thread.status === ThreadStatus.RESOLVED ||
           thread.status === ThreadStatus.CLOSED
         ) {
-          // Resident replying to a finished thread reopens it.
+          // B15: auto-reopen on resident message (no SLA reset — B12).
           data.status = ThreadStatus.REOPENED;
           data.resolvedAt = null;
           data.closedAt = null;
+          data.reopenCount = { increment: 1 };
         } else if (thread.status === ThreadStatus.AWAITING_MANAGEMENT) {
           // Rule 1: a resident adding more detail while AWAITING_MANAGEMENT must
           // NOT flip the ball back to themselves — keep the status unchanged.
         } else if (thread.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION) {
-          // Rule 2: a reply during a resolution proposal means "not resolved" —
-          // revert to management and clear the proposal.
-          data.status = ThreadStatus.AWAITING_MANAGEMENT;
-          data.resolutionProposedAt = null;
-          data.resolutionProposedByUserId = null;
+          // Residents must use the structured reject flow (B3).
+          throw new BadRequestException(
+            'Use the reject resolution form instead of replying while confirmation is pending',
+          );
         } else {
           // OPEN / AWAITING_RESIDENT / REOPENED → the ball is now with management.
           data.status = ThreadStatus.AWAITING_MANAGEMENT;
@@ -365,6 +395,22 @@ export class ThreadsService {
       data.resolutionDueAt = due.resolutionDueAt;
       if (due.slaPolicyId) data.slaPolicy = { connect: { id: due.slaPolicyId } };
       systemLines.push(`Priority changed to ${dto.priority}`);
+    }
+
+    if (dto.category && dto.category !== thread.category) {
+      data.category = dto.category;
+      systemLines.push(`Category changed to ${dto.category}`);
+      const meta = (thread.metadata as Record<string, unknown> | null) ?? {};
+      const repeat = Boolean(meta.repeatComplainant);
+      const newAssignee = await this.assignment.assignOnRecategorise(
+        thread.condoId,
+        dto.category,
+        repeat,
+      );
+      if (newAssignee && newAssignee !== thread.assignedToUserId) {
+        data.assignedTo = { connect: { id: newAssignee } };
+        systemLines.push('Auto-reassigned after recategorisation');
+      }
     }
 
     if (dto.assignedToUserId && dto.assignedToUserId !== thread.assignedToUserId) {
@@ -446,26 +492,63 @@ export class ThreadsService {
     if (thread.status === ThreadStatus.RESOLVED || thread.status === ThreadStatus.CLOSED) {
       throw new BadRequestException('This thread is already resolved');
     }
+    // B13: block while resident owes a reply.
+    if (thread.status === ThreadStatus.AWAITING_RESIDENT) {
+      throw new BadRequestException(
+        'Cannot propose resolution while awaiting a response from the resident',
+      );
+    }
+    // B5/B6: management must have responded at least once.
+    if (!thread.firstRespondedAt) {
+      throw new BadRequestException('Respond to the resident before proposing a resolution');
+    }
+
     const now = new Date();
     const note = dto.note?.trim();
+    const isUpdate =
+      thread.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION && dto.messageId;
     const body = note
       ? `Management proposed this thread as resolved — awaiting resident confirmation: ${note}`
-      : 'Management proposed this thread as resolved — awaiting resident confirmation.';
+      : isUpdate
+        ? 'Management updated the proposed solution.'
+        : 'Management proposed this thread as resolved — awaiting resident confirmation.';
+
+    let proposedMessageId: string | null = dto.messageId ?? null;
+    if (proposedMessageId) {
+      const msg = await this.prisma.threadMessage.findFirst({
+        where: { id: proposedMessageId, threadId: id, kind: ThreadMessageKind.MESSAGE },
+      });
+      if (!msg) throw new BadRequestException('Proposed solution message not found');
+    }
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const u = await tx.thread.update({
         where: { id },
         data: {
           status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
-          resolutionProposedAt: now,
+          resolutionProposedAt: isUpdate ? thread.resolutionProposedAt : now,
           resolutionProposedByUserId: user.id,
+          ...(proposedMessageId
+            ? { resolutionProposedMessage: { connect: { id: proposedMessageId } } }
+            : { resolutionProposedMessage: { disconnect: true } }),
           firstRespondedAt: thread.firstRespondedAt ?? now,
           lastMessageAt: now,
         },
       });
-      await tx.threadMessage.create({
-        data: { threadId: id, authorUserId: user.id, kind: ThreadMessageKind.SYSTEM, body },
-      });
+      if (!isUpdate) {
+        await tx.threadMessage.create({
+          data: { threadId: id, authorUserId: user.id, kind: ThreadMessageKind.SYSTEM, body },
+        });
+      } else {
+        await tx.threadMessage.create({
+          data: {
+            threadId: id,
+            authorUserId: user.id,
+            kind: ThreadMessageKind.SYSTEM,
+            body: 'Management changed the proposed solution message.',
+          },
+        });
+      }
       return u;
     });
 
@@ -484,8 +567,8 @@ export class ThreadsService {
   /** Resident confirms (or rejects) a proposed resolution. Resident-driven. */
   async confirmResolution(user: AuthenticatedUser, id: string, dto: ConfirmResolutionDto) {
     const thread = await this.loadAndAuthorize(user, id);
-    if (this.isManagement(user)) {
-      throw new ForbiddenException('Only the resident can confirm resolution');
+    if (!this.canActAsResident(user, thread)) {
+      throw new ForbiddenException('Only a household member can confirm resolution');
     }
     if (thread.status === ThreadStatus.CLOSED) {
       throw new BadRequestException('This thread is closed');
@@ -501,6 +584,7 @@ export class ThreadsService {
             resolvedAt: now,
             resolutionProposedAt: null,
             resolutionProposedByUserId: null,
+            resolutionProposedMessage: { disconnect: true },
             lastMessageAt: now,
           },
         });
@@ -526,6 +610,17 @@ export class ThreadsService {
       return updated;
     }
 
+    // B3: reject requires why + what they still want.
+    const rejectReason = dto.rejectReason?.trim();
+    const rejectExpectation = dto.rejectExpectation?.trim();
+    if (!rejectReason || !rejectExpectation) {
+      throw new BadRequestException(
+        'Please explain why you are rejecting and what you still need',
+      );
+    }
+
+    const rejectBody = `**Why not resolved:** ${rejectReason}\n\n**What I still need:** ${rejectExpectation}`;
+
     // Not resolved → hand back to management and clear the proposal.
     const updated = await this.prisma.$transaction(async (tx) => {
       const u = await tx.thread.update({
@@ -534,6 +629,7 @@ export class ThreadsService {
           status: ThreadStatus.AWAITING_MANAGEMENT,
           resolutionProposedAt: null,
           resolutionProposedByUserId: null,
+          resolutionProposedMessage: { disconnect: true },
           lastMessageAt: now,
         },
       });
@@ -541,8 +637,16 @@ export class ThreadsService {
         data: {
           threadId: id,
           authorUserId: user.id,
+          kind: ThreadMessageKind.MESSAGE,
+          body: rejectBody,
+        },
+      });
+      await tx.threadMessage.create({
+        data: {
+          threadId: id,
+          authorUserId: user.id,
           kind: ThreadMessageKind.SYSTEM,
-          body: 'Resident indicated the issue is not resolved.',
+          body: 'Resident rejected the proposed resolution.',
         },
       });
       return u;
@@ -556,6 +660,64 @@ export class ThreadsService {
       data: { threadId: id },
     });
     await this.writeAudit(thread, user, ['Resident rejected resolution']);
+    return updated;
+  }
+
+  /** Explicit reopen/appeal with required reason (B10); SLA continues from original due date (B12). */
+  async appeal(user: AuthenticatedUser, id: string, dto: AppealThreadDto) {
+    const thread = await this.loadAndAuthorize(user, id);
+    if (!this.canActAsResident(user, thread)) {
+      throw new ForbiddenException('Only a household member can appeal');
+    }
+    if (thread.status !== ThreadStatus.RESOLVED && thread.status !== ThreadStatus.CLOSED) {
+      throw new BadRequestException('Appeal is only available on resolved or closed threads');
+    }
+    const now = new Date();
+    const reason = dto.reason.trim();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.thread.update({
+        where: { id },
+        data: {
+          status: ThreadStatus.REOPENED,
+          resolvedAt: null,
+          closedAt: null,
+          reopenCount: { increment: 1 },
+          lastMessageAt: now,
+        },
+      });
+      await tx.threadMessage.create({
+        data: {
+          threadId: id,
+          authorUserId: user.id,
+          kind: ThreadMessageKind.MESSAGE,
+          body: `**Appeal / reopen:** ${reason}`,
+        },
+      });
+      await tx.threadMessage.create({
+        data: {
+          threadId: id,
+          authorUserId: user.id,
+          kind: ThreadMessageKind.SYSTEM,
+          body: 'Resident appealed — thread reopened.',
+        },
+      });
+      return u;
+    });
+
+    this.events.emit('thread.status', { threadId: id, condoId: thread.condoId });
+    // B11: notify original assignee only.
+    const recipients = thread.assignedToUserId ? [thread.assignedToUserId] : [];
+    if (recipients.length) {
+      await this.notifications.dispatch({
+        userIds: recipients.filter((uid) => uid !== user.id),
+        kind: NotificationKind.THREAD_STATUS,
+        title: 'Thread appealed by resident',
+        body: thread.subject,
+        data: { threadId: id },
+      });
+    }
+    await this.writeAudit(thread, user, ['Resident appealed / reopened thread']);
     return updated;
   }
 
@@ -578,6 +740,7 @@ export class ThreadsService {
           status: ThreadStatus.AWAITING_RESIDENT,
           resolutionProposedAt: null,
           resolutionProposedByUserId: null,
+          resolutionProposedMessage: { disconnect: true },
           firstRespondedAt: thread.firstRespondedAt ?? now,
           lastMessageAt: now,
         },

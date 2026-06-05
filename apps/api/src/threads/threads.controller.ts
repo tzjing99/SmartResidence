@@ -6,6 +6,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
 import {
+  AppealThreadDto,
   ConfirmResolutionDto,
   CreateThreadDto,
   ListThreadsDto,
@@ -94,6 +95,16 @@ export class ThreadsController {
     @Body() dto: RequestResidentDto,
   ) {
     return this.threads.requestResident(user, id, dto);
+  }
+
+  @Post(':id/appeal')
+  @CheckAbility({ action: 'resolve', subject: 'Thread' })
+  appeal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AppealThreadDto,
+  ) {
+    return this.threads.appeal(user, id, dto);
   }
 
   @Post(':id/read')

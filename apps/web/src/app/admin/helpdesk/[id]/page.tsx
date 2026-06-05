@@ -11,15 +11,34 @@ import {
   useThread,
   useUpdateThread,
 } from '@smartresidence/api-client';
-import type { ThreadPriority } from '@smartresidence/api-client';
+import type { ThreadCategory, ThreadPriority } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-web';
-import { ArrowLeft, CheckCircle2, RotateCcw, Send, UserCheck, UserPlus } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Copy,
+  RotateCcw,
+  Send,
+  UserCheck,
+  UserPlus,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 const PRIORITIES: ThreadPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+const CATEGORIES: ThreadCategory[] = [
+  'BILLING',
+  'MAINTENANCE',
+  'FACILITY',
+  'SECURITY',
+  'COMPLAINT',
+  'SUGGESTION',
+  'GOVERNANCE',
+  'GENERAL',
+];
 const selectCls =
   'h-10 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sr-coral))]';
 
@@ -38,6 +57,14 @@ export default function AdminThreadPage() {
   const [internal, setInternal] = React.useState(false);
   const [composer, setComposer] = React.useState<null | 'propose' | 'request'>(null);
   const [actionNote, setActionNote] = React.useState('');
+  const [selectedSolutionId, setSelectedSolutionId] = React.useState<string | null>(null);
+
+  const meta = (thread.data as { metadata?: Record<string, unknown> } | undefined)?.metadata;
+  const duplicateSuggestions = (meta?.duplicateSuggestions ?? []) as Array<{
+    id: string;
+    subject: string;
+  }>;
+  const repeatComplainant = Boolean(meta?.repeatComplainant);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -52,10 +79,15 @@ export default function AdminThreadPage() {
 
   async function runPropose() {
     try {
-      await propose.mutateAsync({ id, note: actionNote.trim() || undefined });
+      await propose.mutateAsync({
+        id,
+        note: actionNote.trim() || undefined,
+        messageId: selectedSolutionId ?? undefined,
+      });
       toast.success('Resolution proposed — awaiting resident confirmation');
       setComposer(null);
       setActionNote('');
+      setSelectedSolutionId(null);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -87,6 +119,8 @@ export default function AdminThreadPage() {
 
   const pending = t.status === 'PENDING_RESIDENT_CONFIRMATION';
   const finished = t.status === 'RESOLVED' || t.status === 'CLOSED';
+  const awaitingResident = t.status === 'AWAITING_RESIDENT';
+  const mgmtMessages = t.messages.filter((m) => m.kind === 'MESSAGE' && m.author?.id !== t.createdBy?.id);
 
   return (
     <div className="flex flex-col gap-5">
@@ -98,11 +132,20 @@ export default function AdminThreadPage() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Conversation */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <header className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight">{t.subject}</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-semibold tracking-tight">{t.subject}</h2>
+                {(t.reopenCount ?? 0) > 0 ? (
+                  <Badge tone="warning">Reopened ×{t.reopenCount}</Badge>
+                ) : null}
+                {repeatComplainant ? (
+                  <Badge tone="danger">
+                    <AlertTriangle className="size-3" /> Repeat complainant
+                  </Badge>
+                ) : null}
+              </div>
               <div className="text-xs sr-muted mt-1">
                 {t.unit?.identifier ? `Unit ${t.unit.identifier} · ` : ''}
                 {t.createdBy?.name ?? 'Resident'} · {prettyLabel(t.category)}
@@ -115,12 +158,29 @@ export default function AdminThreadPage() {
             />
           </header>
 
+          {duplicateSuggestions.length > 0 ? (
+            <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm">
+              <div className="font-medium flex items-center gap-1">
+                <Copy className="size-4" /> Possible duplicates
+              </div>
+              <ul className="mt-2 flex flex-col gap-1">
+                {duplicateSuggestions.map((d) => (
+                  <li key={d.id}>
+                    <Link href={`/admin/helpdesk/${d.id}`} className="text-coral-600 hover:underline">
+                      {d.subject}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {pending ? (
             <div className="rounded-xl border border-sky-400/40 bg-sky-400/10 px-4 py-3 text-sm flex items-center gap-2">
               <CheckCircle2 className="size-4 text-sky-600 shrink-0" />
               <span>
-                Resolution proposed — awaiting the resident&rsquo;s confirmation. Replying will
-                reopen the conversation.
+                Resolution proposed — awaiting resident confirmation. Select a different message
+                below to change the proposed solution (B2).
               </span>
             </div>
           ) : null}
@@ -148,20 +208,38 @@ export default function AdminThreadPage() {
                 );
               }
               const mine = m.author?.id === myId;
+              const isProposed = t.resolutionProposedMessageId === m.id;
               return (
                 <div key={m.id} className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
                   <div
                     className={cn(
-                      'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line',
+                      'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line relative',
                       mine
                         ? 'bg-coral-500 text-white rounded-br-sm'
                         : 'bg-[rgb(var(--sr-border))]/40 rounded-bl-sm',
+                      isProposed && 'ring-2 ring-sky-500',
                     )}
                   >
+                    {isProposed ? (
+                      <div className="text-[10px] font-semibold mb-1 opacity-80">
+                        ✓ Proposed solution
+                      </div>
+                    ) : null}
                     {m.body}
                   </div>
-                  <div className="text-[11px] sr-muted mt-1 px-1">
-                    {m.author?.name ?? 'Resident'} · {new Date(m.createdAt).toLocaleString()}
+                  <div className="flex items-center gap-2 mt-1 px-1">
+                    <span className="text-[11px] sr-muted">
+                      {m.author?.name ?? 'Resident'} · {new Date(m.createdAt).toLocaleString()}
+                    </span>
+                    {!mine && m.kind === 'MESSAGE' && (composer === 'propose' || pending) ? (
+                      <button
+                        type="button"
+                        className="text-[11px] text-sky-600 hover:underline"
+                        onClick={() => setSelectedSolutionId(m.id)}
+                      >
+                        {selectedSolutionId === m.id || isProposed ? 'Selected' : 'Mark as solution'}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -196,7 +274,6 @@ export default function AdminThreadPage() {
           </form>
         </div>
 
-        {/* Controls */}
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -228,6 +305,29 @@ export default function AdminThreadPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Category</span>
+              <select
+                aria-label="Thread category"
+                className={selectCls}
+                value={t.category}
+                onChange={async (e) => {
+                  try {
+                    await update.mutateAsync({ id, category: e.target.value as ThreadCategory });
+                    toast.success('Category updated — may auto-reassign');
+                  } catch (err) {
+                    toast.error((err as Error).message);
+                  }
+                }}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {prettyLabel(c)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">Assignee</span>
               <div className="text-sm sr-muted">{t.assignedTo?.name ?? 'Unassigned'}</div>
               {myId && t.assignedTo?.id !== myId ? (
@@ -249,14 +349,24 @@ export default function AdminThreadPage() {
               ) : null}
             </div>
 
-            {/* Resolution actions (resident-driven model) */}
             <div className="border-t border-[rgb(var(--sr-border))] pt-3 flex flex-col gap-2">
               <span className="text-sm font-medium">Resolution</span>
-              {pending ? (
-                <p className="text-xs sr-muted">
-                  Awaiting resident confirmation. Reply to reopen, or wait for the resident to
-                  confirm.
+              {awaitingResident ? (
+                <p className="text-xs text-amber-600">
+                  Awaiting resident reply — cannot propose resolution yet (B13).
                 </p>
+              ) : null}
+              {pending ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs sr-muted">Update proposed solution or wait for resident.</p>
+                  <Button
+                    size="sm"
+                    onClick={runPropose}
+                    disabled={propose.isPending || !selectedSolutionId}
+                  >
+                    Update proposed solution
+                  </Button>
+                </div>
               ) : finished ? (
                 <Button variant="secondary" size="sm" onClick={reopen} disabled={update.isPending}>
                   <RotateCcw className="size-4" />
@@ -264,6 +374,12 @@ export default function AdminThreadPage() {
                 </Button>
               ) : composer === 'propose' ? (
                 <div className="flex flex-col gap-2">
+                  {mgmtMessages.length > 0 ? (
+                    <p className="text-xs sr-muted">
+                      Click &ldquo;Mark as solution&rdquo; on a management message, or propose
+                      without one.
+                    </p>
+                  ) : null}
                   <Textarea
                     rows={2}
                     value={actionNote}
@@ -281,6 +397,7 @@ export default function AdminThreadPage() {
                       onClick={() => {
                         setComposer(null);
                         setActionNote('');
+                        setSelectedSolutionId(null);
                       }}
                     >
                       Cancel
@@ -314,7 +431,11 @@ export default function AdminThreadPage() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => setComposer('propose')}>
+                  <Button
+                    size="sm"
+                    onClick={() => setComposer('propose')}
+                    disabled={awaitingResident}
+                  >
                     <CheckCircle2 className="size-4" />
                     Propose resolved
                   </Button>
@@ -325,8 +446,11 @@ export default function AdminThreadPage() {
                 </div>
               )}
               <p className="text-[11px] sr-muted">
-                Management proposes; the resident confirms. Threads with no response auto-resolve
-                after 7 days.
+                Resident confirms resolution. Grace period configurable in{' '}
+                <Link href="/admin/settings/helpdesk" className="text-coral-600 hover:underline">
+                  SLA settings
+                </Link>
+                .
               </p>
             </div>
 

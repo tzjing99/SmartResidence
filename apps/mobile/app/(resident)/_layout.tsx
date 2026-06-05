@@ -49,6 +49,19 @@ export default function ResidentTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="messages/[id]"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
         name="activity"
         options={{
           title: 'Activity',

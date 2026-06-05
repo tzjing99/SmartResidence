@@ -1,8 +1,15 @@
 'use client';
 
 import type { CreateDefectInput, CreateVisitorInput } from '@smartresidence/shared-types';
-import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import type { ApiClient, CreateThreadBody, ListThreadsParams } from '../client';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type {
+  ApiClient,
+  CreateThreadBody,
+  ListThreadsParams,
+  ThreadDetail,
+  ThreadMessageItem,
+} from '../client';
+import { patchThreadInListCaches } from '../realtime/thread-cache';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -28,6 +35,26 @@ export const queryKeys = {
   slaAudit: (condoId: string) => ['sla', 'audit', condoId] as const,
   preferences: ['auth', 'preferences'] as const,
 };
+
+function syncThreadAfterMutation(
+  qc: ReturnType<typeof useQueryClient>,
+  api: ApiClient,
+  threadId: string,
+  summary?: import('../client').ThreadSummary,
+) {
+  if (summary) {
+    qc.setQueryData<ThreadDetail>(queryKeys.thread(threadId), (old) =>
+      old ? { ...old, ...summary } : old,
+    );
+    patchThreadInListCaches(qc, summary);
+  }
+  void qc
+    .fetchQuery({
+      queryKey: queryKeys.thread(threadId),
+      queryFn: () => api.thread(threadId),
+    })
+    .then((detail) => patchThreadInListCaches(qc, detail));
+}
 
 export function useMe(api: ApiClient, options?: { enabled?: boolean }) {
   return useQuery({
@@ -201,9 +228,60 @@ export function usePostThreadMessage(api: ApiClient) {
         internalNote: vars.internalNote,
         attachmentIds: vars.attachmentIds,
       }),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
-      qc.invalidateQueries({ queryKey: ['threads'] });
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: queryKeys.thread(vars.id) });
+      const previous = qc.getQueryData<ThreadDetail>(queryKeys.thread(vars.id));
+      const me = qc.getQueryData(queryKeys.me) as
+        | { user?: { id: string; name: string } }
+        | undefined;
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimistic: ThreadMessageItem = {
+        id: optimisticId,
+        threadId: vars.id,
+        kind: vars.internalNote ? 'INTERNAL_NOTE' : 'MESSAGE',
+        body: vars.body,
+        createdAt: new Date().toISOString(),
+        author: me?.user ? { id: me.user.id, name: me.user.name } : undefined,
+      };
+      qc.setQueryData<ThreadDetail>(queryKeys.thread(vars.id), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          messages: [...old.messages, optimistic],
+          lastMessageAt: optimistic.createdAt,
+          _count: { messages: (old._count?.messages ?? old.messages.length) + 1 },
+        };
+      });
+      return { previous, optimisticId };
+    },
+    onError: (_err, vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(queryKeys.thread(vars.id), context.previous);
+      }
+    },
+    onSuccess: (data, vars, context) => {
+      qc.setQueryData<ThreadDetail>(queryKeys.thread(vars.id), (old) => {
+        if (!old) return old;
+        const withoutOptimistic = old.messages.filter((m) => m.id !== context?.optimisticId);
+        const hasReal = withoutOptimistic.some((m) => m.id === data.id);
+        return {
+          ...old,
+          messages: hasReal ? withoutOptimistic : [...withoutOptimistic, data],
+          lastMessageAt: data.createdAt,
+        };
+      });
+      qc.setQueriesData<{ items: import('../client').ThreadSummary[]; total: number }>(
+        { queryKey: ['threads'] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            items: old.items.map((t) =>
+              t.id === vars.id ? { ...t, lastMessageAt: data.createdAt } : t,
+            ),
+          };
+        },
+      );
     },
   });
 }
@@ -224,9 +302,8 @@ export function useUpdateThread(api: ApiClient) {
         status: vars.status,
         assignedToUserId: vars.assignedToUserId,
       }),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
-      qc.invalidateQueries({ queryKey: ['threads'] });
+    onSuccess: (data, vars) => {
+      syncThreadAfterMutation(qc, api, vars.id, data);
     },
   });
 }
@@ -236,9 +313,8 @@ export function useProposeThreadResolution(api: ApiClient) {
   return useMutation({
     mutationFn: (vars: { id: string; note?: string; messageId?: string }) =>
       api.proposeThreadResolution(vars.id, { note: vars.note, messageId: vars.messageId }),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
-      qc.invalidateQueries({ queryKey: ['threads'] });
+    onSuccess: (data, vars) => {
+      syncThreadAfterMutation(qc, api, vars.id, data);
     },
   });
 }
@@ -252,9 +328,8 @@ export function useConfirmThreadResolution(api: ApiClient) {
       rejectReason?: string;
       rejectExpectation?: string;
     }) => api.confirmThreadResolution(vars.id, vars),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
-      qc.invalidateQueries({ queryKey: ['threads'] });
+    onSuccess: (data, vars) => {
+      syncThreadAfterMutation(qc, api, vars.id, data);
     },
   });
 }
@@ -263,9 +338,8 @@ export function useAppealThread(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { id: string; reason: string }) => api.appealThread(vars.id, vars),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
-      qc.invalidateQueries({ queryKey: ['threads'] });
+    onSuccess: (data, vars) => {
+      syncThreadAfterMutation(qc, api, vars.id, data);
     },
   });
 }
@@ -310,9 +384,8 @@ export function useRequestThreadResident(api: ApiClient) {
   return useMutation({
     mutationFn: (vars: { id: string; body?: string }) =>
       api.requestThreadResident(vars.id, { body: vars.body }),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
-      qc.invalidateQueries({ queryKey: ['threads'] });
+    onSuccess: (data, vars) => {
+      syncThreadAfterMutation(qc, api, vars.id, data);
     },
   });
 }
@@ -447,9 +520,8 @@ export function useCloseAbusiveThread(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { id: string; reason: string }) => api.closeAbusiveThread(vars.id, vars),
-    onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
-      qc.invalidateQueries({ queryKey: ['threads'] });
+    onSuccess: (data, vars) => {
+      syncThreadAfterMutation(qc, api, vars.id, data);
     },
   });
 }

@@ -4,6 +4,7 @@ import {
   useMe,
   usePostThreadMessage,
   useThread,
+  useThreadRoom,
 } from '@smartresidence/api-client';
 import {
   AlignRow,
@@ -39,6 +40,7 @@ export default function MessageDetailScreen() {
   const me = useMe(api);
   const myId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
   const thread = useThread(api, id ?? null);
+  useThreadRoom(id);
   const post = usePostThreadMessage(api);
   const confirm = useConfirmThreadResolution(api);
   const appeal = useAppealThread(api);
@@ -207,8 +209,13 @@ export default function MessageDetailScreen() {
               title="Send"
               onPress={() => {
                 void hapticLight();
-                post.mutate({ id: threadId, body });
+                const text = body.trim();
+                if (!text) return;
                 setBody('');
+                post.mutate(
+                  { id: threadId, body: text },
+                  { onError: () => setBody(text) },
+                );
               }}
             />
           </View>

@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { MobileRealtimeProvider } from './realtime-provider';
 import './global.css';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -18,8 +19,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
-          <StatusBar style="auto" />
-          {children}
+          <MobileRealtimeProvider>
+            <StatusBar style="auto" />
+            {children}
+          </MobileRealtimeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

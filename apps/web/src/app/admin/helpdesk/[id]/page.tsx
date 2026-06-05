@@ -11,6 +11,7 @@ import {
   useProposeThreadResolution,
   useRequestThreadResident,
   useThread,
+  useThreadRoom,
   useUpdateThread,
 } from '@smartresidence/api-client';
 import type { ThreadCategory, ThreadPriority } from '@smartresidence/api-client';
@@ -57,6 +58,7 @@ export default function AdminThreadPage() {
   const me = useMe(api);
   const myId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
   const thread = useThread(api, id);
+  useThreadRoom(id);
   const post = usePostThreadMessage(api);
   const update = useUpdateThread(api);
   const propose = useProposeThreadResolution(api);
@@ -92,10 +94,13 @@ export default function AdminThreadPage() {
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
+    const text = body.trim();
+    const noteInternal = internal;
+    setBody('');
     try {
-      await post.mutateAsync({ id, body: body.trim(), internalNote: internal });
-      setBody('');
+      await post.mutateAsync({ id, body: text, internalNote: noteInternal });
     } catch (err) {
+      setBody(text);
       toast.error((err as Error).message);
     }
   }

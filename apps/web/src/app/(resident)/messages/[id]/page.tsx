@@ -10,6 +10,7 @@ import {
   useMe,
   usePostThreadMessage,
   useThread,
+  useThreadRoom,
 } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
 import {
@@ -32,6 +33,7 @@ export default function ResidentThreadPage() {
   const me = useMe(api);
   const myId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
   const thread = useThread(api, id);
+  useThreadRoom(id);
   const post = usePostThreadMessage(api);
   const confirm = useConfirmThreadResolution(api);
   const appeal = useAppealThread(api);
@@ -113,10 +115,12 @@ export default function ResidentThreadPage() {
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
+    const text = body.trim();
+    setBody('');
     try {
-      await post.mutateAsync({ id, body: body.trim() });
-      setBody('');
+      await post.mutateAsync({ id, body: text });
     } catch (err) {
+      setBody(text);
       toast.error((err as Error).message);
     }
   }
@@ -194,6 +198,9 @@ export default function ResidentThreadPage() {
             resolutionDueAt={t.resolutionDueAt}
           />
           <span className="text-xs sr-muted">{prettyLabel(t.category)}</span>
+          {t.assignedTo ? (
+            <span className="text-xs sr-muted">Assigned to {t.assignedTo.name}</span>
+          ) : null}
         </div>
       </header>
 
@@ -312,9 +319,9 @@ export default function ResidentThreadPage() {
             placeholder="Write a reply…"
           />
           <div className="flex justify-end">
-            <Button type="submit" disabled={post.isPending || !body.trim()}>
+            <Button type="submit" disabled={!body.trim()}>
               <Send className="size-4" />
-              {post.isPending ? 'Sending…' : 'Send'}
+              Send
             </Button>
           </div>
         </form>

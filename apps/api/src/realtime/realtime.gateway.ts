@@ -3,6 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import {
   type OnGatewayConnection,
   type OnGatewayDisconnect,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
@@ -41,6 +42,25 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
   handleDisconnect(client: Socket) {
     this.logger.debug(`Socket ${client.id} disconnected`);
+  }
+
+  /** Join a thread room while viewing a conversation (resident + management detail). */
+  @SubscribeMessage('thread:join')
+  handleThreadJoin(client: Socket, payload: { threadId?: string }) {
+    const threadId = payload?.threadId;
+    if (threadId) {
+      void client.join(`thread:${threadId}`);
+      this.logger.debug(`Socket ${client.id} joined thread:${threadId}`);
+    }
+  }
+
+  @SubscribeMessage('thread:leave')
+  handleThreadLeave(client: Socket, payload: { threadId?: string }) {
+    const threadId = payload?.threadId;
+    if (threadId) {
+      void client.leave(`thread:${threadId}`);
+      this.logger.debug(`Socket ${client.id} left thread:${threadId}`);
+    }
   }
 
   @OnEvent('visitor.*')

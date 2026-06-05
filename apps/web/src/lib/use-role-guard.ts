@@ -1,6 +1,6 @@
 'use client';
 
-import { api } from '@/lib/api';
+import { api, readSession, writeSession } from '@/lib/api';
 import { type Area, type MeResponse, areaAllows, roleToHome } from '@/lib/roles';
 import { useMe } from '@smartresidence/api-client';
 import type { RoleId } from '@smartresidence/shared-types';
@@ -26,20 +26,26 @@ interface RoleGuardResult {
  */
 export function useRoleGuard(area: Area): RoleGuardResult {
   const router = useRouter();
-  const me = useMe(api);
+  const hasToken = Boolean(readSession()?.accessToken);
+  const me = useMe(api, { enabled: hasToken });
   const data = me.data as MeResponse | undefined;
   const role = data?.user?.activeRole ?? null;
   const allowed = data ? areaAllows(area, role) : false;
 
   React.useEffect(() => {
-    if (me.error) {
+    if (!hasToken) {
+      router.replace('/sign-in');
+      return;
+    }
+    if (me.isError) {
+      writeSession(null);
       router.replace('/sign-in');
       return;
     }
     if (data && !areaAllows(area, role)) {
       router.replace(roleToHome(role));
     }
-  }, [me.error, data, area, role, router]);
+  }, [hasToken, me.isError, data, area, role, router]);
 
-  return { me, role, abilities: data?.abilities, ready: Boolean(data) && allowed };
+  return { me, role, abilities: data?.abilities, ready: hasToken && Boolean(data) && allowed };
 }

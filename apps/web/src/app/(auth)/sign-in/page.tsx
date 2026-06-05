@@ -17,10 +17,27 @@ const schema = z.object({
   totp: z.string().optional(),
 });
 
+/** Strip sensitive query params; prefill email from `?email=` only (never password). */
+function useSignInQueryParams(form: ReturnType<typeof useForm<z.infer<typeof schema>>>) {
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const email = params.get('email');
+    if (email) form.setValue('email', email);
+
+    if (!params.has('password')) return;
+
+    params.delete('password');
+    const qs = params.toString();
+    const clean = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+    window.history.replaceState(null, '', clean);
+  }, [form]);
+}
+
 export default function SignInPage() {
   const router = useRouter();
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
   const [needsTotp, setNeedsTotp] = React.useState(false);
+  useSignInQueryParams(form);
 
   async function onSubmit(values: z.infer<typeof schema>) {
     try {

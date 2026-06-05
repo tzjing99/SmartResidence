@@ -29,8 +29,14 @@ export const queryKeys = {
   preferences: ['auth', 'preferences'] as const,
 };
 
-export function useMe(api: ApiClient) {
-  return useQuery({ queryKey: queryKeys.me, queryFn: () => api.me() });
+export function useMe(api: ApiClient, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.me,
+    queryFn: () => api.me(),
+    enabled: options?.enabled ?? true,
+    // Auth failures should redirect immediately — don't spin retrying 401/500.
+    retry: false,
+  });
 }
 
 export function useMyCondos(api: ApiClient) {

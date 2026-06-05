@@ -3,6 +3,7 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 const sidebars: SidebarsConfig = {
   guides: [
     'getting-started',
+    'features/visitors',
     'self-hosting',
     'contributing',
     {

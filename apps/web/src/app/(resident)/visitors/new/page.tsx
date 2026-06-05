@@ -52,7 +52,7 @@ export default function NewVisitorPage() {
     resolver: zodResolver(CreateVisitorSchema),
     defaultValues: {
       unitId: unit?.id ?? '',
-      entryMode: 'WALK_IN',
+      entryMode: 'DRIVE_IN',
       phoneCountryCode: '+60',
       purpose: 'VISITOR',
       overnight: false,
@@ -130,7 +130,8 @@ export default function NewVisitorPage() {
     <div className="max-w-xl">
       <h2 className="sr-section-title mb-1">Pre-register a visitor</h2>
       <p className="sr-muted mb-6">
-        Choose how they arrive, set their expected time, and we handle the rest.
+        Most guests drive in — set plate, arrival time, and optional overnight stay. Walk-in is
+        still available if they arrive on foot.
       </p>
       <Card>
         <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
@@ -139,8 +140,8 @@ export default function NewVisitorPage() {
             <div className="grid grid-cols-2 gap-3">
               {(
                 [
-                  { id: 'WALK_IN' as const, label: 'Walk in', icon: Footprints },
                   { id: 'DRIVE_IN' as const, label: 'Drive in', icon: Car },
+                  { id: 'WALK_IN' as const, label: 'Walk in', icon: Footprints },
                 ] as const
               ).map((mode) => {
                 const active = entryMode === mode.id;

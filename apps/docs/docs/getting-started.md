@@ -50,6 +50,7 @@ The seed script creates an `Acacia Heights` condo with the following users
 
 ## Next steps
 
+- Understand [visitor pre-reg vs walk-in flows](./features/visitors.md)
 - Read the [Architecture overview](./architecture/overview.md)
 - Learn how SmartResidence implements [owner empowerment](./architecture/owner-empowerment.md)
 - Review the [self-hosting guide](./self-hosting.md) before going to production

@@ -43,7 +43,7 @@ export class CreateVisitorDto {
   @MaxLength(30)
   phone?: string;
 
-  @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.WALK_IN })
+  @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.DRIVE_IN })
   @IsOptional()
   @IsEnum(VisitorEntryMode)
   entryMode?: VisitorEntryMode;
@@ -186,6 +186,13 @@ export class FlagPlateMismatchDto {
 }
 
 export class CreateWalkInUnitDto {
+  @ApiPropertyOptional({
+    description: 'Not supported — walk-ins are validated once at the gate (single visit)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  overnight?: boolean;
+
   @ApiProperty()
   @IsUUID()
   unitId!: string;
@@ -215,6 +222,13 @@ export class CreateWalkInUnitDto {
 }
 
 export class CreateWalkInOfficeDto {
+  @ApiPropertyOptional({
+    description: 'Not supported — walk-ins are validated once at the gate (single visit)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  overnight?: boolean;
+
   @ApiProperty({ maxLength: 120 })
   @IsString()
   @MaxLength(120)
@@ -291,7 +305,7 @@ export class CreateFavouriteVisitorDto {
   @MaxLength(30)
   phone?: string;
 
-  @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.WALK_IN })
+  @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.DRIVE_IN })
   @IsOptional()
   @IsEnum(VisitorEntryMode)
   entryMode?: VisitorEntryMode;

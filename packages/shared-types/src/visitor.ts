@@ -100,7 +100,7 @@ export const CreateVisitorSchema = z
     identification: z.string().max(60).optional(),
     phoneCountryCode: z.string().max(6).optional().default('+60'),
     phone: z.string().max(30).optional(),
-    entryMode: VisitorEntryMode.optional().default('WALK_IN'),
+    entryMode: VisitorEntryMode.optional().default('DRIVE_IN'),
     vehiclePlate: z.string().max(20).optional(),
     vehiclePlatePhotoUrl: z.string().max(500).optional(),
     purpose: VisitorPurpose.default('VISITOR'),
@@ -228,7 +228,7 @@ export const CreateFavouriteVisitorSchema = z.object({
   name: z.string().min(2).max(120),
   phone: z.string().max(30).optional(),
   phoneCountryCode: z.string().max(6).default('+60'),
-  entryMode: VisitorEntryMode.default('WALK_IN'),
+  entryMode: VisitorEntryMode.default('DRIVE_IN'),
   vehiclePlate: z.string().max(20).optional(),
   notes: z.string().max(200).optional(),
 });

@@ -114,6 +114,7 @@ describe('VisitorService', () => {
     const v = await svc.create(host, {
       unitId: 'u1',
       name: 'Jane Doe',
+      vehiclePlate: 'ABC1234',
       expectedAt: new Date('2026-06-10T10:00:00Z'),
     } as any);
     expect(v.accessCode).toBeTruthy();
@@ -175,6 +176,17 @@ describe('VisitorService', () => {
     } as any);
     expect(v.status).toBe('PENDING_MANAGEMENT_APPROVAL');
     expect(v.accessCode).toBeNull();
+  });
+
+  it('rejects overnight on walk-in unit registration', async () => {
+    const { svc } = service();
+    await expect(
+      svc.createWalkInUnit(guard, {
+        unitId: 'u1',
+        name: 'Bob',
+        overnight: true,
+      } as any),
+    ).rejects.toThrow(/walk-in/i);
   });
 
   it('creates walk-in unit as PENDING_OWNER_APPROVAL', async () => {

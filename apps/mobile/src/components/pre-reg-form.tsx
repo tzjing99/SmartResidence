@@ -65,7 +65,7 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
     resolver: zodResolver(CreateVisitorSchema),
     defaultValues: {
       unitId: unit?.id ?? '',
-      entryMode: prefill?.entryMode ?? 'WALK_IN',
+      entryMode: prefill?.entryMode ?? 'DRIVE_IN',
       phoneCountryCode: prefill?.phoneCountryCode ?? '+60',
       purpose: 'VISITOR',
       overnight: false,
@@ -164,15 +164,15 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
       }}
     >
       <Text style={{ fontSize: 14, color: palette.mutedLight }}>
-        Choose how they arrive and when you expect them.
+        Default is drive-in with plate. Overnight stays apply only to pre-registration.
       </Text>
 
       <Text style={{ fontWeight: '600' }}>How are they arriving?</Text>
       <View style={{ flexDirection: 'row', gap: 12 }}>
         {(
           [
-            { id: 'WALK_IN' as const, label: 'Walk in' },
             { id: 'DRIVE_IN' as const, label: 'Drive in' },
+            { id: 'WALK_IN' as const, label: 'Walk in' },
           ] as const
         ).map((mode) => {
           const active = entryMode === mode.id;

@@ -93,6 +93,14 @@ export class VisitorService {
     return new Date(date.getTime() + mins * 60_000);
   }
 
+  private rejectWalkInOvernight(overnight?: boolean): void {
+    if (overnight) {
+      throw new BadRequestException(
+        'Overnight stays are only available for pre-registered visitors — walk-ins are one visit validated at the gate',
+      );
+    }
+  }
+
   private computePreRegExpiresAt(
     expectedAt: Date,
     durationMins: number | null | undefined,
@@ -235,7 +243,7 @@ export class VisitorService {
     const overnight = dto.overnight ?? false;
     const entryMode = overnight
       ? VisitorEntryMode.DRIVE_IN
-      : (dto.entryMode ?? VisitorEntryMode.WALK_IN);
+      : (dto.entryMode ?? VisitorEntryMode.DRIVE_IN);
 
     if (entryMode === VisitorEntryMode.DRIVE_IN && !dto.vehiclePlate?.trim()) {
       throw new BadRequestException('Plate number is required for drive-in visitors');
@@ -289,7 +297,7 @@ export class VisitorService {
     const overnight = dto.overnight ?? false;
     const entryMode = overnight
       ? VisitorEntryMode.DRIVE_IN
-      : (dto.entryMode ?? VisitorEntryMode.WALK_IN);
+      : (dto.entryMode ?? VisitorEntryMode.DRIVE_IN);
     const now = new Date();
     let duration = dto.expectedDurationMins ?? DEFAULT_VISIT_DURATION_MINS;
     let status: VisitorStatus = VisitorStatus.APPROVED;
@@ -426,6 +434,7 @@ export class VisitorService {
   }
 
   async createWalkInUnit(guard: AuthenticatedUser, dto: CreateWalkInUnitDto) {
+    this.rejectWalkInOvernight(dto.overnight);
     const condoId = this.guardCondoId(guard);
     const unit = await this.prisma.unit.findFirst({
       where: { id: dto.unitId, condoId },
@@ -445,10 +454,11 @@ export class VisitorService {
         phone: dto.phone,
         vehiclePlate: dto.vehiclePlate,
         purpose: this.mapWalkInPurpose(dto.purpose),
+        overnight: false,
         expectedAt: new Date(),
         status: VisitorStatus.PENDING_OWNER_APPROVAL,
         approvalDeadline,
-        metadata: { createdByGuardId: guard.id },
+        metadata: { createdByGuardId: guard.id, singleVisit: true },
       },
     });
 
@@ -461,7 +471,7 @@ export class VisitorService {
         action: AuditAction.CREATE,
         resourceType: 'Visitor',
         resourceId: visitor.id,
-        metadata: { visitType: 'WALKIN_UNIT', status: 'PENDING_OWNER_APPROVAL' },
+        metadata: { visitType: 'WALKIN_UNIT', status: 'PENDING_OWNER_APPROVAL', overnight: false },
       },
     });
 
@@ -470,6 +480,7 @@ export class VisitorService {
   }
 
   async createWalkInOffice(guard: AuthenticatedUser, dto: CreateWalkInOfficeDto) {
+    this.rejectWalkInOvernight(dto.overnight);
     const condoId = this.guardCondoId(guard);
     if (!dto.purpose?.trim()) {
       throw new BadRequestException('Purpose is required for management office visitors');
@@ -486,12 +497,14 @@ export class VisitorService {
           phone: dto.phone,
           vehiclePlate: dto.vehiclePlate,
           purpose: this.mapWalkInPurpose(dto.purpose),
+          overnight: false,
           expectedAt: new Date(),
           status: VisitorStatus.CHECKED_IN,
           metadata: {
             createdByGuardId: guard.id,
             routedTo: 'management',
             purposeNote: dto.purpose.trim(),
+            singleVisit: true,
           },
         },
       });
@@ -894,7 +907,7 @@ export class VisitorService {
         name: dto.name,
         phone: dto.phone,
         phoneCountryCode: dto.phoneCountryCode ?? '+60',
-        entryMode: dto.entryMode ?? VisitorEntryMode.WALK_IN,
+        entryMode: dto.entryMode ?? VisitorEntryMode.DRIVE_IN,
         vehiclePlate: dto.vehiclePlate,
         notes: dto.notes,
       },

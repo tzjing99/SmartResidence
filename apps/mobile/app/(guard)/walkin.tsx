@@ -68,6 +68,10 @@ export default function WalkInScreen() {
     >
       <Text style={{ fontSize: 22, fontWeight: '700' }}>Walk-in visitor</Text>
       {condo ? <Text style={{ color: palette.mutedLight, fontSize: 12 }}>{condo.name}</Text> : null}
+      <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
+        One visit — validated once at the gate. Security opens the gate; the owner meets the
+        visitor. Overnight stays are not available for walk-ins — use pre-registration instead.
+      </Text>
 
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button

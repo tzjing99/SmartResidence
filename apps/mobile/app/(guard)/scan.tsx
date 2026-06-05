@@ -33,9 +33,19 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <View
-        style={{ flex: 1, padding: 24, justifyContent: 'center', backgroundColor: palette.bgLight, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }}
+        style={{
+          flex: 1,
+          padding: 24,
+          justifyContent: 'center',
+          backgroundColor: palette.bgLight,
+          maxWidth: contentMaxWidth,
+          alignSelf: 'center',
+          width: '100%',
+        }}
       >
-        <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 8 }}>Camera permission needed</Text>
+        <Text style={{ fontSize: 22, fontWeight: '700', marginBottom: 8 }}>
+          Camera permission needed
+        </Text>
         <Text style={{ color: palette.mutedLight, marginBottom: 16 }}>
           Guards scan visitor QR passes at the gate.
         </Text>
@@ -95,7 +105,13 @@ export default function ScanScreen() {
         />
         <View style={{ position: 'absolute', top: 16, left: 16, right: splitView ? 16 : 16 }}>
           <Card>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               <Text style={{ fontWeight: '700' }}>Scan a visitor QR</Text>
               <Pill
                 tone={pending > 0 ? 'warning' : 'success'}

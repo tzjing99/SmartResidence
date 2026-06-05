@@ -23,11 +23,7 @@ export function entryModeLabel(mode?: VisitorEntryMode) {
 }
 
 export function guardPassSummary(visitor: GuardVerifiedVisitor) {
-  const lines = [
-    visitor.name,
-    `Unit: ${unitLabel(visitor)}`,
-    `Code: ${visitor.accessCode ?? '—'}`,
-  ];
+  const lines = [visitor.name, `Unit: ${unitLabel(visitor)}`, `Code: ${visitor.accessCode ?? '—'}`];
   const mode = entryModeLabel(visitor.entryMode);
   if (mode) lines.push(`Entry: ${mode}`);
   if (visitor.entryMode === 'DRIVE_IN' && visitor.vehiclePlate) {

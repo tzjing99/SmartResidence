@@ -28,6 +28,8 @@ make db-seed      # Demo condo, units, users
 make dev          # Run API + Web + Mobile in parallel
 ```
 
+After pulling schema or migration changes, run `pnpm db:migrate` (or `make db-migrate`) — it applies migrations and regenerates the Prisma client.
+
 After `make dev` you should have:
 
 - API on http://localhost:4000 (`/docs` for Swagger)

@@ -37,6 +37,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
     [pathname, items],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset optimistic highlight when route changes
   React.useEffect(() => {
     setPendingHref(null);
   }, [pathname]);

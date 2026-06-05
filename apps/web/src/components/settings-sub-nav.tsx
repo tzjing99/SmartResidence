@@ -31,6 +31,7 @@ export function SettingsSubNav({
   const groupId = React.useId();
   const [pendingHref, setPendingHref] = React.useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset optimistic highlight when route changes
   React.useEffect(() => {
     setPendingHref(null);
   }, [pathname]);

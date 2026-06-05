@@ -89,9 +89,7 @@ export default function HelpdeskSettingsScreen() {
       style={{ flex: 1, backgroundColor: palette.bgLight }}
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <MetaLine
-        parts={[condo?.name ?? 'Condo', `${settings.data?.unitCount ?? '—'} units`]}
-      />
+      <MetaLine parts={[condo?.name ?? 'Condo', `${settings.data?.unitCount ?? '—'} units`]} />
 
       <Card>
         <Field label="Grace period (days)">

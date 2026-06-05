@@ -1,13 +1,5 @@
 import { usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
-import {
-  AlignRow,
-  AppText,
-  Button,
-  Card,
-  Field,
-  Input,
-  palette,
-} from '@smartresidence/ui-mobile';
+import { AlignRow, AppText, Button, Card, Field, Input, palette } from '@smartresidence/ui-mobile';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Switch, View } from 'react-native';
 import { api } from '../../src/lib/api';
@@ -66,7 +58,9 @@ export default function SettingsScreen() {
         <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }}>
           <View style={{ flex: 1, paddingRight: 12, gap: 4 }}>
             <AppText variant="label">Quiet hours</AppText>
-            <AppText variant="meta">Suppress push during these hours (in-app still delivered)</AppText>
+            <AppText variant="meta">
+              Suppress push during these hours (in-app still delivered)
+            </AppText>
           </View>
           <Switch value={quietEnabled} onValueChange={setQuietEnabled} />
         </AlignRow>

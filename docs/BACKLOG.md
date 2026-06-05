@@ -16,6 +16,8 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 - ✅ **H1 — Helpdesk dashboard polish** — cleaner admin inbox (columns for subject/requester/priority/status/assignee/SLA), unmistakable SLA chips (On track / At risk / Breached with time remaining), category + assignee filters, sort by SLA due, and the new D2 affordances surfaced in the thread detail + resident view.
 - ✅ **D1 — Announcement rich-text rendering** — sanitized markdown rendering on web (resident + admin pages) and mobile, plus a live markdown preview in the admin composer.
 - ✅ **T1 — Repo-wide lint for green CI** — `corepack pnpm lint` now exits 0 (ignored generated dirs incl. `.docusaurus`; fixed residual format/import-sort errors).
+- ✅ **U1 — Page load perf (lite HSR)** — route-level `loading.tsx` shimmer skeletons, nav prefetch on hover/mount, shell retention during auth (sidebar skeletons), removed `PageFade` remount delay, `keepPreviousData` on thread lists. **Shipped:** `ce33631` (+ CI `f92d6ae`, `32cd37e`; green run `27017382927`).
+- ✅ **H2 — Realtime helpdesk** — optimistic message send with rollback, Socket.IO `thread:*` events → TanStack Query cache patches, live inbox refresh, assigned-to updates on `thread:update`, shared `RealtimeProvider` (web + mobile), thread room join/leave on gateway. **Shipped:** `299531f` (+ fixes above).
 
 ## Defects
 
@@ -51,12 +53,41 @@ Resident-driven resolution model implemented end-to-end (API + web).
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
 | **H1** | ✅ Done | web | Helpdesk dashboard polish. Pairs with D2 (same pass). |
+| **H2** | ✅ Done | web + mobile + api | Realtime helpdesk — optimistic send, socket cache updates, live inbox, assigned-to badge. |
 
 ### H1 — Helpdesk dashboard polish ✅ Done
 
 - ✅ Cleaner inbox layout with subject / requester+unit / priority / status / assignee / SLA columns (card rows, responsive grid, framer-motion list).
 - ✅ Unmistakable SLA chips via a shared `<SlaChip>`: green **On track** / amber **At risk** / red **Breached**, each showing the time remaining or overdue amount (breached/at-risk get a coloured ring to pop), exact due time in the tooltip.
 - ✅ Category + assignee filters added (status/priority/SLA retained) plus **sort by SLA due**; sensible empty states; new D2 affordances surfaced (management "Propose resolved" / "Request from resident", resident "Confirm resolved / Not resolved", pending-confirmation banner) with i18n keys (en/ms/zh-Hans).
+
+### H2 — Realtime helpdesk ✅ Done
+
+**Status:** ✅ Done · **Area:** web + mobile + api · **Shipped:** commit `299531f` (+ CI `f92d6ae`, `32cd37e`; green run `27017382927`)
+
+- ✅ **Optimistic send** — message bubbles appear immediately; rollback on mutation error.
+- ✅ **Socket cache updates** — `RealtimeProvider` patches TanStack Query thread detail + inbox lists on `thread:message`, `thread:update`, `thread:sla`; dedupes against optimistic IDs.
+- ✅ **Live inbox** — management and resident thread lists refresh without manual refetch when peers post or status/SLA changes.
+- ✅ **Assigned-to badge** — assignee column and `thread:update` events keep the inbox assignee label current.
+- ✅ **Gateway thread rooms** — `joinThread` / `leaveThread` on `realtime.gateway`; condo-scoped connection via shared `RealtimeProvider` (web `WebRealtimeProvider`, mobile equivalent).
+
+## UX performance
+
+| ID | Priority | Area | Description |
+| --- | --- | --- | --- |
+| **U1** | ✅ Done | web | Page load skeletons + prefetch (**lite HSR**). |
+
+### U1 — Page load perf (lite HSR) ✅ Done
+
+**Lite HSR** (lightweight hybrid-shell routing): keep the app chrome visible during navigation, show route-level shimmer skeletons while client bundles compile or data loads, and prefetch likely next routes so warm navigations skip the RSC round-trip — SPA-grade perceived speed without full streaming SSR.
+
+**Status:** ✅ Done · **Area:** web · **Shipped:** commit `ce33631` (+ CI `f92d6ae`, `32cd37e`; green run `27017382927`)
+
+- ✅ Route-level `loading.tsx` skeletons (dashboard, messages, helpdesk, settings, admin).
+- ✅ Nav prefetch on hover, focus, and mount (`shell-nav`, `settings-sub-nav`).
+- ✅ Shell retention during auth — sidebar/content skeletons instead of blank flash (`app-shell`, `admin-shell`).
+- ✅ Removed `PageFade` remount animation delay (pass-through wrapper).
+- ✅ `keepPreviousData` on thread list queries to avoid list flicker on refetch.
 
 ## Messaging & helpdesk enhancements
 

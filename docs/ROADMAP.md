@@ -98,13 +98,14 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Billing & payments** | ✅ (core) | `Invoice / InvoiceLine / Payment`; invoice numbering; partial-payment reconciliation; **Stripe + FPX adapters**; pluggable `PaymentProviderAdapter` |
 | **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) + receipts/statements** | ⬜ | `PaymentProvider` enum has STRIPE/FPX/IPAY88/RAZER/MANUAL; e-wallet adapters & itemized statement/receipt PDFs not built |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |
-| **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor). Still deferred: ML phase 2 (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
+| **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic send, socket cache, live inbox). Still deferred: ML phase 2 (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
 | **FAQ knowledge base** | 🟡 | Schema (`FaqCategory / FaqArticle`) present; **no FAQ controller/service/module yet** |
 | **Announcements** | ✅ | `Announcement` + `AnnouncementAck`; importance, audience JSON, pinned, requiresAck; web admin + resident views |
 | **Notifications (push/email)** | ✅ (core) | `Notification` + `PushSubscription` (Expo & Web); notification dispatch in services |
 | **WhatsApp notifications** | ⬜ | Twilio is in the stack/README but no WhatsApp channel implemented |
 | **Storage / attachments** | ✅ | S3-compatible (`storage.service`, `attachments.controller`), MinIO in dev |
-| **Realtime** | ✅ | Socket.IO `realtime.gateway`; events emitted across modules |
+| **Realtime** | ✅ | Socket.IO `realtime.gateway`; thread room join/leave; **H2** client wiring — `RealtimeProvider` patches TanStack Query caches on `thread:message` / `thread:update` / `thread:sla` (web + mobile helpdesk) |
+| **Web perf (lite HSR)** | ✅ | **U1** — route-level `loading.tsx` skeletons, nav prefetch, shell retention during auth, `keepPreviousData` on thread lists (commits `ce33631`–`32cd37e`) |
 | **Facility booking** | ⬜ | Not in schema or code |
 | **Parcels / deliveries** | ⬜ | Not in schema or code |
 | **Governance (AGM/EGM, e-voting, financial transparency, minutes)** | ⬜ | Not in schema or code |
@@ -203,13 +204,12 @@ The flagship resident-empowerment flow. Two explicit paths:
   configurable grace, 14-day inactivity close, household-member confirm, unlimited
   appeals, reopen count badge); **M2** phase-1 auto-assignment (`ThreadAssignmentService`:
   category → pool, GENERAL triage, round-robin, recategorise reassign, repeat
-  complainant → senior staff, duplicate suggestions).
-- **Deferred follow-ons** (see [docs/BACKLOG.md](./BACKLOG.md)): assignee pool
-  editor UI; `UNIT_OWNER` read-only SLA audit page (**G1**); resident quiet hours
-  (**E5**); abusive-thread flag+close (**D7**); email opt-in from profile (**E1**);
-  inbox default sort (**F3**); FAQ deflection (**F4**); thread PDF export (**G2**);
-  ML phase 2 at 200+ closed threads (**C6**); FAQ module + admin authoring UI still
-  ⬜.
+  complainant → senior staff, duplicate suggestions); follow-on polish (**F3**–**G2**,
+  **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic
+  send, socket → TanStack Query cache, live inbox, assigned-to badge, shared
+  `RealtimeProvider` on web + mobile).
+- **Deferred follow-ons** (see [docs/BACKLOG.md](./BACKLOG.md)): ML phase 2 at
+  200+ closed threads (**C6**); FAQ module + admin authoring UI still ⬜.
 - **Deps:** Identity, Notifications, Storage, Realtime.
 
 ### 4.5 Announcements  *(✅, iterate)*
@@ -380,18 +380,25 @@ flowchart LR
 - **Delivers (shipped):** `ThreadsModule` wired; D2 resident-driven resolution +
   H1 helpdesk dashboard polish; **S1** SLA settings panel (web admin + mobile
   management); **M1** enhanced resolution flow; **M2** phase-1 thread
-  auto-assignment; SLA escalation notifications; AI-assist seam kept pluggable.
-- **Done (partial) — S1 / M1 / M2** (messaging spec decision-complete; see
-  [docs/BACKLOG.md](./BACKLOG.md)):
+  auto-assignment; SLA escalation notifications; AI-assist seam kept pluggable;
+  follow-on messaging polish (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**);
+  **H2** realtime helpdesk; **U1** web perf (**lite HSR** — skeletons + prefetch).
+- **Done (partial) — S1 / M1 / M2 / H2 / U1** (messaging spec decision-complete;
+  see [docs/BACKLOG.md](./BACKLOG.md)):
   - **S1** ✅ — slider-based `SlaPolicy` editing, dynamic advisory bands, risky-save
-    announcement, grace period, 24/7 clock, open-thread recalc. Deferred: pool editor
-    UI, owner SLA audit page (G1), quiet hours (E5).
+    announcement, grace period, 24/7 clock, open-thread recalc, pool editor, owner
+    SLA audit page (G1), quiet hours (E5).
   - **M1** ✅ — accepted-answer, propose-resolve gate, reject why+what-wanted,
-    tenant threads, 14-day inactivity close, household confirm, appeals/reopen badge.
-    Deferred: abusive-thread close (D7), email opt-in (E1).
+    tenant threads, 14-day inactivity close, household confirm, appeals/reopen badge,
+    abusive-thread close (D7), email opt-in (E1).
   - **M2** ✅ (phase 1) — category → assignee pool, triage pool, recategorise
-    reassign, repeat complainant routing, duplicate suggestions. Deferred: inbox sort
-    (F3), FAQ deflection (F4), PDF export (G2), ML phase 2 (C6).
+    reassign, repeat complainant routing, duplicate suggestions, inbox sort (F3),
+    FAQ deflection (F4), PDF export (G2). Deferred: ML phase 2 (C6).
+  - **H2** ✅ — optimistic message send, Socket.IO cache patches, live inbox,
+    assigned-to badge; `RealtimeProvider` on web + mobile. **Shipped:** `299531f`.
+  - **U1** ✅ — **lite HSR**: route `loading.tsx` skeletons, nav prefetch,
+    shell retention, `keepPreviousData` on thread lists. **Shipped:** `ce33631`
+    (+ CI `f92d6ae`, `32cd37e`; green run `27017382927`).
 - **Still ⬜ from original v0.2 scope:** FAQ module + admin authoring + resident
   search (schema exists; controller/service not shipped).
 - **Deps:** Identity, Notifications. **Acceptance:** resident opens a thread,
@@ -460,7 +467,9 @@ flowchart LR
   reads of their unit data ("Who viewed my data" already shipped).
 - **Performance:** RSC on web, list pagination everywhere (DTOs already use
   limit/offset), DB indexes present on hot paths; mobile uses Reanimated for
-  60fps.
+  60fps. **Lite HSR** (U1): keep app chrome visible, show route-level shimmer
+  skeletons during transitions, prefetch nav targets on hover/mount so warm
+  navigations feel instant without full streaming SSR.
 - **Observability:** request IDs (`request-id.middleware`), structured logs,
   health checks (`health` module); add metrics/traces before v1.0.
 - **Self-hosting:** Docker compose + Helm chart; `make dev`; demo seed; keep

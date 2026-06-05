@@ -97,10 +97,7 @@ function MessageBubble({
 
   return (
     <div
-      className={cn(
-        'flex items-start gap-2.5',
-        isRight ? 'flex-row-reverse' : 'flex-row',
-      )}
+      className={cn('flex items-start gap-2.5', isRight ? 'flex-row-reverse' : 'flex-row')}
       data-message-id={message.id}
     >
       <div
@@ -121,10 +118,7 @@ function MessageBubble({
         )}
       >
         <div
-          className={cn(
-            'text-meta-row px-0.5 w-full',
-            isRight && 'flex-row-reverse justify-end',
-          )}
+          className={cn('text-meta-row px-0.5 w-full', isRight && 'flex-row-reverse justify-end')}
         >
           <span className="font-medium text-[rgb(var(--sr-fg))]/80 leading-none">{authorName}</span>
           <span className="text-meta-sep">·</span>

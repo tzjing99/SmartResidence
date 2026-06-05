@@ -109,12 +109,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Link href="/admin" className="text-xl font-bold tracking-tight px-2 mb-1 mt-2">
           Smart<span className="text-coral-500">Residence</span>
         </Link>
-        <div className="px-2 text-xs sr-muted mb-6 flex items-center gap-1">
+        <div className="px-2 text-meta mb-6 flex items-center gap-1.5">
           <ShieldAlert className="size-3" />{' '}
           {role === 'SUPER_ADMIN' ? 'Platform portal' : 'Management portal'}
         </div>
         {role ? (
-          <div className="px-2 text-[11px] sr-muted -mt-4 mb-6">{ROLE_LABEL[role]}</div>
+          <div className="px-2 text-meta -mt-4 mb-6 leading-none">{ROLE_LABEL[role]}</div>
         ) : null}
         {condo ? (
           <div className="px-3 py-2 mb-4 rounded-xl bg-[rgb(var(--sr-card))] text-sm font-medium border border-[rgb(var(--sr-border))]">

@@ -49,15 +49,18 @@ export default function MessagesPage() {
             <li key={t.id}>
               <Link href={`/messages/${t.id}`}>
                 <Card className="transition-colors hover:border-[rgb(var(--sr-coral))]/40">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <div className="font-medium truncate">{t.subject}</div>
-                      <div className="text-xs sr-muted mt-0.5">
-                        {prettyLabel(t.category)} · {t._count?.messages ?? 0} messages · updated{' '}
-                        {new Date(t.lastMessageAt).toLocaleDateString()}
+                      <div className="font-medium truncate leading-tight">{t.subject}</div>
+                      <div className="text-meta-row mt-0.5">
+                        <span>{prettyLabel(t.category)}</span>
+                        <span className="text-meta-sep">·</span>
+                        <span>{t._count?.messages ?? 0} messages</span>
+                        <span className="text-meta-sep">·</span>
+                        <span>updated {new Date(t.lastMessageAt).toLocaleDateString()}</span>
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
                       <Badge tone={PRIORITY_TONE[t.priority]}>{prettyLabel(t.priority)}</Badge>
                       <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
                     </div>

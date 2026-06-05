@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Card, palette } from '@smartresidence/ui-mobile';
-import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { AlignRow, AppText, Card, palette } from '@smartresidence/ui-mobile';
+import { type Href, useRouter } from 'expo-router';
+import { Pressable, ScrollView, View } from 'react-native';
 
 const SECTIONS = [
   {
@@ -26,32 +26,28 @@ export default function ManagementSettingsScreen() {
       style={{ flex: 1, backgroundColor: palette.bgLight }}
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Settings</Text>
-      <Text style={{ color: palette.mutedLight, fontSize: 13 }}>
-        Condo configuration and management preferences.
-      </Text>
+      <AppText variant="title">Settings</AppText>
+      <AppText variant="meta">Condo configuration and management preferences.</AppText>
 
       {SECTIONS.map((section) => (
         <Pressable
           key={section.title}
           disabled={!section.href}
-          onPress={() => section.href && router.push(section.href)}
+          onPress={() => section.href && router.push(section.href as Href)}
         >
           <Card>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <AlignRow minHeight={44}>
               <Ionicons name={section.icon} size={22} color={palette.coralPrimary} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: '600' }}>{section.title}</Text>
-                <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 4 }}>
-                  {section.description}
-                </Text>
+              <View style={{ flex: 1, gap: 4 }}>
+                <AppText variant="label">{section.title}</AppText>
+                <AppText variant="meta">{section.description}</AppText>
               </View>
               {section.href ? (
                 <Ionicons name="chevron-forward" size={18} color={palette.mutedLight} />
               ) : (
-                <Text style={{ color: palette.mutedLight, fontSize: 11 }}>Soon</Text>
+                <AppText variant="caption">Soon</AppText>
               )}
-            </View>
+            </AlignRow>
           </Card>
         </Pressable>
       ))}

@@ -1,8 +1,18 @@
 import { useMyCondos, useSlaSettings, useUpdateSlaSettings } from '@smartresidence/api-client';
 import type { ThreadPriority } from '@smartresidence/api-client';
-import { Button, Card, palette } from '@smartresidence/ui-mobile';
+import {
+  AlignRow,
+  AppText,
+  Button,
+  Card,
+  Field,
+  Input,
+  MetaLine,
+  Pill,
+  palette,
+} from '@smartresidence/ui-mobile';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView } from 'react-native';
 import { api } from '../../src/lib/api';
 
 const PRIORITIES: ThreadPriority[] = ['URGENT', 'HIGH', 'NORMAL', 'LOW'];
@@ -12,6 +22,12 @@ function formatMins(mins: number): string {
   if (mins < 24 * 60) return `${Math.round(mins / 60)}h`;
   return `${Math.round(mins / (24 * 60))}d`;
 }
+
+const BAND_TONE: Record<string, 'success' | 'warning' | 'danger'> = {
+  recommended: 'success',
+  acceptable: 'warning',
+  risky: 'danger',
+};
 
 export default function HelpdeskSettingsScreen() {
   const condos = useMyCondos(api);
@@ -73,56 +89,45 @@ export default function HelpdeskSettingsScreen() {
       style={{ flex: 1, backgroundColor: palette.bgLight }}
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <Text style={{ color: palette.mutedLight, fontSize: 13 }}>
-        {condo?.name ?? 'Condo'} · {settings.data?.unitCount ?? '—'} units
-      </Text>
+      <MetaLine
+        parts={[condo?.name ?? 'Condo', `${settings.data?.unitCount ?? '—'} units`]}
+      />
 
       <Card>
-        <Text style={{ fontWeight: '600', marginBottom: 8 }}>Grace period (days)</Text>
-        <TextInput
-          value={graceDays}
-          onChangeText={setGraceDays}
-          keyboardType="number-pad"
-          editable={settings.data?.editable ?? false}
-          style={{
-            borderWidth: 1,
-            borderColor: palette.borderLight,
-            borderRadius: 12,
-            padding: 12,
-            fontSize: 16,
-          }}
-        />
+        <Field label="Grace period (days)">
+          <Input
+            value={graceDays}
+            onChangeText={setGraceDays}
+            keyboardType="number-pad"
+            editable={settings.data?.editable ?? false}
+          />
+        </Field>
       </Card>
 
       {PRIORITIES.map((priority) => {
         const item = settings.data?.policies.find((p) => p.priority === priority);
         const band = item?.band ?? 'recommended';
-        const bandColor =
-          band === 'risky' ? '#dc2626' : band === 'acceptable' ? '#d97706' : '#16a34a';
         return (
           <Card key={priority}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontWeight: '600' }}>{priority}</Text>
-              <Text style={{ color: bandColor, fontSize: 12, fontWeight: '600' }}>{band}</Text>
-            </View>
-            <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 4 }}>
-              Resolution: {formatMins(Number(mins[priority]))} · First response:{' '}
-              {formatMins(Math.round(Number(mins[priority]) * 0.4))}
-            </Text>
-            <TextInput
-              value={mins[priority]}
-              onChangeText={(v) => setMins((prev) => ({ ...prev, [priority]: v }))}
-              keyboardType="number-pad"
-              editable={settings.data?.editable ?? false}
-              style={{
-                borderWidth: 1,
-                borderColor: palette.borderLight,
-                borderRadius: 12,
-                padding: 12,
-                marginTop: 8,
-                fontSize: 16,
-              }}
+            <AlignRow style={{ justifyContent: 'space-between' }}>
+              <AppText variant="label">{priority}</AppText>
+              <Pill tone={BAND_TONE[band] ?? 'neutral'} label={band} />
+            </AlignRow>
+            <MetaLine
+              parts={[
+                `Resolution: ${formatMins(Number(mins[priority]))}`,
+                `First response: ${formatMins(Math.round(Number(mins[priority]) * 0.4))}`,
+              ]}
+              style={{ marginTop: 4 }}
             />
+            <Field containerStyle={{ marginTop: 8 }}>
+              <Input
+                value={mins[priority]}
+                onChangeText={(v) => setMins((prev) => ({ ...prev, [priority]: v }))}
+                keyboardType="number-pad"
+                editable={settings.data?.editable ?? false}
+              />
+            </Field>
           </Card>
         );
       })}
@@ -130,9 +135,9 @@ export default function HelpdeskSettingsScreen() {
       {settings.data?.editable ? (
         <Button title={save.isPending ? 'Saving…' : 'Save SLA settings'} onPress={() => onSave()} />
       ) : (
-        <Text style={{ textAlign: 'center', color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ textAlign: 'center' }}>
           Read-only — admin access required to edit.
-        </Text>
+        </AppText>
       )}
     </ScrollView>
   );

@@ -36,9 +36,33 @@
     @apply rounded-2xl bg-[rgb(var(--sr-card))] border border-[rgb(var(--sr-border))] shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06)];
   }
   .sr-section-title {
-    @apply text-2xl font-semibold tracking-tight;
+    @apply text-2xl font-semibold tracking-tight text-left leading-tight;
   }
   .sr-muted {
     @apply text-[rgb(var(--sr-muted))];
+  }
+  .sr-body {
+    @apply text-sm leading-normal text-left;
+  }
+  /* Meta lines: "Name · time · count" — single baseline, iOS-style rhythm */
+  .text-meta {
+    @apply text-xs leading-none sr-muted text-left;
+  }
+  .text-meta-row {
+    @apply flex flex-wrap items-center gap-x-1.5 text-xs leading-none sr-muted text-left;
+  }
+  .text-meta-sep {
+    @apply opacity-50 select-none leading-none;
+  }
+  /* Label/value rows — vertically centered like iOS settings cells */
+  .align-row {
+    @apply flex items-center min-h-9 gap-3 text-left;
+  }
+  /* Native select triggers aligned to adjacent buttons */
+  .sr-select {
+    @apply h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm leading-none text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sr-coral))];
+  }
+  .sr-select-sm {
+    @apply h-9 w-full rounded-lg border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-2.5 text-sm leading-none text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sr-coral))];
   }
 }

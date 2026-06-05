@@ -66,7 +66,7 @@ export function SettingsSubNav({
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'relative px-4 py-2.5 text-sm font-medium transition-colors duration-200 outline-none rounded-t-xl',
+                  'relative inline-flex items-center px-4 h-10 text-sm font-medium leading-none transition-colors duration-200 outline-none rounded-t-xl',
                   'focus-visible:ring-2 focus-visible:ring-coral-500/50',
                   active ? 'text-coral-500' : 'sr-muted hover:text-[inherit]',
                 )}

@@ -50,18 +50,19 @@ export default function ProfileSettingsPage() {
       </div>
 
       <Card className="p-5 flex flex-col gap-4">
-        <div className="flex items-start gap-3">
+        <div className="align-row items-start min-h-0">
           <Bell className="size-5 shrink-0 mt-0.5" />
           <div className="flex-1">
             <Label className="font-medium">Email for thread updates (E1)</Label>
             <p className="text-xs sr-muted mt-1">
               Opt in to receive helpdesk thread notifications by email. Off by default.
             </p>
-            <label className="flex items-center gap-2 mt-3 text-sm">
+            <label className="align-row mt-3 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 checked={emailNotifications}
                 onChange={(e) => setEmailNotifications(e.target.checked)}
+                className="shrink-0"
               />
               Send thread notifications to my email
             </label>
@@ -70,18 +71,19 @@ export default function ProfileSettingsPage() {
       </Card>
 
       <Card className="p-5 flex flex-col gap-4">
-        <div className="flex items-start gap-3">
+        <div className="align-row items-start min-h-0">
           <Moon className="size-5 shrink-0 mt-0.5" />
           <div className="flex-1">
             <Label className="font-medium">Quiet hours (E5)</Label>
             <p className="text-xs sr-muted mt-1">
               Suppress mobile push during these hours. In-app notifications still arrive.
             </p>
-            <label className="flex items-center gap-2 mt-3 text-sm">
+            <label className="align-row mt-3 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 checked={quietEnabled}
                 onChange={(e) => setQuietEnabled(e.target.checked)}
+                className="shrink-0"
               />
               Enable quiet hours
             </label>
@@ -96,7 +98,7 @@ export default function ProfileSettingsPage() {
                     type="time"
                     value={quietStart}
                     onChange={(e) => setQuietStart(e.target.value)}
-                    className="block h-10 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm mt-1"
+                    className="sr-select-sm mt-1"
                   />
                 </div>
                 <div>
@@ -108,7 +110,7 @@ export default function ProfileSettingsPage() {
                     type="time"
                     value={quietEnd}
                     onChange={(e) => setQuietEnd(e.target.value)}
-                    className="block h-10 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm mt-1"
+                    className="sr-select-sm mt-1"
                   />
                 </div>
               </div>

@@ -9,7 +9,7 @@ export const Input = React.forwardRef<
     ref={ref}
     type={type}
     className={cn(
-      'h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-4 text-sm transition-colors placeholder:text-[rgb(var(--sr-muted))] focus:border-[rgb(var(--sr-coral))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--sr-coral))]/30 disabled:cursor-not-allowed disabled:opacity-50',
+      'h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-4 text-sm leading-normal text-left transition-colors placeholder:text-[rgb(var(--sr-muted))] focus:border-[rgb(var(--sr-coral))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--sr-coral))]/30 disabled:cursor-not-allowed disabled:opacity-50',
       className,
     )}
     {...props}
@@ -22,7 +22,11 @@ export const Label = React.forwardRef<
   React.LabelHTMLAttributes<HTMLLabelElement>
 >(({ className, ...props }, ref) => (
   // biome-ignore lint/a11y/noLabelWithoutControl: reusable primitive; consumers pass htmlFor/children via props, which Biome cannot detect statically.
-  <label ref={ref} className={cn('text-sm font-medium', className)} {...props} />
+  <label
+    ref={ref}
+    className={cn('block text-sm font-medium leading-tight text-left', className)}
+    {...props}
+  />
 ));
 Label.displayName = 'Label';
 

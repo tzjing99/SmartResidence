@@ -2,6 +2,7 @@ import { MotiView } from 'moti';
 import * as React from 'react';
 import { Pressable, type PressableProps, Text, type ViewStyle } from 'react-native';
 import { palette, radius, spring } from '../tokens';
+import { textBase, typography } from '../typography';
 
 export interface ButtonProps extends PressableProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
@@ -20,8 +21,8 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const [pressed, setPressed] = React.useState(false);
-  const heights = { sm: 40, md: 48, lg: 56 };
-  const fontSizes = { sm: 14, md: 15, lg: 16 };
+  const heights = { sm: 36, md: 44, lg: 52 };
+  const textVariants = { sm: typography.bodySm, md: typography.body, lg: typography.subheading };
 
   const palettes: Record<
     NonNullable<ButtonProps['variant']>,
@@ -57,7 +58,15 @@ export const Button: React.FC<ButtonProps> = ({
           opacity: disabled || loading ? 0.6 : 1,
         }}
       >
-        <Text style={{ color: p.fg, fontWeight: '600', fontSize: fontSizes[size] }}>
+        <Text
+          style={{
+            ...textBase,
+            ...textVariants[size],
+            color: p.fg,
+            fontWeight: '600',
+            textAlign: 'center',
+          }}
+        >
           {loading ? 'Please wait…' : title}
         </Text>
       </MotiView>

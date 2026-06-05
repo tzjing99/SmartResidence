@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { Text, View } from 'react-native';
 import { palette, radius } from '../tokens';
+import { textBase, typography } from '../typography';
 
 type Tone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -19,13 +20,24 @@ export const Pill: React.FC<{ tone?: Tone; label: string }> = ({ tone = 'neutral
     <View
       style={{
         alignSelf: 'flex-start',
+        minHeight: 24,
         paddingHorizontal: 10,
-        paddingVertical: 4,
+        justifyContent: 'center',
         backgroundColor: s.bg,
         borderRadius: radius.full,
       }}
     >
-      <Text style={{ color: s.fg, fontWeight: '600', fontSize: 12 }}>{label}</Text>
+      <Text
+        style={{
+          ...textBase,
+          ...typography.meta,
+          color: s.fg,
+          fontWeight: '600',
+          lineHeight: 16,
+        }}
+      >
+        {label}
+      </Text>
     </View>
   );
 };

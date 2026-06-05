@@ -1,17 +1,42 @@
 import {
   useAppealThread,
   useConfirmThreadResolution,
+  useMe,
   usePostThreadMessage,
   useThread,
 } from '@smartresidence/api-client';
-import { Button, Card, Stack, palette } from '@smartresidence/ui-mobile';
+import {
+  AlignRow,
+  AppText,
+  Button,
+  Card,
+  Field,
+  Input,
+  Pill,
+  Stack,
+  palette,
+  radius,
+} from '@smartresidence/ui-mobile';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { ThreadMessageList } from '../../../src/components/thread-message-list';
 import { api } from '../../../src/lib/api';
+
+const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = {
+  OPEN: 'info',
+  AWAITING_MANAGEMENT: 'warning',
+  AWAITING_RESIDENT: 'warning',
+  PENDING_RESIDENT_CONFIRMATION: 'info',
+  RESOLVED: 'success',
+  CLOSED: 'neutral',
+  REOPENED: 'warning',
+};
 
 export default function MessageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const me = useMe(api);
+  const myId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
   const thread = useThread(api, id ?? null);
   const post = usePostThreadMessage(api);
   const confirm = useConfirmThreadResolution(api);
@@ -29,7 +54,7 @@ export default function MessageDetailScreen() {
   if (!t || !threadId) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text>Loading…</Text>
+        <AppText variant="meta">Loading…</AppText>
       </View>
     );
   }
@@ -43,27 +68,31 @@ export default function MessageDetailScreen() {
       style={{ flex: 1, backgroundColor: palette.bgLight }}
       contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
     >
-      <Text style={{ fontSize: 20, fontWeight: '700' }}>{t.subject}</Text>
-      <Text style={{ color: palette.mutedLight, fontSize: 12 }}>
-        {t.status} · {t.priority}
-      </Text>
+      <AppText variant="heading">{t.subject}</AppText>
+      <AlignRow gap={8}>
+        <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={t.status} />
+        <Pill tone="neutral" label={t.priority} />
+      </AlignRow>
 
       {pending && !rejectMode ? (
         <Card>
-          <Text style={{ fontWeight: '600', marginBottom: 8 }}>Confirm resolution?</Text>
+          <AppText variant="label" style={{ marginBottom: 8 }}>
+            Confirm resolution?
+          </AppText>
           {proposed ? (
             <View
               style={{
                 backgroundColor: '#e0f2fe',
-                padding: 10,
-                borderRadius: 10,
+                padding: 12,
+                borderRadius: radius.md,
                 marginBottom: 10,
+                gap: 4,
               }}
             >
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#0369a1' }}>
+              <AppText variant="caption" style={{ color: '#0369a1', fontWeight: '700' }}>
                 Proposed solution
-              </Text>
-              <Text style={{ marginTop: 4 }}>{proposed.body}</Text>
+              </AppText>
+              <AppText variant="bodySm">{proposed.body}</AppText>
             </View>
           ) : null}
           <Stack gap={8}>
@@ -78,34 +107,28 @@ export default function MessageDetailScreen() {
 
       {rejectMode ? (
         <Card>
-          <Text style={{ fontWeight: '600', marginBottom: 8 }}>Why not resolved?</Text>
-          <TextInput
-            value={rejectReason}
-            onChangeText={setRejectReason}
-            placeholder="Why rejecting?"
-            multiline
-            style={{
-              borderWidth: 1,
-              borderColor: palette.borderLight,
-              borderRadius: 10,
-              padding: 10,
-              marginBottom: 8,
-            }}
-          />
-          <TextInput
-            value={rejectExpectation}
-            onChangeText={setRejectExpectation}
-            placeholder="What do you still need?"
-            multiline
-            style={{
-              borderWidth: 1,
-              borderColor: palette.borderLight,
-              borderRadius: 10,
-              padding: 10,
-              marginBottom: 8,
-            }}
-          />
-          <Stack gap={8}>
+          <AppText variant="label" style={{ marginBottom: 8 }}>
+            Why not resolved?
+          </AppText>
+          <Field>
+            <Input
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              placeholder="Why rejecting?"
+              multiline
+              style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
+            />
+          </Field>
+          <Field containerStyle={{ marginTop: 8 }}>
+            <Input
+              value={rejectExpectation}
+              onChangeText={setRejectExpectation}
+              placeholder="What do you still need?"
+              multiline
+              style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
+            />
+          </Field>
+          <Stack gap={8} style={{ marginTop: 8 }}>
             <Button
               title="Submit"
               onPress={() =>
@@ -128,21 +151,19 @@ export default function MessageDetailScreen() {
 
       {appealMode ? (
         <Card>
-          <Text style={{ fontWeight: '600', marginBottom: 8 }}>Appeal reason (required)</Text>
-          <TextInput
-            value={appealReason}
-            onChangeText={setAppealReason}
-            placeholder="Why are you appealing?"
-            multiline
-            style={{
-              borderWidth: 1,
-              borderColor: palette.borderLight,
-              borderRadius: 10,
-              padding: 10,
-              marginBottom: 8,
-            }}
-          />
-          <Stack gap={8}>
+          <AppText variant="label" style={{ marginBottom: 8 }}>
+            Appeal reason (required)
+          </AppText>
+          <Field>
+            <Input
+              value={appealReason}
+              onChangeText={setAppealReason}
+              placeholder="Why are you appealing?"
+              multiline
+              style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
+            />
+          </Field>
+          <Stack gap={8} style={{ marginTop: 8 }}>
             <Button
               title="Submit appeal"
               onPress={() => appeal.mutate({ id: threadId, reason: appealReason })}
@@ -152,44 +173,25 @@ export default function MessageDetailScreen() {
         </Card>
       ) : null}
 
-      {t.messages.map((m) => (
-        <View
-          key={m.id}
-          style={{
-            alignSelf: m.kind === 'SYSTEM' ? 'center' : 'stretch',
-            backgroundColor: m.kind === 'SYSTEM' ? 'transparent' : palette.surfaceLight,
-            padding: m.kind === 'SYSTEM' ? 4 : 12,
-            borderRadius: 12,
-            borderWidth: t.resolutionProposedMessageId === m.id ? 2 : 0,
-            borderColor: '#0ea5e9',
-          }}
-        >
-          <Text
-            style={{
-              fontSize: m.kind === 'SYSTEM' ? 11 : 14,
-              color: m.kind === 'SYSTEM' ? palette.mutedLight : undefined,
-            }}
-          >
-            {m.body}
-          </Text>
-        </View>
-      ))}
+      <ThreadMessageList
+        messages={t.messages}
+        variant="resident"
+        viewerId={myId}
+        residentId={t.createdBy?.id}
+        resolutionProposedMessageId={t.resolutionProposedMessageId}
+      />
 
       {!pending && !finished ? (
         <Card>
-          <TextInput
-            value={body}
-            onChangeText={setBody}
-            placeholder="Write a reply…"
-            multiline
-            style={{
-              borderWidth: 1,
-              borderColor: palette.borderLight,
-              borderRadius: 10,
-              padding: 10,
-              minHeight: 80,
-            }}
-          />
+          <Field>
+            <Input
+              value={body}
+              onChangeText={setBody}
+              placeholder="Write a reply…"
+              multiline
+              style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
+            />
+          </Field>
           <View style={{ marginTop: 8 }}>
             <Button
               title="Send"

@@ -53,7 +53,12 @@ export function SlaChip({
     >
       <Icon className="size-3.5" aria-hidden />
       {SLA_LABEL[slaState]}
-      {showDetail && dueText ? <span className="opacity-80">· {dueText}</span> : null}
+      {showDetail && dueText ? (
+        <>
+          <span className="text-meta-sep">·</span>
+          <span className="opacity-80 leading-none">{dueText}</span>
+        </>
+      ) : null}
     </Badge>
   );
 }

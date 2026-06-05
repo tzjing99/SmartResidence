@@ -51,8 +51,7 @@ const SLA_OPTIONS = [
   { value: 'ON_TRACK', label: SLA_LABEL.ON_TRACK },
 ] as const;
 
-const selectCls =
-  'h-10 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sr-coral))]';
+const selectCls = 'sr-select w-auto';
 
 export default function HelpdeskPage() {
   const [status, setStatus] = React.useState<ThreadStatus | ''>('');
@@ -159,7 +158,7 @@ export default function HelpdeskPage() {
             </option>
           ))}
         </select>
-        <p className="ml-auto text-xs sr-muted">Sorted: breach → at risk → priority → oldest</p>
+        <p className="ml-auto text-meta">Sorted: breach → at risk → priority → oldest</p>
       </div>
 
       {threads.isLoading ? (
@@ -200,19 +199,21 @@ export default function HelpdeskPage() {
                     <Card className="transition-colors hover:border-[rgb(var(--sr-coral))]/40">
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:items-center">
                         <div className="lg:col-span-5 min-w-0">
-                          <div className="font-medium truncate">{t.subject}</div>
-                          <div className="text-xs sr-muted mt-0.5 flex items-center gap-1.5">
+                          <div className="font-medium truncate leading-tight">{t.subject}</div>
+                          <div className="text-meta-row mt-0.5">
                             <Badge tone="neutral">{categoryLabel(t.category)}</Badge>
+                            <span className="text-meta-sep">·</span>
                             <span>
-                              {t._count?.messages ?? 0} msg · updated{' '}
-                              {new Date(t.lastMessageAt).toLocaleDateString()}
+                              {t._count?.messages ?? 0} msg
                             </span>
+                            <span className="text-meta-sep">·</span>
+                            <span>updated {new Date(t.lastMessageAt).toLocaleDateString()}</span>
                           </div>
                         </div>
                         <div className="lg:col-span-2 text-sm min-w-0">
                           <div className="truncate">{t.createdBy?.name ?? 'Resident'}</div>
                           {t.unit?.identifier ? (
-                            <div className="text-xs sr-muted">Unit {t.unit.identifier}</div>
+                            <div className="text-meta">Unit {t.unit.identifier}</div>
                           ) : null}
                         </div>
                         <div className="lg:col-span-1">
@@ -220,9 +221,11 @@ export default function HelpdeskPage() {
                             {priorityLabel(t.priority)}
                           </Badge>
                         </div>
-                        <div className="lg:col-span-2 flex flex-col gap-1 items-start">
-                          <Badge tone={STATUS_TONE[t.status]}>{statusLabel(t.status)}</Badge>
-                          <span className="text-xs sr-muted truncate">
+                        <div className="lg:col-span-2 flex flex-col gap-1 justify-center">
+                          <Badge tone={STATUS_TONE[t.status]} className="self-start">
+                            {statusLabel(t.status)}
+                          </Badge>
+                          <span className="text-meta truncate">
                             {t.assignedTo?.name ?? 'No one assigned yet'}
                           </span>
                         </div>

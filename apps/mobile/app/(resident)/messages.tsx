@@ -1,8 +1,33 @@
 import { useThreads } from '@smartresidence/api-client';
-import { Button, Card, palette } from '@smartresidence/ui-mobile';
+import {
+  AlignRow,
+  AppText,
+  Button,
+  Card,
+  MetaLine,
+  Pill,
+  palette,
+} from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { api } from '../../src/lib/api';
+
+const PRIORITY_TONE: Record<string, 'neutral' | 'warning' | 'danger' | 'info'> = {
+  URGENT: 'danger',
+  HIGH: 'warning',
+  NORMAL: 'neutral',
+  LOW: 'neutral',
+};
+
+const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = {
+  OPEN: 'info',
+  AWAITING_MANAGEMENT: 'warning',
+  AWAITING_RESIDENT: 'warning',
+  PENDING_RESIDENT_CONFIRMATION: 'info',
+  RESOLVED: 'success',
+  CLOSED: 'neutral',
+  REOPENED: 'warning',
+};
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -13,21 +38,34 @@ export default function MessagesScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 16, gap: 10 }}
+      contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Messages</Text>
+      <AppText variant="title">Messages</AppText>
       <Button title="New message" onPress={() => router.push('/(resident)/messages/new' as Href)} />
       {items.length === 0 ? (
-        <Text style={{ color: palette.mutedLight }}>No conversations yet.</Text>
+        <AppText variant="meta">No conversations yet.</AppText>
       ) : (
         items.map((t) => (
           <Pressable key={t.id} onPress={() => router.push(`/(resident)/messages/${t.id}` as Href)}>
             <Card>
-              <Text style={{ fontWeight: '600' }}>{t.subject}</Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                <Text style={{ fontSize: 12, color: palette.mutedLight }}>{t.status}</Text>
-                <Text style={{ fontSize: 12, color: palette.mutedLight }}>{t.priority}</Text>
-              </View>
+              <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }} gap={12}>
+                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                  <AppText variant="label" numberOfLines={1}>
+                    {t.subject}
+                  </AppText>
+                  <MetaLine
+                    parts={[
+                      t.category,
+                      `${t._count?.messages ?? 0} messages`,
+                      `updated ${new Date(t.lastMessageAt).toLocaleDateString()}`,
+                    ]}
+                  />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Pill tone={PRIORITY_TONE[t.priority] ?? 'neutral'} label={t.priority} />
+                  <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={t.status} />
+                </View>
+              </AlignRow>
             </Card>
           </Pressable>
         ))

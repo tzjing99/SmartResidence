@@ -100,7 +100,7 @@ export default function VisitorsPage() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => onReject(v.id)}
                         disabled={reject.isPending}
                       >

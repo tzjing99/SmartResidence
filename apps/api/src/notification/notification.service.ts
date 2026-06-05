@@ -173,12 +173,12 @@ export class NotificationService {
       where: { id: payload.visitorId },
       include: { host: true, unit: true },
     });
-    if (!v) return;
+    if (!v?.hostUserId) return;
     await this.dispatch({
       userIds: [v.hostUserId],
       kind: NotificationKind.VISITOR_REQUEST,
       title: `Visitor pass for ${v.name}`,
-      body: `Expected ${v.expectedAt.toLocaleString()} at ${v.unit.identifier}`,
+      body: `Expected ${v.expectedAt.toLocaleString()} at ${v.unit?.identifier ?? 'your unit'}`,
       data: { visitorId: v.id, deeplink: `smartresidence://visitors/${v.id}` },
     });
   }
@@ -247,7 +247,7 @@ export class NotificationService {
   @OnEvent('visitor.checked_in')
   async onVisitorCheckedIn(payload: { visitorId: string }) {
     const v = await this.prisma.visitor.findUnique({ where: { id: payload.visitorId } });
-    if (!v) return;
+    if (!v?.hostUserId) return;
     await this.dispatch({
       userIds: [v.hostUserId],
       kind: NotificationKind.VISITOR_CHECKED_IN,

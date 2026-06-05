@@ -9,6 +9,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AuditAction,
+  type Prisma,
   OwnershipStatus,
   TenancyStatus,
   VisitorStatus,
@@ -42,6 +43,8 @@ const visitorInclude = {
   host: true,
   checkIns: true,
 } as const;
+
+type VisitorWithRelations = Prisma.VisitorGetPayload<{ include: typeof visitorInclude }>;
 
 @Injectable()
 export class VisitorService {
@@ -438,7 +441,7 @@ export class VisitorService {
   }
 
   /** Resolve a visitor pass by QR payload, access code, or visitor id. */
-  async verifyByPass(pass: string, condoId?: string) {
+  async verifyByPass(pass: string, condoId?: string): Promise<VisitorWithRelations> {
     await this.expireStale(condoId);
     const normalized = normalizePassInput(pass);
 
@@ -486,7 +489,7 @@ export class VisitorService {
     throw new NotFoundException('Unknown pass — check the QR or access code');
   }
 
-  private enrichVerifyResult(visitor: Awaited<ReturnType<typeof this.verifyByPass>>) {
+  private enrichVerifyResult(visitor: VisitorWithRelations): VisitorWithRelations {
     if (visitor.status === VisitorStatus.EXPIRED) {
       throw new BadRequestException(
         visitor.visitType === VisitorVisitType.WALKIN_UNIT

@@ -79,7 +79,7 @@ export default function VisitorPassPage() {
           ) : null}
 
           {visitor.status === 'APPROVED' && visitor.visitType === 'PRE_REG' ? (
-            <Button variant="outline" onClick={onRegenerate} disabled={regenerate.isPending}>
+            <Button variant="secondary" onClick={onRegenerate} disabled={regenerate.isPending}>
               <RefreshCw className="size-4" />
               {regenerate.isPending ? 'Generating…' : 'Regenerate code'}
             </Button>

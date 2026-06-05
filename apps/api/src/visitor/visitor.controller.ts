@@ -166,17 +166,6 @@ export class VisitorController {
     return this.visitors.reject(id, user, dto.reason);
   }
 
-  @Post(':id/regenerate-code')
-  @CheckAbility({ action: 'update', subject: 'Visitor' })
-  @Audit({ action: AuditAction.UPDATE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })
-  @ApiOperation({ summary: 'Regenerate short access code before check-in' })
-  regenerateCode(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ) {
-    return this.visitors.regenerateAccessCode(id, user);
-  }
-
   @Get('favourites/unit/:unitId')
   @CheckAbility({ action: 'read', subject: 'FavouriteVisitor' })
   @ApiOperation({ summary: 'List saved visitor templates for a unit' })

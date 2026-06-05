@@ -45,7 +45,12 @@ export default function NewVisitorScreen() {
       >
         <Text style={{ fontSize: 22, fontWeight: '700' }}>Pre-register a visitor</Text>
       </View>
-      <PreRegForm prefill={prefill} onSuccess={() => router.back()} />
+      <PreRegForm
+        prefill={prefill}
+        onSuccess={(visitorId) =>
+          router.replace(`/(resident)/visitors/${visitorId}` as import('expo-router').Href)
+        }
+      />
     </ScrollView>
   );
 }

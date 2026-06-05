@@ -133,6 +133,7 @@ function VisitorsTab({
   items: Visitor[];
   isLoading: boolean;
 }) {
+  const router = useRouter();
   const approve = useApproveVisitor(api);
   const reject = useRejectVisitor(api);
 
@@ -174,7 +175,16 @@ function VisitorsTab({
   return (
     <>
       {items.map((v) => (
-        <Card key={v.id}>
+        <Pressable
+          key={v.id}
+          onPress={() => {
+            if (tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED') {
+              router.push(`/(resident)/visitors/${v.id}` as Href);
+            }
+          }}
+          disabled={!(tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED')}
+        >
+        <Card>
           <View
             style={{
               flexDirection: 'row',
@@ -190,6 +200,11 @@ function VisitorsTab({
               {v.accessCode && tab === 'upcoming' ? (
                 <Text style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}>
                   {v.accessCode}
+                </Text>
+              ) : null}
+              {tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED' ? (
+                <Text style={{ fontSize: 13, color: palette.coralPrimary, fontWeight: '600', marginTop: 6 }}>
+                  View pass →
                 </Text>
               ) : null}
               <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -229,6 +244,7 @@ function VisitorsTab({
             ) : null}
           </View>
         </Card>
+        </Pressable>
       ))}
     </>
   );

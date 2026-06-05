@@ -240,6 +240,11 @@ describe('VisitorService', () => {
     await expect(svc.checkIn('c1:v2:ABC123', guard, {} as any)).rejects.toThrow(/Cannot check in/);
   });
 
+  it('does not allow regenerating access codes after pass creation', () => {
+    const { svc } = service();
+    expect(svc).not.toHaveProperty('regenerateAccessCode');
+  });
+
   it('resolves pass by condo-scoped access code', async () => {
     const { svc, prisma } = service();
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });

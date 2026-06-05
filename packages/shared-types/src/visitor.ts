@@ -239,6 +239,43 @@ export const UpdateFavouriteVisitorSchema = CreateFavouriteVisitorSchema.omit({
 }).partial();
 export type UpdateFavouriteVisitorInput = z.infer<typeof UpdateFavouriteVisitorSchema>;
 
+export type VisitorPassShareInput = {
+  visitorName: string;
+  accessCode: string;
+  expectedAt: Date;
+  expiresAt?: Date | null;
+  unitIdentifier?: string | null;
+};
+
+/** Plain-language share title for visitor passes (WhatsApp, iMessage, system share). */
+export function formatVisitorPassShareTitle(visitorName: string): string {
+  return `Visitor pass — ${visitorName}`;
+}
+
+/** Plain-language share body with access code, validity window, and unit. */
+export function formatVisitorPassShareText(input: VisitorPassShareInput): string {
+  const validWindow = formatVisitorPassValidityWindow(input.expectedAt, input.expiresAt);
+  const lines = [
+    `Hi! Here's your visitor pass for ${input.visitorName}.`,
+    '',
+    `Access code: ${input.accessCode}`,
+    `Valid: ${validWindow}`,
+  ];
+  if (input.unitIdentifier?.trim()) {
+    lines.push(`Unit: ${input.unitIdentifier.trim()}`);
+  }
+  lines.push('', 'Show this code or the QR at the guardhouse when you arrive.');
+  return lines.join('\n');
+}
+
+function formatVisitorPassValidityWindow(expectedAt: Date, expiresAt?: Date | null): string {
+  const start = expectedAt.toLocaleString();
+  if (expiresAt) {
+    return `${start} – ${expiresAt.toLocaleString()}`;
+  }
+  return `from ${start}`;
+}
+
 /** Build pre-reg query params from a favourite for /visitors/new pre-fill. */
 export function favouriteToPreRegParams(fav: FavouriteVisitor): Record<string, string> {
   const params: Record<string, string> = { name: fav.name };

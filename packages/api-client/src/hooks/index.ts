@@ -151,14 +151,6 @@ export function useVisitorQr(api: ApiClient, visitorId: string | null) {
   });
 }
 
-export function useRegenerateVisitorCode(api: ApiClient) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (visitorId: string) => api.regenerateVisitorCode(visitorId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
-  });
-}
-
 export function useApproveVisitor(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({

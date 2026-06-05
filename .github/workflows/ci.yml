@@ -111,6 +111,11 @@ jobs:
       redis:
         image: redis:7
         ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smartresidence_e2e
       REDIS_URL: redis://localhost:6379
@@ -136,8 +141,14 @@ jobs:
       - run: pnpm --filter @smartresidence/api build
       - name: Start API
         run: |
-          pnpm --filter @smartresidence/api start &
-          npx wait-on http://localhost:4000/health
+          pnpm --filter @smartresidence/api start > /tmp/api.log 2>&1 &
+          echo "API_PID=$!" >> "$GITHUB_ENV"
+          npx --yes wait-on -t 90000 -i 1000 http://localhost:4000/health || {
+            echo "::error::API did not become healthy within 90s — log below:";
+            cat /tmp/api.log;
+            exit 1;
+          }
+          echo "API is healthy:"; cat /tmp/api.log
       - name: Install Playwright browsers
         run: pnpm --filter @smartresidence/web exec playwright install --with-deps chromium webkit
       - name: Build web

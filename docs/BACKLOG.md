@@ -8,6 +8,8 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
+- ✅ **D2 — Helpdesk thread behavior** — resident-driven resolution model: management "proposes resolved" (new `PENDING_RESIDENT_CONFIRMATION` status + `resolutionProposedAt`/`resolutionProposedByUserId`), resident confirms/rejects, resident comments while `AWAITING_MANAGEMENT` no longer flip status, explicit "request to resident" action, and a 7-day auto-confirm fallback in the scheduled scanner.
+- ✅ **H1 — Helpdesk dashboard polish** — cleaner admin inbox (columns for subject/requester/priority/status/assignee/SLA), unmistakable SLA chips (On track / At risk / Breached with time remaining), category + assignee filters, sort by SLA due, and the new D2 affordances surfaced in the thread detail + resident view.
 - ✅ **D1 — Announcement rich-text rendering** — sanitized markdown rendering on web (resident + admin pages) and mobile, plus a live markdown preview in the admin composer.
 - ✅ **T1 — Repo-wide lint for green CI** — `corepack pnpm lint` now exits 0 (ignored generated dirs incl. `.docusaurus`; fixed residual format/import-sort errors).
 
@@ -16,7 +18,7 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
 | **D1** | ✅ Done | web + mobile | Announcement rich-text rendering. Announcement bodies are authored/stored as markdown but render as literal text (e.g. `## Notice from JMB` and `**June 12, 2026**` appear raw instead of formatted). |
-| **D2** | P2 | api + web | Helpdesk thread behavior does not match the intended resident-driven resolution model. |
+| **D2** | ✅ Done | api + web | Helpdesk thread behavior does not match the intended resident-driven resolution model. |
 
 ### D1 — Announcement rich-text rendering ✅ Done
 
@@ -32,27 +34,25 @@ Test case (the sample notice should render formatted, not raw):
 The water utility will be performing pipe maintenance on **June 12, 2026** from **10am to 2pm**. Please store water in advance.
 ```
 
-### D2 — Helpdesk thread behavior
+### D2 — Helpdesk thread behavior ✅ Done
 
-Current implementation lets management resolve tickets unilaterally and flips status on resident reply — both need changing.
+Resident-driven resolution model implemented end-to-end (API + web).
 
-- **(a) Comments while `AWAITING_MANAGEMENT`.** A resident may add additional comments, but the status must STAY `AWAITING_MANAGEMENT` (resident comments do not flip the ball back to the resident).
-- **(b) Resident-driven resolution.** The resident confirms/marks a thread resolved; management cannot unilaterally close it. Management may "propose resolved", which then requires resident confirmation, with an auto-close-after-N-days fallback if the resident goes silent.
-- **(c) Explicit requests to resident.** Management moves a ticket to `AWAITING_RESIDENT` only as an explicit "request to resident"; the resident's reply moves it back to `AWAITING_MANAGEMENT`.
+- ✅ **(a) Comments while `AWAITING_MANAGEMENT`.** A resident adding comments no longer flips status — it stays `AWAITING_MANAGEMENT`.
+- ✅ **(b) Resident-driven resolution.** Management can "propose resolved" (new `PENDING_RESIDENT_CONFIRMATION` status + `resolutionProposedAt` / `resolutionProposedByUserId` on `Thread`); the resident confirms (→ `RESOLVED`) or rejects/replies (→ `AWAITING_MANAGEMENT`, proposal cleared). Management can no longer resolve/close directly (blocked in the service + CASL `cannot('resolve','Thread')`). A **7-day** auto-confirm fallback (`SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS`) closes silent proposals via the scheduled scanner, with audit + notification.
+- ✅ **(c) Explicit requests to resident.** A dedicated "request to resident" action sets `AWAITING_RESIDENT`; a plain management reply keeps `AWAITING_MANAGEMENT`. The resident's reply moves it back to `AWAITING_MANAGEMENT`.
 
 ## Deferred UI polish
 
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
-| **H1** | P2 | web | Helpdesk dashboard polish. Pairs with D2 (same pass). |
+| **H1** | ✅ Done | web | Helpdesk dashboard polish. Pairs with D2 (same pass). |
 
-### H1 — Helpdesk dashboard polish
+### H1 — Helpdesk dashboard polish ✅ Done
 
-The current admin Helpdesk inbox is cluttered and the SLA state is hard to read.
-
-- Cleaner inbox layout with priority + status + assignee + SLA columns.
-- Unmistakable SLA chips: green **On-track** / amber **At-risk** / red **Breached**, showing the actual due time.
-- Better visual grouping.
+- ✅ Cleaner inbox layout with subject / requester+unit / priority / status / assignee / SLA columns (card rows, responsive grid, framer-motion list).
+- ✅ Unmistakable SLA chips via a shared `<SlaChip>`: green **On track** / amber **At risk** / red **Breached**, each showing the time remaining or overdue amount (breached/at-risk get a coloured ring to pop), exact due time in the tooltip.
+- ✅ Category + assignee filters added (status/priority/SLA retained) plus **sort by SLA due**; sensible empty states; new D2 affordances surfaced (management "Propose resolved" / "Request from resident", resident "Confirm resolved / Not resolved", pending-confirmation banner) with i18n keys (en/ms/zh-Hans).
 
 ## Planned features (cross-referenced to roadmap)
 

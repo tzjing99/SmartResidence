@@ -23,6 +23,46 @@
     "reply": "写回复…",
     "empty": "暂无对话"
   },
+  "helpdesk": {
+    "title": "服务台",
+    "subtitle": "居民对话，按优先级排序并依 SLA 跟踪。",
+    "empty": "暂无工单",
+    "emptyHint": "没有符合这些筛选条件的对话。",
+    "columns": {
+      "subject": "主题",
+      "requester": "提交人",
+      "category": "类别",
+      "priority": "优先级",
+      "status": "状态",
+      "assignee": "负责人",
+      "sla": "SLA"
+    },
+    "filters": {
+      "allStatuses": "全部状态",
+      "allPriorities": "全部优先级",
+      "allCategories": "全部类别",
+      "allAssignees": "全部负责人",
+      "anySla": "任意 SLA",
+      "unassigned": "未分配",
+      "sortBySla": "按 SLA 到期排序"
+    },
+    "sla": {
+      "onTrack": "正常",
+      "atRisk": "有风险",
+      "breached": "已逾期"
+    },
+    "actions": {
+      "proposeResolved": "建议已解决",
+      "requestResident": "请求居民",
+      "confirmResolved": "确认已解决",
+      "notResolved": "未解决",
+      "assignToMe": "分配给我"
+    },
+    "pendingConfirmation": "等待居民确认解决。",
+    "pendingConfirmationResident": "管理处已将此标记为已解决。您的问题解决了吗？",
+    "proposePlaceholder": "给居民的备注（可选）…",
+    "requestPlaceholder": "您需要居民提供什么？"
+  },
   "faq": {
     "title": "帮助与常见问题",
     "subtitle": "由您的管理处整理的解答。",

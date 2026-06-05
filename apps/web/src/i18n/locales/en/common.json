@@ -23,6 +23,46 @@
     "reply": "Write a reply…",
     "empty": "No conversations yet"
   },
+  "helpdesk": {
+    "title": "Helpdesk",
+    "subtitle": "Resident conversations, prioritised and tracked against SLA.",
+    "empty": "No threads",
+    "emptyHint": "No conversations match these filters.",
+    "columns": {
+      "subject": "Subject",
+      "requester": "Requester",
+      "category": "Category",
+      "priority": "Priority",
+      "status": "Status",
+      "assignee": "Assignee",
+      "sla": "SLA"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "allPriorities": "All priorities",
+      "allCategories": "All categories",
+      "allAssignees": "All assignees",
+      "anySla": "Any SLA",
+      "unassigned": "Unassigned",
+      "sortBySla": "Sort by SLA due"
+    },
+    "sla": {
+      "onTrack": "On track",
+      "atRisk": "At risk",
+      "breached": "Breached"
+    },
+    "actions": {
+      "proposeResolved": "Propose resolved",
+      "requestResident": "Request from resident",
+      "confirmResolved": "Confirm resolved",
+      "notResolved": "Not resolved",
+      "assignToMe": "Assign to me"
+    },
+    "pendingConfirmation": "Awaiting resident confirmation of resolution.",
+    "pendingConfirmationResident": "Management marked this as resolved. Is your issue sorted?",
+    "proposePlaceholder": "Optional note for the resident…",
+    "requestPlaceholder": "What do you need from the resident?"
+  },
   "faq": {
     "title": "Help & FAQ",
     "subtitle": "Answers curated by your management office.",

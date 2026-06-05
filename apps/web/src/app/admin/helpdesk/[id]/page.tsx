@@ -1,32 +1,27 @@
 'use client';
 
+import { SlaChip } from '@/components/sla-chip';
 import { api } from '@/lib/api';
-import { PRIORITY_TONE, SLA_TONE, STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
+import { PRIORITY_TONE, STATUS_TONE, formatTimeLeft, prettyLabel } from '@/lib/thread-ui';
 import {
   useMe,
   usePostThreadMessage,
+  useProposeThreadResolution,
+  useRequestThreadResident,
   useThread,
   useUpdateThread,
 } from '@smartresidence/api-client';
-import type { ThreadPriority, ThreadStatus } from '@smartresidence/api-client';
+import type { ThreadPriority } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-web';
-import { ArrowLeft, Send, UserCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, RotateCcw, Send, UserCheck, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 const PRIORITIES: ThreadPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
-const STATUSES: ThreadStatus[] = [
-  'OPEN',
-  'AWAITING_RESIDENT',
-  'AWAITING_MANAGEMENT',
-  'RESOLVED',
-  'CLOSED',
-  'REOPENED',
-];
 const selectCls =
-  'h-10 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm';
+  'h-10 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sr-coral))]';
 
 export default function AdminThreadPage() {
   const params = useParams<{ id: string }>();
@@ -36,8 +31,13 @@ export default function AdminThreadPage() {
   const thread = useThread(api, id);
   const post = usePostThreadMessage(api);
   const update = useUpdateThread(api);
+  const propose = useProposeThreadResolution(api);
+  const requestResident = useRequestThreadResident(api);
+
   const [body, setBody] = React.useState('');
   const [internal, setInternal] = React.useState(false);
+  const [composer, setComposer] = React.useState<null | 'propose' | 'request'>(null);
+  const [actionNote, setActionNote] = React.useState('');
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -50,14 +50,32 @@ export default function AdminThreadPage() {
     }
   }
 
-  async function patch(data: {
-    priority?: ThreadPriority;
-    status?: ThreadStatus;
-    assignedToUserId?: string;
-  }) {
+  async function runPropose() {
     try {
-      await update.mutateAsync({ id, ...data });
-      toast.success('Updated');
+      await propose.mutateAsync({ id, note: actionNote.trim() || undefined });
+      toast.success('Resolution proposed — awaiting resident confirmation');
+      setComposer(null);
+      setActionNote('');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function runRequest() {
+    try {
+      await requestResident.mutateAsync({ id, body: actionNote.trim() || undefined });
+      toast.success('Sent to resident');
+      setComposer(null);
+      setActionNote('');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function reopen() {
+    try {
+      await update.mutateAsync({ id, status: 'REOPENED' });
+      toast.success('Reopened');
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -66,6 +84,9 @@ export default function AdminThreadPage() {
   if (thread.isLoading) return <Skeleton className="h-96" />;
   const t = thread.data;
   if (!t) return <div className="sr-muted text-sm">Thread not found.</div>;
+
+  const pending = t.status === 'PENDING_RESIDENT_CONFIRMATION';
+  const finished = t.status === 'RESOLVED' || t.status === 'CLOSED';
 
   return (
     <div className="flex flex-col gap-5">
@@ -87,10 +108,22 @@ export default function AdminThreadPage() {
                 {t.createdBy?.name ?? 'Resident'} · {prettyLabel(t.category)}
               </div>
             </div>
-            {t.slaState !== 'NONE' ? (
-              <Badge tone={SLA_TONE[t.slaState]}>SLA {prettyLabel(t.slaState)}</Badge>
-            ) : null}
+            <SlaChip
+              slaState={t.slaState}
+              firstResponseDueAt={t.firstResponseDueAt}
+              resolutionDueAt={t.resolutionDueAt}
+            />
           </header>
+
+          {pending ? (
+            <div className="rounded-xl border border-sky-400/40 bg-sky-400/10 px-4 py-3 text-sm flex items-center gap-2">
+              <CheckCircle2 className="size-4 text-sky-600 shrink-0" />
+              <span>
+                Resolution proposed — awaiting the resident&rsquo;s confirmation. Replying will
+                reopen the conversation.
+              </span>
+            </div>
+          ) : null}
 
           <Card className="flex flex-col gap-4">
             {t.messages.map((m) => {
@@ -166,7 +199,7 @@ export default function AdminThreadPage() {
         {/* Controls */}
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge tone={PRIORITY_TONE[t.priority]}>{prettyLabel(t.priority)}</Badge>
               <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
             </div>
@@ -174,28 +207,21 @@ export default function AdminThreadPage() {
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">Priority</span>
               <select
+                aria-label="Thread priority"
                 className={selectCls}
                 value={t.priority}
-                onChange={(e) => patch({ priority: e.target.value as ThreadPriority })}
+                onChange={async (e) => {
+                  try {
+                    await update.mutateAsync({ id, priority: e.target.value as ThreadPriority });
+                    toast.success('Priority updated');
+                  } catch (err) {
+                    toast.error((err as Error).message);
+                  }
+                }}
               >
                 {PRIORITIES.map((p) => (
                   <option key={p} value={p}>
                     {prettyLabel(p)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">Status</span>
-              <select
-                className={selectCls}
-                value={t.status}
-                onChange={(e) => patch({ status: e.target.value as ThreadStatus })}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {prettyLabel(s)}
                   </option>
                 ))}
               </select>
@@ -208,7 +234,14 @@ export default function AdminThreadPage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => patch({ assignedToUserId: myId })}
+                  onClick={async () => {
+                    try {
+                      await update.mutateAsync({ id, assignedToUserId: myId });
+                      toast.success('Assigned to you');
+                    } catch (err) {
+                      toast.error((err as Error).message);
+                    }
+                  }}
                 >
                   <UserCheck className="size-4" />
                   Assign to me
@@ -216,12 +249,99 @@ export default function AdminThreadPage() {
               ) : null}
             </div>
 
-            <div className="border-t border-[rgb(var(--sr-border))] pt-3 text-xs sr-muted">
-              {t.resolutionDueAt ? (
-                <div>Resolution due {new Date(t.resolutionDueAt).toLocaleString()}</div>
-              ) : null}
+            {/* Resolution actions (resident-driven model) */}
+            <div className="border-t border-[rgb(var(--sr-border))] pt-3 flex flex-col gap-2">
+              <span className="text-sm font-medium">Resolution</span>
+              {pending ? (
+                <p className="text-xs sr-muted">
+                  Awaiting resident confirmation. Reply to reopen, or wait for the resident to
+                  confirm.
+                </p>
+              ) : finished ? (
+                <Button variant="secondary" size="sm" onClick={reopen} disabled={update.isPending}>
+                  <RotateCcw className="size-4" />
+                  Reopen
+                </Button>
+              ) : composer === 'propose' ? (
+                <div className="flex flex-col gap-2">
+                  <Textarea
+                    rows={2}
+                    value={actionNote}
+                    onChange={(e) => setActionNote(e.target.value)}
+                    placeholder="Optional note for the resident…"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={runPropose} disabled={propose.isPending}>
+                      <CheckCircle2 className="size-4" />
+                      Propose resolved
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setComposer(null);
+                        setActionNote('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : composer === 'request' ? (
+                <div className="flex flex-col gap-2">
+                  <Textarea
+                    rows={2}
+                    value={actionNote}
+                    onChange={(e) => setActionNote(e.target.value)}
+                    placeholder="What do you need from the resident?"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={runRequest} disabled={requestResident.isPending}>
+                      <UserPlus className="size-4" />
+                      Send to resident
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setComposer(null);
+                        setActionNote('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => setComposer('propose')}>
+                    <CheckCircle2 className="size-4" />
+                    Propose resolved
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setComposer('request')}>
+                    <UserPlus className="size-4" />
+                    Request from resident
+                  </Button>
+                </div>
+              )}
+              <p className="text-[11px] sr-muted">
+                Management proposes; the resident confirms. Threads with no response auto-resolve
+                after 7 days.
+              </p>
+            </div>
+
+            <div className="border-t border-[rgb(var(--sr-border))] pt-3 text-xs sr-muted flex flex-col gap-1">
               {t.firstResponseDueAt ? (
-                <div>First response due {new Date(t.firstResponseDueAt).toLocaleString()}</div>
+                <div>
+                  First response {formatTimeLeft(t.firstResponseDueAt)} ·{' '}
+                  {new Date(t.firstResponseDueAt).toLocaleString()}
+                </div>
+              ) : null}
+              {t.resolutionDueAt ? (
+                <div>
+                  Resolution {formatTimeLeft(t.resolutionDueAt)} ·{' '}
+                  {new Date(t.resolutionDueAt).toLocaleString()}
+                </div>
               ) : null}
             </div>
           </Card>

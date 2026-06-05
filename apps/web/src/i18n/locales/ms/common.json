@@ -23,6 +23,46 @@
     "reply": "Tulis balasan…",
     "empty": "Tiada perbualan lagi"
   },
+  "helpdesk": {
+    "title": "Meja bantuan",
+    "subtitle": "Perbualan penduduk, diutamakan dan dijejaki mengikut SLA.",
+    "empty": "Tiada utas",
+    "emptyHint": "Tiada perbualan sepadan dengan penapis ini.",
+    "columns": {
+      "subject": "Tajuk",
+      "requester": "Pemohon",
+      "category": "Kategori",
+      "priority": "Keutamaan",
+      "status": "Status",
+      "assignee": "Ditugaskan",
+      "sla": "SLA"
+    },
+    "filters": {
+      "allStatuses": "Semua status",
+      "allPriorities": "Semua keutamaan",
+      "allCategories": "Semua kategori",
+      "allAssignees": "Semua petugas",
+      "anySla": "Mana-mana SLA",
+      "unassigned": "Belum ditugaskan",
+      "sortBySla": "Susun mengikut SLA"
+    },
+    "sla": {
+      "onTrack": "Mengikut jadual",
+      "atRisk": "Berisiko",
+      "breached": "Dilanggar"
+    },
+    "actions": {
+      "proposeResolved": "Cadang selesai",
+      "requestResident": "Minta daripada penduduk",
+      "confirmResolved": "Sahkan selesai",
+      "notResolved": "Belum selesai",
+      "assignToMe": "Tugaskan kepada saya"
+    },
+    "pendingConfirmation": "Menunggu pengesahan penyelesaian daripada penduduk.",
+    "pendingConfirmationResident": "Pengurusan menanda ini sebagai selesai. Adakah isu anda telah selesai?",
+    "proposePlaceholder": "Nota pilihan untuk penduduk…",
+    "requestPlaceholder": "Apa yang anda perlukan daripada penduduk?"
+  },
   "faq": {
     "title": "Bantuan & Soalan Lazim",
     "subtitle": "Jawapan yang disediakan oleh pejabat pengurusan anda.",

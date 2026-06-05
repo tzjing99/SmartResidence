@@ -184,66 +184,73 @@ function VisitorsTab({
           }}
           disabled={!(tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED')}
         >
-        <Card>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-            }}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontWeight: '600' }}>{v.name}</Text>
-              <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                {new Date(v.expectedAt).toLocaleString()}
-              </Text>
-              {v.accessCode && tab === 'upcoming' ? (
-                <Text style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}>
-                  {v.accessCode}
+          <Card>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontWeight: '600' }}>{v.name}</Text>
+                <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
+                  {new Date(v.expectedAt).toLocaleString()}
                 </Text>
-              ) : null}
-              {tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED' ? (
-                <Text style={{ fontSize: 13, color: palette.coralPrimary, fontWeight: '600', marginTop: 6 }}>
-                  View pass →
-                </Text>
-              ) : null}
-              <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                <Pill
-                  tone={
-                    v.status === 'CHECKED_IN'
-                      ? 'success'
-                      : v.status === 'PENDING_OWNER_APPROVAL' ||
-                          v.status === 'PENDING_MANAGEMENT_APPROVAL'
-                        ? 'warning'
-                        : v.status === 'CANCELLED' ||
-                            v.status === 'REJECTED' ||
-                            v.status === 'EXPIRED'
-                          ? 'danger'
-                          : 'primary'
-                  }
-                  label={v.status.toLowerCase().replace(/_/g, ' ')}
-                />
-                {v.urgentOvernight ? <Pill tone="warning" label="Urgent" /> : null}
-              </View>
-              {v.status === 'PENDING_OWNER_APPROVAL' ? (
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                  <Button title="Approve" size="sm" onPress={() => onApprove(v.id)} />
-                  <Button
-                    title="Reject"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => onReject(v.id)}
+                {v.accessCode && tab === 'upcoming' ? (
+                  <Text style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}>
+                    {v.accessCode}
+                  </Text>
+                ) : null}
+                {tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED' ? (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: palette.coralPrimary,
+                      fontWeight: '600',
+                      marginTop: 6,
+                    }}
+                  >
+                    View pass →
+                  </Text>
+                ) : null}
+                <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  <Pill
+                    tone={
+                      v.status === 'CHECKED_IN'
+                        ? 'success'
+                        : v.status === 'PENDING_OWNER_APPROVAL' ||
+                            v.status === 'PENDING_MANAGEMENT_APPROVAL'
+                          ? 'warning'
+                          : v.status === 'CANCELLED' ||
+                              v.status === 'REJECTED' ||
+                              v.status === 'EXPIRED'
+                            ? 'danger'
+                            : 'primary'
+                    }
+                    label={v.status.toLowerCase().replace(/_/g, ' ')}
                   />
+                  {v.urgentOvernight ? <Pill tone="warning" label="Urgent" /> : null}
+                </View>
+                {v.status === 'PENDING_OWNER_APPROVAL' ? (
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                    <Button title="Approve" size="sm" onPress={() => onApprove(v.id)} />
+                    <Button
+                      title="Reject"
+                      size="sm"
+                      variant="secondary"
+                      onPress={() => onReject(v.id)}
+                    />
+                  </View>
+                ) : null}
+              </View>
+              {tab === 'upcoming' && (v.qrPayload || v.qrCode) ? (
+                <View style={{ borderRadius: radius.md, padding: 6, backgroundColor: '#fff' }}>
+                  <QRCode value={v.qrPayload ?? v.qrCode ?? ''} size={80} />
                 </View>
               ) : null}
             </View>
-            {tab === 'upcoming' && (v.qrPayload || v.qrCode) ? (
-              <View style={{ borderRadius: radius.md, padding: 6, backgroundColor: '#fff' }}>
-                <QRCode value={v.qrPayload ?? v.qrCode ?? ''} size={80} />
-              </View>
-            ) : null}
-          </View>
-        </Card>
+          </Card>
         </Pressable>
       ))}
     </>

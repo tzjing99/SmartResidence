@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
 import {
   formatVisitorPassShareText,
   formatVisitorPassShareTitle,
 } from '@smartresidence/shared-types';
+import { describe, expect, it } from 'vitest';
 
 describe('visitor pass share text', () => {
   it('formats a plain-language share title', () => {

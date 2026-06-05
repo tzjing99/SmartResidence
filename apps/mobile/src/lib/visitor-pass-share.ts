@@ -1,7 +1,7 @@
 import {
+  type VisitorPassShareInput,
   formatVisitorPassShareText,
   formatVisitorPassShareTitle,
-  type VisitorPassShareInput,
 } from '@smartresidence/shared-types';
 import * as FileSystem from 'expo-file-system';
 import { Platform, Share } from 'react-native';

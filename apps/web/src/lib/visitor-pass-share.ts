@@ -1,7 +1,7 @@
 import {
+  type VisitorPassShareInput,
   formatVisitorPassShareText,
   formatVisitorPassShareTitle,
-  type VisitorPassShareInput,
 } from '@smartresidence/shared-types';
 
 export type { VisitorPassShareInput };

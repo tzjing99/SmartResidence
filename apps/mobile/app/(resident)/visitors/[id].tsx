@@ -3,19 +3,11 @@ import type { Visitor } from '@smartresidence/shared-types';
 import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  Share,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { api } from '../../../src/lib/api';
-import { shareVisitorPass } from '../../../src/lib/visitor-pass-share';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
+import { shareVisitorPass } from '../../../src/lib/visitor-pass-share';
 
 type QrSvgRef = { toDataURL: (callback: (data: string) => void) => void };
 
@@ -195,7 +187,9 @@ export default function VisitorPassScreen() {
                       }}
                     />
                   </View>
-                  <Text style={{ fontSize: 12, color: palette.mutedLight }}>Scan at the guardhouse</Text>
+                  <Text style={{ fontSize: 12, color: palette.mutedLight }}>
+                    Scan at the guardhouse
+                  </Text>
                 </View>
               </Card>
             ) : null}

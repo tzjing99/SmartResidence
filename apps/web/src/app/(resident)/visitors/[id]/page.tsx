@@ -150,10 +150,9 @@ export default function VisitorPassPage() {
       )}
 
       {shareFallbackOpen && visitor?.accessCode && qr.data?.png ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
+        <dialog
+          open
+          className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-black/40 p-4 sm:items-center"
           aria-labelledby="share-fallback-title"
         >
           <Card className="w-full max-w-sm flex flex-col gap-4 p-5 relative">
@@ -174,13 +173,7 @@ export default function VisitorPassPage() {
               </p>
             </div>
             <div className="flex justify-center py-2">
-              <Image
-                src={qr.data.png}
-                alt="Visitor QR pass"
-                width={200}
-                height={200}
-                unoptimized
-              />
+              <Image src={qr.data.png} alt="Visitor QR pass" width={200} height={200} unoptimized />
             </div>
             <p className="font-mono text-center text-2xl font-bold tracking-[0.25em]">
               {visitor.accessCode}
@@ -192,14 +185,18 @@ export default function VisitorPassPage() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={() => downloadVisitorQrPng(qr.data!.png, visitor.accessCode!)}
+                onClick={() => {
+                  const png = qr.data?.png;
+                  const code = visitor.accessCode;
+                  if (png && code) downloadVisitorQrPng(png, code);
+                }}
               >
                 <Download className="size-4" />
                 Download QR
               </Button>
             </div>
           </Card>
-        </div>
+        </dialog>
       ) : null}
     </div>
   );

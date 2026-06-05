@@ -60,11 +60,11 @@ role-differentiated navigation already implemented in
 | Role | Scope | Fundamentally CAN | Fundamentally CANNOT |
 | --- | --- | --- | --- |
 | **SUPER_ADMIN** | Platform | Everything across all condos (`manage all`); operate the multi-condo platform | — |
-| **MANAGEMENT_ADMIN** | Condo | Manage their condo: units, billing, defects, announcements, role assignments; **read** audit log; export invoices | Approve/reject visitors (see §2.1); act outside their condo |
-| **MANAGEMENT_STAFF** | Condo | Read condo data; update defects; publish announcements; read visitor log | Manage billing/roles; approve/reject visitors |
+| **MANAGEMENT_ADMIN** | Condo | Manage their condo: units, billing, defects, announcements, role assignments; configure **SLA policy** and helpdesk settings; **read** audit log; export invoices | Approve/reject visitors (see §2.1); act outside their condo |
+| **MANAGEMENT_STAFF** | Condo | Read condo data; update defects; publish announcements; read visitor log; **view** SLA policy (read-only) | Edit SLA policy; manage billing/roles; approve/reject visitors |
 | **SECURITY_GUARD** | Condo | Physically **check-in / check-out** visitors; read the expected list | Approve/reject visitors; see billing, defects, resident data |
-| **UNIT_OWNER** | Unit | Full control of their unit: pre-register & **approve/reject** visitors, view/pay invoices, raise defects, manage tenancy & household, invite & revoke delegated access, read **their unit's** audit log | Touch other units or condo-wide config |
-| **TENANT** | Unit | Most owner powers on the unit they rent (visitors, invoices read, defects, announcements) | Manage ownership/household; revoke access |
+| **UNIT_OWNER** | Unit | Full control of their unit: pre-register & **approve/reject** visitors, view/pay invoices, raise defects, manage tenancy & household, invite & revoke delegated access, read **their unit's** audit log, **read-only** condo SLA settings audit log | Touch other units or condo-wide config; **edit SLA policy** (management-only; owners may set unit notification prefs elsewhere) |
+| **TENANT** | Unit | Most owner powers on the unit they rent (visitors, invoices read, defects, announcements, **open helpdesk threads** — same flow/SLA as owner) | Manage ownership/household; revoke access |
 | **HOUSEHOLD_MEMBER** | Unit | Create & view visitors for their unit; read announcements | Pay invoices; manage tenancy; approve walk-ins (owner-only) |
 | **CONTRACTOR** | (task) | Read & update defects assigned to them | See unrelated unit/condo data |
 
@@ -98,7 +98,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Billing & payments** | ✅ (core) | `Invoice / InvoiceLine / Payment`; invoice numbering; partial-payment reconciliation; **Stripe + FPX adapters**; pluggable `PaymentProviderAdapter` |
 | **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) + receipts/statements** | ⬜ | `PaymentProvider` enum has STRIPE/FPX/IPAY88/RAZER/MANUAL; e-wallet adapters & itemized statement/receipt PDFs not built |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |
-| **Communication threads + SLA + AI seam** | 🟡 | Schema (`Thread / ThreadMessage / ThreadParticipant / SlaPolicy`) + `threads` module (controller, service, `SlaService`, `RuleBasedAiAssistProvider`) **exist but the module is not yet wired into `app.module.ts`** |
+| **Communication threads + SLA + AI seam** | ✅ (core) | `ThreadsModule` wired; D2 resident-driven resolution + H1 inbox polish; **S1** SLA settings (web + mobile); **M1** resolution refinements; **M2** phase-1 auto-assignment; `SlaService` + `RuleBasedAiAssistProvider` seam. Deferred: pool editor UI, owner SLA audit page (G1), quiet hours (E5), abusive-thread close (D7), email opt-in (E1), inbox sort (F3), FAQ deflection (F4), PDF export (G2), ML phase 2 (C6) — see [BACKLOG](./BACKLOG.md) |
 | **FAQ knowledge base** | 🟡 | Schema (`FaqCategory / FaqArticle`) present; **no FAQ controller/service/module yet** |
 | **Announcements** | ✅ | `Announcement` + `AnnouncementAck`; importance, audience JSON, pinned, requiresAck; web admin + resident views |
 | **Notifications (push/email)** | ✅ (core) | `Notification` + `PushSubscription` (Expo & Web); notification dispatch in services |
@@ -182,7 +182,7 @@ The flagship resident-empowerment flow. Two explicit paths:
   (attachments exist), resident-visible status timeline.
 - **Deps:** Storage, Notifications, (optionally) SLA from Threads.
 
-### 4.4 Communication threads + FAQ + SLA  *(🟡 finish & wire up)*
+### 4.4 Communication threads + FAQ + SLA  *(✅ core → deferred polish)*
 - **Slack-style** resident↔management threads with categories
   (`ThreadCategory`), `INTERNAL_NOTE` (management-only, never shown to
   residents — already enforced in `threads.service`), assignment, and
@@ -196,8 +196,20 @@ The flagship resident-empowerment flow. Two explicit paths:
   (Prisma `fullTextSearch` preview is enabled).
 - **Pluggable local-AI seam:** keep `AI_ASSIST_PROVIDER` abstract; future
   local model can answer from FAQ and draft replies — **not built, seam only**.
-- **Immediate finishing work:** register `ThreadsModule` in `app.module.ts`;
-  ship FAQ module; add tests.
+- **Shipped (v0.2 — partial):** **S1** management-only helpdesk settings on web
+  admin + mobile management (`SlaPolicyService`, slider UX, dynamic advisory
+  bands, risky-save announcement, grace period, audit log); **M1** resolution
+  refinements on D2 (accepted-answer, propose-resolve gate, reject why+what-wanted,
+  configurable grace, 14-day inactivity close, household-member confirm, unlimited
+  appeals, reopen count badge); **M2** phase-1 auto-assignment (`ThreadAssignmentService`:
+  category → pool, GENERAL triage, round-robin, recategorise reassign, repeat
+  complainant → senior staff, duplicate suggestions).
+- **Deferred follow-ons** (see [docs/BACKLOG.md](./BACKLOG.md)): assignee pool
+  editor UI; `UNIT_OWNER` read-only SLA audit page (**G1**); resident quiet hours
+  (**E5**); abusive-thread flag+close (**D7**); email opt-in from profile (**E1**);
+  inbox default sort (**F3**); FAQ deflection (**F4**); thread PDF export (**G2**);
+  ML phase 2 at 200+ closed threads (**C6**); FAQ module + admin authoring UI still
+  ⬜.
 - **Deps:** Identity, Notifications, Storage, Realtime.
 
 ### 4.5 Announcements  *(✅, iterate)*
@@ -364,10 +376,24 @@ flowchart LR
   publish an announcement; all paths covered by Vitest + a Playwright happy
   path; typecheck/lint/CI green.
 
-### v0.2 — Collaboration: Threads + FAQ + SLA  *(🟡 in progress now)*
-- **Delivers:** wire `ThreadsModule` into `app.module.ts`; FAQ module + admin
-  authoring + resident search; SLA escalation notifications; AI-assist seam
-  kept pluggable.
+### v0.2 — Collaboration: Threads + FAQ + SLA  *(✅ done — partial)*
+- **Delivers (shipped):** `ThreadsModule` wired; D2 resident-driven resolution +
+  H1 helpdesk dashboard polish; **S1** SLA settings panel (web admin + mobile
+  management); **M1** enhanced resolution flow; **M2** phase-1 thread
+  auto-assignment; SLA escalation notifications; AI-assist seam kept pluggable.
+- **Done (partial) — S1 / M1 / M2** (messaging spec decision-complete; see
+  [docs/BACKLOG.md](./BACKLOG.md)):
+  - **S1** ✅ — slider-based `SlaPolicy` editing, dynamic advisory bands, risky-save
+    announcement, grace period, 24/7 clock, open-thread recalc. Deferred: pool editor
+    UI, owner SLA audit page (G1), quiet hours (E5).
+  - **M1** ✅ — accepted-answer, propose-resolve gate, reject why+what-wanted,
+    tenant threads, 14-day inactivity close, household confirm, appeals/reopen badge.
+    Deferred: abusive-thread close (D7), email opt-in (E1).
+  - **M2** ✅ (phase 1) — category → assignee pool, triage pool, recategorise
+    reassign, repeat complainant routing, duplicate suggestions. Deferred: inbox sort
+    (F3), FAQ deflection (F4), PDF export (G2), ML phase 2 (C6).
+- **Still ⬜ from original v0.2 scope:** FAQ module + admin authoring + resident
+  search (schema exists; controller/service not shipped).
 - **Deps:** Identity, Notifications. **Acceptance:** resident opens a thread,
   management replies (with internal notes hidden from residents), priority
   auto-suggested, SLA due dates computed, escalation fires; FAQ searchable;
@@ -456,7 +482,64 @@ flowchart LR
   `Visitor`; integration is future hardware work).
 - Native accounting-suite replacement (export/integrate instead).
 
-### Open questions for the product owner
+### Decided — messaging module (Rounds 1–3, locked — decision-complete)
+
+See [docs/BACKLOG.md](./BACKLOG.md) S1 / M1 / M2 for full detail. No open
+messaging questions remain.
+
+| ID | Decision |
+| --- | --- |
+| **A1** | Dynamic risky bands based on condo size / unit count |
+| **A2** | Auto-publish announcement immediately when saving risky SLA |
+| **A3** | `MANAGEMENT_ADMIN` only can edit SLA; staff read-only |
+| **A4** | All open threads — recalculate due dates on SLA change |
+| **A5** | Resolution slider per priority; first-response auto-derived at 40% (single slider UX, two stored values) |
+| **A6** | Fixed 20% AT_RISK threshold |
+| **A7** | Breach notifications: assignee + all management |
+| **A8** | Normal-band saves: audit log only, no resident announcement |
+| **A9** | No one-click rollback — manual re-enter only |
+| **A10** | Default grace period: 7 days (configurable in S1 settings) |
+| **B1** | Specific management message marked as proposed solution (Stack Overflow style) |
+| **B2** | Management can change proposed-solution message anytime while `PENDING_RESIDENT_CONFIRMATION` |
+| **B3** | Reject requires why rejecting AND what they still want (freeform) |
+| **B4** | "Silent" = no resident message since last management message |
+| **B5** | No general gate on propose-resolve — not blocked by resident silence; anytime after mgmt responded (see B6, B13) |
+| **B6** | Management can propose-resolve after they've responded, even if resident never replied |
+| **B7** | Auto-confirm → `RESOLVED` status |
+| **B8** | After auto-confirm `RESOLVED`, same appeal rules apply (required reason, unlimited) |
+| **B9** | Unlimited reopens/appeals |
+| **B10** | Required reason text on reopen/appeal |
+| **B11** | Appeal/reopen notifies original assignee only |
+| **B12** | SLA continues from original due date on reopen (no reset) |
+| **B13** | Sole exception to B5: block propose-resolve while `AWAITING_RESIDENT` |
+| **B15** | Any new resident message on `RESOLVED` auto-reopens (keep current) |
+| **C1** | "Other" category → general/triage assignee pool (S1 configurable); phase 1: category → assignee pool |
+| **C2** | Unassigned fallback: notify all management |
+| **C3** | Any management user can reassign |
+| **C4** | Recategorise → auto-reassign to new category pool immediately |
+| **C5** | No VIP unit routing; repeat complainants (3+ threads/30 days) → senior staff + header flag |
+| **C6** | ML phase 2 at 200+ closed threads per condo, opt-in feature flag; rules remain fallback |
+| **D1** | `TENANT` can open threads — same flow/SLA as owner |
+| **D2** | Any household member linked to unit can confirm resolution |
+| **D3** | Internal notes never visible to residents; push/email previews must not leak |
+| **D4** | `AWAITING_RESIDENT` — SLA clock continues (no pause) |
+| **D5** | System suggests possible duplicate threads; management decides (no hard merge in v0.2) |
+| **D6** | Auto-close after 14 days total inactivity (both sides silent) |
+| **D7** | Management can flag + close abusive threads with reason; resident notified |
+| **D9** | SLA clock runs 24/7 |
+| **D10** | Priority override recalculates SLA due date immediately |
+| **E1** | Default: in-app + mobile push; user can opt-in to email |
+| **E2** | Every management reply → immediate in-app + push (no digest in v0.2) |
+| **E5** | Fully user-configurable quiet hours in resident profile |
+| **F1** | SLA settings panel on web admin **and mobile management** in v0.2 |
+| **F3** | Inbox default sort: SLA breach → AT_RISK → priority → oldest |
+| **F4** | FAQ deflection: strong match offers "This answered my question" to close without thread |
+| **G1** | `UNIT_OWNER` read-only access to SLA audit log |
+| **G2** | PDF export: management + resident can export own threads (v0.2) |
+| **G3** | Show reopen count badge on thread header for management |
+
+### Open questions for the product owner (other modules)
+
 1. **MY payment priority:** which rail first for v0.3 — **DuitNow QR** vs
    **TNG eWallet**? (Affects adapter sequencing.)
 2. **Walk-in no-response policy:** exact owner-approval timeout (e.g. 5 min)

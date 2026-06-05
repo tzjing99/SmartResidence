@@ -44,6 +44,27 @@ export type ThreadStatus =
 export type ThreadMessageKind = 'MESSAGE' | 'INTERNAL_NOTE' | 'SYSTEM';
 export type SlaState = 'NONE' | 'ON_TRACK' | 'AT_RISK' | 'BREACHED';
 
+export type SlaBand = 'recommended' | 'acceptable' | 'risky';
+
+export interface SlaPolicyItem {
+  priority: ThreadPriority;
+  id: string | null;
+  resolutionMins: number;
+  firstResponseMins: number;
+  band: SlaBand;
+  thresholds: { recommendedMaxMins: number; acceptableMaxMins: number };
+  recommendedResolutionMins: number;
+}
+
+export interface SlaSettingsResponse {
+  condoId: string;
+  unitCount: number;
+  resolutionConfirmationGraceDays: number;
+  atRiskThresholdPercent: number;
+  policies: SlaPolicyItem[];
+  editable: boolean;
+}
+
 export interface ThreadSummary {
   id: string;
   subject: string;
@@ -57,6 +78,8 @@ export interface ThreadSummary {
   resolutionDueAt: string | null;
   resolutionProposedAt?: string | null;
   resolutionProposedByUserId?: string | null;
+  resolutionProposedMessageId?: string | null;
+  reopenCount?: number;
   createdBy?: { id: string; name: string; email: string | null };
   assignedTo?: { id: string; name: string } | null;
   unit?: { id: string; identifier: string } | null;
@@ -389,14 +412,22 @@ export class ApiClient {
   }
   updateThread(
     id: string,
-    body: { priority?: ThreadPriority; status?: ThreadStatus; assignedToUserId?: string },
+    body: {
+      priority?: ThreadPriority;
+      category?: ThreadCategory;
+      status?: ThreadStatus;
+      assignedToUserId?: string;
+    },
   ) {
     return this.request<ThreadSummary>('PATCH', `/api/threads/${id}`, body);
   }
-  proposeThreadResolution(id: string, body: { note?: string } = {}) {
+  proposeThreadResolution(id: string, body: { note?: string; messageId?: string } = {}) {
     return this.request<ThreadSummary>('POST', `/api/threads/${id}/propose-resolution`, body);
   }
-  confirmThreadResolution(id: string, body: { confirmed: boolean }) {
+  confirmThreadResolution(
+    id: string,
+    body: { confirmed: boolean; rejectReason?: string; rejectExpectation?: string },
+  ) {
     return this.request<ThreadSummary>('POST', `/api/threads/${id}/confirm-resolution`, body);
   }
   requestThreadResident(id: string, body: { body?: string } = {}) {
@@ -404,6 +435,36 @@ export class ApiClient {
   }
   markThreadRead(id: string) {
     return this.request<void>('POST', `/api/threads/${id}/read`);
+  }
+  appealThread(id: string, body: { reason: string }) {
+    return this.request<ThreadSummary>('POST', `/api/threads/${id}/appeal`, body);
+  }
+
+  // SLA / helpdesk settings -----------------------------------------
+  slaSettings(condoId: string) {
+    return this.request<SlaSettingsResponse>('GET', `/api/sla/condo/${condoId}`);
+  }
+  updateSlaSettings(
+    condoId: string,
+    body: {
+      policies: Array<{ priority: ThreadPriority; resolutionMins: number }>;
+      resolutionConfirmationGraceDays?: number;
+      riskyAcknowledged?: boolean;
+      rationale?: string;
+    },
+  ) {
+    return this.request<{
+      ok: boolean;
+      auditId: string;
+      announcementId: string | null;
+      riskySave: boolean;
+    }>('PUT', `/api/sla/condo/${condoId}`, body);
+  }
+  slaAudit(condoId: string, params: { limit?: number; offset?: number } = {}) {
+    return this.request<{ items: unknown[]; total: number }>(
+      'GET',
+      `/api/sla/condo/${condoId}/audit?${new URLSearchParams(params as Record<string, string>).toString()}`,
+    );
   }
 
   // FAQ --------------------------------------------------------------

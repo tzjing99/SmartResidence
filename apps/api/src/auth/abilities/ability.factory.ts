@@ -39,7 +39,8 @@ export type Subject =
   | 'Notification'
   | 'Thread'
   | 'ThreadMessage'
-  | 'Faq';
+  | 'Faq'
+  | 'SlaPolicy';
 
 export type Action =
   | 'manage'
@@ -123,6 +124,7 @@ export class AbilityFactory {
         cannot('resolve', 'Thread');
         can('manage', 'ThreadMessage');
         can('manage', 'Faq', { condoId: scope.condoId ?? '' });
+        can('manage', 'SlaPolicy', { condoId: scope.condoId ?? '' });
         can('read', 'AuditLog', { condoId: scope.condoId ?? '' });
         can('read', 'User');
         can('export', 'Invoice');
@@ -140,6 +142,7 @@ export class AbilityFactory {
         can('update', 'Thread', { condoId: scope.condoId ?? '' });
         can('create', 'ThreadMessage');
         can('read', 'Faq', { condoId: scope.condoId ?? '' });
+        can('read', 'SlaPolicy', { condoId: scope.condoId ?? '' });
         return;
 
       case RoleId.SECURITY_GUARD:
@@ -167,8 +170,9 @@ export class AbilityFactory {
         can('resolve', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'ThreadMessage');
         can('read', 'Faq', { condoId: scope.condoId ?? '' });
-        // Owner empowerment: full read on own unit's audit log
+        // Owner empowerment: full read on own unit's audit log + condo SLA audit (G1)
         can('read', 'AuditLog', { unitId: scope.unitId ?? '' });
+        can('read', 'SlaPolicy', { condoId: scope.condoId ?? '' });
         can('read', 'User', { id: scope.userId });
         can('update', 'User', { id: scope.userId });
         return;

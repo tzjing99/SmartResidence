@@ -16,6 +16,7 @@ import {
   LifeBuoy,
   LogOut,
   Megaphone,
+  Settings2,
   ShieldAlert,
   UserCog,
   Wrench,
@@ -65,6 +66,12 @@ const NAV: Array<{
     label: 'Helpdesk',
     icon: LifeBuoy,
     can: { action: 'read', subject: 'Thread' },
+  },
+  {
+    href: '/admin/settings/helpdesk',
+    label: 'SLA settings',
+    icon: Settings2,
+    can: { action: 'read', subject: 'SlaPolicy' },
   },
   {
     href: '/admin/announcements',

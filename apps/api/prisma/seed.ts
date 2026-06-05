@@ -235,6 +235,25 @@ async function main() {
     })
     .catch(() => {});
 
+  await prisma.condo.update({
+    where: { id: condo.id },
+    data: {
+      settings: {
+        helpdesk: {
+          resolutionConfirmationGraceDays: 7,
+          autoAssignment: {
+            generalTriagePool: [admin.id],
+            seniorStaffPool: [admin.id],
+            categoryPools: [
+              { category: 'MAINTENANCE', userIds: [admin.id] },
+              { category: 'BILLING', userIds: [admin.id] },
+            ],
+          },
+        },
+      },
+    },
+  });
+
   await prisma.roleAssignment.createMany({
     data: [
       {

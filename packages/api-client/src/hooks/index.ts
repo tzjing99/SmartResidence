@@ -24,6 +24,8 @@ export const queryKeys = {
   faqCategories: (condoId: string) => ['faq', 'categories', condoId] as const,
   faqManage: (condoId: string) => ['faq', 'manage', condoId] as const,
   faqArticle: (id: string) => ['faq', 'article', id] as const,
+  slaSettings: (condoId: string) => ['sla', 'settings', condoId] as const,
+  slaAudit: (condoId: string) => ['sla', 'audit', condoId] as const,
 };
 
 export function useMe(api: ApiClient) {
@@ -204,11 +206,13 @@ export function useUpdateThread(api: ApiClient) {
     mutationFn: (vars: {
       id: string;
       priority?: import('../client').ThreadPriority;
+      category?: import('../client').ThreadCategory;
       status?: import('../client').ThreadStatus;
       assignedToUserId?: string;
     }) =>
       api.updateThread(vars.id, {
         priority: vars.priority,
+        category: vars.category,
         status: vars.status,
         assignedToUserId: vars.assignedToUserId,
       }),
@@ -222,8 +226,8 @@ export function useUpdateThread(api: ApiClient) {
 export function useProposeThreadResolution(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: string; note?: string }) =>
-      api.proposeThreadResolution(vars.id, { note: vars.note }),
+    mutationFn: (vars: { id: string; note?: string; messageId?: string }) =>
+      api.proposeThreadResolution(vars.id, { note: vars.note, messageId: vars.messageId }),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
       qc.invalidateQueries({ queryKey: ['threads'] });
@@ -234,12 +238,62 @@ export function useProposeThreadResolution(api: ApiClient) {
 export function useConfirmThreadResolution(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: string; confirmed: boolean }) =>
-      api.confirmThreadResolution(vars.id, { confirmed: vars.confirmed }),
+    mutationFn: (vars: {
+      id: string;
+      confirmed: boolean;
+      rejectReason?: string;
+      rejectExpectation?: string;
+    }) => api.confirmThreadResolution(vars.id, vars),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
       qc.invalidateQueries({ queryKey: ['threads'] });
     },
+  });
+}
+
+export function useAppealThread(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; reason: string }) => api.appealThread(vars.id, vars),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+export function useSlaSettings(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.slaSettings(condoId) : ['sla', 'settings', null],
+    queryFn: () => (condoId ? api.slaSettings(condoId) : Promise.reject(new Error('no condo'))),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpdateSlaSettings(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      policies: Array<{ priority: import('../client').ThreadPriority; resolutionMins: number }>;
+      resolutionConfirmationGraceDays?: number;
+      riskyAcknowledged?: boolean;
+      rationale?: string;
+    }) => api.updateSlaSettings(vars.condoId, vars),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.slaSettings(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.slaAudit(vars.condoId) });
+      qc.invalidateQueries({ queryKey: ['announcements'] });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+export function useSlaAudit(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.slaAudit(condoId) : ['sla', 'audit', null],
+    queryFn: () => (condoId ? api.slaAudit(condoId) : Promise.reject(new Error('no condo'))),
+    enabled: Boolean(condoId),
   });
 }
 

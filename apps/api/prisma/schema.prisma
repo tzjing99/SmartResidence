@@ -838,9 +838,12 @@ model Thread {
   firstRespondedAt   DateTime?
   resolvedAt         DateTime?
   closedAt           DateTime?
-  // Resident-driven resolution (D2): management proposes, resident confirms.
+  // Resident-driven resolution (D2/M1): management proposes, resident confirms.
   resolutionProposedAt       DateTime?
   resolutionProposedByUserId String?  @db.Uuid
+  resolutionProposedMessageId String? @db.Uuid
+  resolutionProposedMessage   ThreadMessage? @relation("ProposedSolution", fields: [resolutionProposedMessageId], references: [id], onDelete: SetNull)
+  reopenCount        Int            @default(0)
   lastMessageAt      DateTime       @default(now())
   metadata           Json           @default("{}")
   createdAt          DateTime       @default(now())
@@ -869,6 +872,7 @@ model ThreadMessage {
   createdAt    DateTime          @default(now())
 
   attachments Attachment[]
+  proposedSolutionForThreads Thread[] @relation("ProposedSolution")
 
   @@index([threadId])
   @@map("thread_messages")

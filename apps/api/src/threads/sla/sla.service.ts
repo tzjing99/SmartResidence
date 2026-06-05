@@ -1,5 +1,6 @@
 import { NotificationService } from '@/notification/notification.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { DEFAULT_RESOLUTION_CONFIRMATION_GRACE_DAYS } from '@/sla/helpdesk-settings';
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -47,12 +48,11 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private static readonly SCAN_INTERVAL_MS = 5 * 60_000;
 
-  /**
-   * Days a resident has to respond to a proposed resolution before the system
-   * auto-confirms and closes the thread. Named constant so it can later be made
-   * configurable per condo via settings.
-   */
-  static readonly RESOLUTION_CONFIRMATION_WINDOW_DAYS = 7;
+  /** Default grace period when condo settings omit a value (A10). */
+  static readonly RESOLUTION_CONFIRMATION_WINDOW_DAYS = DEFAULT_RESOLUTION_CONFIRMATION_GRACE_DAYS;
+
+  /** Total inactivity before auto-close (D6). */
+  static readonly INACTIVITY_AUTO_CLOSE_DAYS = 14;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -76,6 +76,25 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
   async runScheduledScans(): Promise<void> {
     await this.scanForBreaches();
     await this.scanForResolutionAutoConfirm();
+    await this.scanForInactivityAutoClose();
+  }
+
+  async gracePeriodDays(condoId: string): Promise<number> {
+    const condo = await this.prisma.condo.findUnique({
+      where: { id: condoId },
+      select: { settings: true },
+    });
+    if (!condo?.settings || typeof condo.settings !== 'object') {
+      return SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS;
+    }
+    const helpdesk = (condo.settings as Record<string, unknown>).helpdesk;
+    if (!helpdesk || typeof helpdesk !== 'object') {
+      return SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS;
+    }
+    const days = (helpdesk as Record<string, unknown>).resolutionConfirmationGraceDays;
+    return typeof days === 'number' && days >= 1 && days <= 30
+      ? days
+      : SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS;
   }
 
   onModuleDestroy(): void {
@@ -184,21 +203,115 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
    * thread is resolved, an audit entry is written and the resident is notified.
    */
   async scanForResolutionAutoConfirm(now: Date = new Date()): Promise<void> {
-    const cutoff = new Date(
-      now.getTime() - SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS * 24 * 60 * 60_000,
-    );
-    const stale = await this.prisma.thread.findMany({
-      where: {
-        status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
-        resolutionProposedAt: { lt: cutoff },
+    const pending = await this.prisma.thread.findMany({
+      where: { status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION },
+      include: {
+        messages: {
+          where: { kind: ThreadMessageKind.MESSAGE },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          select: { authorUserId: true, createdAt: true },
+        },
       },
     });
+
+    const stale: typeof pending = [];
+    for (const thread of pending) {
+      const graceDays = await this.gracePeriodDays(thread.condoId);
+      const cutoff = new Date(now.getTime() - graceDays * 24 * 60 * 60_000);
+      if (!thread.resolutionProposedAt || thread.resolutionProposedAt > cutoff) continue;
+
+      // B4: silent = no resident message since the last management message.
+      const mgmtIds = await this.managementUserIds(thread.condoId);
+      const lastMgmtMsg = thread.messages.find((m) => mgmtIds.includes(m.authorUserId));
+      if (!lastMgmtMsg) continue;
+      const residentRepliedSince = thread.messages.some(
+        (m) =>
+          !mgmtIds.includes(m.authorUserId) &&
+          m.createdAt.getTime() > lastMgmtMsg.createdAt.getTime(),
+      );
+      if (!residentRepliedSince) stale.push(thread);
+    }
+
     for (const thread of stale) {
-      await this.autoConfirmResolution(thread, now);
+      const graceDays = await this.gracePeriodDays(thread.condoId);
+      await this.autoConfirmResolution(thread, now, graceDays);
     }
     if (stale.length > 0) {
       this.logger.log(`Auto-confirmed resolution for ${stale.length} thread(s)`);
     }
+  }
+
+  /** D6: close threads after 14 days total inactivity (both sides silent). */
+  async scanForInactivityAutoClose(now: Date = new Date()): Promise<void> {
+    const cutoff = new Date(
+      now.getTime() - SlaService.INACTIVITY_AUTO_CLOSE_DAYS * 24 * 60 * 60_000,
+    );
+    const inactive = await this.prisma.thread.findMany({
+      where: {
+        status: {
+          in: [
+            ThreadStatus.OPEN,
+            ThreadStatus.AWAITING_RESIDENT,
+            ThreadStatus.AWAITING_MANAGEMENT,
+            ThreadStatus.REOPENED,
+          ],
+        },
+        lastMessageAt: { lt: cutoff },
+      },
+    });
+    for (const thread of inactive) {
+      await this.autoCloseInactive(thread, now);
+    }
+    if (inactive.length > 0) {
+      this.logger.log(`Auto-closed ${inactive.length} inactive thread(s)`);
+    }
+  }
+
+  private async managementUserIds(condoId: string): Promise<string[]> {
+    const rows = await this.prisma.roleAssignment.findMany({
+      where: {
+        condoId,
+        roleId: { in: [RoleId.MANAGEMENT_ADMIN, RoleId.MANAGEMENT_STAFF] },
+        revokedAt: null,
+      },
+      select: { userId: true },
+    });
+    return rows.map((r) => r.userId);
+  }
+
+  private async autoCloseInactive(
+    thread: {
+      id: string;
+      condoId: string;
+      unitId: string | null;
+      subject: string;
+      createdByUserId: string;
+    },
+    now: Date,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.thread.update({
+        where: { id: thread.id },
+        data: { status: ThreadStatus.CLOSED, closedAt: now, lastMessageAt: now },
+      });
+      await tx.threadMessage.create({
+        data: {
+          threadId: thread.id,
+          authorUserId: thread.createdByUserId,
+          kind: ThreadMessageKind.SYSTEM,
+          body: `Automatically closed — no activity for ${SlaService.INACTIVITY_AUTO_CLOSE_DAYS} days.`,
+        },
+      });
+    });
+    await this.notifications.dispatch({
+      userIds: [thread.createdByUserId],
+      kind: NotificationKind.THREAD_STATUS,
+      title: 'Thread automatically closed',
+      body: thread.subject,
+      data: { threadId: thread.id },
+    });
+    this.events.emit('thread.status', { threadId: thread.id, condoId: thread.condoId });
   }
 
   private async autoConfirmResolution(
@@ -211,6 +324,7 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
       resolutionProposedByUserId: string | null;
     },
     now: Date,
+    graceDays: number,
   ): Promise<void> {
     const systemAuthorId = thread.resolutionProposedByUserId ?? thread.createdByUserId;
     await this.prisma.$transaction(async (tx) => {
@@ -221,6 +335,7 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
           resolvedAt: now,
           resolutionProposedAt: null,
           resolutionProposedByUserId: null,
+          resolutionProposedMessage: { disconnect: true },
           lastMessageAt: now,
         },
       });
@@ -229,7 +344,7 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
           threadId: thread.id,
           authorUserId: systemAuthorId,
           kind: ThreadMessageKind.SYSTEM,
-          body: `Automatically resolved — the resident did not respond to the resolution proposal within ${SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS} days.`,
+          body: `Automatically resolved — the resident did not respond to the resolution proposal within ${graceDays} days.`,
         },
       });
     });

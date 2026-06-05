@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ROLE_LABEL, type RoleId } from '@smartresidence/shared-types';
 import {
   Badge,
   Button,
@@ -11,7 +11,7 @@ import {
   CardTitle,
   EmptyState,
 } from '@smartresidence/ui-web';
-import { ROLE_LABEL, type RoleId } from '@smartresidence/shared-types';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 
@@ -28,7 +28,7 @@ export default function AccessPage() {
   const [grants, setGrants] = useState<DelegatedGrant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const items = await api.delegatedAccess();
       setGrants(items as DelegatedGrant[]);
@@ -37,11 +37,11 @@ export default function AccessPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   async function revoke(id: string) {
     if (!confirm('Revoke this access immediately? Active sessions will be killed.')) return;

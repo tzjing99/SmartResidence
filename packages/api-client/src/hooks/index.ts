@@ -1,8 +1,8 @@
 'use client';
 
+import type { CreateDefectInput, CreateVisitorInput } from '@smartresidence/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ApiClient } from '../client';
-import type { CreateVisitorInput, CreateDefectInput } from '@smartresidence/shared-types';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -35,7 +35,8 @@ export function useMyUnits(api: ApiClient) {
 export function useUnitVisitors(api: ApiClient, unitId: string | null) {
   return useQuery({
     queryKey: unitId ? queryKeys.unitVisitors(unitId) : ['visitors', 'unit', null],
-    queryFn: () => (unitId ? api.visitorsForUnit(unitId) : Promise.resolve({ items: [], total: 0 })),
+    queryFn: () =>
+      unitId ? api.visitorsForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
   });
 }
@@ -53,7 +54,8 @@ export function useCreateVisitor(api: ApiClient) {
 export function useUnitInvoices(api: ApiClient, unitId: string | null) {
   return useQuery({
     queryKey: unitId ? queryKeys.unitInvoices(unitId) : ['invoices', 'unit', null],
-    queryFn: () => (unitId ? api.invoicesForUnit(unitId) : Promise.resolve({ items: [], total: 0 })),
+    queryFn: () =>
+      unitId ? api.invoicesForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
   });
 }
@@ -76,7 +78,8 @@ export function useUnitDefects(api: ApiClient, unitId: string | null) {
 export function useCondoDefects(api: ApiClient, condoId: string | null) {
   return useQuery({
     queryKey: condoId ? queryKeys.condoDefects(condoId) : ['defects', 'condo', null],
-    queryFn: () => (condoId ? api.defectsForCondo(condoId) : Promise.resolve({ items: [], total: 0 })),
+    queryFn: () =>
+      condoId ? api.defectsForCondo(condoId) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId),
   });
 }

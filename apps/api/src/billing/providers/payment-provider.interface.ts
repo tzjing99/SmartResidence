@@ -1,4 +1,4 @@
-import type { Payment, Invoice } from '@prisma/client';
+import type { Invoice, Payment } from '@prisma/client';
 
 export interface PaymentIntentResult {
   clientSecret?: string;

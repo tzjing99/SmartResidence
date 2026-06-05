@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { Button, Card } from '@smartresidence/ui-web';
+import Link from 'next/link';
 
 const features = [
   {
@@ -44,18 +44,14 @@ export default function HomePage() {
           <span className="text-coral-500">finally on your side.</span>
         </h1>
         <p className="mt-6 text-lg sr-muted">
-          Open-source. Self-hostable. Built for residents who own their data,
-          not the other way around.
+          Open-source. Self-hostable. Built for residents who own their data, not the other way
+          around.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <Link href="/sign-up">
             <Button size="lg">Try the demo condo</Button>
           </Link>
-          <a
-            href="https://github.com/tzjing99/SmartResidence"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href="https://github.com/tzjing99/SmartResidence" target="_blank" rel="noreferrer">
             <Button size="lg" variant="secondary">
               View on GitHub
             </Button>
@@ -73,8 +69,10 @@ export default function HomePage() {
       </section>
 
       <footer className="text-center text-xs sr-muted py-10 border-t border-[rgb(var(--sr-border))]">
-        SmartResidence is licensed under AGPL-3.0. {' '}
-        <a className="underline" href="https://github.com/tzjing99/SmartResidence">Source</a>
+        SmartResidence is licensed under AGPL-3.0.{' '}
+        <a className="underline" href="https://github.com/tzjing99/SmartResidence">
+          Source
+        </a>
       </footer>
     </main>
   );

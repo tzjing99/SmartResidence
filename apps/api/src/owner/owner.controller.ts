@@ -1,10 +1,10 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RoleId } from '@prisma/client';
 import { AuthGuard } from '@/auth/guards/auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import { PrismaService } from '@/prisma/prisma.service';
+import type { PrismaService } from '@/prisma/prisma.service';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { RoleId } from '@prisma/client';
 
 /**
  * Owner-empowerment endpoints: surfaces meant for unit owners to see and

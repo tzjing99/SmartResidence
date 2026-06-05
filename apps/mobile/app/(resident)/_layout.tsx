@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { palette } from '@smartresidence/ui-mobile';
+import { Tabs } from 'expo-router';
 
 export default function ResidentTabsLayout() {
   return (
@@ -16,7 +16,9 @@ export default function ResidentTabsLayout() {
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen

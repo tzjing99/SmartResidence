@@ -1,7 +1,7 @@
-import { Alert, ScrollView, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
 import { useMyCondos } from '@smartresidence/api-client';
+import { Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { api } from '../../src/lib/api';
 
 export default function ExpectedScreen() {
@@ -52,15 +52,9 @@ export default function ExpectedScreen() {
                 <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
                   {v.unit?.identifier ?? '—'} · {new Date(v.expectedAt).toLocaleString()}
                 </Text>
-                {v.vehiclePlate ? (
-                  <Pill tone="neutral" label={v.vehiclePlate} />
-                ) : null}
+                {v.vehiclePlate ? <Pill tone="neutral" label={v.vehiclePlate} /> : null}
               </View>
-              <Button
-                title="Check in"
-                size="sm"
-                onPress={() => checkIn(v.qrCode, v.name)}
-              />
+              <Button title="Check in" size="sm" onPress={() => checkIn(v.qrCode, v.name)} />
             </View>
           </Card>
         ))

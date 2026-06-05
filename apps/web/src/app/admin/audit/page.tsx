@@ -1,9 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { useMyCondos } from '@smartresidence/api-client';
 import { api } from '@/lib/api';
+import { useMyCondos } from '@smartresidence/api-client';
+import { Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
+import { useQuery } from '@tanstack/react-query';
 
 export default function AdminAuditPage() {
   const condos = useMyCondos(api);
@@ -51,9 +51,7 @@ export default function AdminAuditPage() {
             <tbody className="divide-y divide-[rgb(var(--sr-border))]">
               {logs.data?.items?.map((row: any) => (
                 <tr key={row.id}>
-                  <td className="py-3 px-4 sr-muted">
-                    {new Date(row.createdAt).toLocaleString()}
-                  </td>
+                  <td className="py-3 px-4 sr-muted">{new Date(row.createdAt).toLocaleString()}</td>
                   <td>{row.actor?.name ?? '—'}</td>
                   <td className="sr-muted">{row.actorRole ?? '—'}</td>
                   <td className="font-medium">{row.action}</td>

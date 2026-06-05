@@ -42,8 +42,7 @@ module.exports = {
       },
       boxShadow: {
         card: '0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -1px rgb(0 0 0 / 0.04)',
-        'card-hover':
-          '0 12px 32px -8px rgb(0 0 0 / 0.12), 0 4px 8px -2px rgb(0 0 0 / 0.06)',
+        'card-hover': '0 12px 32px -8px rgb(0 0 0 / 0.12), 0 4px 8px -2px rgb(0 0 0 / 0.06)',
       },
     },
   },

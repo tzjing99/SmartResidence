@@ -1,4 +1,4 @@
-import * as React from 'react';
+import type * as React from 'react';
 import { Text, View } from 'react-native';
 import { palette, radius } from '../tokens';
 

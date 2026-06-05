@@ -1,7 +1,6 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { api } from './api';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,8 +23,7 @@ export async function registerForPush(): Promise<string | null> {
   }
   if (final !== 'granted') return null;
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   try {
     await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/notifications/push-tokens`, {

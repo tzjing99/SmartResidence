@@ -1,6 +1,6 @@
+import type { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
-import { TokenService } from './token.service';
+import type { TokenService } from './token.service';
 
 export interface DeviceInfo {
   ipAddress?: string | null;

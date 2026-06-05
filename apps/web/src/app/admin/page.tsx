@@ -1,9 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { Card, Skeleton } from '@smartresidence/ui-web';
-import { useCondoDefects, useMyCondos, queryKeys } from '@smartresidence/api-client';
 import { api } from '@/lib/api';
+import { queryKeys, useCondoDefects, useMyCondos } from '@smartresidence/api-client';
+import { Card, Skeleton } from '@smartresidence/ui-web';
+import { useQuery } from '@tanstack/react-query';
 
 export default function AdminHome() {
   const condos = useMyCondos(api);
@@ -12,7 +12,8 @@ export default function AdminHome() {
 
   const visitors = useQuery({
     queryKey: condo ? queryKeys.condoVisitors(condo.id) : ['visitors', 'condo', null],
-    queryFn: () => (condo ? api.visitorsForCondo(condo.id) : Promise.resolve({ items: [], total: 0 })),
+    queryFn: () =>
+      condo ? api.visitorsForCondo(condo.id) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condo),
   });
 
@@ -22,21 +23,23 @@ export default function AdminHome() {
       condo
         ? api['request' as keyof typeof api]
           ? // @ts-expect-error optional helper
-            api.invoicesForCondo?.(condo.id) ?? { items: [], total: 0 }
+            (api.invoicesForCondo?.(condo.id) ?? { items: [], total: 0 })
           : { items: [], total: 0 }
         : { items: [], total: 0 },
     enabled: Boolean(condo),
   });
 
-  const openDefects = (defects.data?.items as any[] | undefined)?.filter(
-    (d) => d.status !== 'CLOSED' && d.status !== 'RESOLVED',
-  ).length ?? 0;
+  const openDefects =
+    (defects.data?.items as any[] | undefined)?.filter(
+      (d) => d.status !== 'CLOSED' && d.status !== 'RESOLVED',
+    ).length ?? 0;
   const totalDefects = defects.data?.total ?? 0;
-  const visitorsToday = (visitors.data?.items as any[] | undefined)?.filter((v) => {
-    const d = new Date(v.expectedAt);
-    const today = new Date();
-    return d.toDateString() === today.toDateString();
-  }).length ?? 0;
+  const visitorsToday =
+    (visitors.data?.items as any[] | undefined)?.filter((v) => {
+      const d = new Date(v.expectedAt);
+      const today = new Date();
+      return d.toDateString() === today.toDateString();
+    }).length ?? 0;
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl">
@@ -73,7 +76,11 @@ export default function AdminHome() {
       <Card>
         <h3 className="font-semibold mb-2">Recent activity</h3>
         <p className="text-sm sr-muted">
-          For deep filtering use the <a href="/admin/audit" className="underline">audit log</a>.
+          For deep filtering use the{' '}
+          <a href="/admin/audit" className="underline">
+            audit log
+          </a>
+          .
         </p>
       </Card>
     </div>

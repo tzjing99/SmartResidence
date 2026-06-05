@@ -1,12 +1,12 @@
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { PaginationDto } from '@/common/dto/pagination.dto';
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
 import { PushKind } from '@prisma/client';
-import { NotificationService } from './notification.service';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { PaginationDto } from '@/common/dto/pagination.dto';
-import type { AuthenticatedUser } from '@/common/types/request-context';
+import { IsArray, IsEnum, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import type { NotificationService } from './notification.service';
 
 class RegisterPushDto {
   @ApiProperty({ enum: PushKind })

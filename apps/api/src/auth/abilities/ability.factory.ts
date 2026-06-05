@@ -1,15 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import {
   AbilityBuilder,
   type AbilityClass,
   type ConditionsMatcher,
   type FieldMatcher,
+  PureAbility,
   fieldPatternMatcher,
   mongoQueryMatcher,
-  PureAbility,
 } from '@casl/ability';
+import { Injectable } from '@nestjs/common';
 import { RoleId } from '@prisma/client';
-import type { AuthenticatedUser } from '@/common/types/request-context';
 
 /**
  * Subjects identify the resource kinds in the system. We intentionally use

@@ -1,9 +1,8 @@
+import { useCreateVisitor, useMyUnits, useUnitVisitors } from '@smartresidence/api-client';
+import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
 import { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import { Card, Pill, Button, EmptyState, palette, radius } from '@smartresidence/ui-mobile';
-import { useCreateVisitor, useMyUnits, useUnitVisitors } from '@smartresidence/api-client';
 import { api } from '../../src/lib/api';
 
 export default function VisitorsScreen() {

@@ -1,8 +1,8 @@
+import { Public } from '@/auth/decorators/public.decorator';
+import type { PrismaService } from '@/prisma/prisma.service';
+import type { RedisService } from '@/redis/redis.service';
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { PrismaService } from '@/prisma/prisma.service';
-import { RedisService } from '@/redis/redis.service';
-import { Public } from '@/auth/decorators/public.decorator';
 
 @ApiTags('System')
 @Controller('health')

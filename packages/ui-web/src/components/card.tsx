@@ -1,7 +1,7 @@
 'use client';
 
+import { type HTMLMotionProps, motion } from 'framer-motion';
 import * as React from 'react';
-import { motion, type HTMLMotionProps } from 'framer-motion';
 import { cn } from '../lib/cn';
 
 export const Card = React.forwardRef<HTMLDivElement, HTMLMotionProps<'div'>>(
@@ -25,7 +25,10 @@ export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHead
   <h3 className={cn('text-lg font-semibold tracking-tight', className)} {...props} />
 );
 
-export const CardDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+export const CardDescription = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) => (
   <p className={cn('text-sm sr-muted', className)} {...props} />
 );
 
@@ -34,5 +37,11 @@ export const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDi
 );
 
 export const CardFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex items-center justify-between pt-4 mt-4 border-t border-[rgb(var(--sr-border))]', className)} {...props} />
+  <div
+    className={cn(
+      'flex items-center justify-between pt-4 mt-4 border-t border-[rgb(var(--sr-border))]',
+      className,
+    )}
+    {...props}
+  />
 );

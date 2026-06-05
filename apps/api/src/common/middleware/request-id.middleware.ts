@@ -1,7 +1,7 @@
-import { Injectable, type NestMiddleware } from '@nestjs/common';
-import type { Response, NextFunction } from 'express';
-import { nanoid } from 'nanoid';
 import type { RequestWithContext } from '@/common/types/request-context';
+import { Injectable, type NestMiddleware } from '@nestjs/common';
+import type { NextFunction, Response } from 'express';
+import { nanoid } from 'nanoid';
 
 @Injectable()
 export class RequestIdMiddleware implements NestMiddleware {

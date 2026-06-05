@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AttachmentOwner, DefectStatus } from '@prisma/client';
-import { PrismaService } from '@/prisma/prisma.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { PrismaService } from '@/prisma/prisma.service';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
+import { AttachmentOwner, DefectStatus } from '@prisma/client';
 import type { AddDefectUpdateDto, CreateDefectDto, TransitionDefectDto } from './dto/defect.dto';
 
 const VALID_TRANSITIONS: Record<DefectStatus, DefectStatus[]> = {
@@ -69,7 +69,10 @@ export class DefectService {
     return { items, total, ...opts };
   }
 
-  async listForCondo(condoId: string, opts: { limit: number; offset: number; status?: DefectStatus }) {
+  async listForCondo(
+    condoId: string,
+    opts: { limit: number; offset: number; status?: DefectStatus },
+  ) {
     const where = { condoId, ...(opts.status ? { status: opts.status } : {}) };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.defect.findMany({

@@ -1,3 +1,4 @@
+import type { RequestWithContext } from '@/common/types/request-context';
 import {
   type ArgumentsHost,
   Catch,
@@ -8,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { Response } from 'express';
-import type { RequestWithContext } from '@/common/types/request-context';
 
 interface ErrorBody {
   statusCode: number;

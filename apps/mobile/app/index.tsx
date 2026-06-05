@@ -1,8 +1,8 @@
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { getCachedSession } from '../src/lib/session';
 import { api } from '../src/lib/api';
+import { getCachedSession } from '../src/lib/session';
 
 export default function Bootstrap() {
   const router = useRouter();

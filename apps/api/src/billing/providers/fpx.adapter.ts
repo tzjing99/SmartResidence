@@ -11,7 +11,9 @@ export class FpxAdapter implements PaymentProviderAdapter {
   readonly id = 'FPX';
   private readonly logger = new Logger(FpxAdapter.name);
 
-  async createIntent(opts: Parameters<PaymentProviderAdapter['createIntent']>[0]): Promise<PaymentIntentResult> {
+  async createIntent(
+    opts: Parameters<PaymentProviderAdapter['createIntent']>[0],
+  ): Promise<PaymentIntentResult> {
     this.logger.log(`FPX stub creating intent for payment ${opts.payment.id}`);
     return {
       redirectUrl: `${opts.returnUrl ?? 'http://localhost:3000/billing'}?mock=fpx&ref=${opts.payment.id}`,

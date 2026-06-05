@@ -1,8 +1,13 @@
-import { CanActivate, type ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { AbilityFactory } from '../abilities/ability.factory';
-import { CHECK_ABILITY_KEY, type RequiredAbility } from '../abilities/check-ability.decorator';
 import type { RequestWithContext } from '@/common/types/request-context';
+import {
+  type CanActivate,
+  type ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import type { Reflector } from '@nestjs/core';
+import type { AbilityFactory } from '../abilities/ability.factory';
+import { CHECK_ABILITY_KEY, type RequiredAbility } from '../abilities/check-ability.decorator';
 
 @Injectable()
 export class AbilitiesGuard implements CanActivate {

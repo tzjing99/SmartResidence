@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaService } from '@/prisma/prisma.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { PrismaService } from '@/prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type { CreateAnnouncementDto } from './dto/announcement.dto';
 
 @Injectable()

@@ -1,8 +1,8 @@
+import { useCreateDefect, useMyUnits, useUnitDefects } from '@smartresidence/api-client';
+import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Alert, Image, ScrollView, Text, TextInput, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
-import { useCreateDefect, useMyUnits, useUnitDefects } from '@smartresidence/api-client';
 import { api } from '../../src/lib/api';
 
 export default function DefectsScreen() {
@@ -61,18 +61,16 @@ export default function DefectsScreen() {
 
       <Card>
         <Text style={{ fontWeight: '600', marginBottom: 8 }}>Submit a defect</Text>
-        <TextInput
-          placeholder="Title"
-          value={title}
-          onChangeText={setTitle}
-          style={inputStyle}
-        />
+        <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={inputStyle} />
         <TextInput
           placeholder="What's wrong?"
           value={description}
           onChangeText={setDescription}
           multiline
-          style={[inputStyle, { height: 90, marginTop: 10, textAlignVertical: 'top', paddingTop: 10 }]}
+          style={[
+            inputStyle,
+            { height: 90, marginTop: 10, textAlignVertical: 'top', paddingTop: 10 },
+          ]}
         />
         {photoUri ? (
           <Image

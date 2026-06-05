@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PaymentProvider } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -11,7 +12,6 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { PaymentProvider } from '@prisma/client';
 
 export class InvoiceLineDto {
   @ApiProperty()

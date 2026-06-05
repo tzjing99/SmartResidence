@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AnnouncementImportance } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -11,7 +12,6 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
-import { AnnouncementImportance } from '@prisma/client';
 
 export class CreateAnnouncementDto {
   @ApiProperty()
@@ -33,7 +33,7 @@ export class CreateAnnouncementDto {
   @IsEnum(AnnouncementImportance)
   importance?: AnnouncementImportance;
 
-  @ApiPropertyOptional({ description: 'Audience filter (e.g. { blocks: [\"A\"] })' })
+  @ApiPropertyOptional({ description: 'Audience filter (e.g. { blocks: ["A"] })' })
   @IsOptional()
   @IsObject()
   audience?: Record<string, unknown>;

@@ -1,11 +1,11 @@
 'use client';
-
-import * as React from 'react';
-import Link from 'next/link';
+import { api } from '@/lib/api';
 import { useMyUnits, useUnitVisitors } from '@smartresidence/api-client';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { Plus } from 'lucide-react';
-import { api } from '@/lib/api';
+import Link from 'next/link';
+
+const SKELETON_KEYS = ['s1', 's2', 's3', 's4'];
 
 export default function VisitorsPage() {
   const units = useMyUnits(api);
@@ -29,8 +29,8 @@ export default function VisitorsPage() {
 
       {visitors.isLoading ? (
         <div className="flex flex-col gap-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20" />
+          {SKELETON_KEYS.map((key) => (
+            <Skeleton key={key} className="h-20" />
           ))}
         </div>
       ) : (visitors.data?.items.length ?? 0) === 0 ? (
@@ -56,7 +56,9 @@ export default function VisitorsPage() {
                     {v.purpose ? ` · ${v.purpose}` : ''}
                   </div>
                 </div>
-                <Badge tone={statusTone(v.status)}>{v.status.toLowerCase().replace('_', ' ')}</Badge>
+                <Badge tone={statusTone(v.status)}>
+                  {v.status.toLowerCase().replace('_', ' ')}
+                </Badge>
               </div>
             </Card>
           ))}
@@ -76,7 +78,6 @@ function statusTone(status: string) {
     case 'REJECTED':
     case 'EXPIRED':
       return 'danger' as const;
-    case 'APPROVED':
     default:
       return 'primary' as const;
   }

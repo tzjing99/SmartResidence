@@ -1,10 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { Card, EmptyState, Input, Skeleton } from '@smartresidence/ui-web';
-import { useMyCondos } from '@smartresidence/api-client';
-import { useState } from 'react';
 import { api } from '@/lib/api';
+import { useMyCondos } from '@smartresidence/api-client';
+import { Card, EmptyState, Input, Skeleton } from '@smartresidence/ui-web';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
 export default function AdminUnitsPage() {
   const condos = useMyCondos(api);

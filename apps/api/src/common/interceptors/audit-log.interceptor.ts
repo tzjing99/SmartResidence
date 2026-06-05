@@ -1,15 +1,15 @@
+import { AUDIT_META_KEY, type AuditMeta } from '@/common/decorators/audit.decorator';
+import type { RequestWithContext } from '@/common/types/request-context';
+import type { PrismaService } from '@/prisma/prisma.service';
 import {
   type CallHandler,
   type ExecutionContext,
   Injectable,
-  type NestInterceptor,
   Logger,
+  type NestInterceptor,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import type { Reflector } from '@nestjs/core';
 import { type Observable, tap } from 'rxjs';
-import { PrismaService } from '@/prisma/prisma.service';
-import type { RequestWithContext } from '@/common/types/request-context';
-import { AUDIT_META_KEY, type AuditMeta } from '@/common/decorators/audit.decorator';
 
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
@@ -35,7 +35,11 @@ export class AuditLogInterceptor implements NestInterceptor {
     );
   }
 
-  private resolveResourceId(meta: AuditMeta, req: RequestWithContext, response: unknown): string | null {
+  private resolveResourceId(
+    meta: AuditMeta,
+    req: RequestWithContext,
+    response: unknown,
+  ): string | null {
     if (!meta.resourceIdFrom) return null;
     if (meta.resourceIdFrom === 'response.id') {
       const obj = response as { id?: string } | null;

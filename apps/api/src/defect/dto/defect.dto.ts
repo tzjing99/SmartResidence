@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { DefectSeverity, DefectStatus } from '@prisma/client';
 import {
   IsArray,
   IsEnum,
@@ -8,9 +8,7 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
-  ValidateNested,
 } from 'class-validator';
-import { DefectSeverity, DefectStatus } from '@prisma/client';
 
 export class CreateDefectDto {
   @ApiProperty()

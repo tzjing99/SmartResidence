@@ -1,3 +1,8 @@
+import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
+import { Audit } from '@/common/decorators/audit.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { PaginationDto } from '@/common/dto/pagination.dto';
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import {
   Body,
   Controller,
@@ -11,14 +16,9 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuditAction, VisitorStatus } from '@prisma/client';
-import { VisitorService } from './visitor.service';
-import { CheckInVisitorDto, CreateVisitorDto } from './dto/visitor.dto';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
-import { Audit } from '@/common/decorators/audit.decorator';
-import { PaginationDto } from '@/common/dto/pagination.dto';
-import type { AuthenticatedUser } from '@/common/types/request-context';
+import { AuditAction, type VisitorStatus } from '@prisma/client';
+import type { CheckInVisitorDto, CreateVisitorDto } from './dto/visitor.dto';
+import type { VisitorService } from './visitor.service';
 
 @ApiTags('Visitors')
 @ApiBearerAuth('access')

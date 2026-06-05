@@ -1,6 +1,5 @@
-import * as React from 'react';
-import { View, type ViewProps } from 'react-native';
 import { MotiView } from 'moti';
+import { View, type ViewProps } from 'react-native';
 import { palette, radius, spring } from '../tokens';
 
 export const Card = ({ style, children, ...props }: ViewProps) => (

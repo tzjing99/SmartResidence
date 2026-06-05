@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { VisitorService } from './visitor.service';
 import { VisitorController } from './visitor.controller';
+import { VisitorService } from './visitor.service';
 
 @Module({
   providers: [VisitorService],

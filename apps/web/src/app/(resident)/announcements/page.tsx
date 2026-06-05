@@ -1,9 +1,9 @@
 'use client';
 
+import { api } from '@/lib/api';
 import { useAckAnnouncement, useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
 
 const TONE: Record<string, 'info' | 'warning' | 'danger'> = {
   INFO: 'info',

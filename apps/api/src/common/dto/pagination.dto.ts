@@ -9,14 +9,14 @@ export class PaginationDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  limit: number = 25;
+  limit = 25;
 
   @ApiPropertyOptional({ minimum: 0, default: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  offset: number = 0;
+  offset = 0;
 }
 
 export interface PaginatedResult<T> {

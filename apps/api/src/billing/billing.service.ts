@@ -1,11 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, InvoiceStatus, PaymentProvider, PaymentStatus, AuditAction } from '@prisma/client';
-import { PrismaService } from '@/prisma/prisma.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { PrismaService } from '@/prisma/prisma.service';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { AuditAction, InvoiceStatus, PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import type { CreateInvoiceDto, CreatePaymentDto } from './dto/billing.dto';
-import { StripeAdapter } from './providers/stripe.adapter';
-import { FpxAdapter } from './providers/fpx.adapter';
+import type { FpxAdapter } from './providers/fpx.adapter';
 import type { PaymentProviderAdapter } from './providers/payment-provider.interface';
+import type { StripeAdapter } from './providers/stripe.adapter';
 
 @Injectable()
 export class BillingService {
@@ -36,7 +36,10 @@ export class BillingService {
     return { items, total, ...opts };
   }
 
-  async listForCondo(condoId: string, opts: { limit: number; offset: number; status?: InvoiceStatus }) {
+  async listForCondo(
+    condoId: string,
+    opts: { limit: number; offset: number; status?: InvoiceStatus },
+  ) {
     const where = { condoId, ...(opts.status ? { status: opts.status } : {}) };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.invoice.findMany({
@@ -54,7 +57,12 @@ export class BillingService {
   async getInvoice(id: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
-      include: { lines: { orderBy: { sortOrder: 'asc' } }, payments: true, unit: true, condo: true },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        payments: true,
+        unit: true,
+        condo: true,
+      },
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;
@@ -103,7 +111,8 @@ export class BillingService {
 
   async createPayment(actor: AuthenticatedUser, invoiceId: string, dto: CreatePaymentDto) {
     const invoice = await this.getInvoice(invoiceId);
-    if (invoice.status === InvoiceStatus.PAID) throw new BadRequestException('Invoice already paid');
+    if (invoice.status === InvoiceStatus.PAID)
+      throw new BadRequestException('Invoice already paid');
     const adapter = this.providers.get(dto.provider);
     if (!adapter) throw new BadRequestException(`Unsupported provider: ${dto.provider}`);
 

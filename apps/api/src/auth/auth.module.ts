@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { TokenService } from './token.service';
-import { SessionService } from './session.service';
-import { TotpService } from './totp.service';
 import { AbilityFactory } from './abilities/ability.factory';
-import { AuthGuard } from './guards/auth.guard';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import { AbilitiesGuard } from './guards/abilities.guard';
+import { AuthGuard } from './guards/auth.guard';
+import { SessionService } from './session.service';
+import { TokenService } from './token.service';
+import { TotpService } from './totp.service';
 
 @Module({
   providers: [

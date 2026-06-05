@@ -1,11 +1,12 @@
 'use client';
 
-import * as React from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { api, writeSession } from '@/lib/api';
+import { useMe, useMyCondos } from '@smartresidence/api-client';
+import { cn } from '@smartresidence/ui-web';
 import {
   BarChart3,
   Building2,
+  CalendarClock,
   CreditCard,
   History,
   LogOut,
@@ -13,11 +14,10 @@ import {
   ShieldAlert,
   UserCog,
   Wrench,
-  CalendarClock,
 } from 'lucide-react';
-import { useMe, useMyCondos } from '@smartresidence/api-client';
-import { api, writeSession } from '@/lib/api';
-import { cn } from '@smartresidence/ui-web';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import * as React from 'react';
 
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
@@ -75,9 +75,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-coral-500/10 text-coral-500'
-                    : 'hover:bg-[rgb(var(--sr-border))]/40',
+                  active ? 'bg-coral-500/10 text-coral-500' : 'hover:bg-[rgb(var(--sr-border))]/40',
                 )}
               >
                 <Icon className="size-4" />
@@ -87,6 +85,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <button
+          type="button"
           onClick={signOut}
           className="flex items-center gap-2 px-3 py-2 mt-4 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
         >

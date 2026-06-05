@@ -1,12 +1,12 @@
 'use client';
 
-import { use } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
-import { formatMoney } from '@smartresidence/shared-types';
-import { usePayInvoice, queryKeys } from '@smartresidence/api-client';
-import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { queryKeys, usePayInvoice } from '@smartresidence/api-client';
+import { formatMoney } from '@smartresidence/shared-types';
+import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
+import { useQuery } from '@tanstack/react-query';
+import { use } from 'react';
+import { toast } from 'sonner';
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -43,9 +43,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           </p>
         </div>
         <Badge
-          tone={
-            inv.status === 'PAID' ? 'success' : inv.status === 'OVERDUE' ? 'danger' : 'primary'
-          }
+          tone={inv.status === 'PAID' ? 'success' : inv.status === 'OVERDUE' ? 'danger' : 'primary'}
         >
           {inv.status.toLowerCase()}
         </Badge>

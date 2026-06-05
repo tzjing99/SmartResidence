@@ -1,4 +1,4 @@
-import { device, expect, element, by } from 'detox';
+import { by, device, element, expect } from 'detox';
 
 describe('SmartResidence smoke', () => {
   beforeAll(async () => {

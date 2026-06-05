@@ -1,10 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { formatMoney } from '@smartresidence/shared-types';
-import { useMyUnits, useUnitInvoices } from '@smartresidence/api-client';
 import { api } from '@/lib/api';
+import { useMyUnits, useUnitInvoices } from '@smartresidence/api-client';
+import { formatMoney } from '@smartresidence/shared-types';
+import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
+import Link from 'next/link';
+
+const SKELETON_KEYS = ['s1', 's2', 's3'];
 
 export default function BillingPage() {
   const units = useMyUnits(api);
@@ -22,8 +24,8 @@ export default function BillingPage() {
 
       {invoices.isLoading ? (
         <div className="flex flex-col gap-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-28" />
+          {SKELETON_KEYS.map((key) => (
+            <Skeleton key={key} className="h-28" />
           ))}
         </div>
       ) : (invoices.data?.items.length ?? 0) === 0 ? (
@@ -46,9 +48,7 @@ export default function BillingPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">
-                      {formatMoney(inv.total, inv.currencyCode)}
-                    </div>
+                    <div className="font-semibold">{formatMoney(inv.total, inv.currencyCode)}</div>
                     <Badge
                       tone={
                         inv.status === 'PAID'

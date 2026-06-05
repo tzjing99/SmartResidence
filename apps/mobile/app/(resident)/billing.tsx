@@ -1,7 +1,7 @@
-import { Alert, Linking, ScrollView, Text, View } from 'react-native';
-import { Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import { useMyUnits, usePayInvoice, useUnitInvoices } from '@smartresidence/api-client';
 import { formatMoney } from '@smartresidence/shared-types';
-import { useMyUnits, useUnitInvoices, usePayInvoice } from '@smartresidence/api-client';
+import { Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import { Alert, Linking, ScrollView, Text, View } from 'react-native';
 import { api } from '../../src/lib/api';
 
 export default function BillingScreen() {
@@ -37,7 +37,10 @@ export default function BillingScreen() {
       </Text>
 
       {items.length === 0 ? (
-        <EmptyState title="No invoices" description="Your fee statements appear here once issued." />
+        <EmptyState
+          title="No invoices"
+          description="Your fee statements appear here once issued."
+        />
       ) : (
         items.map((inv) => (
           <Card key={inv.id}>

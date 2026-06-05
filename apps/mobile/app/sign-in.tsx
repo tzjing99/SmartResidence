@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { Alert, Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
-import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
+import { useState } from 'react';
+import { Alert, Text, TextInput, View } from 'react-native';
 import { api } from '../src/lib/api';
-import { setCached, writeSession } from '../src/lib/session';
 import { registerForPush } from '../src/lib/push';
+import { setCached, writeSession } from '../src/lib/session';
 
 export default function SignInScreen() {
   const router = useRouter();

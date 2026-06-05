@@ -1,14 +1,14 @@
+import type { RequestWithContext } from '@/common/types/request-context';
 import {
-  CanActivate,
+  type CanActivate,
   type ExecutionContext,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { TokenService } from '../token.service';
-import { AuthService } from '../auth.service';
+import type { Reflector } from '@nestjs/core';
+import type { AuthService } from '../auth.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import type { RequestWithContext } from '@/common/types/request-context';
+import type { TokenService } from '../token.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -29,7 +29,7 @@ export class AuthGuard implements CanActivate {
     const token = this.extractToken(req);
     if (!token) throw new UnauthorizedException('Missing access token');
 
-    let claims;
+    let claims: Awaited<ReturnType<TokenService['verifyAccessToken']>>;
     try {
       claims = await this.tokens.verifyAccessToken(token);
     } catch {

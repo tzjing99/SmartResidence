@@ -10,7 +10,12 @@
  * enough — they accept and return the Zod-validated types from
  * `@smartresidence/shared-types`.
  */
-import type { CreateVisitorInput, Visitor, Invoice, CreateDefectInput } from '@smartresidence/shared-types';
+import type {
+  CreateDefectInput,
+  CreateVisitorInput,
+  Invoice,
+  Visitor,
+} from '@smartresidence/shared-types';
 
 export interface ApiResponse<T> {
   data: T;
@@ -80,11 +85,12 @@ export class ApiClient {
 
   // Auth -------------------------------------------------------------
   signIn(input: { email: string; password: string; totp?: string }) {
-    return this.request<{ accessToken: string; refreshToken: string; expiresIn: number; sessionId: string }>(
-      'POST',
-      '/api/auth/sign-in',
-      input,
-    );
+    return this.request<{
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+      sessionId: string;
+    }>('POST', '/api/auth/sign-in', input);
   }
   signUp(input: { email: string; password: string; name: string }) {
     return this.request<{ accessToken: string; refreshToken: string; sessionId: string }>(
@@ -94,11 +100,12 @@ export class ApiClient {
     );
   }
   refresh(refreshToken: string) {
-    return this.request<{ accessToken: string; refreshToken: string; expiresIn: number; sessionId: string }>(
-      'POST',
-      '/api/auth/refresh',
-      { refreshToken },
-    );
+    return this.request<{
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+      sessionId: string;
+    }>('POST', '/api/auth/refresh', { refreshToken });
   }
   signOut() {
     return this.request<void>('POST', '/api/auth/sign-out');
@@ -109,10 +116,9 @@ export class ApiClient {
 
   // Tenancy ----------------------------------------------------------
   myCondos() {
-    return this.request<Array<{ id: string; name: string; slug: string; brandColor: string | null }>>(
-      'GET',
-      '/api/condos/mine',
-    );
+    return this.request<
+      Array<{ id: string; name: string; slug: string; brandColor: string | null }>
+    >('GET', '/api/condos/mine');
   }
   myUnits() {
     return this.request<Array<unknown>>('GET', '/api/units/mine');
@@ -138,7 +144,10 @@ export class ApiClient {
       `/api/visitors/unit/${unitId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
     );
   }
-  visitorsForCondo(condoId: string, params: { status?: string; limit?: number; offset?: number } = {}) {
+  visitorsForCondo(
+    condoId: string,
+    params: { status?: string; limit?: number; offset?: number } = {},
+  ) {
     return this.request<{ items: Visitor[]; total: number }>(
       'GET',
       `/api/visitors/condo/${condoId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
@@ -188,7 +197,10 @@ export class ApiClient {
       `/api/defects/unit/${unitId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
     );
   }
-  defectsForCondo(condoId: string, params: { status?: string; limit?: number; offset?: number } = {}) {
+  defectsForCondo(
+    condoId: string,
+    params: { status?: string; limit?: number; offset?: number } = {},
+  ) {
     return this.request<{ items: unknown[]; total: number }>(
       'GET',
       `/api/defects/condo/${condoId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
@@ -197,7 +209,10 @@ export class ApiClient {
   defect(id: string) {
     return this.request<unknown>('GET', `/api/defects/${id}`);
   }
-  transitionDefect(id: string, body: { status: string; message?: string; assignedToUserId?: string }) {
+  transitionDefect(
+    id: string,
+    body: { status: string; message?: string; assignedToUserId?: string },
+  ) {
     return this.request<unknown>('PATCH', `/api/defects/${id}/status`, body);
   }
 

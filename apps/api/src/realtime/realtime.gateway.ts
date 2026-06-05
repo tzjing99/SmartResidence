@@ -6,7 +6,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { Server, type Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 
 /**
  * Per-condo Socket.IO rooms. Clients join `condo:<id>` after authenticating

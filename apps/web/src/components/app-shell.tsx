@@ -1,8 +1,8 @@
 'use client';
 
-import * as React from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { api, writeSession } from '@/lib/api';
+import { useMe, useMyCondos } from '@smartresidence/api-client';
+import { cn } from '@smartresidence/ui-web';
 import {
   Bell,
   CalendarClock,
@@ -13,12 +13,11 @@ import {
   KeyRound,
   LogOut,
   Megaphone,
-  ShieldAlert,
   Wrench,
 } from 'lucide-react';
-import { useMe, useMyCondos } from '@smartresidence/api-client';
-import { api, writeSession } from '@/lib/api';
-import { cn } from '@smartresidence/ui-web';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import * as React from 'react';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Home', icon: Home },
@@ -63,9 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/dashboard" className="text-xl font-bold tracking-tight px-2 mb-2 mt-2">
           Smart<span className="text-coral-500">Residence</span>
         </Link>
-        {condo ? (
-          <div className="px-2 text-xs sr-muted mb-6 truncate">{condo.name}</div>
-        ) : null}
+        {condo ? <div className="px-2 text-xs sr-muted mb-6 truncate">{condo.name}</div> : null}
 
         <nav className="flex-1 flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {
@@ -77,9 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-coral-500/10 text-coral-500'
-                    : 'hover:bg-[rgb(var(--sr-border))]/40',
+                  active ? 'bg-coral-500/10 text-coral-500' : 'hover:bg-[rgb(var(--sr-border))]/40',
                 )}
               >
                 <Icon className="size-4" />
@@ -96,6 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : null}
           <button
+            type="button"
             onClick={signOut}
             className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
           >
@@ -111,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {NAV_ITEMS.find((i) => pathname.startsWith(i.href))?.label ?? 'SmartResidence'}
           </h1>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40">
+            <button type="button" className="p-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40">
               <Bell className="size-5" />
             </button>
           </div>

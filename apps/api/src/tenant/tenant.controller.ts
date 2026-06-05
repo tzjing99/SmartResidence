@@ -1,10 +1,10 @@
+import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { PaginationDto } from '@/common/dto/pagination.dto';
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { TenantService } from './tenant.service';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
-import { PaginationDto } from '@/common/dto/pagination.dto';
-import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { TenantService } from './tenant.service';
 
 @ApiTags('Tenancy')
 @ApiBearerAuth('access')

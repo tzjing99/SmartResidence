@@ -1,9 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { useMyCondos, queryKeys } from '@smartresidence/api-client';
 import { api } from '@/lib/api';
+import { queryKeys, useMyCondos } from '@smartresidence/api-client';
+import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
+import { useQuery } from '@tanstack/react-query';
 
 export default function AdminVisitorsPage() {
   const condos = useMyCondos(api);

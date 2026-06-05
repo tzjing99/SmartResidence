@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { PrismaService } from '@/prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class TenantService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listMyCondos(user: AuthenticatedUser) {
-    const condoIds = Array.from(new Set(user.roles.map((r) => r.condoId).filter(Boolean) as string[]));
+    const condoIds = Array.from(
+      new Set(user.roles.map((r) => r.condoId).filter(Boolean) as string[]),
+    );
     if (condoIds.length === 0) return [];
     return this.prisma.condo.findMany({
       where: { id: { in: condoIds } },
@@ -29,12 +31,17 @@ export class TenantService {
   async listUnits(condoId: string, opts: { limit: number; offset: number; search?: string }) {
     const where = {
       condoId,
-      ...(opts.search ? { identifier: { contains: opts.search, mode: 'insensitive' as const } } : {}),
+      ...(opts.search
+        ? { identifier: { contains: opts.search, mode: 'insensitive' as const } }
+        : {}),
     };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.unit.findMany({
         where,
-        include: { block: true, ownerships: { where: { status: 'ACTIVE' }, include: { user: true } } },
+        include: {
+          block: true,
+          ownerships: { where: { status: 'ACTIVE' }, include: { user: true } },
+        },
         orderBy: [{ block: { position: 'asc' } }, { identifier: 'asc' }],
         take: opts.limit,
         skip: opts.offset,
@@ -45,7 +52,9 @@ export class TenantService {
   }
 
   async getMyUnits(user: AuthenticatedUser) {
-    const unitIds = Array.from(new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]));
+    const unitIds = Array.from(
+      new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]),
+    );
     if (unitIds.length === 0) return [];
     return this.prisma.unit.findMany({
       where: { id: { in: unitIds } },

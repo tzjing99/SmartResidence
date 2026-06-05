@@ -1,10 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
+import { api } from '@/lib/api';
 import { useMyCondos } from '@smartresidence/api-client';
 import { formatMoney } from '@smartresidence/shared-types';
-import { api } from '@/lib/api';
+import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
+import { useQuery } from '@tanstack/react-query';
 
 export default function AdminInvoicesPage() {
   const condos = useMyCondos(api);
@@ -16,7 +16,9 @@ export default function AdminInvoicesPage() {
       if (!condo) return Promise.resolve({ items: [], total: 0 });
       // Use the public invoicesForCondo helper (added to client below)
       return fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/condo/${condo.id}`, {
-        headers: { Authorization: `Bearer ${JSON.parse(localStorage.getItem('sr.session.v1') ?? '{}').accessToken ?? ''}` },
+        headers: {
+          Authorization: `Bearer ${JSON.parse(localStorage.getItem('sr.session.v1') ?? '{}').accessToken ?? ''}`,
+        },
       })
         .then((r) => r.json())
         .then((d) => d.data ?? d);

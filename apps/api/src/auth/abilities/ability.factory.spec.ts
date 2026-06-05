@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { RoleId } from '@prisma/client';
-import { AbilityFactory } from './ability.factory';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import { RoleId } from '@prisma/client';
+import { describe, expect, it } from 'vitest';
+import { AbilityFactory } from './ability.factory';
 
 const factory = new AbilityFactory();
 

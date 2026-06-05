@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { api } from '@/lib/api';
 import {
   useCondoAnnouncements,
   useMyCondos,
@@ -9,10 +9,10 @@ import {
   useUnitInvoices,
   useUnitVisitors,
 } from '@smartresidence/api-client';
-import { Badge, Button, Card, EmptyState } from '@smartresidence/ui-web';
 import { formatMoney } from '@smartresidence/shared-types';
+import { Badge, Button, Card, EmptyState } from '@smartresidence/ui-web';
 import { CalendarClock, CreditCard, Megaphone, Wrench } from 'lucide-react';
-import { api } from '@/lib/api';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const condos = useMyCondos(api);
@@ -25,20 +25,24 @@ export default function DashboardPage() {
   const announcements = useCondoAnnouncements(api, condo?.id ?? null);
 
   const upcomingVisitors = (visitors.data?.items ?? []).slice(0, 3);
-  const openInvoice = (invoices.data?.items as Array<{ id: string; status: string; total: number; number: string; dueDate: string }> | undefined)?.find(
-    (i) => i.status !== 'PAID' && i.status !== 'VOID',
-  );
+  const openInvoice = (
+    invoices.data?.items as
+      | Array<{ id: string; status: string; total: number; number: string; dueDate: string }>
+      | undefined
+  )?.find((i) => i.status !== 'PAID' && i.status !== 'VOID');
   const openDefects = (defects.data?.items ?? []).filter(
     (d: any) => d.status !== 'CLOSED' && d.status !== 'RESOLVED',
   ).length;
-  const announcement = (announcements.data?.items as Array<{ id: string; title: string; importance: string }> | undefined)?.[0];
+  const announcement = (
+    announcements.data?.items as
+      | Array<{ id: string; title: string; importance: string }>
+      | undefined
+  )?.[0];
 
   return (
     <div className="flex flex-col gap-6">
       <section>
-        <h2 className="sr-section-title">
-          Welcome{unit ? `, unit ${unit.identifier}` : ''}.
-        </h2>
+        <h2 className="sr-section-title">Welcome{unit ? `, unit ${unit.identifier}` : ''}.</h2>
         <p className="sr-muted mt-1">{condo?.name ?? 'Your condo at a glance.'}</p>
       </section>
 

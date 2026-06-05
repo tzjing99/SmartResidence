@@ -1,13 +1,13 @@
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { PrismaService } from '@/prisma/prisma.service';
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiProperty } from '@nestjs/swagger';
+import { AttachmentOwner } from '@prisma/client';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 import { nanoid } from 'nanoid';
-import { AttachmentOwner } from '@prisma/client';
-import { StorageService } from './storage.service';
-import { PrismaService } from '@/prisma/prisma.service';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { StorageService } from './storage.service';
 
 class PresignDto {
   @ApiProperty()

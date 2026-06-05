@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { DefectService } from './defect.service';
 import { DefectController } from './defect.controller';
+import { DefectService } from './defect.service';
 
 @Module({
   providers: [DefectService],

@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { palette } from '@smartresidence/ui-mobile';
+import { Tabs } from 'expo-router';
 
 export default function GuardLayout() {
   return (

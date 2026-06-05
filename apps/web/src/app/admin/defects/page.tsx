@@ -1,14 +1,12 @@
 'use client';
 
-import { Badge, Card, Skeleton } from '@smartresidence/ui-web';
-import { KANBAN_COLUMNS, type DefectStatus } from '@smartresidence/shared-types';
-import {
-  useCondoDefects,
-  useMyCondos,
-  useTransitionDefect,
-} from '@smartresidence/api-client';
-import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useCondoDefects, useMyCondos, useTransitionDefect } from '@smartresidence/api-client';
+import { type DefectStatus, KANBAN_COLUMNS } from '@smartresidence/shared-types';
+import { Badge, Card, Skeleton } from '@smartresidence/ui-web';
+import { toast } from 'sonner';
+
+const SKELETON_KEYS = ['s1', 's2', 's3', 's4', 's5'];
 
 export default function DefectKanbanPage() {
   const condos = useMyCondos(api);
@@ -19,8 +17,8 @@ export default function DefectKanbanPage() {
   if (defects.isLoading) {
     return (
       <div className="grid grid-cols-5 gap-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-96" />
+        {SKELETON_KEYS.map((key) => (
+          <Skeleton key={key} className="h-96" />
         ))}
       </div>
     );
@@ -80,6 +78,7 @@ export default function DefectKanbanPage() {
                     {nextStatuses(col.status).map((next) => (
                       <button
                         key={next}
+                        type="button"
                         onClick={() => move(d.id, next)}
                         className="text-xs px-2 py-1 rounded-lg bg-[rgb(var(--sr-bg))] hover:bg-[rgb(var(--sr-border))]/60"
                       >

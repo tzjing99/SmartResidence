@@ -3,5 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-or-later",
-  "files": ["base.json", "node.json", "nestjs.json", "next.json", "react-native.json", "react-library.json"]
+  "files": [
+    "base.json",
+    "node.json",
+    "nestjs.json",
+    "next.json",
+    "react-native.json",
+    "react-library.json"
+  ]
 }

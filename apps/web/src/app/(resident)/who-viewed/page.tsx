@@ -1,9 +1,9 @@
 'use client';
 
+import { api } from '@/lib/api';
 import { useWhoViewedMe } from '@smartresidence/api-client';
 import { Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { Eye } from 'lucide-react';
-import { api } from '@/lib/api';
 
 export default function WhoViewedPage() {
   const data = useWhoViewedMe(api);
@@ -13,8 +13,8 @@ export default function WhoViewedPage() {
       <header>
         <h2 className="sr-section-title">Who viewed my data</h2>
         <p className="sr-muted">
-          Which staff opened your unit's records, and when. Disagree with one? Reach out
-          to your management office or report it via the platform's audit trail.
+          Which staff opened your unit's records, and when. Disagree with one? Reach out to your
+          management office or report it via the platform's audit trail.
         </p>
       </header>
       {data.isLoading ? (

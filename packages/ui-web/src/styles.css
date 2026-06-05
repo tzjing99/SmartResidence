@@ -23,10 +23,11 @@
     --sr-coral-fg: 255 255 255;
     --sr-navy: 209 224 240;
   }
-  html, body {
+  html,
+  body {
     background: rgb(var(--sr-bg));
     color: rgb(var(--sr-fg));
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 

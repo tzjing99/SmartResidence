@@ -1,0 +1,22 @@
+# Normalize all text files to LF in the repository.
+# Keeps line endings consistent across Windows/macOS/Linux checkouts
+# and matches biome.json ("lineEnding": "lf").
+* text=auto eol=lf
+
+# Windows-only script files must stay CRLF to run correctly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets — never normalize or diff as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary

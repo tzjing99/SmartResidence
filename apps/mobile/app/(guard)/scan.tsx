@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Button, Card, Pill, palette } from '@smartresidence/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import { Button, Card, Pill, palette } from '@smartresidence/ui-mobile';
+import { useEffect, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
 import { api } from '../../src/lib/api';
 import { enqueueCheckIn, flushQueue, pendingCount } from '../../src/lib/guard-queue';
 
@@ -70,9 +70,14 @@ export default function ScanScreen() {
       />
       <View style={{ position: 'absolute', top: 16, left: 16, right: 16 }}>
         <Card>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <Text style={{ fontWeight: '700' }}>Scan a visitor QR</Text>
-            <Pill tone={pending > 0 ? 'warning' : 'success'} label={pending > 0 ? `${pending} queued` : 'online'} />
+            <Pill
+              tone={pending > 0 ? 'warning' : 'success'}
+              label={pending > 0 ? `${pending} queued` : 'online'}
+            />
           </View>
         </Card>
       </View>

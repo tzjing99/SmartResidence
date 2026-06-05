@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, EmptyState } from '@smartresidence/ui-web';
 import { ROLE_LABEL, ROLE_PRIORITY } from '@smartresidence/shared-types';
+import { Card, EmptyState } from '@smartresidence/ui-web';
 import { ShieldCheck } from 'lucide-react';
 
 export default function AdminRolesPage() {
@@ -10,8 +10,8 @@ export default function AdminRolesPage() {
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Roles & access</h1>
         <p className="sr-muted">
-          Granular RBAC powered by CASL abilities. Owners can revoke any access they granted in a single tap from
-          the mobile app — sessions are killed instantly via Redis.
+          Granular RBAC powered by CASL abilities. Owners can revoke any access they granted in a
+          single tap from the mobile app — sessions are killed instantly via Redis.
         </p>
       </header>
       <Card>

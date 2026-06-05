@@ -10,7 +10,10 @@ test('landing page renders SmartResidence branding and CTAs', async ({ page }) =
 
 test('navigates to sign-in page', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: /sign in/i }).first().click();
+  await page
+    .getByRole('link', { name: /sign in/i })
+    .first()
+    .click();
   await expect(page).toHaveURL(/sign-in/);
   await expect(page.getByLabel(/email/i)).toBeVisible();
   await expect(page.getByLabel(/password/i)).toBeVisible();

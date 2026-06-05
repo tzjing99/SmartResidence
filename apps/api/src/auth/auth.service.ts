@@ -1,3 +1,6 @@
+import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { AppEnv } from '@/config/env.schema';
+import type { PrismaService } from '@/prisma/prisma.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -6,16 +9,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import { Prisma, RoleId, UserStatus, VerificationPurpose } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { nanoid } from 'nanoid';
-import { PrismaService } from '@/prisma/prisma.service';
-import type { AppEnv } from '@/config/env.schema';
-import type { AuthenticatedUser } from '@/common/types/request-context';
-import { SessionService, type DeviceInfo } from './session.service';
-import { TotpService } from './totp.service';
-import type { SignInDto, SignUpDto, RequestOtpDto, VerifyOtpDto } from './dto/auth.dto';
+import type { RequestOtpDto, SignInDto, SignUpDto, VerifyOtpDto } from './dto/auth.dto';
+import type { DeviceInfo, SessionService } from './session.service';
+import type { TotpService } from './totp.service';
 
 const OTP_TTL_SECONDS = 10 * 60;
 
@@ -136,7 +135,10 @@ export class AuthService {
     const code = `${Math.floor(100000 + Math.random() * 900000)}`;
     const codeHash = await argon2.hash(code);
     let userId: string | null = null;
-    if (dto.purpose === VerificationPurpose.LOGIN_OTP || dto.purpose === VerificationPurpose.PASSWORD_RESET) {
+    if (
+      dto.purpose === VerificationPurpose.LOGIN_OTP ||
+      dto.purpose === VerificationPurpose.PASSWORD_RESET
+    ) {
       const user = await this.prisma.user.findFirst({
         where: { OR: [{ email: dto.identifier.toLowerCase() }, { phone: dto.identifier }] },
       });

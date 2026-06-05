@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 /**
  * SmartResidence demo seed.
  *
@@ -7,18 +8,17 @@
  * Run with: pnpm db:seed
  */
 import {
-  PrismaClient,
-  RoleId,
-  RoleScope,
-  UnitStatus,
   AnnouncementImportance,
   DefectSeverity,
   DefectStatus,
   InvoiceStatus,
+  PrismaClient,
+  RoleId,
+  RoleScope,
+  UnitStatus,
   VisitorStatus,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { randomUUID } from 'node:crypto';
 
 const prisma = new PrismaClient();
 
@@ -29,14 +29,54 @@ async function main() {
 
   await prisma.role.createMany({
     data: [
-      { id: RoleId.SUPER_ADMIN, name: 'Platform admin', scope: RoleScope.PLATFORM, description: 'Operates the SmartResidence platform' },
-      { id: RoleId.MANAGEMENT_ADMIN, name: 'Management admin', scope: RoleScope.CONDO, description: 'Full administrator for one condo' },
-      { id: RoleId.MANAGEMENT_STAFF, name: 'Management staff', scope: RoleScope.CONDO, description: 'Scoped management permissions' },
-      { id: RoleId.SECURITY_GUARD, name: 'Security guard', scope: RoleScope.CONDO, description: 'Visitor verification and check-in' },
-      { id: RoleId.UNIT_OWNER, name: 'Unit owner', scope: RoleScope.UNIT, description: 'Owns a unit; full control over its data' },
-      { id: RoleId.TENANT, name: 'Tenant', scope: RoleScope.UNIT, description: 'Rents a unit, granted by the owner' },
-      { id: RoleId.HOUSEHOLD_MEMBER, name: 'Household member', scope: RoleScope.UNIT, description: 'Family member under owner/tenant' },
-      { id: RoleId.CONTRACTOR, name: 'Contractor', scope: RoleScope.UNIT, description: 'External worker scoped to a defect ticket' },
+      {
+        id: RoleId.SUPER_ADMIN,
+        name: 'Platform admin',
+        scope: RoleScope.PLATFORM,
+        description: 'Operates the SmartResidence platform',
+      },
+      {
+        id: RoleId.MANAGEMENT_ADMIN,
+        name: 'Management admin',
+        scope: RoleScope.CONDO,
+        description: 'Full administrator for one condo',
+      },
+      {
+        id: RoleId.MANAGEMENT_STAFF,
+        name: 'Management staff',
+        scope: RoleScope.CONDO,
+        description: 'Scoped management permissions',
+      },
+      {
+        id: RoleId.SECURITY_GUARD,
+        name: 'Security guard',
+        scope: RoleScope.CONDO,
+        description: 'Visitor verification and check-in',
+      },
+      {
+        id: RoleId.UNIT_OWNER,
+        name: 'Unit owner',
+        scope: RoleScope.UNIT,
+        description: 'Owns a unit; full control over its data',
+      },
+      {
+        id: RoleId.TENANT,
+        name: 'Tenant',
+        scope: RoleScope.UNIT,
+        description: 'Rents a unit, granted by the owner',
+      },
+      {
+        id: RoleId.HOUSEHOLD_MEMBER,
+        name: 'Household member',
+        scope: RoleScope.UNIT,
+        description: 'Family member under owner/tenant',
+      },
+      {
+        id: RoleId.CONTRACTOR,
+        name: 'Contractor',
+        scope: RoleScope.UNIT,
+        description: 'External worker scoped to a defect ticket',
+      },
     ],
     skipDuplicates: true,
   });
@@ -180,14 +220,16 @@ async function main() {
     },
   });
 
-  await prisma.tenancy.create({
-    data: {
-      unitId: ownerUnit.id,
-      userId: tenant.id,
-      startDate: new Date('2025-06-01T00:00:00Z'),
-      endDate: new Date('2026-05-31T23:59:59Z'),
-    },
-  }).catch(() => {});
+  await prisma.tenancy
+    .create({
+      data: {
+        unitId: ownerUnit.id,
+        userId: tenant.id,
+        startDate: new Date('2025-06-01T00:00:00Z'),
+        endDate: new Date('2026-05-31T23:59:59Z'),
+      },
+    })
+    .catch(() => {});
 
   await prisma.roleAssignment.createMany({
     data: [
@@ -268,7 +310,7 @@ async function main() {
           {
             code: 'GARB',
             description: 'Garbage collection',
-            formula: `Flat fee per unit`,
+            formula: 'Flat fee per unit',
             quantity: 1,
             unitPrice: garbage,
             amount: garbage,
@@ -327,14 +369,14 @@ async function main() {
   console.log('');
   console.log('✅ Seed complete.');
   console.log('');
-  console.log('Demo logins (password for all: ' + DEMO_PASSWORD + '):');
+  console.log(`Demo logins (password for all: ${DEMO_PASSWORD}):`);
   console.log('  Resident (owner)   →  owner@acacia.demo');
   console.log('  Resident (tenant)  →  tenant@acacia.demo');
   console.log('  Management admin   →  admin@acacia.demo');
   console.log('  Security guard     →  guard@acacia.demo');
   console.log('  Platform admin     →  super@smartresidence.dev');
   console.log('');
-  console.log('Demo invoice number: ' + invoice.number);
+  console.log(`Demo invoice number: ${invoice.number}`);
 }
 
 main()

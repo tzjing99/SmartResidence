@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { useMyUnits, useUnitDefects } from '@smartresidence/api-client';
-import { Plus } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useMyUnits, useUnitDefects } from '@smartresidence/api-client';
+import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 
 const SEVERITY_TONE: Record<string, 'neutral' | 'primary' | 'warning' | 'danger'> = {
   LOW: 'neutral',
@@ -12,6 +12,8 @@ const SEVERITY_TONE: Record<string, 'neutral' | 'primary' | 'warning' | 'danger'
   HIGH: 'warning',
   URGENT: 'danger',
 };
+
+const SKELETON_KEYS = ['s1', 's2', 's3'];
 
 export default function DefectsPage() {
   const units = useMyUnits(api);
@@ -35,8 +37,8 @@ export default function DefectsPage() {
 
       {defects.isLoading ? (
         <div className="flex flex-col gap-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24" />
+          {SKELETON_KEYS.map((key) => (
+            <Skeleton key={key} className="h-24" />
           ))}
         </div>
       ) : (defects.data?.items.length ?? 0) === 0 ? (
@@ -64,7 +66,9 @@ export default function DefectsPage() {
                   <Badge tone={SEVERITY_TONE[d.severity] ?? 'neutral'}>
                     {d.severity.toLowerCase()}
                   </Badge>
-                  <Badge tone={d.status === 'CLOSED' || d.status === 'RESOLVED' ? 'success' : 'primary'}>
+                  <Badge
+                    tone={d.status === 'CLOSED' || d.status === 'RESOLVED' ? 'success' : 'primary'}
+                  >
                     {d.status.toLowerCase().replace('_', ' ')}
                   </Badge>
                 </div>

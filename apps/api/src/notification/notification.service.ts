@@ -1,8 +1,8 @@
+import type { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { NotificationKind, type Prisma, PushKind } from '@prisma/client';
 import { Expo, type ExpoPushMessage } from 'expo-server-sdk';
-import { NotificationKind, PushKind, type Prisma } from '@prisma/client';
-import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class NotificationService {

@@ -1,7 +1,3 @@
-import { ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Card, Pill, Stack, Button, palette } from '@smartresidence/ui-mobile';
-import { formatMoney } from '@smartresidence/shared-types';
 import {
   useCondoAnnouncements,
   useMyCondos,
@@ -9,6 +5,10 @@ import {
   useUnitInvoices,
   useUnitVisitors,
 } from '@smartresidence/api-client';
+import { formatMoney } from '@smartresidence/shared-types';
+import { Button, Card, Pill, Stack, palette } from '@smartresidence/ui-mobile';
+import { useRouter } from 'expo-router';
+import { ScrollView, Text, View } from 'react-native';
 import { api } from '../../src/lib/api';
 
 export default function HomeScreen() {
@@ -52,10 +52,7 @@ export default function HomeScreen() {
               {openInvoice.number} · due {new Date(openInvoice.dueDate).toLocaleDateString()}
             </Text>
             <View style={{ marginTop: 12 }}>
-              <Button
-                title="Pay now"
-                onPress={() => router.push('/(resident)/billing')}
-              />
+              <Button title="Pay now" onPress={() => router.push('/(resident)/billing')} />
             </View>
           </>
         ) : (
@@ -96,7 +93,9 @@ export default function HomeScreen() {
       {announcement ? (
         <Card>
           <Text style={{ color: palette.mutedLight, fontSize: 13 }}>Latest announcement</Text>
-          <Text style={{ fontWeight: '600', marginTop: 6, fontSize: 16 }}>{announcement.title}</Text>
+          <Text style={{ fontWeight: '600', marginTop: 6, fontSize: 16 }}>
+            {announcement.title}
+          </Text>
           <Text numberOfLines={3} style={{ marginTop: 6, color: palette.textLight, fontSize: 13 }}>
             {announcement.body}
           </Text>

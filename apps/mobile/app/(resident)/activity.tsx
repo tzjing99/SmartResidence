@@ -1,7 +1,6 @@
-import { ScrollView, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Card, EmptyState, palette } from '@smartresidence/ui-mobile';
 import { useMyActivity, useWhoViewedMe } from '@smartresidence/api-client';
+import { Card, EmptyState, palette } from '@smartresidence/ui-mobile';
+import { ScrollView, Text } from 'react-native';
 import { api } from '../../src/lib/api';
 
 export default function ActivityScreen() {

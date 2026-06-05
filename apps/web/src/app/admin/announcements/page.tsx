@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Badge, Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
-import { useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
+import { Badge, Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function AdminAnnouncementsPage() {
   const condos = useMyCondos(api);
@@ -69,7 +69,15 @@ export default function AdminAnnouncementsPage() {
           <Card key={a.id}>
             <div className="flex items-start justify-between gap-2 mb-1">
               <h3 className="font-medium">{a.title}</h3>
-              <Badge tone={a.importance === 'URGENT' ? 'danger' : a.importance === 'IMPORTANT' ? 'warning' : 'info'}>
+              <Badge
+                tone={
+                  a.importance === 'URGENT'
+                    ? 'danger'
+                    : a.importance === 'IMPORTANT'
+                      ? 'warning'
+                      : 'info'
+                }
+              >
                 {a.importance.toLowerCase()}
               </Badge>
             </div>

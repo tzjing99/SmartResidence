@@ -1,3 +1,6 @@
+import { Audit } from '@/common/decorators/audit.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { AuthenticatedUser, RequestWithContext } from '@/common/types/request-context';
 import {
   Body,
   Controller,
@@ -12,11 +15,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
 import { AuditAction } from '@prisma/client';
-import { AuthService } from './auth.service';
-import { AuthGuard } from './guards/auth.guard';
-import {
+import type { Request } from 'express';
+import type { AbilityFactory } from './abilities/ability.factory';
+import type { AuthService } from './auth.service';
+import { Public } from './decorators/public.decorator';
+import type {
   EnableTotpDto,
   RefreshDto,
   RequestOtpDto,
@@ -24,11 +28,7 @@ import {
   SignUpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
-import { Public } from './decorators/public.decorator';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import type { AuthenticatedUser, RequestWithContext } from '@/common/types/request-context';
-import { Audit } from '@/common/decorators/audit.decorator';
-import { AbilityFactory } from './abilities/ability.factory';
+import { AuthGuard } from './guards/auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')

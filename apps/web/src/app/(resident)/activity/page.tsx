@@ -1,8 +1,8 @@
 'use client';
 
+import { api } from '@/lib/api';
 import { useMyActivity } from '@smartresidence/api-client';
 import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { api } from '@/lib/api';
 
 export default function ActivityPage() {
   const activity = useMyActivity(api);

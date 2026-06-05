@@ -1,13 +1,17 @@
 'use client';
 
+import { api } from '@/lib/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useCreateDefect, useMyUnits } from '@smartresidence/api-client';
+import {
+  type CreateDefectInput,
+  CreateDefectSchema,
+  DEFECT_CATEGORIES,
+} from '@smartresidence/shared-types';
+import { Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateDefectSchema, type CreateDefectInput, DEFECT_CATEGORIES } from '@smartresidence/shared-types';
-import { useCreateDefect, useMyUnits } from '@smartresidence/api-client';
-import { Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
 
 export default function NewDefectPage() {
   const router = useRouter();

@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import type { Prisma, AuditAction } from '@prisma/client';
-import { PrismaService } from '@/prisma/prisma.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { PrismaService } from '@/prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import type { AuditAction, Prisma } from '@prisma/client';
 
 export interface AuditQuery {
   unitId?: string;
@@ -43,7 +43,9 @@ export class AuditService {
    * Powers the mobile "Activity on my unit" feed.
    */
   async forOwnerActivityFeed(user: AuthenticatedUser, opts: { limit: number; offset: number }) {
-    const unitIds = Array.from(new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]));
+    const unitIds = Array.from(
+      new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]),
+    );
     if (unitIds.length === 0) return { items: [], total: 0, ...opts };
 
     const where: Prisma.AuditLogWhereInput = { unitId: { in: unitIds } };
@@ -67,7 +69,9 @@ export class AuditService {
    * owner can see which staff member opened their unit record / invoice / etc.
    */
   async whoViewedMyData(user: AuthenticatedUser, opts: { limit: number; offset: number }) {
-    const unitIds = Array.from(new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]));
+    const unitIds = Array.from(
+      new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]),
+    );
     const where: Prisma.AuditLogWhereInput = {
       action: 'READ',
       OR: [

@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { Pressable, Text, type PressableProps, type ViewStyle } from 'react-native';
 import { MotiView } from 'moti';
+import * as React from 'react';
+import { Pressable, type PressableProps, Text, type ViewStyle } from 'react-native';
 import { palette, radius, spring } from '../tokens';
 
 export interface ButtonProps extends PressableProps {
@@ -23,7 +23,10 @@ export const Button: React.FC<ButtonProps> = ({
   const heights = { sm: 40, md: 48, lg: 56 };
   const fontSizes = { sm: 14, md: 15, lg: 16 };
 
-  const palettes: Record<NonNullable<ButtonProps['variant']>, { bg: string; fg: string; border?: string }> = {
+  const palettes: Record<
+    NonNullable<ButtonProps['variant']>,
+    { bg: string; fg: string; border?: string }
+  > = {
     primary: { bg: palette.coralPrimary, fg: '#FFFFFF' },
     secondary: { bg: palette.surfaceLight, fg: palette.textLight, border: palette.borderLight },
     ghost: { bg: 'transparent', fg: palette.textLight },

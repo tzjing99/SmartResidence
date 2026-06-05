@@ -39,7 +39,11 @@ describe('resolveActiveHref', () => {
   });
 
   it('highlights nested admin settings routes', () => {
-    const adminSettingsHrefs = ['/admin/settings', '/admin/settings/helpdesk', '/admin/settings/audit'];
+    const adminSettingsHrefs = [
+      '/admin/settings',
+      '/admin/settings/helpdesk',
+      '/admin/settings/audit',
+    ];
     expect(resolveActiveHref('/admin/settings/helpdesk', adminSettingsHrefs)).toBe(
       '/admin/settings/helpdesk',
     );

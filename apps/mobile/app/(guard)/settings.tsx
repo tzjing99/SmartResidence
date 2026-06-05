@@ -13,8 +13,8 @@ export default function GuardSettingsScreen() {
       </Text>
       <Card>
         <Text style={{ color: palette.mutedLight, fontSize: 13 }}>
-          No guard-specific settings are available yet. Scanning and visitor verification options are
-          configured automatically for your condo.
+          No guard-specific settings are available yet. Scanning and visitor verification options
+          are configured automatically for your condo.
         </Text>
       </Card>
     </ScrollView>

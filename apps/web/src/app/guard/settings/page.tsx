@@ -10,7 +10,8 @@ export default function GuardSettingsPage() {
           <Settings2 className="size-7 text-coral-500" /> Settings
         </h1>
         <p className="sr-muted mt-1">
-          Guard preferences for the web gate console. Full check-in workflows live in the mobile app.
+          Guard preferences for the web gate console. Full check-in workflows live in the mobile
+          app.
         </p>
       </header>
       <Card className="p-5">

@@ -23,6 +23,14 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-safari', use: { ...devices['iPhone 14'] } },
+    {
+      name: 'mobile-safari',
+      use: { ...devices['iPhone 14'] },
+      // The management/resident portals are desktop-only (their sidebar nav is
+      // `hidden md:flex` with no mobile menu), so the role-routing nav
+      // assertions only make sense on a desktop viewport. The mobile project
+      // still covers the public/responsive flows (landing, auth, thread guards).
+      testIgnore: /role-routing\.spec\.ts/,
+    },
   ],
 });

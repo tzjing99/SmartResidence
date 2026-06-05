@@ -17,8 +17,9 @@ import {
   ThreadPriority,
   ThreadStatus,
 } from '@prisma/client';
-import type { UpdateSlaPoliciesDto } from './dto/sla.dto';
+import type { UpdateAutoAssignmentDto, UpdateSlaPoliciesDto } from './dto/sla.dto';
 import {
+  type AutoAssignmentSettings,
   DEFAULT_RESOLUTION_CONFIRMATION_GRACE_DAYS,
   mergeHelpdeskSettings,
   parseHelpdeskSettings,
@@ -119,7 +120,84 @@ export class SlaPolicyService {
       atRiskThresholdPercent: 20,
       policies: items,
       editable: this.isAdmin(user, condoId),
+      autoAssignment: helpdesk.autoAssignment ?? {
+        generalTriagePool: [],
+        categoryPools: [],
+        seniorStaffPool: [],
+      },
+      managementStaff: await this.listManagementStaff(condoId),
     };
+  }
+
+  private async listManagementStaff(condoId: string) {
+    const rows = await this.prisma.roleAssignment.findMany({
+      where: {
+        condoId,
+        revokedAt: null,
+        roleId: { in: [RoleId.MANAGEMENT_ADMIN, RoleId.MANAGEMENT_STAFF] },
+      },
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { user: { name: 'asc' } },
+    });
+    return rows.map((r) => r.user);
+  }
+
+  async updateAutoAssignment(
+    user: AuthenticatedUser,
+    condoId: string,
+    dto: UpdateAutoAssignmentDto,
+  ) {
+    if (!this.isAdmin(user, condoId)) {
+      throw new ForbiddenException('Only management admins can edit assignee pools');
+    }
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+
+    const staffIds = new Set(
+      (
+        await this.prisma.roleAssignment.findMany({
+          where: {
+            condoId,
+            revokedAt: null,
+            roleId: { in: [RoleId.MANAGEMENT_ADMIN, RoleId.MANAGEMENT_STAFF] },
+          },
+          select: { userId: true },
+        })
+      ).map((r) => r.userId),
+    );
+    const allPoolIds = [
+      ...dto.generalTriagePool,
+      ...dto.seniorStaffPool,
+      ...dto.categoryPools.flatMap((p) => p.userIds),
+    ];
+    for (const id of allPoolIds) {
+      if (!staffIds.has(id)) {
+        throw new BadRequestException(`User ${id} is not management staff for this condo`);
+      }
+    }
+
+    const autoAssignment: AutoAssignmentSettings = {
+      generalTriagePool: dto.generalTriagePool,
+      categoryPools: dto.categoryPools,
+      seniorStaffPool: dto.seniorStaffPool,
+    };
+    const newSettings = mergeHelpdeskSettings(condo.settings, { autoAssignment });
+    await this.prisma.condo.update({
+      where: { id: condoId },
+      data: { settings: newSettings as Prisma.InputJsonValue },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        condoId,
+        actorUserId: user.id,
+        actorRole: user.activeRole,
+        action: AuditAction.UPDATE,
+        resourceType: 'HelpdeskAutoAssignment',
+        resourceId: condoId,
+        metadata: { autoAssignment } as unknown as Prisma.InputJsonValue,
+      },
+    });
+    return { ok: true, autoAssignment };
   }
 
   async updateSettings(user: AuthenticatedUser, condoId: string, dto: UpdateSlaPoliciesDto) {

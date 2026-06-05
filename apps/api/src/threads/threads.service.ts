@@ -21,6 +21,7 @@ import {
 import { AI_ASSIST_PROVIDER, type AiAssistProvider } from './ai/ai-assist.provider';
 import type {
   AppealThreadDto,
+  CloseAbusiveThreadDto,
   ConfirmResolutionDto,
   CreateThreadDto,
   ListThreadsDto,
@@ -31,6 +32,7 @@ import type {
 } from './dto/thread.dto';
 import { SlaService } from './sla/sla.service';
 import { ThreadAssignmentService } from './thread-assignment.service';
+import { buildThreadPdf } from './thread-export';
 
 const MANAGEMENT_ROLES: RoleId[] = [
   RoleId.SUPER_ADMIN,
@@ -814,5 +816,113 @@ export class ThreadsService {
       update: { lastReadAt: new Date() },
       create: { threadId: id, userId: user.id, lastReadAt: new Date() },
     });
+  }
+
+  /** D7: management flags and closes an abusive thread; resident is notified. */
+  async closeAbusive(user: AuthenticatedUser, id: string, dto: CloseAbusiveThreadDto) {
+    const thread = await this.loadAndAuthorize(user, id);
+    if (!this.isManagement(user)) {
+      throw new ForbiddenException('Only management can close abusive threads');
+    }
+    if (thread.status === ThreadStatus.CLOSED) {
+      throw new BadRequestException('Thread is already closed');
+    }
+    const now = new Date();
+    const reason = dto.reason.trim();
+    const condo = await this.prisma.condo.findUnique({
+      where: { id: thread.condoId },
+      select: { timezone: true },
+    });
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const meta = (thread.metadata as Record<string, unknown> | null) ?? {};
+      const u = await tx.thread.update({
+        where: { id },
+        data: {
+          status: ThreadStatus.CLOSED,
+          closedAt: now,
+          lastMessageAt: now,
+          metadata: {
+            ...meta,
+            abusiveClose: true,
+            abusiveCloseReason: reason,
+            abusiveClosedByUserId: user.id,
+            abusiveClosedAt: now.toISOString(),
+          } as Prisma.InputJsonValue,
+        },
+      });
+      await tx.threadMessage.create({
+        data: {
+          threadId: id,
+          authorUserId: user.id,
+          kind: ThreadMessageKind.SYSTEM,
+          body: `Thread closed by management (abusive): ${reason}`,
+        },
+      });
+      return u;
+    });
+
+    this.events.emit('thread.status', { threadId: id, condoId: thread.condoId });
+    await this.notifications.dispatch({
+      userIds: [thread.createdByUserId],
+      kind: NotificationKind.THREAD_STATUS,
+      title: 'Your thread was closed',
+      body: reason.slice(0, 140),
+      data: { threadId: id },
+      timeZone: condo?.timezone,
+    });
+    await this.writeAudit(thread, user, [`Abusive thread closed: ${reason.slice(0, 200)}`]);
+    return updated;
+  }
+
+  /** G2: export thread transcript as PDF (management or resident with access). */
+  async exportPdf(
+    user: AuthenticatedUser,
+    id: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const thread = await this.loadAndAuthorize(user, id);
+    const isMgmt = this.isManagement(user);
+    const full = await this.prisma.thread.findUnique({
+      where: { id },
+      include: {
+        createdBy: { select: { name: true } },
+        assignedTo: { select: { name: true } },
+        unit: { select: { identifier: true } },
+        condo: { select: { name: true } },
+        messages: {
+          where: isMgmt ? {} : { kind: { not: ThreadMessageKind.INTERNAL_NOTE } },
+          orderBy: { createdAt: 'asc' },
+          include: { author: { select: { name: true } } },
+        },
+      },
+    });
+    if (!full) throw new NotFoundException();
+
+    const meta = [
+      `Condo: ${full.condo.name}`,
+      `Subject: ${full.subject}`,
+      `Status: ${full.status} · Priority: ${full.priority}`,
+      full.unit?.identifier ? `Unit: ${full.unit.identifier}` : '',
+      `Requester: ${full.createdBy.name}`,
+      full.assignedTo ? `Assignee: ${full.assignedTo.name}` : 'Assignee: Unassigned',
+      `Exported: ${new Date().toISOString()}`,
+    ].filter(Boolean);
+
+    const buffer = buildThreadPdf({
+      title: full.subject,
+      meta,
+      messages: full.messages.map((m) => ({
+        author: m.author?.name ?? 'System',
+        at: m.createdAt.toISOString(),
+        body: m.body,
+        kind: m.kind,
+      })),
+    });
+    const safeName =
+      full.subject
+        .replace(/[^\w\s-]/g, '')
+        .slice(0, 40)
+        .trim() || 'thread';
+    return { buffer, filename: `${safeName}-${id.slice(0, 8)}.pdf` };
   }
 }

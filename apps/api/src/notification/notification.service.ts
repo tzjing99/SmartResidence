@@ -1,15 +1,33 @@
+import { isInQuietHours, parseUserPreferences } from '@/auth/user-preferences';
+import type { AppEnv } from '@/config/env.schema';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationKind, type Prisma, PushKind } from '@prisma/client';
 import { Expo, type ExpoPushMessage } from 'expo-server-sdk';
+import { Resend } from 'resend';
+
+const THREAD_KINDS: NotificationKind[] = [
+  NotificationKind.THREAD_MESSAGE,
+  NotificationKind.THREAD_ASSIGNED,
+  NotificationKind.THREAD_STATUS,
+  NotificationKind.THREAD_SLA_ESCALATION,
+];
 
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
   private readonly expo = new Expo();
+  private readonly resend: Resend | null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    config: ConfigService<AppEnv, true>,
+  ) {
+    const key = config.get('RESEND_API_KEY', { infer: true });
+    this.resend = key ? new Resend(key) : null;
+  }
 
   async list(userId: string, opts: { limit: number; offset: number; unreadOnly?: boolean }) {
     const where: Prisma.NotificationWhereInput = {
@@ -63,8 +81,16 @@ export class NotificationService {
     title: string;
     body: string;
     data?: Record<string, unknown>;
+    /** Condo timezone for quiet-hours evaluation (E5). */
+    timeZone?: string;
   }): Promise<void> {
     if (opts.userIds.length === 0) return;
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: opts.userIds } },
+      select: { id: true, email: true, preferences: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
 
     await this.prisma.notification.createMany({
       data: opts.userIds.map((userId) => ({
@@ -76,31 +102,67 @@ export class NotificationService {
       })),
     });
 
-    const subs = await this.prisma.pushSubscription.findMany({
-      where: { userId: { in: opts.userIds }, revokedAt: null },
-    });
-    const expoMessages: ExpoPushMessage[] = [];
-    for (const s of subs) {
-      if (s.kind === PushKind.EXPO && Expo.isExpoPushToken(s.token)) {
-        expoMessages.push({
-          to: s.token,
-          title: opts.title,
-          body: opts.body,
-          data: opts.data,
-          sound: 'default',
-          priority: 'high',
-        });
+    const pushUserIds: string[] = [];
+    const emailTargets: Array<{ email: string; userId: string }> = [];
+
+    for (const userId of opts.userIds) {
+      const user = userMap.get(userId);
+      if (!user) continue;
+      const prefs = parseUserPreferences(user.preferences);
+      if (!isInQuietHours(prefs, new Date(), opts.timeZone)) {
+        pushUserIds.push(userId);
+      }
+      if (THREAD_KINDS.includes(opts.kind) && prefs.emailNotifications && user.email) {
+        emailTargets.push({ email: user.email, userId });
       }
     }
-    if (expoMessages.length === 0) return;
 
-    try {
-      const chunks = this.expo.chunkPushNotifications(expoMessages);
-      for (const chunk of chunks) {
-        await this.expo.sendPushNotificationsAsync(chunk);
+    if (pushUserIds.length > 0) {
+      const subs = await this.prisma.pushSubscription.findMany({
+        where: { userId: { in: pushUserIds }, revokedAt: null },
+      });
+      const expoMessages: ExpoPushMessage[] = [];
+      for (const s of subs) {
+        if (s.kind === PushKind.EXPO && Expo.isExpoPushToken(s.token)) {
+          expoMessages.push({
+            to: s.token,
+            title: opts.title,
+            body: opts.body,
+            data: opts.data,
+            sound: 'default',
+            priority: 'high',
+          });
+        }
       }
-    } catch (err) {
-      this.logger.warn(`Expo push failed: ${(err as Error).message}`);
+      if (expoMessages.length > 0) {
+        try {
+          const chunks = this.expo.chunkPushNotifications(expoMessages);
+          for (const chunk of chunks) {
+            await this.expo.sendPushNotificationsAsync(chunk);
+          }
+        } catch (err) {
+          this.logger.warn(`Expo push failed: ${(err as Error).message}`);
+        }
+      }
+    }
+
+    for (const target of emailTargets) {
+      if (this.resend) {
+        try {
+          await this.resend.emails.send({
+            from: 'SmartResidence <notifications@smartresidence.local>',
+            to: target.email,
+            subject: opts.title,
+            text: opts.body,
+          });
+        } catch (err) {
+          this.logger.warn(`Email to ${target.email} failed: ${(err as Error).message}`);
+        }
+      } else {
+        this.logger.debug(
+          `[email opt-in] ${target.email}: ${opts.title} — ${opts.body.slice(0, 80)}`,
+        );
+      }
     }
   }
 

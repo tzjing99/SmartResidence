@@ -165,3 +165,11 @@ export class ListThreadsDto extends PaginationDto {
   @IsIn(['ON_TRACK', 'AT_RISK', 'BREACHED'])
   slaState?: 'ON_TRACK' | 'AT_RISK' | 'BREACHED';
 }
+
+export class CloseAbusiveThreadDto {
+  @ApiProperty({ description: 'Reason shown to the resident (D7).' })
+  @IsString()
+  @MinLength(10)
+  @MaxLength(4000)
+  reason!: string;
+}

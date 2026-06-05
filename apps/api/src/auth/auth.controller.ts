@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -28,6 +29,7 @@ import {
   SignUpDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
+import { UpdateUserPreferencesDto } from './dto/preferences.dto';
 import { AuthGuard } from './guards/auth.guard';
 
 @ApiTags('Auth')
@@ -93,6 +95,22 @@ export class AuthController {
       user,
       abilities: this.abilities.rulesFor(user),
     };
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('access')
+  @Get('preferences')
+  @ApiOperation({ summary: 'Notification preferences (email opt-in, quiet hours)' })
+  getPreferences(@CurrentUser() user: AuthenticatedUser) {
+    return this.auth.getPreferences(user.id);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('access')
+  @Patch('preferences')
+  @ApiOperation({ summary: 'Update notification preferences' })
+  updatePreferences(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateUserPreferencesDto) {
+    return this.auth.updatePreferences(user.id, dto);
   }
 
   @UseGuards(AuthGuard)

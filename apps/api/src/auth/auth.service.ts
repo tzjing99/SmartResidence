@@ -13,8 +13,14 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma, RoleId, UserStatus, VerificationPurpose } from '@prisma/client';
 import * as argon2 from 'argon2';
 import type { RequestOtpDto, SignInDto, SignUpDto, VerifyOtpDto } from './dto/auth.dto';
+import type { UpdateUserPreferencesDto } from './dto/preferences.dto';
 import { type DeviceInfo, SessionService } from './session.service';
 import { TotpService } from './totp.service';
+import {
+  type UserPreferences,
+  mergeUserPreferences,
+  parseUserPreferences,
+} from './user-preferences';
 
 const OTP_TTL_SECONDS = 10 * 60;
 
@@ -230,11 +236,6 @@ export class AuthService {
     });
   }
 
-  /**
-   * Owner-empowerment helper: revoke a delegated role grant immediately and
-   * kill all active sessions for the affected user so their access is gone
-   * by the next request cycle.
-   */
   async revokeDelegatedRole(opts: {
     actor: AuthenticatedUser;
     roleAssignmentId: string;
@@ -268,6 +269,42 @@ export class AuthService {
         data: { revokedAt: new Date(), revokeReason: 'role-revoked' },
       }),
     ]);
+  }
+
+  async getPreferences(userId: string): Promise<UserPreferences> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return parseUserPreferences(user.preferences);
+  }
+
+  async updatePreferences(userId: string, dto: UpdateUserPreferencesDto): Promise<UserPreferences> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    const merged = mergeUserPreferences(user.preferences, {
+      ...(dto.emailNotifications !== undefined
+        ? { emailNotifications: dto.emailNotifications }
+        : {}),
+      ...(dto.quietHours
+        ? {
+            quietHours: {
+              ...(dto.quietHours.enabled !== undefined ? { enabled: dto.quietHours.enabled } : {}),
+              ...(dto.quietHours.start !== undefined ? { start: dto.quietHours.start } : {}),
+              ...(dto.quietHours.end !== undefined ? { end: dto.quietHours.end } : {}),
+            },
+          }
+        : {}),
+    });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { preferences: merged as unknown as Prisma.InputJsonValue },
+    });
+    return merged;
   }
 
   static handlePrismaError(err: unknown): never {

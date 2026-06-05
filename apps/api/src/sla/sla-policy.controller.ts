@@ -3,7 +3,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SlaAuditQueryDto, UpdateSlaPoliciesDto } from './dto/sla.dto';
+import { SlaAuditQueryDto, UpdateAutoAssignmentDto, UpdateSlaPoliciesDto } from './dto/sla.dto';
 import { SlaPolicyService } from './sla-policy.service';
 
 @ApiTags('SLA')
@@ -31,6 +31,17 @@ export class SlaPolicyController {
     @Body() dto: UpdateSlaPoliciesDto,
   ) {
     return this.slaPolicy.updateSettings(user, condoId, dto);
+  }
+
+  @Put('condo/:condoId/auto-assignment')
+  @CheckAbility({ action: 'update', subject: 'SlaPolicy' })
+  @ApiOperation({ summary: 'Update assignee pools for auto-assignment (S1/M2)' })
+  updateAutoAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Body() dto: UpdateAutoAssignmentDto,
+  ) {
+    return this.slaPolicy.updateAutoAssignment(user, condoId, dto);
   }
 
   @Get('condo/:condoId/audit')

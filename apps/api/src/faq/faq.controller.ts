@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
+import { DeflectMatchDto } from './dto/deflect.dto';
 import {
   CreateFaqArticleDto,
   CreateFaqCategoryDto,
@@ -63,6 +64,12 @@ export class FaqController {
   @CheckAbility({ action: 'read', subject: 'Faq' })
   markHelpful(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.faq.markHelpful(id);
+  }
+
+  @Post('deflect-match')
+  @CheckAbility({ action: 'read', subject: 'Faq' })
+  deflectMatch(@Body() dto: DeflectMatchDto) {
+    return this.faq.matchForDeflection(dto.condoId, dto.subject, dto.body);
   }
 
   // -- management CRUD ----------------------------------------------

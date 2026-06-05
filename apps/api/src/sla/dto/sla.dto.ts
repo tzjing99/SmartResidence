@@ -1,6 +1,6 @@
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ThreadPriority } from '@prisma/client';
+import { ThreadCategory, ThreadPriority } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
@@ -65,4 +65,33 @@ export class SlaAuditQueryDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   condoId?: string;
+}
+
+export class CategoryPoolDto {
+  @ApiProperty({ enum: ThreadCategory })
+  @IsEnum(ThreadCategory)
+  category!: ThreadCategory;
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  userIds!: string[];
+}
+
+export class UpdateAutoAssignmentDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  generalTriagePool!: string[];
+
+  @ApiProperty({ type: [CategoryPoolDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategoryPoolDto)
+  categoryPools!: CategoryPoolDto[];
+
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  seniorStaffPool!: string[];
 }

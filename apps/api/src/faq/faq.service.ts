@@ -158,4 +158,66 @@ export class FaqService {
       data: { helpfulCount: { increment: 1 } },
     });
   }
+
+  /** Token overlap score for F4 deflection matching. */
+  private tokenize(text: string): Set<string> {
+    return new Set(
+      text
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter((t) => t.length > 2),
+    );
+  }
+
+  private overlapScore(a: Set<string>, b: Set<string>): number {
+    if (a.size === 0 || b.size === 0) return 0;
+    let hit = 0;
+    for (const t of a) if (b.has(t)) hit++;
+    return hit / Math.max(a.size, b.size);
+  }
+
+  /**
+   * F4: strong FAQ match for compose deflection.
+   * Returns top article when question tokens overlap strongly with FAQ question/answer.
+   */
+  async matchForDeflection(condoId: string, subject: string, body: string) {
+    const queryTokens = this.tokenize(`${subject} ${body}`);
+    if (queryTokens.size === 0) return { match: null as null };
+
+    const articles = await this.prisma.faqArticle.findMany({
+      where: { condoId, published: true },
+      include: { category: true },
+      orderBy: [{ pinned: 'desc' }, { helpfulCount: 'desc' }],
+      take: 50,
+    });
+
+    let best: (typeof articles)[number] | null = null;
+    let bestScore = 0;
+    for (const article of articles) {
+      const qTokens = this.tokenize(article.question);
+      const aTokens = this.tokenize(article.answer);
+      const score = Math.max(
+        this.overlapScore(queryTokens, qTokens),
+        this.overlapScore(queryTokens, aTokens) * 0.85,
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        best = article;
+      }
+    }
+
+    const STRONG_THRESHOLD = 0.45;
+    if (!best || bestScore < STRONG_THRESHOLD) return { match: null as null };
+
+    return {
+      match: {
+        articleId: best.id,
+        question: best.question,
+        answer: best.answer,
+        score: Math.round(bestScore * 100) / 100,
+        category: best.category?.name ?? null,
+      },
+    };
+  }
 }

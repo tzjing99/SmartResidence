@@ -2,11 +2,23 @@ import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
+import type { Response } from 'express';
 import {
   AppealThreadDto,
+  CloseAbusiveThreadDto,
   ConfirmResolutionDto,
   CreateThreadDto,
   ListThreadsDto,
@@ -111,5 +123,28 @@ export class ThreadsController {
   @CheckAbility({ action: 'read', subject: 'Thread' })
   markRead(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.threads.markRead(user, id);
+  }
+
+  @Post(':id/close-abusive')
+  @CheckAbility({ action: 'update', subject: 'Thread' })
+  closeAbusive(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CloseAbusiveThreadDto,
+  ) {
+    return this.threads.closeAbusive(user, id, dto);
+  }
+
+  @Get(':id/export.pdf')
+  @CheckAbility({ action: 'read', subject: 'Thread' })
+  async exportPdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.threads.exportPdf(user, id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 }

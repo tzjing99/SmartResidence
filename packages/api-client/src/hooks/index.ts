@@ -66,8 +66,12 @@ export function useMe(api: ApiClient, options?: { enabled?: boolean }) {
   });
 }
 
-export function useMyCondos(api: ApiClient) {
-  return useQuery({ queryKey: queryKeys.myCondos, queryFn: () => api.myCondos() });
+export function useMyCondos(api: ApiClient, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.myCondos,
+    queryFn: () => api.myCondos(),
+    enabled: options?.enabled ?? true,
+  });
 }
 
 export function useMyUnits(api: ApiClient) {

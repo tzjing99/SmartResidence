@@ -65,7 +65,7 @@ export function RealtimeProvider({
 }: RealtimeProviderProps) {
   const qc = useQueryClient();
   const me = useMe(api, { enabled });
-  const condos = useMyCondos(api);
+  const condos = useMyCondos(api, { enabled });
   const [ready, setReady] = React.useState(false);
 
   const userId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;

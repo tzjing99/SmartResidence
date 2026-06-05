@@ -2,7 +2,7 @@ import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { Public } from '@/auth/decorators/public.decorator';
 import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import type { PaginationDto } from '@/common/dto/pagination.dto';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import {
   Body,
@@ -18,7 +18,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction, type InvoiceStatus } from '@prisma/client';
 import { BillingService } from './billing.service';
-import type { CreateInvoiceDto, CreatePaymentDto } from './dto/billing.dto';
+import { CreateInvoiceDto, CreatePaymentDto } from './dto/billing.dto';
 import { StripeAdapter } from './providers/stripe.adapter';
 
 @ApiTags('Billing')

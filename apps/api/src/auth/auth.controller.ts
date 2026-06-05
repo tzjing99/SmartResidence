@@ -20,7 +20,7 @@ import type { Request } from 'express';
 import { AbilityFactory } from './abilities/ability.factory';
 import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
-import type {
+import {
   EnableTotpDto,
   RefreshDto,
   RequestOtpDto,

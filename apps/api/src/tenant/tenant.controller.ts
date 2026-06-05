@@ -1,6 +1,6 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import type { PaginationDto } from '@/common/dto/pagination.dto';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';

@@ -1,13 +1,13 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import type { PaginationDto } from '@/common/dto/pagination.dto';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction, type DefectStatus } from '@prisma/client';
 import { DefectService } from './defect.service';
-import type { AddDefectUpdateDto, CreateDefectDto, TransitionDefectDto } from './dto/defect.dto';
+import { AddDefectUpdateDto, CreateDefectDto, TransitionDefectDto } from './dto/defect.dto';
 
 @ApiTags('Defects')
 @ApiBearerAuth('access')

@@ -1,5 +1,5 @@
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import type { PaginationDto } from '@/common/dto/pagination.dto';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';

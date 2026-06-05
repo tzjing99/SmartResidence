@@ -38,7 +38,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @smartresidence/api prisma generate
+      - run: pnpm --filter @smartresidence/api exec prisma generate
       - run: pnpm typecheck
 
   test:
@@ -75,7 +75,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @smartresidence/api prisma migrate deploy
+      - run: pnpm --filter @smartresidence/api exec prisma generate
+      - run: pnpm --filter @smartresidence/api exec prisma migrate deploy
       - run: pnpm test
 
   build:
@@ -89,7 +90,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @smartresidence/api prisma generate
+      - run: pnpm --filter @smartresidence/api exec prisma generate
       - run: pnpm build
 
   e2e-web:
@@ -114,6 +115,13 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smartresidence_e2e
       REDIS_URL: redis://localhost:6379
       NEXT_PUBLIC_API_URL: http://localhost:4000
+      # Boot-time config required by the API env schema (dummy values; the e2e
+      # flows only exercise Postgres + Redis, not these external services).
+      BETTER_AUTH_SECRET: ci-e2e-better-auth-secret-key-0123456789abcdef
+      BETTER_AUTH_URL: http://localhost:4000
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: ci-e2e
+      S3_SECRET_KEY: ci-e2e-secret
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -122,8 +130,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @smartresidence/api prisma migrate deploy
-      - run: pnpm --filter @smartresidence/api prisma db seed
+      - run: pnpm --filter @smartresidence/api exec prisma generate
+      - run: pnpm --filter @smartresidence/api exec prisma migrate deploy
+      - run: pnpm --filter @smartresidence/api run db:seed
       - run: pnpm --filter @smartresidence/api build
       - name: Start API
         run: |
@@ -134,6 +143,7 @@ jobs:
       - name: Build web
         run: pnpm --filter @smartresidence/web build
       - name: Run e2e
+        # Playwright (CI mode) boots `next start` itself via the webServer config.
         run: pnpm --filter @smartresidence/web test:e2e
         env:
           CI: 'true'

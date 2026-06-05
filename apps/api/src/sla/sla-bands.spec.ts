@@ -15,9 +15,9 @@ describe('sla-bands', () => {
 
   it('classifies recommended band at product defaults', () => {
     for (const priority of Object.values(ThreadPriority)) {
-      expect(
-        classifyResolutionMins(priority, RECOMMENDED_RESOLUTION_MINS[priority], 50),
-      ).toBe('recommended');
+      expect(classifyResolutionMins(priority, RECOMMENDED_RESOLUTION_MINS[priority], 50)).toBe(
+        'recommended',
+      );
     }
   });
 

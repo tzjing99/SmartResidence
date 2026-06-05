@@ -3,7 +3,7 @@ import type { NotificationService } from '@/notification/notification.service';
 import type { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
-import { RoleId, ThreadMessageKind, ThreadStatus } from '@prisma/client';
+import { RoleId, ThreadStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AiAssistProvider } from './ai/ai-assist.provider';
 import { SlaService } from './sla/sla.service';

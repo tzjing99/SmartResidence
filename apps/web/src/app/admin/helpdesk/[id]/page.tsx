@@ -120,7 +120,9 @@ export default function AdminThreadPage() {
   const pending = t.status === 'PENDING_RESIDENT_CONFIRMATION';
   const finished = t.status === 'RESOLVED' || t.status === 'CLOSED';
   const awaitingResident = t.status === 'AWAITING_RESIDENT';
-  const mgmtMessages = t.messages.filter((m) => m.kind === 'MESSAGE' && m.author?.id !== t.createdBy?.id);
+  const mgmtMessages = t.messages.filter(
+    (m) => m.kind === 'MESSAGE' && m.author?.id !== t.createdBy?.id,
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -166,7 +168,10 @@ export default function AdminThreadPage() {
               <ul className="mt-2 flex flex-col gap-1">
                 {duplicateSuggestions.map((d) => (
                   <li key={d.id}>
-                    <Link href={`/admin/helpdesk/${d.id}`} className="text-coral-600 hover:underline">
+                    <Link
+                      href={`/admin/helpdesk/${d.id}`}
+                      className="text-coral-600 hover:underline"
+                    >
                       {d.subject}
                     </Link>
                   </li>
@@ -237,7 +242,9 @@ export default function AdminThreadPage() {
                         className="text-[11px] text-sky-600 hover:underline"
                         onClick={() => setSelectedSolutionId(m.id)}
                       >
-                        {selectedSolutionId === m.id || isProposed ? 'Selected' : 'Mark as solution'}
+                        {selectedSolutionId === m.id || isProposed
+                          ? 'Selected'
+                          : 'Mark as solution'}
                       </button>
                     ) : null}
                   </div>

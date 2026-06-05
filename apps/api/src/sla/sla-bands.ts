@@ -25,10 +25,7 @@ export function acceptableMultiplier(unitCount: number): number {
   return 1 + 0.5 * (factor - 1);
 }
 
-export function bandThresholds(
-  priority: ThreadPriority,
-  unitCount: number,
-): SlaBandThresholds {
+export function bandThresholds(priority: ThreadPriority, unitCount: number): SlaBandThresholds {
   const recommendedMaxMins = RECOMMENDED_RESOLUTION_MINS[priority];
   const acceptableMaxMins = Math.round(recommendedMaxMins * acceptableMultiplier(unitCount));
   return { recommendedMaxMins, acceptableMaxMins };

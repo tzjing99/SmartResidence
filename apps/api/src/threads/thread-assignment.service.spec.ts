@@ -1,5 +1,5 @@
 import type { PrismaService } from '@/prisma/prisma.service';
-import { ThreadCategory, ThreadStatus } from '@prisma/client';
+import { ThreadCategory } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { ThreadAssignmentService } from './thread-assignment.service';
 

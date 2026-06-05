@@ -19,9 +19,9 @@ import { FaqModule } from './faq/faq.module';
 import { NotificationModule } from './notification/notification.module';
 import { OwnerModule } from './owner/owner.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { SlaModule } from './sla/sla.module';
 import { StorageModule } from './storage/storage.module';
 import { TenantModule } from './tenant/tenant.module';
-import { SlaModule } from './sla/sla.module';
 import { ThreadsModule } from './threads/threads.module';
 import { VisitorModule } from './visitor/visitor.module';
 

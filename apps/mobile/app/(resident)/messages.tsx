@@ -1,6 +1,6 @@
 import { useThreads } from '@smartresidence/api-client';
 import { Card, palette } from '@smartresidence/ui-mobile';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { api } from '../../src/lib/api';
 
@@ -20,7 +20,7 @@ export default function MessagesScreen() {
         <Text style={{ color: palette.mutedLight }}>No conversations yet.</Text>
       ) : (
         items.map((t) => (
-          <Pressable key={t.id} onPress={() => router.push(`/(resident)/messages/${t.id}`)}>
+          <Pressable key={t.id} onPress={() => router.push(`/(resident)/messages/${t.id}` as Href)}>
             <Card>
               <Text style={{ fontWeight: '600' }}>{t.subject}</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>

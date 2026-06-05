@@ -29,8 +29,8 @@ import type {
   RequestResidentDto,
   UpdateThreadDto,
 } from './dto/thread.dto';
-import { ThreadAssignmentService } from './thread-assignment.service';
 import { SlaService } from './sla/sla.service';
+import { ThreadAssignmentService } from './thread-assignment.service';
 
 const MANAGEMENT_ROLES: RoleId[] = [
   RoleId.SUPER_ADMIN,
@@ -505,15 +505,14 @@ export class ThreadsService {
 
     const now = new Date();
     const note = dto.note?.trim();
-    const isUpdate =
-      thread.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION && dto.messageId;
+    const isUpdate = thread.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION && dto.messageId;
     const body = note
       ? `Management proposed this thread as resolved — awaiting resident confirmation: ${note}`
       : isUpdate
         ? 'Management updated the proposed solution.'
         : 'Management proposed this thread as resolved — awaiting resident confirmation.';
 
-    let proposedMessageId: string | null = dto.messageId ?? null;
+    const proposedMessageId: string | null = dto.messageId ?? null;
     if (proposedMessageId) {
       const msg = await this.prisma.threadMessage.findFirst({
         where: { id: proposedMessageId, threadId: id, kind: ThreadMessageKind.MESSAGE },
@@ -614,9 +613,7 @@ export class ThreadsService {
     const rejectReason = dto.rejectReason?.trim();
     const rejectExpectation = dto.rejectExpectation?.trim();
     if (!rejectReason || !rejectExpectation) {
-      throw new BadRequestException(
-        'Please explain why you are rejecting and what you still need',
-      );
+      throw new BadRequestException('Please explain why you are rejecting and what you still need');
     }
 
     const rejectBody = `**Why not resolved:** ${rejectReason}\n\n**What I still need:** ${rejectExpectation}`;

@@ -23,9 +23,10 @@ export interface HelpdeskSettings {
 
 export function parseHelpdeskSettings(raw: unknown): HelpdeskSettings {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const helpdesk = (obj.helpdesk && typeof obj.helpdesk === 'object'
-    ? obj.helpdesk
-    : {}) as Record<string, unknown>;
+  const helpdesk = (obj.helpdesk && typeof obj.helpdesk === 'object' ? obj.helpdesk : {}) as Record<
+    string,
+    unknown
+  >;
   const grace =
     typeof helpdesk.resolutionConfirmationGraceDays === 'number'
       ? helpdesk.resolutionConfirmationGraceDays

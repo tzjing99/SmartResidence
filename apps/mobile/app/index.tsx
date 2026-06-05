@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { api } from '../src/lib/api';
@@ -21,7 +21,7 @@ export default function Bootstrap() {
         const role = (me as { user?: { activeRole?: string } }).user?.activeRole;
         if (role === 'SECURITY_GUARD') router.replace('/(guard)/scan');
         else if (role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') {
-          router.replace('/(management)/helpdesk-settings');
+          router.replace('/(management)/helpdesk-settings' as Href);
         } else router.replace('/(resident)/home');
       } catch {
         router.replace('/sign-in');

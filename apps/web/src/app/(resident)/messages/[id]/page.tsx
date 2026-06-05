@@ -83,6 +83,7 @@ export default function ResidentThreadPage() {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new message count
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [thread.data?.messages?.length]);

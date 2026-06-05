@@ -1,7 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api';
-import { hasAbility, type AbilityRule } from '@/lib/roles';
+import { type AbilityRule, hasAbility } from '@/lib/roles';
 import { prettyLabel } from '@/lib/thread-ui';
 import {
   useMe,
@@ -11,7 +11,7 @@ import {
   useUpdateSlaSettings,
 } from '@smartresidence/api-client';
 import type { SlaBand, SlaPolicyItem, ThreadPriority } from '@smartresidence/api-client';
-import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
 import { AlertTriangle, History, Save, Settings2 } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -58,7 +58,10 @@ function PrioritySlider({
         <Badge tone={BAND_TONE[band]}>{prettyLabel(band)}</Badge>
       </div>
       <div className="relative h-3 rounded-full overflow-hidden bg-[rgb(var(--sr-border))]/40">
-        <div className="absolute inset-y-0 left-0 bg-emerald-400/50" style={{ width: `${recPct}%` }} />
+        <div
+          className="absolute inset-y-0 left-0 bg-emerald-400/50"
+          style={{ width: `${recPct}%` }}
+        />
         <div
           className="absolute inset-y-0 bg-amber-400/50"
           style={{ left: `${recPct}%`, width: `${accPct - recPct}%` }}
@@ -110,7 +113,12 @@ export default function HelpdeskSettingsPage() {
 
   React.useEffect(() => {
     if (!settings.data) return;
-    const map = { ...resolutionMins };
+    const map: Record<ThreadPriority, number> = {
+      URGENT: 240,
+      HIGH: 1440,
+      NORMAL: 4320,
+      LOW: 10080,
+    };
     for (const p of settings.data.policies) {
       map[p.priority] = p.resolutionMins;
     }
@@ -119,9 +127,7 @@ export default function HelpdeskSettingsPage() {
   }, [settings.data]);
 
   const policies = settings.data?.policies ?? [];
-  const hasRisky = policies.some(
-    (p) => bandForMins(p, resolutionMins[p.priority]) === 'risky',
-  );
+  const hasRisky = policies.some((p) => bandForMins(p, resolutionMins[p.priority]) === 'risky');
 
   async function doSave(riskyAcknowledged = false) {
     if (!condo?.id) return;
@@ -223,17 +229,17 @@ export default function HelpdeskSettingsPage() {
           <Skeleton className="h-24" />
         ) : audit.data?.items?.length ? (
           <ul className="flex flex-col gap-2 text-sm">
-            {(audit.data.items as Array<{ id: string; createdAt: string; actor?: { name: string } }>).map(
-              (row) => (
-                <li
-                  key={row.id}
-                  className="flex justify-between gap-2 border-b border-[rgb(var(--sr-border))]/40 pb-2"
-                >
-                  <span>{row.actor?.name ?? 'System'}</span>
-                  <span className="sr-muted text-xs">{new Date(row.createdAt).toLocaleString()}</span>
-                </li>
-              ),
-            )}
+            {(
+              audit.data.items as Array<{ id: string; createdAt: string; actor?: { name: string } }>
+            ).map((row) => (
+              <li
+                key={row.id}
+                className="flex justify-between gap-2 border-b border-[rgb(var(--sr-border))]/40 pb-2"
+              >
+                <span>{row.actor?.name ?? 'System'}</span>
+                <span className="sr-muted text-xs">{new Date(row.createdAt).toLocaleString()}</span>
+              </li>
+            ))}
           </ul>
         ) : (
           <p className="text-sm sr-muted">No SLA changes recorded yet.</p>

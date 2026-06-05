@@ -1,5 +1,5 @@
-import type { AuthenticatedUser } from '@/common/types/request-context';
 import { AnnouncementService } from '@/announcement/announcement.service';
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import { SlaService } from '@/threads/sla/sla.service';
 import {
@@ -25,10 +25,10 @@ import {
 } from './helpdesk-settings';
 import {
   RECOMMENDED_RESOLUTION_MINS,
+  type SlaBand,
   bandThresholds,
   classifyResolutionMins,
   deriveFirstResponseMins,
-  type SlaBand,
 } from './sla-bands';
 
 const ALL_PRIORITIES: ThreadPriority[] = [
@@ -62,11 +62,7 @@ export class SlaPolicyService {
   ) {}
 
   private managementCondoIds(user: AuthenticatedUser): string[] {
-    const roles: RoleId[] = [
-      RoleId.SUPER_ADMIN,
-      RoleId.MANAGEMENT_ADMIN,
-      RoleId.MANAGEMENT_STAFF,
-    ];
+    const roles: RoleId[] = [RoleId.SUPER_ADMIN, RoleId.MANAGEMENT_ADMIN, RoleId.MANAGEMENT_STAFF];
     return Array.from(
       new Set(
         user.roles
@@ -101,10 +97,8 @@ export class SlaPolicyService {
     const policyMap = new Map(policies.map((p) => [p.priority, p]));
     const items = ALL_PRIORITIES.map((priority) => {
       const row = policyMap.get(priority);
-      const resolutionMins =
-        row?.resolutionMins ?? RECOMMENDED_RESOLUTION_MINS[priority];
-      const firstResponseMins =
-        row?.firstResponseMins ?? deriveFirstResponseMins(resolutionMins);
+      const resolutionMins = row?.resolutionMins ?? RECOMMENDED_RESOLUTION_MINS[priority];
+      const firstResponseMins = row?.firstResponseMins ?? deriveFirstResponseMins(resolutionMins);
       const thresholds = bandThresholds(priority, unitCount);
       const band = classifyResolutionMins(priority, resolutionMins, unitCount);
       return {
@@ -148,8 +142,7 @@ export class SlaPolicyService {
       firstResponseMins: number;
     }> = ALL_PRIORITIES.map((priority) => {
       const row = existingMap.get(priority);
-      const resolutionMins =
-        row?.resolutionMins ?? RECOMMENDED_RESOLUTION_MINS[priority];
+      const resolutionMins = row?.resolutionMins ?? RECOMMENDED_RESOLUTION_MINS[priority];
       return {
         priority,
         resolutionMins,
@@ -214,7 +207,7 @@ export class SlaPolicyService {
           metadata: {
             before,
             after,
-            riskyAcknowledged: hasRisky ? true : false,
+            riskyAcknowledged: hasRisky,
             rationale: dto.rationale ?? null,
             graceDays,
           } as Prisma.InputJsonValue,

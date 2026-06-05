@@ -29,7 +29,12 @@ export default function HelpdeskSettingsScreen() {
 
   useEffect(() => {
     if (!settings.data) return;
-    const map = { ...mins };
+    const map: Record<ThreadPriority, string> = {
+      URGENT: '240',
+      HIGH: '1440',
+      NORMAL: '4320',
+      LOW: '10080',
+    };
     for (const p of settings.data.policies) {
       map[p.priority] = String(p.resolutionMins);
     }

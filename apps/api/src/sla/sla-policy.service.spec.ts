@@ -1,5 +1,5 @@
-import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { AnnouncementService } from '@/announcement/announcement.service';
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
 import type { SlaService } from '@/threads/sla/sla.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';

@@ -51,7 +51,9 @@ export class UpdateSlaPoliciesDto {
   @IsBoolean()
   riskyAcknowledged?: boolean;
 
-  @ApiPropertyOptional({ description: 'Optional rationale published with transparency announcement.' })
+  @ApiPropertyOptional({
+    description: 'Optional rationale published with transparency announcement.',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(2000)

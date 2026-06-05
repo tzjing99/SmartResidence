@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import { subject } from '@casl/ability';
 import { RoleId } from '@prisma/client';
 import { describe, expect, it } from 'vitest';
 import { AbilityFactory } from './ability.factory';
@@ -54,5 +55,33 @@ describe('AbilityFactory', () => {
     expect(ability.can('check-in', 'Visitor')).toBe(true);
     expect(ability.can('read', 'Invoice')).toBe(false);
     expect(ability.can('manage', 'Defect')).toBe(false);
+  });
+
+  it('lets management read the visitor log but not approve or reject visitors', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.MANAGEMENT_ADMIN, condoId: 'condo-1', unitId: null, permissions: [] },
+        ],
+        activeRole: RoleId.MANAGEMENT_ADMIN,
+      }),
+    );
+    expect(ability.can('read', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('approve', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
+    expect(ability.can('reject', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
+    expect(ability.can('create', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
+  });
+
+  it('lets a unit owner approve and reject visitors for their own unit', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.UNIT_OWNER, condoId: 'condo-1', unitId: 'unit-1', permissions: [] },
+        ],
+      }),
+    );
+    expect(ability.can('approve', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
+    expect(ability.can('reject', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
+    expect(ability.can('approve', subject('Visitor', { unitId: 'unit-2' }))).toBe(false);
   });
 });

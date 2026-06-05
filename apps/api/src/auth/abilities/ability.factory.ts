@@ -107,7 +107,10 @@ export class AbilityFactory {
         can('manage', 'Unit', { condoId: scope.condoId ?? '' });
         can('manage', 'Ownership');
         can('manage', 'Tenancy');
-        can('manage', 'Visitor', { condoId: scope.condoId ?? '' });
+        // Management is read/audit only on the visitor log: they can view and
+        // export it, but approving/rejecting visitors belongs to residents.
+        can('read', 'Visitor', { condoId: scope.condoId ?? '' });
+        can('export', 'Visitor', { condoId: scope.condoId ?? '' });
         can('manage', 'Invoice', { condoId: scope.condoId ?? '' });
         can('manage', 'Payment');
         can('manage', 'Defect', { condoId: scope.condoId ?? '' });
@@ -125,7 +128,6 @@ export class AbilityFactory {
         can('read', 'Condo', { id: scope.condoId ?? '' });
         can('read', 'Unit', { condoId: scope.condoId ?? '' });
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
-        can('approve', 'Visitor', { condoId: scope.condoId ?? '' });
         can('read', 'Defect', { condoId: scope.condoId ?? '' });
         can('update', 'Defect', { condoId: scope.condoId ?? '' });
         can('read', 'Invoice', { condoId: scope.condoId ?? '' });

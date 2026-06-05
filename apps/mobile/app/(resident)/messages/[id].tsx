@@ -4,8 +4,8 @@ import {
   useMe,
   usePostThreadMessage,
   useThread,
-  useThreadRoom,
 } from '@smartresidence/api-client';
+import { useThreadRoom } from '@smartresidence/api-client/realtime';
 import {
   AlignRow,
   AppText,

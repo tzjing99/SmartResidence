@@ -10,7 +10,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
-    "./hooks": "./src/hooks/index.ts"
+    "./hooks": "./src/hooks/index.ts",
+    "./realtime": "./src/realtime/index.ts"
   },
   "scripts": {
     "lint": "biome check src",

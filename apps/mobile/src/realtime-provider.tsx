@@ -1,4 +1,4 @@
-import { RealtimeProvider } from '@smartresidence/api-client';
+import { RealtimeProvider } from '@smartresidence/api-client/realtime';
 import * as React from 'react';
 import { api } from './lib/api';
 import { getCachedSession } from './lib/session';

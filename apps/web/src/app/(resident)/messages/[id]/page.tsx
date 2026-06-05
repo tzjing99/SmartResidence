@@ -10,8 +10,8 @@ import {
   useMe,
   usePostThreadMessage,
   useThread,
-  useThreadRoom,
 } from '@smartresidence/api-client';
+import { useThreadRoom } from '@smartresidence/api-client/realtime';
 import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
 import {
   ArrowLeft,

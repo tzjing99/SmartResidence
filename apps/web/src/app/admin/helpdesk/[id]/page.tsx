@@ -11,9 +11,9 @@ import {
   useProposeThreadResolution,
   useRequestThreadResident,
   useThread,
-  useThreadRoom,
   useUpdateThread,
 } from '@smartresidence/api-client';
+import { useThreadRoom } from '@smartresidence/api-client/realtime';
 import type { ThreadCategory, ThreadPriority } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
 import {

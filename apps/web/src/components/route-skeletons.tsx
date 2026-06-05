@@ -30,12 +30,13 @@ export function DashboardSkeleton() {
 
 /** Thread / message list rows. */
 export function MessageListSkeleton({ rows = 3 }: { rows?: number }) {
+  const keys = ['m-a', 'm-b', 'm-c', 'm-d', 'm-e', 'm-f'].slice(0, rows);
   return (
     <div className="flex flex-col gap-6">
       <PageHeaderSkeleton action />
       <div className="flex flex-col gap-3">
-        {Array.from({ length: rows }, (_, i) => (
-          <Skeleton key={`row-${i}`} className="h-24 rounded-xl" />
+        {keys.map((key) => (
+          <Skeleton key={key} className="h-24 rounded-xl" />
         ))}
       </div>
     </div>
@@ -105,12 +106,13 @@ export function SettingsSkeleton() {
 
 /** Generic list / table page. */
 export function GenericPageSkeleton({ rows = 4 }: { rows?: number }) {
+  const keys = ['g-a', 'g-b', 'g-c', 'g-d', 'g-e', 'g-f'].slice(0, rows);
   return (
     <div className="flex flex-col gap-6">
       <PageHeaderSkeleton />
       <div className="flex flex-col gap-3">
-        {Array.from({ length: rows }, (_, i) => (
-          <Skeleton key={`g-${i}`} className="h-24 rounded-xl" />
+        {keys.map((key) => (
+          <Skeleton key={key} className="h-24 rounded-xl" />
         ))}
       </div>
     </div>
@@ -119,10 +121,11 @@ export function GenericPageSkeleton({ rows = 4 }: { rows?: number }) {
 
 /** Sidebar nav placeholders while auth resolves. */
 export function ShellNavSkeleton({ count = 6 }: { count?: number }) {
+  const keys = ['n-a', 'n-b', 'n-c', 'n-d', 'n-e', 'n-f', 'n-g', 'n-h'].slice(0, count);
   return (
     <div className="flex flex-col gap-1">
-      {Array.from({ length: count }, (_, i) => (
-        <Skeleton key={`nav-${i}`} className="h-10 rounded-xl" />
+      {keys.map((key) => (
+        <Skeleton key={key} className="h-10 rounded-xl" />
       ))}
     </div>
   );

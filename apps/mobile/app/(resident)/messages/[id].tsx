@@ -212,10 +212,7 @@ export default function MessageDetailScreen() {
                 const text = body.trim();
                 if (!text) return;
                 setBody('');
-                post.mutate(
-                  { id: threadId, body: text },
-                  { onError: () => setBody(text) },
-                );
+                post.mutate({ id: threadId, body: text }, { onError: () => setBody(text) });
               }}
             />
           </View>

@@ -1,7 +1,7 @@
 'use client';
 
-import { api } from '@/lib/api';
 import { DashboardSkeleton } from '@/components/route-skeletons';
+import { api } from '@/lib/api';
 import {
   useCondoAnnouncements,
   useMyCondos,

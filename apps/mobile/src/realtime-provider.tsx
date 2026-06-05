@@ -1,7 +1,7 @@
-import { api } from './lib/api';
-import { getCachedSession } from './lib/session';
 import { RealtimeProvider } from '@smartresidence/api-client';
 import * as React from 'react';
+import { api } from './lib/api';
+import { getCachedSession } from './lib/session';
 
 const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 

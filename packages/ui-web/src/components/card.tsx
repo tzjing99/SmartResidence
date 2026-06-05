@@ -3,7 +3,7 @@
 import { type HTMLMotionProps, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { cn } from '../lib/cn';
-import { iosSpring, tapScale } from '../motion';
+import { iosSpring, tapScale, tapTransition } from '../motion';
 
 export const Card = React.forwardRef<HTMLDivElement, HTMLMotionProps<'div'>>(
   ({ className, ...props }, ref) => {
@@ -13,7 +13,10 @@ export const Card = React.forwardRef<HTMLDivElement, HTMLMotionProps<'div'>>(
         ref={ref}
         whileHover={reduceMotion ? undefined : { y: -2 }}
         whileTap={reduceMotion ? undefined : { scale: tapScale }}
-        transition={iosSpring.gentle}
+        transition={{
+          scale: tapTransition,
+          y: reduceMotion ? tapTransition : iosSpring.snappy,
+        }}
         className={cn('sr-card p-6', className)}
         {...props}
       />

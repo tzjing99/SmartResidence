@@ -2,7 +2,7 @@
 
 import { resolveActiveHref } from '@/lib/nav';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
-import { cn, iosSpring, tapScale } from '@smartresidence/ui-web';
+import { cn, tapScale, tapTransition } from '@smartresidence/ui-web';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { Settings2 } from 'lucide-react';
 import Link from 'next/link';
@@ -29,6 +29,11 @@ export function SettingsSubNav({
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const groupId = React.useId();
+  const [pendingHref, setPendingHref] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   const visibleItems = React.useMemo(
     () =>
@@ -56,14 +61,16 @@ export function SettingsSubNav({
       <nav aria-label="Settings sections" className="flex flex-wrap gap-1.5">
         <LayoutGroup id={groupId}>
           {visibleItems.map((item) => {
-            const active = item.href === activeHref;
+            const active = item.href === activeHref || item.href === pendingHref;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={active ? 'page' : undefined}
+                aria-current={item.href === activeHref ? 'page' : undefined}
+                onPointerDown={() => setPendingHref(item.href)}
                 className={cn(
-                  'relative inline-flex items-center px-4 h-9 text-sm font-medium leading-none transition-all duration-200 outline-none rounded-full',
+                  'relative inline-flex items-center px-4 h-9 text-sm font-medium leading-none touch-manipulation',
+                  'transition-[color,background-color,transform] duration-100 outline-none rounded-full active:scale-[0.98]',
                   'focus-visible:ring-2 focus-visible:ring-coral-500/50',
                   active
                     ? 'text-coral-600 dark:text-coral-400'
@@ -85,7 +92,7 @@ export function SettingsSubNav({
                 <motion.span
                   className="relative z-10"
                   whileTap={reduceMotion ? undefined : { scale: tapScale }}
-                  transition={iosSpring.snappy}
+                  transition={tapTransition}
                 >
                   {item.label}
                 </motion.span>

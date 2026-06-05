@@ -27,6 +27,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
   const groupId = React.useId();
+  const [pendingHref, setPendingHref] = React.useState<string | null>(null);
   const activeHref = React.useMemo(
     () =>
       resolveActiveHref(
@@ -36,19 +37,25 @@ export function NavLinks({ items }: { items: NavItem[] }) {
     [pathname, items],
   );
 
+  React.useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
   return (
     <nav className="flex-1 flex flex-col gap-1">
       <LayoutGroup id={groupId}>
         {items.map((item) => {
-          const active = item.href === activeHref;
+          const active = item.href === activeHref || item.href === pendingHref;
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
-              aria-current={active ? 'page' : undefined}
+              aria-current={item.href === activeHref ? 'page' : undefined}
+              onPointerDown={() => setPendingHref(item.href)}
               className={cn(
-                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 outline-none',
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium touch-manipulation',
+                'transition-[color,background-color,transform] duration-100 outline-none active:scale-[0.98]',
                 'focus-visible:ring-2 focus-visible:ring-coral-500/50',
                 active ? 'text-coral-500' : 'text-[inherit] hover:bg-[rgb(var(--sr-border))]/40',
               )}
@@ -88,9 +95,9 @@ export function PageFade({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
       key={pathname}
-      initial={{ opacity: 0, x: 10, y: 2 }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 32, mass: 0.9 }}
+      initial={{ opacity: 0.85, x: 4 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ type: 'tween', duration: 0.12, ease: 'easeOut' }}
     >
       {children}
     </motion.div>

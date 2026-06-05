@@ -125,7 +125,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={signOut}
-          className="flex items-center gap-2 px-3 py-2 mt-4 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
+          className="flex items-center gap-2 px-3 py-2 mt-4 rounded-xl touch-manipulation transition-[background-color,transform] duration-100 active:scale-[0.98] hover:bg-[rgb(var(--sr-border))]/40 text-sm"
         >
           <LogOut className="size-4" />
           Sign out

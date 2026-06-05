@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={signOut}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl touch-manipulation transition-[background-color,transform] duration-100 active:scale-[0.98] hover:bg-[rgb(var(--sr-border))]/40 text-sm"
           >
             <LogOut className="size-4" />
             Sign out
@@ -149,7 +149,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )?.label ?? 'SmartResidence'}
           </h1>
           <div className="flex items-center gap-2">
-            <button type="button" className="p-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40">
+            <button
+              type="button"
+              className="p-2 rounded-xl touch-manipulation transition-[background-color,transform] duration-100 active:scale-[0.98] hover:bg-[rgb(var(--sr-border))]/40"
+            >
               <Bell className="size-5" />
             </button>
           </div>

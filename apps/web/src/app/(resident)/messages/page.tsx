@@ -3,7 +3,15 @@
 import { api } from '@/lib/api';
 import { PRIORITY_TONE, STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
 import { useThreads } from '@smartresidence/api-client';
-import { Badge, Button, Card, EmptyState, Skeleton, iosSpring, listStaggerDelay } from '@smartresidence/ui-web';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Skeleton,
+  iosSpring,
+  listStaggerDelay,
+} from '@smartresidence/ui-web';
 import { motion, useReducedMotion } from 'framer-motion';
 import { MessageSquarePlus } from 'lucide-react';
 import Link from 'next/link';
@@ -59,7 +67,7 @@ export default function MessagesPage() {
               }
             >
               <Link href={`/messages/${t.id}`}>
-                <Card className="transition-all duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25">
+                <Card className="transition-[box-shadow,border-color] duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25">
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="font-medium truncate leading-tight">{t.subject}</div>

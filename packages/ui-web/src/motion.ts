@@ -7,7 +7,14 @@ export const iosSpring = {
   gentle: { type: 'spring', stiffness: 320, damping: 28, mass: 1 } satisfies Transition,
 };
 
-export const tapScale = 0.97;
+export const tapScale = 0.98;
+
+/** Instant press feedback — tween beats spring for sub-100ms perceived response. */
+export const tapTransition = {
+  type: 'tween',
+  duration: 0.06,
+  ease: 'easeOut',
+} satisfies Transition;
 
 /** Stagger delay for list items (cap so long lists stay snappy). */
 export function listStaggerDelay(index: number, cap = 6): number {

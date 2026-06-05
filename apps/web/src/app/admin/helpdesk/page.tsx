@@ -214,7 +214,7 @@ export default function HelpdeskPage() {
                     <Link href={`/admin/helpdesk/${t.id}`}>
                       <Card
                         className={cn(
-                          'transition-all duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25',
+                          'transition-[box-shadow,border-color] duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25',
                           needsAttention &&
                             'border-l-[3px] border-l-coral-500/70 bg-coral-50/20 dark:bg-coral-950/10',
                         )}

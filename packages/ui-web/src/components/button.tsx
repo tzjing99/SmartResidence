@@ -5,10 +5,10 @@ import { type VariantProps, cva } from 'class-variance-authority';
 import { motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { cn } from '../lib/cn';
-import { iosSpring, tapScale } from '../motion';
+import { tapScale, tapTransition } from '../motion';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium leading-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[rgb(var(--sr-coral))] disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium leading-none touch-manipulation transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[rgb(var(--sr-coral))] disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -56,7 +56,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         whileTap={reduceMotion ? undefined : { scale: tapScale }}
-        transition={iosSpring.snappy}
+        transition={tapTransition}
         className={cn(buttonVariants({ variant, size }), className)}
         {...rest}
       />

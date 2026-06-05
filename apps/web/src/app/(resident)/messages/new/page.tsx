@@ -1,10 +1,18 @@
 'use client';
 
+import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { CATEGORIES } from '@/lib/thread-ui';
-import { useCreateThread, useMyUnits } from '@smartresidence/api-client';
+import {
+  useCreateThread,
+  useFaqDeflectMatch,
+  useMarkFaqHelpful,
+  useMyCondos,
+  useMyUnits,
+} from '@smartresidence/api-client';
 import type { ThreadCategory } from '@smartresidence/api-client';
-import { Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
+import { CheckCircle2, Lightbulb } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -12,12 +20,46 @@ import { toast } from 'sonner';
 export default function NewMessagePage() {
   const router = useRouter();
   const units = useMyUnits(api);
+  const condos = useMyCondos(api);
+  const condo = condos.data?.[0];
   const unit = units.data?.[0] as { id: string } | undefined;
   const create = useCreateThread(api);
+  const deflect = useFaqDeflectMatch(api);
+  const helpful = useMarkFaqHelpful(api);
 
   const [subject, setSubject] = React.useState('');
   const [category, setCategory] = React.useState<ThreadCategory>('GENERAL');
   const [body, setBody] = React.useState('');
+  const [deflection, setDeflection] = React.useState<{
+    articleId: string;
+    question: string;
+    answer: string;
+  } | null>(null);
+  const [dismissedDeflection, setDismissedDeflection] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!condo?.id || subject.trim().length < 5 || body.trim().length < 10) {
+      setDeflection(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      deflect
+        .mutateAsync({ condoId: condo.id, subject: subject.trim(), body: body.trim() })
+        .then((res) => {
+          if (res.match && !dismissedDeflection) {
+            setDeflection({
+              articleId: res.match.articleId,
+              question: res.match.question,
+              answer: res.match.answer,
+            });
+          } else if (!res.match) {
+            setDeflection(null);
+          }
+        })
+        .catch(() => setDeflection(null));
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [condo?.id, subject, body, dismissedDeflection, deflect]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,12 +81,58 @@ export default function NewMessagePage() {
     }
   }
 
+  async function onAnswered() {
+    if (!deflection) return;
+    try {
+      await helpful.mutateAsync(deflection.articleId);
+      toast.success('Glad we could help — no thread opened');
+      router.push('/messages');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
   return (
     <div className="max-w-xl">
       <h2 className="sr-section-title mb-1">New message</h2>
       <p className="sr-muted mb-6">
         Pick a category so we route it to the right team and apply the correct SLA.
       </p>
+
+      {deflection && !dismissedDeflection ? (
+        <Card className="mb-4 border-emerald-500/40 bg-emerald-500/5">
+          <div className="flex items-start gap-2 mb-2">
+            <Lightbulb className="size-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-medium text-sm">This FAQ might answer your question</div>
+              <Badge tone="success" className="mt-1">
+                Strong match
+              </Badge>
+            </div>
+          </div>
+          <div className="font-medium text-sm mt-3">{deflection.question}</div>
+          <div className="text-sm sr-muted mt-2 prose-sm max-w-none">
+            <Markdown>{deflection.answer}</Markdown>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button type="button" onClick={onAnswered} disabled={helpful.isPending}>
+              <CheckCircle2 className="size-4" />
+              This answered my question
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setDismissedDeflection(true);
+                setDeflection(null);
+              }}
+            >
+              Still need help — send message
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
       <Card>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <div className="flex flex-col gap-1.5">
@@ -52,7 +140,10 @@ export default function NewMessagePage() {
             <Input
               id="subject"
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => {
+                setSubject(e.target.value);
+                setDismissedDeflection(false);
+              }}
               placeholder="e.g. Water leak in the kitchen ceiling"
             />
           </div>
@@ -77,7 +168,10 @@ export default function NewMessagePage() {
               id="body"
               rows={6}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                setDismissedDeflection(false);
+              }}
               placeholder="Describe your question or issue…"
             />
           </div>

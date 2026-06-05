@@ -4,6 +4,7 @@ import { SlaChip } from '@/components/sla-chip';
 import { api } from '@/lib/api';
 import { PRIORITY_TONE, STATUS_TONE, formatTimeLeft, prettyLabel } from '@/lib/thread-ui';
 import {
+  useCloseAbusiveThread,
   useMe,
   usePostThreadMessage,
   useProposeThreadResolution,
@@ -16,8 +17,10 @@ import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-
 import {
   AlertTriangle,
   ArrowLeft,
+  Ban,
   CheckCircle2,
   Copy,
+  Download,
   RotateCcw,
   Send,
   UserCheck,
@@ -52,10 +55,11 @@ export default function AdminThreadPage() {
   const update = useUpdateThread(api);
   const propose = useProposeThreadResolution(api);
   const requestResident = useRequestThreadResident(api);
+  const closeAbusive = useCloseAbusiveThread(api);
 
   const [body, setBody] = React.useState('');
   const [internal, setInternal] = React.useState(false);
-  const [composer, setComposer] = React.useState<null | 'propose' | 'request'>(null);
+  const [composer, setComposer] = React.useState<null | 'propose' | 'request' | 'abusive'>(null);
   const [actionNote, setActionNote] = React.useState('');
   const [selectedSolutionId, setSelectedSolutionId] = React.useState<string | null>(null);
 
@@ -108,6 +112,35 @@ export default function AdminThreadPage() {
     try {
       await update.mutateAsync({ id, status: 'REOPENED' });
       toast.success('Reopened');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function runCloseAbusive() {
+    if (actionNote.trim().length < 10) {
+      toast.error('Please provide a reason (at least 10 characters)');
+      return;
+    }
+    try {
+      await closeAbusive.mutateAsync({ id, reason: actionNote.trim() });
+      toast.success('Thread closed — resident notified');
+      setComposer(null);
+      setActionNote('');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function exportPdf() {
+    try {
+      const blob = await api.exportThreadPdf(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `thread-${id.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -459,6 +492,55 @@ export default function AdminThreadPage() {
                 </Link>
                 .
               </p>
+            </div>
+
+            {!finished ? (
+              <div className="border-t border-[rgb(var(--sr-border))] pt-3 flex flex-col gap-2">
+                <span className="text-sm font-medium text-rose-600">Abusive thread (D7)</span>
+                {composer === 'abusive' ? (
+                  <div className="flex flex-col gap-2">
+                    <Textarea
+                      rows={3}
+                      value={actionNote}
+                      onChange={(e) => setActionNote(e.target.value)}
+                      placeholder="Reason shown to the resident…"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={runCloseAbusive}
+                        disabled={closeAbusive.isPending}
+                      >
+                        <Ban className="size-4" />
+                        Close thread
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setComposer(null);
+                          setActionNote('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setComposer('abusive')}>
+                    <Ban className="size-4" />
+                    Flag &amp; close abusive thread
+                  </Button>
+                )}
+              </div>
+            ) : null}
+
+            <div className="border-t border-[rgb(var(--sr-border))] pt-3">
+              <Button size="sm" variant="secondary" onClick={exportPdf}>
+                <Download className="size-4" />
+                Export PDF
+              </Button>
             </div>
 
             <div className="border-t border-[rgb(var(--sr-border))] pt-3 text-xs sr-muted flex flex-col gap-1">

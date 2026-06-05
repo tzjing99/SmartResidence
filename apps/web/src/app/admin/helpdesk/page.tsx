@@ -2,14 +2,10 @@
 
 import { SlaChip } from '@/components/sla-chip';
 import { api } from '@/lib/api';
-import { CATEGORIES, PRIORITY_TONE, STATUS_TONE, prettyLabel, slaDueAt } from '@/lib/thread-ui';
+import { sortInboxThreads } from '@/lib/inbox-sort';
+import { CATEGORIES, PRIORITY_TONE, STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
 import { useThreads } from '@smartresidence/api-client';
-import type {
-  SlaState,
-  ThreadCategory,
-  ThreadPriority,
-  ThreadStatus,
-} from '@smartresidence/api-client';
+import type { ThreadCategory, ThreadPriority, ThreadStatus } from '@smartresidence/api-client';
 import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Inbox } from 'lucide-react';
@@ -42,8 +38,6 @@ const SLA_OPTIONS = [
   { value: 'ON_TRACK', label: 'On track' },
 ] as const;
 
-const SLA_RANK: Record<SlaState, number> = { BREACHED: 3, AT_RISK: 2, ON_TRACK: 1, NONE: 0 };
-
 const selectCls =
   'h-10 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sr-coral))]';
 
@@ -53,7 +47,6 @@ export default function HelpdeskPage() {
   const [category, setCategory] = React.useState('');
   const [assignee, setAssignee] = React.useState('');
   const [slaState, setSlaState] = React.useState<'' | 'BREACHED' | 'AT_RISK' | 'ON_TRACK'>('');
-  const [sortBySla, setSortBySla] = React.useState(false);
 
   const threads = useThreads(api, {
     status: status || undefined,
@@ -79,18 +72,8 @@ export default function HelpdeskPage() {
     if (slaState) list = list.filter((t) => t.slaState === slaState);
     if (assignee === '__unassigned') list = list.filter((t) => !t.assignedTo);
     else if (assignee) list = list.filter((t) => t.assignedTo?.id === assignee);
-    if (sortBySla) {
-      list = list.slice().sort((a, b) => {
-        const rank = SLA_RANK[b.slaState] - SLA_RANK[a.slaState];
-        if (rank !== 0) return rank;
-        const da = slaDueAt(a);
-        const db = slaDueAt(b);
-        if (da && db) return new Date(da).getTime() - new Date(db).getTime();
-        return da ? -1 : db ? 1 : 0;
-      });
-    }
-    return list;
-  }, [items, slaState, assignee, sortBySla]);
+    return sortInboxThreads(list);
+  }, [items, slaState, assignee]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -163,14 +146,7 @@ export default function HelpdeskPage() {
             </option>
           ))}
         </select>
-        <label className="ml-auto flex items-center gap-2 text-sm sr-muted">
-          <input
-            type="checkbox"
-            checked={sortBySla}
-            onChange={(e) => setSortBySla(e.target.checked)}
-          />
-          Sort by SLA due
-        </label>
+        <p className="ml-auto text-xs sr-muted">Sorted: breach → at risk → priority → oldest</p>
       </div>
 
       {threads.isLoading ? (

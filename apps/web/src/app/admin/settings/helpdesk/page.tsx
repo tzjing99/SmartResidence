@@ -2,21 +2,28 @@
 
 import { api } from '@/lib/api';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
-import { prettyLabel } from '@/lib/thread-ui';
+import { CATEGORIES, prettyLabel } from '@/lib/thread-ui';
 import {
   useMe,
   useMyCondos,
   useSlaAudit,
   useSlaSettings,
+  useUpdateAutoAssignment,
   useUpdateSlaSettings,
 } from '@smartresidence/api-client';
-import type { SlaBand, SlaPolicyItem, ThreadPriority } from '@smartresidence/api-client';
+import type {
+  SlaBand,
+  SlaPolicyItem,
+  ThreadCategory,
+  ThreadPriority,
+} from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
-import { AlertTriangle, History, Save, Settings2 } from 'lucide-react';
+import { AlertTriangle, History, Save, Settings2, Users } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 const PRIORITIES: ThreadPriority[] = ['URGENT', 'HIGH', 'NORMAL', 'LOW'];
+const POOL_CATEGORIES: ThreadCategory[] = CATEGORIES.map((c) => c.value as ThreadCategory);
 const BAND_TONE: Record<SlaBand, 'success' | 'warning' | 'danger'> = {
   recommended: 'success',
   acceptable: 'warning',
@@ -96,6 +103,7 @@ export default function HelpdeskSettingsPage() {
   const settings = useSlaSettings(api, condo?.id ?? null);
   const audit = useSlaAudit(api, condo?.id ?? null);
   const save = useUpdateSlaSettings(api);
+  const savePools = useUpdateAutoAssignment(api);
 
   const abilities = ((me.data as { abilities?: AbilityRule[] } | undefined)?.abilities ??
     []) as AbilityRule[];
@@ -110,6 +118,18 @@ export default function HelpdeskSettingsPage() {
   const [graceDays, setGraceDays] = React.useState(7);
   const [showRiskyModal, setShowRiskyModal] = React.useState(false);
   const [rationale, setRationale] = React.useState('');
+  const [generalPool, setGeneralPool] = React.useState<string[]>([]);
+  const [seniorPool, setSeniorPool] = React.useState<string[]>([]);
+  const [categoryPools, setCategoryPools] = React.useState<Record<ThreadCategory, string[]>>({
+    BILLING: [],
+    MAINTENANCE: [],
+    FACILITY: [],
+    SECURITY: [],
+    COMPLAINT: [],
+    SUGGESTION: [],
+    GOVERNANCE: [],
+    GENERAL: [],
+  });
 
   React.useEffect(() => {
     if (!settings.data) return;
@@ -124,7 +144,82 @@ export default function HelpdeskSettingsPage() {
     }
     setResolutionMins(map);
     setGraceDays(settings.data.resolutionConfirmationGraceDays);
+    const aa = settings.data.autoAssignment;
+    if (aa) {
+      setGeneralPool(aa.generalTriagePool ?? []);
+      setSeniorPool(aa.seniorStaffPool ?? []);
+      const catMap: Record<ThreadCategory, string[]> = {
+        BILLING: [],
+        MAINTENANCE: [],
+        FACILITY: [],
+        SECURITY: [],
+        COMPLAINT: [],
+        SUGGESTION: [],
+        GOVERNANCE: [],
+        GENERAL: [],
+      };
+      for (const p of aa.categoryPools ?? []) {
+        catMap[p.category] = p.userIds ?? [];
+      }
+      setCategoryPools(catMap);
+    }
   }, [settings.data]);
+
+  const staff = settings.data?.managementStaff ?? [];
+
+  function togglePoolUser(pool: string[], setPool: (v: string[]) => void, userId: string) {
+    setPool(pool.includes(userId) ? pool.filter((id) => id !== userId) : [...pool, userId]);
+  }
+
+  async function savePoolSettings() {
+    if (!condo?.id) return;
+    try {
+      await savePools.mutateAsync({
+        condoId: condo.id,
+        generalTriagePool: generalPool,
+        seniorStaffPool: seniorPool,
+        categoryPools: POOL_CATEGORIES.map((category) => ({
+          category,
+          userIds: categoryPools[category] ?? [],
+        })).filter((p) => p.userIds.length > 0),
+      });
+      toast.success('Assignee pools saved');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  function PoolPicker({
+    label,
+    pool,
+    setPool,
+  }: {
+    label: string;
+    pool: string[];
+    setPool: (v: string[]) => void;
+  }) {
+    return (
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-medium">{label}</span>
+        <div className="flex flex-wrap gap-2">
+          {staff.map((s) => (
+            <label
+              key={s.id}
+              className="flex items-center gap-1.5 text-sm rounded-lg border border-[rgb(var(--sr-border))] px-2 py-1 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={pool.includes(s.id)}
+                disabled={!canEdit}
+                onChange={() => togglePoolUser(pool, setPool, s.id)}
+              />
+              {s.name}
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const policies = settings.data?.policies ?? [];
   const hasRisky = policies.some((p) => bandForMins(p, resolutionMins[p.priority]) === 'risky');
@@ -218,6 +313,44 @@ export default function HelpdeskSettingsPage() {
           </Button>
         ) : (
           <p className="text-sm sr-muted">Read-only — contact a management admin to edit.</p>
+        )}
+      </Card>
+
+      <Card className="p-5 flex flex-col gap-5">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2">
+            <Users className="size-4" /> Assignee pools
+          </h2>
+          <p className="text-xs sr-muted mt-1">
+            Round-robin auto-assignment per category (M2). GENERAL uses the triage pool; repeat
+            complainants route to senior staff.
+          </p>
+        </div>
+        {staff.length === 0 ? (
+          <p className="text-sm sr-muted">No management staff found for this condo.</p>
+        ) : (
+          <>
+            <PoolPicker label="General / triage pool" pool={generalPool} setPool={setGeneralPool} />
+            <PoolPicker
+              label="Senior staff pool (repeat complainants)"
+              pool={seniorPool}
+              setPool={setSeniorPool}
+            />
+            {POOL_CATEGORIES.filter((c) => c !== 'GENERAL').map((category) => (
+              <PoolPicker
+                key={category}
+                label={prettyLabel(category)}
+                pool={categoryPools[category]}
+                setPool={(ids) => setCategoryPools((prev) => ({ ...prev, [category]: ids }))}
+              />
+            ))}
+            {canEdit ? (
+              <Button onClick={savePoolSettings} disabled={savePools.isPending}>
+                <Save className="size-4" />
+                Save assignee pools
+              </Button>
+            ) : null}
+          </>
         )}
       </Card>
 

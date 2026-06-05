@@ -11,7 +11,7 @@ import {
   useThread,
 } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-web';
-import { ArrowLeft, CheckCircle2, RotateCcw, Send, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, RotateCcw, Send, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as React from 'react';
@@ -99,6 +99,20 @@ export default function ResidentThreadPage() {
     }
   }
 
+  async function exportPdf() {
+    try {
+      const blob = await api.exportThreadPdf(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `thread-${id.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
   if (thread.isLoading) return <Skeleton className="h-96" />;
   const t = thread.data;
   if (!t) return <div className="sr-muted text-sm">Conversation not found.</div>;
@@ -122,6 +136,10 @@ export default function ResidentThreadPage() {
           <div className="text-xs sr-muted mt-1">{prettyLabel(t.category)}</div>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
+          <Button size="sm" variant="secondary" onClick={exportPdf}>
+            <Download className="size-4" />
+            Export PDF
+          </Button>
           <Badge tone={PRIORITY_TONE[t.priority]}>{prettyLabel(t.priority)}</Badge>
           <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
           <SlaChip

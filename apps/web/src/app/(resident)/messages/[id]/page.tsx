@@ -2,7 +2,7 @@
 
 import { SlaChip } from '@/components/sla-chip';
 import { api } from '@/lib/api';
-import { PRIORITY_TONE, STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
+import { STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
 import {
   useAppealThread,
   useConfirmThreadResolution,
@@ -11,7 +11,15 @@ import {
   useThread,
 } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-web';
-import { ArrowLeft, CheckCircle2, Download, RotateCcw, Send, XCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  MoreHorizontal,
+  RotateCcw,
+  Send,
+  XCircle,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as React from 'react';
@@ -32,7 +40,20 @@ export default function ResidentThreadPage() {
   const [rejectExpectation, setRejectExpectation] = React.useState('');
   const [appealMode, setAppealMode] = React.useState(false);
   const [appealReason, setAppealReason] = React.useState('');
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const moreRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!moreOpen) return;
+    function onPointerDown(e: MouseEvent) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [moreOpen]);
 
   async function respondResolution(confirmed: boolean) {
     if (!confirmed) {
@@ -130,23 +151,48 @@ export default function ResidentThreadPage() {
         <ArrowLeft className="size-4" /> All messages
       </Link>
 
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">{t.subject}</h2>
-          <div className="text-xs sr-muted mt-1">{prettyLabel(t.category)}</div>
+      <header className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-xl font-semibold tracking-tight leading-snug">{t.subject}</h2>
+          <div ref={moreRef} className="relative shrink-0">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setMoreOpen((open) => !open)}
+              aria-expanded={moreOpen}
+              aria-haspopup="menu"
+            >
+              <MoreHorizontal className="size-4" />
+            </Button>
+            {moreOpen ? (
+              <div
+                role="menu"
+                className="absolute right-0 top-full z-10 mt-1 min-w-[10rem] rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] py-1 shadow-lg"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-[rgb(var(--sr-border))]/40 text-left"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    exportPdf();
+                  }}
+                >
+                  <Download className="size-4 shrink-0" />
+                  Download PDF
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" variant="secondary" onClick={exportPdf}>
-            <Download className="size-4" />
-            Export PDF
-          </Button>
-          <Badge tone={PRIORITY_TONE[t.priority]}>{prettyLabel(t.priority)}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
           <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
           <SlaChip
             slaState={t.slaState}
             firstResponseDueAt={t.firstResponseDueAt}
             resolutionDueAt={t.resolutionDueAt}
           />
+          <span className="text-xs sr-muted">{prettyLabel(t.category)}</span>
         </div>
       </header>
 

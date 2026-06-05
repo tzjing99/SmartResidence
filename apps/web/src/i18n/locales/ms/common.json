@@ -82,7 +82,21 @@
     "pendingConfirmationResident": "Pengurusan kata isu ini sudah selesai. Adakah itu betul?",
     "proposePlaceholder": "Nota pilihan untuk penduduk…",
     "requestPlaceholder": "Apa yang anda perlukan daripada penduduk?",
-    "noAssignee": "Belum ditugaskan"
+    "noAssignee": "Belum ditugaskan",
+    "resident": {
+      "suggestedFix": "Pembaikan dicadangkan",
+      "yesFixed": "Ya, sudah selesai",
+      "stillAnIssue": "Tidak, masih bermasalah",
+      "reopenTicket": "Buka semula tiket ini",
+      "whatStillBroken": "Apa yang masih belum selesai?",
+      "appealPlaceholder": "Apa yang masih salah atau kurang? Ceritakan dalam beberapa perkataan…",
+      "rejectHeading": "Beritahu kami apa yang masih salah",
+      "rejectReasonPlaceholder": "Apa yang masih tidak berfungsi?",
+      "rejectExpectationPlaceholder": "Bagaimana rupa 'selesai' bagi anda?",
+      "toastConfirmed": "Terima kasih — kami akan tutup tiket ini.",
+      "toastReopened": "Tiket dibuka semula — pengurusan akan semak lagi",
+      "toastRejectValidation": "Sila beritahu apa yang masih salah dan apa yang anda perlukan"
+    }
   },
   "faq": {
     "title": "Bantuan & Soalan Lazim",

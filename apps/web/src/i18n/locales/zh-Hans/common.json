@@ -82,7 +82,21 @@
     "pendingConfirmationResident": "管理处认为问题已解决。是否符合您的情况？",
     "proposePlaceholder": "给居民的备注（可选）…",
     "requestPlaceholder": "您需要居民提供什么？",
-    "noAssignee": "尚未分配"
+    "noAssignee": "尚未分配",
+    "resident": {
+      "suggestedFix": "建议的修复方案",
+      "yesFixed": "是的，已解决",
+      "stillAnIssue": "不，仍有问题",
+      "reopenTicket": "重新打开此工单",
+      "whatStillBroken": "还有什么没解决？",
+      "appealPlaceholder": "还有什么问题或遗漏？请用几句话说明…",
+      "rejectHeading": "请告诉我们哪里还没解决",
+      "rejectReasonPlaceholder": "什么仍然不奏效？",
+      "rejectExpectationPlaceholder": "对您来说，「已解决」应该是什么样子？",
+      "toastConfirmed": "谢谢 — 我们将关闭此工单。",
+      "toastReopened": "工单已重新打开 — 管理处会再次跟进",
+      "toastRejectValidation": "请说明哪里仍有问题以及您还需要什么"
+    }
   },
   "faq": {
     "title": "帮助与常见问题",

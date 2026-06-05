@@ -41,7 +41,7 @@ export default function ResidentThreadPage() {
     }
     try {
       await confirm.mutateAsync({ id, confirmed: true });
-      toast.success('Marked as resolved — thank you!');
+      toast.success("Thanks — we'll close this out.");
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -49,7 +49,7 @@ export default function ResidentThreadPage() {
 
   async function submitReject() {
     if (!rejectReason.trim() || !rejectExpectation.trim()) {
-      toast.error('Please explain why and what you still need');
+      toast.error("Please tell us what's still wrong and what you need");
       return;
     }
     try {
@@ -75,7 +75,7 @@ export default function ResidentThreadPage() {
     }
     try {
       await appeal.mutateAsync({ id, reason: appealReason.trim() });
-      toast.success('Appeal submitted — thread reopened');
+      toast.success('Ticket reopened — management will take another look');
       setAppealMode(false);
       setAppealReason('');
     } catch (err) {
@@ -155,20 +155,21 @@ export default function ResidentThreadPage() {
           <div className="flex items-start gap-2 text-sm">
             <CheckCircle2 className="size-5 text-sky-600 shrink-0" />
             <div>
-              <div className="font-medium">Management marked this as resolved.</div>
-              <div className="sr-muted">Is your issue sorted? Let them know.</div>
+              <div className="font-medium">
+                Management says this is fixed. Does that match what you see?
+              </div>
             </div>
           </div>
           {proposedMsg ? (
             <div className="rounded-xl bg-white/60 dark:bg-black/20 px-3 py-2 text-sm ring-2 ring-sky-500">
-              <div className="text-[11px] font-semibold text-sky-700 mb-1">Proposed solution</div>
+              <div className="text-[11px] font-semibold text-sky-700 mb-1">Suggested fix</div>
               <div className="whitespace-pre-line">{proposedMsg.body}</div>
             </div>
           ) : null}
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => respondResolution(true)} disabled={confirm.isPending}>
               <CheckCircle2 className="size-4" />
-              Confirm resolved
+              Yes, it&apos;s fixed
             </Button>
             <Button
               size="sm"
@@ -177,7 +178,7 @@ export default function ResidentThreadPage() {
               disabled={confirm.isPending}
             >
               <XCircle className="size-4" />
-              Not resolved
+              No, still an issue
             </Button>
           </div>
         </div>
@@ -185,18 +186,18 @@ export default function ResidentThreadPage() {
 
       {rejectMode ? (
         <Card className="p-4 flex flex-col gap-3">
-          <div className="font-medium text-sm">Why isn&apos;t this resolved?</div>
+          <div className="font-medium text-sm">Tell us what&apos;s still wrong</div>
           <Textarea
             rows={2}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Why are you rejecting this solution?"
+            placeholder="What's still not working?"
           />
           <Textarea
             rows={2}
             value={rejectExpectation}
             onChange={(e) => setRejectExpectation(e.target.value)}
-            placeholder="What do you still need from management?"
+            placeholder="What would 'fixed' look like for you?"
           />
           <div className="flex gap-2">
             <Button size="sm" onClick={submitReject} disabled={confirm.isPending}>
@@ -216,23 +217,23 @@ export default function ResidentThreadPage() {
           </span>
           <Button size="sm" variant="secondary" onClick={() => setAppealMode(true)}>
             <RotateCcw className="size-4" />
-            Appeal / reopen
+            Reopen this ticket
           </Button>
         </div>
       ) : null}
 
       {appealMode ? (
         <Card className="p-4 flex flex-col gap-3">
-          <div className="font-medium text-sm">Why are you appealing?</div>
+          <div className="font-medium text-sm">What still isn&apos;t fixed?</div>
           <Textarea
             rows={3}
             value={appealReason}
             onChange={(e) => setAppealReason(e.target.value)}
-            placeholder="Describe why the issue is not fully resolved (required)…"
+            placeholder="What's still wrong or missing? Tell us in a few words…"
           />
           <div className="flex gap-2">
             <Button size="sm" onClick={submitAppeal} disabled={appeal.isPending}>
-              Submit appeal
+              Reopen this ticket
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setAppealMode(false)}>
               Cancel

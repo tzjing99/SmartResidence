@@ -82,7 +82,21 @@
     "pendingConfirmationResident": "Management says this is fixed. Does that match what you see?",
     "proposePlaceholder": "Optional note for the resident…",
     "requestPlaceholder": "What do you need from the resident?",
-    "noAssignee": "No one assigned yet"
+    "noAssignee": "No one assigned yet",
+    "resident": {
+      "suggestedFix": "Suggested fix",
+      "yesFixed": "Yes, it's fixed",
+      "stillAnIssue": "No, still an issue",
+      "reopenTicket": "Reopen this ticket",
+      "whatStillBroken": "What still isn't fixed?",
+      "appealPlaceholder": "What's still wrong or missing? Tell us in a few words…",
+      "rejectHeading": "Tell us what's still wrong",
+      "rejectReasonPlaceholder": "What's still not working?",
+      "rejectExpectationPlaceholder": "What would 'fixed' look like for you?",
+      "toastConfirmed": "Thanks — we'll close this out.",
+      "toastReopened": "Ticket reopened — management will take another look",
+      "toastRejectValidation": "Please tell us what's still wrong and what you need"
+    }
   },
   "faq": {
     "title": "Help & FAQ",

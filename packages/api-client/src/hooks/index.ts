@@ -26,6 +26,7 @@ export const queryKeys = {
   faqArticle: (id: string) => ['faq', 'article', id] as const,
   slaSettings: (condoId: string) => ['sla', 'settings', condoId] as const,
   slaAudit: (condoId: string) => ['sla', 'audit', condoId] as const,
+  preferences: ['auth', 'preferences'] as const,
 };
 
 export function useMe(api: ApiClient) {
@@ -395,5 +396,53 @@ export function useCreateFaqCategory(api: ApiClient) {
     mutationFn: (body: { condoId: string; name: string; position?: number }) =>
       api.createFaqCategory(body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['faq'] }),
+  });
+}
+
+export function useFaqDeflectMatch(api: ApiClient) {
+  return useMutation({
+    mutationFn: (body: { condoId: string; subject: string; body: string }) =>
+      api.faqDeflectMatch(body),
+  });
+}
+
+export function useUpdateAutoAssignment(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      generalTriagePool: string[];
+      categoryPools: Array<{ category: import('../client').ThreadCategory; userIds: string[] }>;
+      seniorStaffPool: string[];
+    }) => api.updateAutoAssignment(vars.condoId, vars),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: queryKeys.slaSettings(vars.condoId) }),
+  });
+}
+
+export function usePreferences(api: ApiClient) {
+  return useQuery({
+    queryKey: queryKeys.preferences,
+    queryFn: () => api.preferences(),
+  });
+}
+
+export function useUpdatePreferences(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<ApiClient['updatePreferences']>[0]) =>
+      api.updatePreferences(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.preferences }),
+  });
+}
+
+export function useCloseAbusiveThread(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; reason: string }) => api.closeAbusiveThread(vars.id, vars),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
   });
 }

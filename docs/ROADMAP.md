@@ -98,7 +98,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Billing & payments** | ✅ (core) | `Invoice / InvoiceLine / Payment`; invoice numbering; partial-payment reconciliation; **Stripe + FPX adapters**; pluggable `PaymentProviderAdapter` |
 | **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) + receipts/statements** | ⬜ | `PaymentProvider` enum has STRIPE/FPX/IPAY88/RAZER/MANUAL; e-wallet adapters & itemized statement/receipt PDFs not built |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |
-| **Communication threads + SLA + AI seam** | ✅ (core) | `ThreadsModule` wired; D2 resident-driven resolution + H1 inbox polish; **S1** SLA settings (web + mobile); **M1** resolution refinements; **M2** phase-1 auto-assignment; `SlaService` + `RuleBasedAiAssistProvider` seam. Deferred: pool editor UI, owner SLA audit page (G1), quiet hours (E5), abusive-thread close (D7), email opt-in (E1), inbox sort (F3), FAQ deflection (F4), PDF export (G2), ML phase 2 (C6) — see [BACKLOG](./BACKLOG.md) |
+| **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor). Still deferred: ML phase 2 (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
 | **FAQ knowledge base** | 🟡 | Schema (`FaqCategory / FaqArticle`) present; **no FAQ controller/service/module yet** |
 | **Announcements** | ✅ | `Announcement` + `AnnouncementAck`; importance, audience JSON, pinned, requiresAck; web admin + resident views |
 | **Notifications (push/email)** | ✅ (core) | `Notification` + `PushSubscription` (Expo & Web); notification dispatch in services |

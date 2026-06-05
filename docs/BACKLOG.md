@@ -8,9 +8,10 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
-- ✅ **S1 — Helpdesk & SLA settings panel** — `SlaPolicyService` API + web `/admin/settings/helpdesk` (slider UX, dynamic advisory bands, risky-save announcement, grace period, audit log) + mobile management screen. Assignee pools configured via `condo.settings` JSON only (pool editor UI deferred).
-- ✅ **M1 — Enhanced resolution flow** — accepted-answer on a specific message, propose-resolve gate (B13/B5/B6), reject why+what-wanted, configurable grace period, 14-day inactivity auto-close, household-member confirm, unlimited appeals with required reason, reopen count badge (G3), web + mobile resident UX. Deferred: **D7** abusive-thread flag+close, **E1** email opt-in from profile.
-- ✅ **M2 — Thread auto-assignment (phase 1)** — `ThreadAssignmentService`: category → assignee pool, GENERAL triage pool, round-robin, recategorise reassign, repeat-complainant → senior staff, duplicate suggestions (D5). Deferred: phase 2 ML (**C6**), **F3** inbox default sort, **F4** FAQ deflection, **G2** PDF export.
+- ✅ **S1 — Helpdesk & SLA settings panel** — `SlaPolicyService` API + web `/admin/settings/helpdesk` (slider UX, dynamic advisory bands, risky-save announcement, grace period, audit log, **assignee pool editor**) + mobile management screen.
+- ✅ **M1 — Enhanced resolution flow** — accepted-answer, propose-resolve gate, reject why+what-wanted, grace period, auto-close, appeals, reopen badge; **D7** abusive close + **E1** email opt-in shipped in follow-on.
+- ✅ **M2 — Thread auto-assignment (phase 1)** — category → pool routing, triage, recategorise reassign, repeat complainant; **F3** inbox sort, **F4** FAQ deflection, **G2** PDF export shipped in follow-on. ML (**C6**) still deferred.
+- ✅ **Deferred messaging polish (v0.2 follow-on)** — **F3**, **F4**, **S1** pool editor, **G2**, **D7**, **E1**, **G1** owner SLA audit page, **E5** quiet hours (web + mobile + API).
 - ✅ **D2 — Helpdesk thread behavior** — resident-driven resolution model: management "proposes resolved" (new `PENDING_RESIDENT_CONFIRMATION` status + `resolutionProposedAt`/`resolutionProposedByUserId`), resident confirms/rejects, resident comments while `AWAITING_MANAGEMENT` no longer flip status, explicit "request to resident" action, and a 7-day auto-confirm fallback in the scheduled scanner.
 - ✅ **H1 — Helpdesk dashboard polish** — cleaner admin inbox (columns for subject/requester/priority/status/assignee/SLA), unmistakable SLA chips (On track / At risk / Breached with time remaining), category + assignee filters, sort by SLA due, and the new D2 affordances surfaced in the thread detail + resident view.
 - ✅ **D1 — Announcement rich-text rendering** — sanitized markdown rendering on web (resident + admin pages) and mobile, plus a live markdown preview in the admin composer.
@@ -80,7 +81,7 @@ Resident-driven resolution model implemented end-to-end (API + web).
 
 **Deferred**
 
-- ⬜ **Assignee pool editor UI** — auto-assignment pools (`generalTriagePool`, `categoryPools`, `seniorStaffPool`) are read from `condo.settings` JSON / seed only; no visual pool editor in S1 settings panel yet (see M2).
+- None (pool editor UI shipped in follow-on pass).
 
 A **management-only** settings panel on **web admin and mobile management** (v0.2) for configuring condo-wide helpdesk parameters. SLA policy editing is **not** available to residents, tenants, or `UNIT_OWNER` (owners get **read-only** SLA audit log access per **G1**). Unit notification preferences (incl. quiet hours per **E5**) live in a separate resident-profile surface.
 
@@ -121,9 +122,9 @@ A **management-only** settings panel on **web admin and mobile management** (v0.
 
 **Delta from spec (remaining gaps)**
 
-- ⬜ Assignee pool editor in settings UI — pools configured via `condo.settings` JSON / seed only.
-- ⬜ `UNIT_OWNER` read-only SLA audit log surface (G1) — API audit exists; dedicated owner-facing page not shipped.
-- ⬜ Resident-profile quiet hours (E5) — separate surface, not part of S1.
+- ✅ Assignee pool editor in settings UI — web `/admin/settings/helpdesk` pool picker + `PUT /sla/condo/:id/auto-assignment`.
+- ✅ `UNIT_OWNER` read-only SLA audit log surface (G1) — `/sla-audit` resident page.
+- ✅ Resident-profile quiet hours (E5) — `/settings` web + mobile; push suppressed during quiet hours.
 
 **Acceptance (draft)**
 
@@ -177,8 +178,7 @@ A **management-only** settings panel on **web admin and mobile management** (v0.
 
 **Deferred**
 
-- ⬜ **D7** — management flag + close abusive threads with reason; resident notified.
-- ⬜ **E1** — per-user email opt-in for thread notifications from resident profile.
+- None (D7 + E1 shipped in follow-on pass).
 
 Refine the resident-driven resolution model (D2 ✅) toward the full product vision: Stack Overflow–style accepted solution, resident-retained final say, and configurable grace period.
 
@@ -204,9 +204,9 @@ Refine the resident-driven resolution model (D2 ✅) toward the full product vis
 
 | Aspect | Status | Gap |
 | --- | --- | --- |
-| Abusive-thread handling | ⬜ | **D7** — flag + close with reason; resident notified |
-| Email notification opt-in | ⬜ | **E1** — per-user email opt-in from resident profile |
-| All other M1 acceptance items | ✅ | Shipped in `41b2ff6` (see **Built** above) |
+| Abusive-thread handling | ✅ | **D7** — `POST /threads/:id/close-abusive`; resident notified |
+| Email notification opt-in | ✅ | **E1** — `PATCH /auth/preferences`; Resend when configured |
+| All other M1 acceptance items | ✅ | Shipped in `41b2ff6` + follow-on |
 
 **Acceptance (draft)**
 
@@ -272,14 +272,14 @@ When a resident opens a thread, the system should assign it to the right managem
 - ✅ `ThreadAssignmentService` — on create: category → assignee pool, GENERAL → `generalTriagePool`, round-robin within pool, repeat complainant (3+/30d) → `seniorStaffPool` (C1/C5).
 - ✅ Recategorise → immediate reassign to new category pool (C4); unassigned fallback still notifies all management (C2); any management user can reassign (C3).
 - ✅ Duplicate-thread suggestions surfaced on thread detail (D5); repeat-complainant flag on header.
-- ✅ Pools configured via `condo.settings.helpdesk.autoAssignment` JSON (seed + API settings merge); no pool editor UI (deferred to S1).
+- ✅ Pools configured via `condo.settings.helpdesk.autoAssignment` JSON + **pool editor UI** in S1 settings.
+- ✅ **F3** inbox default sort (breach → at risk → priority → oldest).
+- ✅ **F4** FAQ deflection at compose (`POST /faq/deflect-match`; web + mobile).
+- ✅ **G2** PDF export (`GET /threads/:id/export.pdf`).
 
 **Deferred**
 
 - ⬜ **Phase 2 ML** (**C6**) — `suggestAssignee` behind 200+ closed-thread threshold + opt-in feature flag.
-- ⬜ **F3** — inbox default sort: SLA breach → AT_RISK → priority → oldest.
-- ⬜ **F4** — FAQ deflection: strong FAQ match offers "This answered my question".
-- ⬜ **G2** — PDF export for management + resident (own threads).
 
 **Delta from spec (remaining gaps)**
 

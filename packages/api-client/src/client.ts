@@ -63,6 +63,27 @@ export interface SlaSettingsResponse {
   atRiskThresholdPercent: number;
   policies: SlaPolicyItem[];
   editable: boolean;
+  autoAssignment?: {
+    generalTriagePool: string[];
+    categoryPools: Array<{ category: ThreadCategory; userIds: string[] }>;
+    seniorStaffPool: string[];
+  };
+  managementStaff?: Array<{ id: string; name: string; email: string | null }>;
+}
+
+export interface UserPreferences {
+  emailNotifications: boolean;
+  quietHours: { enabled: boolean; start: string; end: string };
+}
+
+export interface FaqDeflectMatch {
+  match: {
+    articleId: string;
+    question: string;
+    answer: string;
+    score: number;
+    category: string | null;
+  } | null;
 }
 
 export interface ThreadSummary {
@@ -439,6 +460,34 @@ export class ApiClient {
   appealThread(id: string, body: { reason: string }) {
     return this.request<ThreadSummary>('POST', `/api/threads/${id}/appeal`, body);
   }
+  closeAbusiveThread(id: string, body: { reason: string }) {
+    return this.request<ThreadSummary>('POST', `/api/threads/${id}/close-abusive`, body);
+  }
+  async exportThreadPdf(id: string): Promise<Blob> {
+    const headers: Record<string, string> = { Accept: 'application/pdf' };
+    const token = await this.cfg.getAccessToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const condoId = await this.cfg.getActiveCondoId?.();
+    if (condoId) headers['x-condo-id'] = condoId;
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const res = await fetchImpl(`${this.cfg.baseUrl}/api/threads/${id}/export.pdf`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = await res.json();
+      } catch {
+        /* ignore */
+      }
+      const message =
+        (parsed as { message?: string } | null)?.message ?? `HTTP ${res.status} ${res.statusText}`;
+      throw new ApiError(res.status, parsed, message);
+    }
+    return res.blob();
+  }
 
   // SLA / helpdesk settings -----------------------------------------
   slaSettings(condoId: string) {
@@ -465,6 +514,26 @@ export class ApiClient {
       'GET',
       `/api/sla/condo/${condoId}/audit?${new URLSearchParams(params as Record<string, string>).toString()}`,
     );
+  }
+  updateAutoAssignment(
+    condoId: string,
+    body: {
+      generalTriagePool: string[];
+      categoryPools: Array<{ category: ThreadCategory; userIds: string[] }>;
+      seniorStaffPool: string[];
+    },
+  ) {
+    return this.request<{ ok: boolean }>('PUT', `/api/sla/condo/${condoId}/auto-assignment`, body);
+  }
+
+  // User preferences (E1/E5) ----------------------------------------
+  preferences() {
+    return this.request<UserPreferences>('GET', '/api/auth/preferences');
+  }
+  updatePreferences(
+    body: Partial<UserPreferences> & { quietHours?: Partial<UserPreferences['quietHours']> },
+  ) {
+    return this.request<UserPreferences>('PATCH', '/api/auth/preferences', body);
   }
 
   // FAQ --------------------------------------------------------------
@@ -493,6 +562,9 @@ export class ApiClient {
   }
   faqHelpful(id: string) {
     return this.request<FaqArticleItem>('POST', `/api/faq/articles/${id}/helpful`);
+  }
+  faqDeflectMatch(body: { condoId: string; subject: string; body: string }) {
+    return this.request<FaqDeflectMatch>('POST', '/api/faq/deflect-match', body);
   }
   createFaqArticle(body: {
     condoId: string;

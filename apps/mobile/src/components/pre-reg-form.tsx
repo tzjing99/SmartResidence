@@ -19,6 +19,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Alert, Image, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { api } from '../lib/api';
+import { useTabletLayout } from '../lib/use-tablet-layout';
 
 async function uploadPlatePhoto(uri: string): Promise<string> {
   const presign = await api.presignAttachment({
@@ -34,8 +36,6 @@ async function uploadPlatePhoto(uri: string): Promise<string> {
   if (!res.ok) throw new Error('Failed to upload plate photo');
   return presign.key;
 }
-import { api } from '../lib/api';
-import { useTabletLayout } from '../lib/use-tablet-layout';
 
 export type PreRegPrefill = {
   name?: string;
@@ -49,6 +49,17 @@ type PreRegFormProps = {
   prefill?: PreRegPrefill;
   onSuccess?: (visitorId: string) => void;
 };
+
+function SectionTitle({ title, description }: { title: string; description?: string }) {
+  return (
+    <View style={{ gap: 2 }}>
+      <Text style={{ fontSize: 14, fontWeight: '700', color: palette.textLight }}>{title}</Text>
+      {description ? (
+        <Text style={{ fontSize: 12, color: palette.mutedLight }}>{description}</Text>
+      ) : null}
+    </View>
+  );
+}
 
 export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
@@ -160,72 +171,122 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
         maxWidth: contentMaxWidth,
         alignSelf: 'center',
         paddingHorizontal: horizontalPadding,
-        gap: 16,
+        gap: 24,
       }}
     >
       <Text style={{ fontSize: 14, color: palette.mutedLight }}>
         Default is drive-in with plate. Overnight stays apply only to pre-registration.
       </Text>
 
-      <Text style={{ fontWeight: '600' }}>How are they arriving?</Text>
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        {(
-          [
-            { id: 'DRIVE_IN' as const, label: 'Drive in' },
-            { id: 'WALK_IN' as const, label: 'Walk in' },
-          ] as const
-        ).map((mode) => {
-          const active = entryMode === mode.id;
-          return (
-            <Pressable
-              key={mode.id}
-              onPress={() => form.setValue('entryMode', mode.id)}
-              style={{
-                flex: 1,
-                padding: 16,
-                borderRadius: radius.lg,
-                borderWidth: 1,
-                borderColor: active ? palette.coralPrimary : palette.borderLight,
-                backgroundColor: active ? 'rgba(255, 90, 95, 0.08)' : '#fff',
-                alignItems: 'center',
-              }}
-            >
-              <Text
+      <View style={{ gap: 12 }}>
+        <SectionTitle title="How are they arriving?" />
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          {(
+            [
+              { id: 'DRIVE_IN' as const, label: 'Drive in' },
+              { id: 'WALK_IN' as const, label: 'Walk in' },
+            ] as const
+          ).map((mode) => {
+            const active = entryMode === mode.id;
+            return (
+              <Pressable
+                key={mode.id}
+                onPress={() => form.setValue('entryMode', mode.id)}
                 style={{
-                  fontWeight: '600',
-                  color: active ? palette.coralPrimary : palette.textLight,
+                  flex: 1,
+                  padding: 16,
+                  borderRadius: radius.lg,
+                  borderWidth: 1,
+                  borderColor: active ? palette.coralPrimary : palette.borderLight,
+                  backgroundColor: active ? 'rgba(255, 90, 95, 0.08)' : '#fff',
+                  alignItems: 'center',
                 }}
               >
-                {mode.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Text
+                  style={{
+                    fontWeight: '700',
+                    color: active ? palette.coralPrimary : palette.textLight,
+                  }}
+                >
+                  {mode.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
-      <View style={{ flexDirection: twoColumn ? 'row' : 'column', flexWrap: 'wrap', gap: 12 }}>
-        <View style={fieldGap ?? { gap: 6 }}>
-          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Visitor name</Text>
-          <TextInput
-            value={form.watch('name')}
-            onChangeText={(v) => form.setValue('name', v)}
-            style={inputStyle}
-            placeholder="Full name"
-          />
+      <View style={{ gap: 12 }}>
+        <SectionTitle title="Guest details" description="Name and contact for the gate pass." />
+        <View style={{ flexDirection: twoColumn ? 'row' : 'column', flexWrap: 'wrap', gap: 12 }}>
+          <View style={fieldGap ?? { gap: 6 }}>
+            <Text style={fieldLabelStyle}>Visitor name</Text>
+            <TextInput
+              value={form.watch('name')}
+              onChangeText={(v) => form.setValue('name', v)}
+              style={inputStyle}
+              placeholder="Full name"
+            />
+          </View>
+
+          <View style={[{ gap: 8 }, fieldGap]}>
+            <Text style={fieldLabelStyle}>Phone</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+              {PHONE_COUNTRY_CODES.map((code) => {
+                const active = form.watch('phoneCountryCode') === code;
+                return (
+                  <Pressable
+                    key={code}
+                    onPress={() => form.setValue('phoneCountryCode', code)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: radius.full,
+                      borderWidth: 1,
+                      borderColor: active ? palette.coralPrimary : palette.borderLight,
+                      backgroundColor: active ? 'rgba(255, 90, 95, 0.08)' : '#fff',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: '600',
+                        color: active ? palette.coralPrimary : palette.mutedLight,
+                      }}
+                    >
+                      {code}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <TextInput
+              value={form.watch('phone') ?? ''}
+              onChangeText={(v) => form.setValue('phone', v, { shouldValidate: true })}
+              style={inputStyle}
+              keyboardType="phone-pad"
+              placeholder="Local number"
+            />
+            {form.formState.errors.phone ? (
+              <Text style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>
+                {form.formState.errors.phone.message}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
-        <View style={[{ gap: 8 }, fieldGap]}>
-          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Phone</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-            {PHONE_COUNTRY_CODES.map((code) => {
-              const active = form.watch('phoneCountryCode') === code;
+        <View style={{ gap: 8 }}>
+          <Text style={fieldLabelStyle}>Purpose</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {VISITOR_PURPOSE_OPTIONS.map((opt) => {
+              const active = form.watch('purpose') === opt.value;
               return (
                 <Pressable
-                  key={code}
-                  onPress={() => form.setValue('phoneCountryCode', code)}
+                  key={opt.value}
+                  onPress={() => form.setValue('purpose', opt.value as VisitorPurpose)}
                   style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
                     borderRadius: radius.full,
                     borderWidth: 1,
                     borderColor: active ? palette.coralPrimary : palette.borderLight,
@@ -234,34 +295,25 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
                 >
                   <Text
                     style={{
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: '600',
-                      color: active ? palette.coralPrimary : palette.mutedLight,
+                      color: active ? palette.coralPrimary : palette.textLight,
                     }}
                   >
-                    {code}
+                    {opt.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
-          <TextInput
-            value={form.watch('phone') ?? ''}
-            onChangeText={(v) => form.setValue('phone', v, { shouldValidate: true })}
-            style={inputStyle}
-            keyboardType="phone-pad"
-            placeholder="Local number"
-          />
-          {form.formState.errors.phone ? (
-            <Text style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>
-              {form.formState.errors.phone.message}
-            </Text>
-          ) : null}
         </View>
+      </View>
 
-        {entryMode === 'DRIVE_IN' || overnight ? (
+      {entryMode === 'DRIVE_IN' || overnight ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle title="Vehicle" />
           <View style={fieldGap ?? { gap: 6 }}>
-            <Text style={{ fontWeight: '600', marginBottom: 6 }}>Plate number</Text>
+            <Text style={fieldLabelStyle}>Plate number</Text>
             <TextInput
               value={form.watch('vehiclePlate') ?? ''}
               onChangeText={(v) => form.setValue('vehiclePlate', v)}
@@ -274,11 +326,61 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
               </Text>
             ) : null}
           </View>
-        ) : null}
+        </View>
+      ) : null}
+
+      <View style={{ gap: 12 }}>
+        <SectionTitle title="Arrival" />
+        <TextInput
+          value={
+            expectedAt instanceof Date && !Number.isNaN(expectedAt.getTime())
+              ? expectedAt.toISOString().slice(0, 16).replace('T', ' ')
+              : ''
+          }
+          onChangeText={(v) => {
+            const parsed = new Date(v.replace(' ', 'T'));
+            if (!Number.isNaN(parsed.getTime())) form.setValue('expectedAt', parsed);
+          }}
+          style={inputStyle}
+          placeholder="YYYY-MM-DD HH:mm"
+        />
+      </View>
+
+      <View style={{ gap: 12 }}>
+        <SectionTitle title="Overnight stay" description="Optional — visitor stays past midnight." />
+        <Card
+          style={{
+            borderColor: overnight ? 'rgba(255, 90, 95, 0.35)' : palette.borderLight,
+            backgroundColor: overnight ? 'rgba(255, 90, 95, 0.04)' : 'rgba(120, 113, 108, 0.06)',
+          }}
+        >
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+          >
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ fontWeight: '700' }}>Enable overnight</Text>
+              <Text style={{ fontSize: 12, color: palette.mutedLight, marginTop: 2 }}>
+                Drive-in only · plate photo required
+              </Text>
+            </View>
+            <Switch
+              value={Boolean(overnight)}
+              onValueChange={(v) => form.setValue('overnight', v)}
+              trackColor={{ true: palette.coralPrimary, false: palette.borderLight }}
+            />
+          </View>
+        </Card>
 
         {overnight ? (
-          <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '600' }}>Plate photo (required)</Text>
+          <Card
+            style={{
+              backgroundColor: 'rgba(120, 113, 108, 0.06)',
+              borderWidth: 1,
+              borderColor: palette.borderLight,
+            }}
+          >
+            <View style={{ gap: 12 }}>
+            <Text style={fieldLabelStyle}>Plate photo (required)</Text>
             {platePhotoUri ? (
               <Image
                 source={{ uri: platePhotoUri }}
@@ -293,97 +395,57 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
                     ? 'Retake photo'
                     : 'Capture plate photo'
               }
+              variant="secondary"
+              size="md"
               onPress={capturePlatePhoto}
               disabled={uploadingPhoto}
             />
-          </View>
+
+            {showUrgentReason ? (
+              <View>
+                <Text style={[fieldLabelStyle, { marginBottom: 6 }]}>
+                  Why is this urgent? (required)
+                </Text>
+                <TextInput
+                  value={form.watch('urgentReason') ?? ''}
+                  onChangeText={(v) => form.setValue('urgentReason', v)}
+                  style={inputStyle}
+                  placeholder="e.g. Family emergency travel"
+                />
+              </View>
+            ) : null}
+
+            {preview.data ? (
+              <View
+                style={{
+                  borderRadius: radius.lg,
+                  borderWidth: 1,
+                  borderColor: 'rgba(14, 165, 233, 0.35)',
+                  backgroundColor: 'rgba(240, 249, 255, 0.9)',
+                  padding: 12,
+                  borderLeftWidth: 4,
+                  borderLeftColor: '#0ea5e9',
+                }}
+              >
+                <Text style={{ fontSize: 14, color: palette.textLight }}>
+                  {preview.data.helperMessage}
+                </Text>
+                {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
+                  <Text style={{ fontWeight: '700', marginTop: 8, color: palette.textLight }}>
+                    {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left
+                    tonight
+                  </Text>
+                ) : null}
+                {preview.data.slotsFull ? (
+                  <Text style={{ color: '#b91c1c', fontWeight: '700', marginTop: 8 }}>
+                    No slots — contact management or register urgent and visit the office
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+            </View>
+          </Card>
         ) : null}
-
-        <View style={fieldGap ?? { gap: 6 }}>
-          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Expected arrival</Text>
-          <TextInput
-            value={
-              expectedAt instanceof Date && !Number.isNaN(expectedAt.getTime())
-                ? expectedAt.toISOString().slice(0, 16).replace('T', ' ')
-                : ''
-            }
-            onChangeText={(v) => {
-              const parsed = new Date(v.replace(' ', 'T'));
-              if (!Number.isNaN(parsed.getTime())) form.setValue('expectedAt', parsed);
-            }}
-            style={inputStyle}
-            placeholder="YYYY-MM-DD HH:mm"
-          />
-        </View>
-      </View>
-
-      <Card>
-        <View
-          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-        >
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={{ fontWeight: '600' }}>Overnight stay</Text>
-            <Text style={{ fontSize: 12, color: palette.mutedLight, marginTop: 2 }}>
-              Visitor stays past midnight
-            </Text>
-          </View>
-          <Switch
-            value={Boolean(overnight)}
-            onValueChange={(v) => form.setValue('overnight', v)}
-            trackColor={{ true: palette.coralPrimary, false: palette.borderLight }}
-          />
-        </View>
-      </Card>
-
-      {overnight && preview.data ? (
-        <Card
-          style={{
-            backgroundColor: 'rgba(255, 90, 95, 0.06)',
-            borderColor: 'rgba(255, 90, 95, 0.2)',
-          }}
-        >
-          <Text style={{ fontSize: 14 }}>{preview.data.helperMessage}</Text>
-          {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
-            <Text style={{ fontWeight: '600', marginTop: 8 }}>
-              {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left tonight
-            </Text>
-          ) : null}
-          {preview.data.slotsFull ? (
-            <Text style={{ color: '#b91c1c', fontWeight: '600', marginTop: 8 }}>
-              No slots — contact management or register urgent and visit the office
-            </Text>
-          ) : null}
-        </Card>
-      ) : null}
-
-      {showUrgentReason ? (
-        <View>
-          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Why is this urgent? (required)</Text>
-          <TextInput
-            value={form.watch('urgentReason') ?? ''}
-            onChangeText={(v) => form.setValue('urgentReason', v)}
-            style={inputStyle}
-            placeholder="e.g. Family emergency travel"
-          />
-        </View>
-      ) : null}
-
-      <View>
-        <Text style={{ fontWeight: '600', marginBottom: 6 }}>Purpose</Text>
-        {VISITOR_PURPOSE_OPTIONS.map((opt) => {
-          const active = form.watch('purpose') === opt.value;
-          return (
-            <Pressable
-              key={opt.value}
-              onPress={() => form.setValue('purpose', opt.value as VisitorPurpose)}
-              style={{ paddingVertical: 8 }}
-            >
-              <Text style={{ color: active ? palette.coralPrimary : palette.textLight }}>
-                {opt.label}
-              </Text>
-            </Pressable>
-          );
-        })}
       </View>
 
       <Button
@@ -394,6 +456,13 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
     </View>
   );
 }
+
+const fieldLabelStyle = {
+  fontWeight: '600' as const,
+  fontSize: 13,
+  color: palette.textLight,
+  marginBottom: 6,
+};
 
 const inputStyle = {
   height: 44,

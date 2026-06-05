@@ -9,6 +9,7 @@ import { formatMoney } from '@smartresidence/shared-types';
 import { Button, Card, Pill, Stack, palette } from '@smartresidence/ui-mobile';
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
+import { Markdown } from '../../src/components/markdown';
 import { api } from '../../src/lib/api';
 
 export default function HomeScreen() {
@@ -96,9 +97,9 @@ export default function HomeScreen() {
           <Text style={{ fontWeight: '600', marginTop: 6, fontSize: 16 }}>
             {announcement.title}
           </Text>
-          <Text numberOfLines={3} style={{ marginTop: 6, color: palette.textLight, fontSize: 13 }}>
-            {announcement.body}
-          </Text>
+          <View style={{ marginTop: 6 }}>
+            <Markdown>{announcement.body}</Markdown>
+          </View>
         </Card>
       ) : null}
     </ScrollView>

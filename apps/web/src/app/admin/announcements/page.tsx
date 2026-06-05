@@ -1,5 +1,6 @@
 'use client';
 
+import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
 import { Badge, Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
@@ -56,7 +57,24 @@ export default function AdminAnnouncementsPage() {
             <option value="URGENT">Urgent</option>
           </select>
           <Label>Body (markdown)</Label>
-          <Textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} />
+          <Textarea
+            rows={10}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={
+              '## Heading\nUse **bold**, _italic_, lists and [links](https://example.com).'
+            }
+          />
+          <div>
+            <div className="text-xs sr-muted mb-1.5">Preview</div>
+            <div className="min-h-[5rem] rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-bg))] px-4 py-3 text-sm">
+              {body.trim() ? (
+                <Markdown>{body}</Markdown>
+              ) : (
+                <span className="sr-muted">Formatted markdown shows up here as you type.</span>
+              )}
+            </div>
+          </div>
           <Button onClick={() => create.mutate()} disabled={!title || !body || create.isPending}>
             {create.isPending ? 'Publishing…' : 'Publish'}
           </Button>
@@ -84,7 +102,7 @@ export default function AdminAnnouncementsPage() {
             <div className="text-xs sr-muted">
               {a.publishedAt ? new Date(a.publishedAt).toLocaleString() : 'unpublished'}
             </div>
-            <p className="mt-2 text-sm whitespace-pre-line">{a.body.slice(0, 240)}</p>
+            <Markdown className="mt-2 max-h-32 overflow-hidden text-sm">{a.body}</Markdown>
           </Card>
         ))}
       </div>

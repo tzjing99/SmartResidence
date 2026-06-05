@@ -1,5 +1,6 @@
 'use client';
 
+import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { useAckAnnouncement, useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
@@ -42,7 +43,7 @@ export default function AnnouncementsPage() {
                 </div>
                 <Badge tone={TONE[a.importance] ?? 'info'}>{a.importance.toLowerCase()}</Badge>
               </div>
-              <div className="text-sm whitespace-pre-line leading-relaxed">{a.body}</div>
+              <Markdown className="text-sm">{a.body}</Markdown>
               {a.requiresAck ? (
                 <div className="mt-4 pt-4 border-t border-[rgb(var(--sr-border))] flex justify-end">
                   <Button

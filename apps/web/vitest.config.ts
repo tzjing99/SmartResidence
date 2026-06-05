@@ -5,6 +5,9 @@ import { configDefaults, defineConfig } from 'vitest/config';
 // test() to be called here". There are no Vitest unit suites yet, so allow an
 // empty run (mirrors the mobile package's `jest --passWithNoTests`).
 export default defineConfig({
+  // Use the automatic JSX runtime so `.tsx` sources (e.g. the Markdown
+  // component) compile in tests without an explicit React import.
+  esbuild: { jsx: 'automatic' },
   test: {
     exclude: [...configDefaults.exclude, 'e2e/**'],
     passWithNoTests: true,

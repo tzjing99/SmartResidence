@@ -7,6 +7,7 @@ import {
   NotificationKind,
   type Prisma,
   RoleId,
+  ThreadMessageKind,
   ThreadPriority,
   ThreadStatus,
 } from '@prisma/client';
@@ -46,6 +47,13 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private static readonly SCAN_INTERVAL_MS = 5 * 60_000;
 
+  /**
+   * Days a resident has to respond to a proposed resolution before the system
+   * auto-confirms and closes the thread. Named constant so it can later be made
+   * configurable per condo via settings.
+   */
+  static readonly RESOLUTION_CONFIRMATION_WINDOW_DAYS = 7;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
@@ -55,13 +63,19 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     if (process.env.NODE_ENV === 'test') return;
     this.timer = setInterval(() => {
-      this.scanForBreaches().catch((err) =>
-        this.logger.warn(`SLA breach scan failed: ${(err as Error).message}`),
+      this.runScheduledScans().catch((err) =>
+        this.logger.warn(`SLA scan failed: ${(err as Error).message}`),
       );
     }, SlaService.SCAN_INTERVAL_MS);
     // Don't keep short-lived processes (scripts, tests) alive on this timer.
     this.timer.unref?.();
-    this.logger.log('SLA breach scanner started (interval 5m)');
+    this.logger.log('SLA + resolution scanner started (interval 5m)');
+  }
+
+  /** Run every periodic maintenance scan. */
+  async runScheduledScans(): Promise<void> {
+    await this.scanForBreaches();
+    await this.scanForResolutionAutoConfirm();
   }
 
   onModuleDestroy(): void {
@@ -105,7 +119,13 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
    * and resolution clocks. AT_RISK once less than 20% of the window remains.
    */
   computeSlaState(thread: SlaThreadShape, now: Date = new Date()): SlaState {
-    if (thread.status === ThreadStatus.RESOLVED || thread.status === ThreadStatus.CLOSED) {
+    if (
+      thread.status === ThreadStatus.RESOLVED ||
+      thread.status === ThreadStatus.CLOSED ||
+      // Management has proposed resolution and the ball is with the resident —
+      // don't penalise management while awaiting confirmation.
+      thread.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION
+    ) {
       return 'NONE';
     }
     const clocks: Array<{ due: Date | null; done: Date | null }> = [
@@ -156,6 +176,84 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
     if (breached.length > 0) {
       this.logger.warn(`SLA scan flagged ${breached.length} thread(s)`);
     }
+  }
+
+  /**
+   * Auto-confirm resolution for threads where management proposed a resolution
+   * but the resident has not responded within the confirmation window. The
+   * thread is resolved, an audit entry is written and the resident is notified.
+   */
+  async scanForResolutionAutoConfirm(now: Date = new Date()): Promise<void> {
+    const cutoff = new Date(
+      now.getTime() - SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS * 24 * 60 * 60_000,
+    );
+    const stale = await this.prisma.thread.findMany({
+      where: {
+        status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
+        resolutionProposedAt: { lt: cutoff },
+      },
+    });
+    for (const thread of stale) {
+      await this.autoConfirmResolution(thread, now);
+    }
+    if (stale.length > 0) {
+      this.logger.log(`Auto-confirmed resolution for ${stale.length} thread(s)`);
+    }
+  }
+
+  private async autoConfirmResolution(
+    thread: {
+      id: string;
+      condoId: string;
+      unitId: string | null;
+      subject: string;
+      createdByUserId: string;
+      resolutionProposedByUserId: string | null;
+    },
+    now: Date,
+  ): Promise<void> {
+    const systemAuthorId = thread.resolutionProposedByUserId ?? thread.createdByUserId;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.thread.update({
+        where: { id: thread.id },
+        data: {
+          status: ThreadStatus.RESOLVED,
+          resolvedAt: now,
+          resolutionProposedAt: null,
+          resolutionProposedByUserId: null,
+          lastMessageAt: now,
+        },
+      });
+      await tx.threadMessage.create({
+        data: {
+          threadId: thread.id,
+          authorUserId: systemAuthorId,
+          kind: ThreadMessageKind.SYSTEM,
+          body: `Automatically resolved — the resident did not respond to the resolution proposal within ${SlaService.RESOLUTION_CONFIRMATION_WINDOW_DAYS} days.`,
+        },
+      });
+    });
+
+    await this.notifications.dispatch({
+      userIds: [thread.createdByUserId],
+      kind: NotificationKind.THREAD_STATUS,
+      title: 'Thread automatically resolved',
+      body: thread.subject,
+      data: { threadId: thread.id },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        condoId: thread.condoId,
+        unitId: thread.unitId,
+        action: AuditAction.UPDATE,
+        resourceType: 'Thread',
+        resourceId: thread.id,
+        metadata: { autoConfirmedResolution: true } as Prisma.InputJsonValue,
+      },
+    });
+
+    this.events.emit('thread.status', { threadId: thread.id, condoId: thread.condoId });
   }
 
   private async escalate(

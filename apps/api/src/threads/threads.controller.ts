@@ -5,7 +5,15 @@ import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
-import { CreateThreadDto, ListThreadsDto, PostMessageDto, UpdateThreadDto } from './dto/thread.dto';
+import {
+  ConfirmResolutionDto,
+  CreateThreadDto,
+  ListThreadsDto,
+  PostMessageDto,
+  ProposeResolutionDto,
+  RequestResidentDto,
+  UpdateThreadDto,
+} from './dto/thread.dto';
 import { ThreadsService } from './threads.service';
 
 @ApiTags('Threads')
@@ -56,6 +64,36 @@ export class ThreadsController {
     @Body() dto: UpdateThreadDto,
   ) {
     return this.threads.update(user, id, dto);
+  }
+
+  @Post(':id/propose-resolution')
+  @CheckAbility({ action: 'update', subject: 'Thread' })
+  proposeResolution(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ProposeResolutionDto,
+  ) {
+    return this.threads.proposeResolution(user, id, dto);
+  }
+
+  @Post(':id/confirm-resolution')
+  @CheckAbility({ action: 'resolve', subject: 'Thread' })
+  confirmResolution(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ConfirmResolutionDto,
+  ) {
+    return this.threads.confirmResolution(user, id, dto);
+  }
+
+  @Post(':id/request-resident')
+  @CheckAbility({ action: 'update', subject: 'Thread' })
+  requestResident(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: RequestResidentDto,
+  ) {
+    return this.threads.requestResident(user, id, dto);
   }
 
   @Post(':id/read')

@@ -20,9 +20,12 @@ import {
 } from '@prisma/client';
 import { AI_ASSIST_PROVIDER, type AiAssistProvider } from './ai/ai-assist.provider';
 import type {
+  ConfirmResolutionDto,
   CreateThreadDto,
   ListThreadsDto,
   PostMessageDto,
+  ProposeResolutionDto,
+  RequestResidentDto,
   UpdateThreadDto,
 } from './dto/thread.dto';
 import { SlaService } from './sla/sla.service';
@@ -268,13 +271,37 @@ export class ThreadsService {
       if (kind !== ThreadMessageKind.INTERNAL_NOTE) {
         const data: Prisma.ThreadUpdateInput = { lastMessageAt: now };
         if (isMgmt) {
-          data.status = ThreadStatus.AWAITING_RESIDENT;
-          if (!thread.firstRespondedAt) data.firstRespondedAt = now;
+          // A plain management reply does NOT flip the ball to the resident —
+          // management is still working the ticket (use the explicit
+          // "request to resident" action to set AWAITING_RESIDENT). Posting a
+          // message counts as a first response and re-engages the thread,
+          // clearing any outstanding resolution proposal.
+          if (thread.status !== ThreadStatus.RESOLVED && thread.status !== ThreadStatus.CLOSED) {
+            data.status = ThreadStatus.AWAITING_MANAGEMENT;
+            data.resolutionProposedAt = null;
+            data.resolutionProposedByUserId = null;
+            if (!thread.firstRespondedAt) data.firstRespondedAt = now;
+          }
+        } else if (
+          thread.status === ThreadStatus.RESOLVED ||
+          thread.status === ThreadStatus.CLOSED
+        ) {
+          // Resident replying to a finished thread reopens it.
+          data.status = ThreadStatus.REOPENED;
+          data.resolvedAt = null;
+          data.closedAt = null;
+        } else if (thread.status === ThreadStatus.AWAITING_MANAGEMENT) {
+          // Rule 1: a resident adding more detail while AWAITING_MANAGEMENT must
+          // NOT flip the ball back to themselves — keep the status unchanged.
+        } else if (thread.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION) {
+          // Rule 2: a reply during a resolution proposal means "not resolved" —
+          // revert to management and clear the proposal.
+          data.status = ThreadStatus.AWAITING_MANAGEMENT;
+          data.resolutionProposedAt = null;
+          data.resolutionProposedByUserId = null;
         } else {
-          data.status =
-            thread.status === ThreadStatus.RESOLVED || thread.status === ThreadStatus.CLOSED
-              ? ThreadStatus.REOPENED
-              : ThreadStatus.AWAITING_MANAGEMENT;
+          // OPEN / AWAITING_RESIDENT / REOPENED → the ball is now with management.
+          data.status = ThreadStatus.AWAITING_MANAGEMENT;
         }
         await tx.thread.update({ where: { id }, data });
       } else {
@@ -316,6 +343,20 @@ export class ThreadsService {
     const now = new Date();
     const data: Prisma.ThreadUpdateInput = {};
     const systemLines: string[] = [];
+
+    // Resolution is resident-driven (D2): management cannot unilaterally mark a
+    // thread RESOLVED/CLOSED via a status edit. They must use the explicit
+    // "propose resolution" action and let the resident confirm.
+    if (
+      this.isManagement(user) &&
+      (dto.status === ThreadStatus.RESOLVED ||
+        dto.status === ThreadStatus.CLOSED ||
+        dto.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION)
+    ) {
+      throw new ForbiddenException(
+        'Management cannot resolve a thread directly — propose resolution for the resident to confirm.',
+      );
+    }
 
     if (dto.priority && dto.priority !== thread.priority) {
       data.priority = dto.priority;
@@ -392,6 +433,216 @@ export class ThreadsService {
     });
 
     return updated;
+  }
+
+  // -- resident-driven resolution (D2) -------------------------------
+
+  /** Management proposes a thread as resolved; the resident must confirm. */
+  async proposeResolution(user: AuthenticatedUser, id: string, dto: ProposeResolutionDto) {
+    const thread = await this.loadAndAuthorize(user, id);
+    if (!this.isManagement(user)) {
+      throw new ForbiddenException('Only management can propose a resolution');
+    }
+    if (thread.status === ThreadStatus.RESOLVED || thread.status === ThreadStatus.CLOSED) {
+      throw new BadRequestException('This thread is already resolved');
+    }
+    const now = new Date();
+    const note = dto.note?.trim();
+    const body = note
+      ? `Management proposed this thread as resolved — awaiting resident confirmation: ${note}`
+      : 'Management proposed this thread as resolved — awaiting resident confirmation.';
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.thread.update({
+        where: { id },
+        data: {
+          status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
+          resolutionProposedAt: now,
+          resolutionProposedByUserId: user.id,
+          firstRespondedAt: thread.firstRespondedAt ?? now,
+          lastMessageAt: now,
+        },
+      });
+      await tx.threadMessage.create({
+        data: { threadId: id, authorUserId: user.id, kind: ThreadMessageKind.SYSTEM, body },
+      });
+      return u;
+    });
+
+    this.events.emit('thread.status', { threadId: id, condoId: thread.condoId });
+    await this.notifications.dispatch({
+      userIds: [thread.createdByUserId].filter((uid) => uid !== user.id),
+      kind: NotificationKind.THREAD_STATUS,
+      title: 'Please confirm resolution',
+      body: thread.subject,
+      data: { threadId: id },
+    });
+    await this.writeAudit(thread, user, ['Resolution proposed — awaiting resident confirmation']);
+    return updated;
+  }
+
+  /** Resident confirms (or rejects) a proposed resolution. Resident-driven. */
+  async confirmResolution(user: AuthenticatedUser, id: string, dto: ConfirmResolutionDto) {
+    const thread = await this.loadAndAuthorize(user, id);
+    if (this.isManagement(user)) {
+      throw new ForbiddenException('Only the resident can confirm resolution');
+    }
+    if (thread.status === ThreadStatus.CLOSED) {
+      throw new BadRequestException('This thread is closed');
+    }
+    const now = new Date();
+
+    if (dto.confirmed) {
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const u = await tx.thread.update({
+          where: { id },
+          data: {
+            status: ThreadStatus.RESOLVED,
+            resolvedAt: now,
+            resolutionProposedAt: null,
+            resolutionProposedByUserId: null,
+            lastMessageAt: now,
+          },
+        });
+        await tx.threadMessage.create({
+          data: {
+            threadId: id,
+            authorUserId: user.id,
+            kind: ThreadMessageKind.SYSTEM,
+            body: 'Resident confirmed the thread is resolved.',
+          },
+        });
+        return u;
+      });
+      this.events.emit('thread.status', { threadId: id, condoId: thread.condoId });
+      await this.notifications.dispatch({
+        userIds: await this.resolutionRecipients(thread, user.id),
+        kind: NotificationKind.THREAD_STATUS,
+        title: 'Thread resolved by resident',
+        body: thread.subject,
+        data: { threadId: id },
+      });
+      await this.writeAudit(thread, user, ['Resident confirmed resolution']);
+      return updated;
+    }
+
+    // Not resolved → hand back to management and clear the proposal.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.thread.update({
+        where: { id },
+        data: {
+          status: ThreadStatus.AWAITING_MANAGEMENT,
+          resolutionProposedAt: null,
+          resolutionProposedByUserId: null,
+          lastMessageAt: now,
+        },
+      });
+      await tx.threadMessage.create({
+        data: {
+          threadId: id,
+          authorUserId: user.id,
+          kind: ThreadMessageKind.SYSTEM,
+          body: 'Resident indicated the issue is not resolved.',
+        },
+      });
+      return u;
+    });
+    this.events.emit('thread.status', { threadId: id, condoId: thread.condoId });
+    await this.notifications.dispatch({
+      userIds: await this.resolutionRecipients(thread, user.id),
+      kind: NotificationKind.THREAD_STATUS,
+      title: 'Resident says not resolved',
+      body: thread.subject,
+      data: { threadId: id },
+    });
+    await this.writeAudit(thread, user, ['Resident rejected resolution']);
+    return updated;
+  }
+
+  /** Management explicitly requests something from the resident → AWAITING_RESIDENT. */
+  async requestResident(user: AuthenticatedUser, id: string, dto: RequestResidentDto) {
+    const thread = await this.loadAndAuthorize(user, id);
+    if (!this.isManagement(user)) {
+      throw new ForbiddenException('Only management can request a response from the resident');
+    }
+    if (thread.status === ThreadStatus.CLOSED) {
+      throw new BadRequestException('This thread is closed');
+    }
+    const now = new Date();
+    const note = dto.body?.trim();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.thread.update({
+        where: { id },
+        data: {
+          status: ThreadStatus.AWAITING_RESIDENT,
+          resolutionProposedAt: null,
+          resolutionProposedByUserId: null,
+          firstRespondedAt: thread.firstRespondedAt ?? now,
+          lastMessageAt: now,
+        },
+      });
+      if (note) {
+        await tx.threadMessage.create({
+          data: {
+            threadId: id,
+            authorUserId: user.id,
+            kind: ThreadMessageKind.MESSAGE,
+            body: note,
+          },
+        });
+      } else {
+        await tx.threadMessage.create({
+          data: {
+            threadId: id,
+            authorUserId: user.id,
+            kind: ThreadMessageKind.SYSTEM,
+            body: 'Management requested a response from the resident.',
+          },
+        });
+      }
+      return u;
+    });
+
+    this.events.emit('thread.status', { threadId: id, condoId: thread.condoId });
+    await this.notifications.dispatch({
+      userIds: [thread.createdByUserId].filter((uid) => uid !== user.id),
+      kind: NotificationKind.THREAD_MESSAGE,
+      title: `Action needed: ${thread.subject}`,
+      body: note ? note.slice(0, 140) : 'Management has requested a response from you.',
+      data: { threadId: id },
+    });
+    await this.writeAudit(thread, user, ['Requested response from resident']);
+    return updated;
+  }
+
+  private async resolutionRecipients(
+    thread: { assignedToUserId: string | null; condoId: string },
+    actorId: string,
+  ): Promise<string[]> {
+    const base = thread.assignedToUserId
+      ? [thread.assignedToUserId]
+      : await this.managementUserIds(thread.condoId);
+    return base.filter((uid) => uid !== actorId);
+  }
+
+  private async writeAudit(
+    thread: { id: string; condoId: string; unitId: string | null },
+    user: AuthenticatedUser,
+    changes: string[],
+  ): Promise<void> {
+    await this.prisma.auditLog.create({
+      data: {
+        condoId: thread.condoId,
+        unitId: thread.unitId,
+        actorUserId: user.id,
+        actorRole: user.activeRole,
+        action: AuditAction.UPDATE,
+        resourceType: 'Thread',
+        resourceId: thread.id,
+        metadata: { changes } as Prisma.InputJsonValue,
+      },
+    });
   }
 
   // -- read receipt --------------------------------------------------

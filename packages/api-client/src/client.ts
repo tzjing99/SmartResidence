@@ -37,6 +37,7 @@ export type ThreadStatus =
   | 'OPEN'
   | 'AWAITING_RESIDENT'
   | 'AWAITING_MANAGEMENT'
+  | 'PENDING_RESIDENT_CONFIRMATION'
   | 'RESOLVED'
   | 'CLOSED'
   | 'REOPENED';
@@ -54,6 +55,8 @@ export interface ThreadSummary {
   createdAt: string;
   firstResponseDueAt: string | null;
   resolutionDueAt: string | null;
+  resolutionProposedAt?: string | null;
+  resolutionProposedByUserId?: string | null;
   createdBy?: { id: string; name: string; email: string | null };
   assignedTo?: { id: string; name: string } | null;
   unit?: { id: string; identifier: string } | null;
@@ -389,6 +392,15 @@ export class ApiClient {
     body: { priority?: ThreadPriority; status?: ThreadStatus; assignedToUserId?: string },
   ) {
     return this.request<ThreadSummary>('PATCH', `/api/threads/${id}`, body);
+  }
+  proposeThreadResolution(id: string, body: { note?: string } = {}) {
+    return this.request<ThreadSummary>('POST', `/api/threads/${id}/propose-resolution`, body);
+  }
+  confirmThreadResolution(id: string, body: { confirmed: boolean }) {
+    return this.request<ThreadSummary>('POST', `/api/threads/${id}/confirm-resolution`, body);
+  }
+  requestThreadResident(id: string, body: { body?: string } = {}) {
+    return this.request<ThreadSummary>('POST', `/api/threads/${id}/request-resident`, body);
   }
   markThreadRead(id: string) {
     return this.request<void>('POST', `/api/threads/${id}/read`);

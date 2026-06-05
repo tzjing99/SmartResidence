@@ -219,6 +219,42 @@ export function useUpdateThread(api: ApiClient) {
   });
 }
 
+export function useProposeThreadResolution(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; note?: string }) =>
+      api.proposeThreadResolution(vars.id, { note: vars.note }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+export function useConfirmThreadResolution(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; confirmed: boolean }) =>
+      api.confirmThreadResolution(vars.id, { confirmed: vars.confirmed }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+export function useRequestThreadResident(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; body?: string }) =>
+      api.requestThreadResident(vars.id, { body: vars.body }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
 // -- FAQ -------------------------------------------------------------
 
 export function useFaqArticles(api: ApiClient, condoId: string | null, q = '') {

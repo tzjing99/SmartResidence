@@ -78,6 +78,31 @@ export class UpdateThreadDto {
   assignedToUserId?: string;
 }
 
+export class ProposeResolutionDto {
+  @ApiPropertyOptional({ description: 'Optional note shown to the resident with the proposal.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
+}
+
+export class ConfirmResolutionDto {
+  @ApiProperty({ description: 'true = resident confirms resolved; false = not resolved.' })
+  @IsBoolean()
+  confirmed!: boolean;
+}
+
+export class RequestResidentDto {
+  @ApiPropertyOptional({
+    description: 'Optional message to the resident describing what is needed.',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(4000)
+  body?: string;
+}
+
 export class ListThreadsDto extends PaginationDto {
   @ApiPropertyOptional({ enum: ThreadStatus })
   @IsOptional()

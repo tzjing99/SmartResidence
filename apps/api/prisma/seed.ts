@@ -577,6 +577,51 @@ async function main() {
         },
       },
     });
+
+    // 4) NORMAL, pending resident confirmation (management proposed resolved)
+    const proposedStart = now - 30 * 60 * 60 * 1000;
+    await prisma.thread.create({
+      data: {
+        condoId: condo.id,
+        unitId: ownerUnit.id,
+        createdByUserId: owner.id,
+        assignedToUserId: admin.id,
+        subject: 'Gym treadmill making a grinding noise',
+        category: ThreadCategory.FACILITY,
+        priority: ThreadPriority.NORMAL,
+        status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
+        firstResponseDueAt: dueFrom(proposedStart, 480),
+        resolutionDueAt: dueFrom(proposedStart, 4320),
+        firstRespondedAt: new Date(proposedStart + 45 * 60_000),
+        resolutionProposedAt: new Date(now - 2 * 60 * 60 * 1000),
+        resolutionProposedByUserId: admin.id,
+        createdAt: new Date(proposedStart),
+        lastMessageAt: new Date(now - 2 * 60 * 60 * 1000),
+        participants: { create: { userId: owner.id, lastReadAt: new Date() } },
+        messages: {
+          create: [
+            {
+              authorUserId: owner.id,
+              kind: ThreadMessageKind.MESSAGE,
+              body: 'Treadmill #2 in the gym makes a loud grinding noise when running.',
+              createdAt: new Date(proposedStart),
+            },
+            {
+              authorUserId: admin.id,
+              kind: ThreadMessageKind.MESSAGE,
+              body: 'Our vendor serviced the treadmill belt this morning — please confirm it is resolved.',
+              createdAt: new Date(proposedStart + 45 * 60_000),
+            },
+            {
+              authorUserId: admin.id,
+              kind: ThreadMessageKind.SYSTEM,
+              body: 'Management proposed this thread as resolved — awaiting resident confirmation.',
+              createdAt: new Date(now - 2 * 60 * 60 * 1000),
+            },
+          ],
+        },
+      },
+    });
   }
 
   console.log('');

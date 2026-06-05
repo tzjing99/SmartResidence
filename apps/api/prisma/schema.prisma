@@ -805,6 +805,7 @@ enum ThreadStatus {
   OPEN
   AWAITING_RESIDENT
   AWAITING_MANAGEMENT
+  PENDING_RESIDENT_CONFIRMATION
   RESOLVED
   CLOSED
   REOPENED
@@ -837,6 +838,9 @@ model Thread {
   firstRespondedAt   DateTime?
   resolvedAt         DateTime?
   closedAt           DateTime?
+  // Resident-driven resolution (D2): management proposes, resident confirms.
+  resolutionProposedAt       DateTime?
+  resolutionProposedByUserId String?  @db.Uuid
   lastMessageAt      DateTime       @default(now())
   metadata           Json           @default("{}")
   createdAt          DateTime       @default(now())

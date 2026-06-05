@@ -47,6 +47,7 @@ export type Action =
   | 'read'
   | 'update'
   | 'delete'
+  | 'resolve'
   | 'approve'
   | 'reject'
   | 'check-in'
@@ -75,10 +76,10 @@ export class AbilityFactory {
    * `/api/auth/me` to 500 and bounce signed-in users back to /sign-in.
    */
   build(user: AuthenticatedUser): AppAbility {
-    const { can, build } = new AbilityBuilder<AppAbility>(AppAbility);
+    const { can, cannot, build } = new AbilityBuilder<AppAbility>(AppAbility);
 
     for (const r of user.roles) {
-      this.applyRole(can, r.roleId, {
+      this.applyRole(can, cannot, r.roleId, {
         userId: user.id,
         condoId: r.condoId,
         unitId: r.unitId,
@@ -93,6 +94,7 @@ export class AbilityFactory {
 
   private applyRole(
     can: AbilityBuilder<AppAbility>['can'],
+    cannot: AbilityBuilder<AppAbility>['cannot'],
     role: RoleId,
     scope: { userId: string; condoId: string | null; unitId: string | null },
   ): void {
@@ -117,6 +119,8 @@ export class AbilityFactory {
         can('manage', 'Announcement', { condoId: scope.condoId ?? '' });
         can('manage', 'RoleAssignment', { condoId: scope.condoId ?? '' });
         can('manage', 'Thread', { condoId: scope.condoId ?? '' });
+        // Resolution is resident-driven (D2): management proposes, never resolves.
+        cannot('resolve', 'Thread');
         can('manage', 'ThreadMessage');
         can('manage', 'Faq', { condoId: scope.condoId ?? '' });
         can('read', 'AuditLog', { condoId: scope.condoId ?? '' });
@@ -159,6 +163,8 @@ export class AbilityFactory {
         can('revoke', 'RoleAssignment', { unitId: scope.unitId ?? '' });
         can('read', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'Thread');
+        // Resident-driven resolution (D2): residents confirm/resolve their threads.
+        can('resolve', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'ThreadMessage');
         can('read', 'Faq', { condoId: scope.condoId ?? '' });
         // Owner empowerment: full read on own unit's audit log
@@ -177,6 +183,7 @@ export class AbilityFactory {
         can('acknowledge', 'Announcement');
         can('read', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'Thread');
+        can('resolve', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'ThreadMessage');
         can('read', 'Faq', { condoId: scope.condoId ?? '' });
         can('read', 'User', { id: scope.userId });
@@ -190,6 +197,7 @@ export class AbilityFactory {
         can('read', 'Announcement', { condoId: scope.condoId ?? '' });
         can('read', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'Thread');
+        can('resolve', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'ThreadMessage');
         can('read', 'Faq', { condoId: scope.condoId ?? '' });
         can('read', 'User', { id: scope.userId });

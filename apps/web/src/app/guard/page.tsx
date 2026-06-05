@@ -20,8 +20,11 @@ export default function GuardPage() {
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Visitor verification</h1>
         <p className="sr-muted mt-1">
-          Expected visitors across the condo. Scan a visitor QR in the mobile app to check them in
-          or out.
+          Expected visitors across the condo. Use{' '}
+          <a href="/guard/check-in" className="text-coral-500 hover:underline">
+            check-in
+          </a>{' '}
+          or the mobile guard app to verify passes.
         </p>
       </header>
 

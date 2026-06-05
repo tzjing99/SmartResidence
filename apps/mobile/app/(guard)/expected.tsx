@@ -4,6 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { api } from '../../src/lib/api';
 
+function passFor(v: { id: string; accessCode?: string; qrPayload?: string; qrCode?: string }) {
+  return v.accessCode ?? v.qrPayload ?? v.qrCode ?? v.id;
+}
+
 export default function ExpectedScreen() {
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -19,14 +23,30 @@ export default function ExpectedScreen() {
 
   const items = (visitors.data?.items as any[]) ?? [];
 
-  async function checkIn(qrCode: string, name: string) {
-    try {
-      await api.checkInVisitor(qrCode, { gateLocation: 'Main gate' });
-      Alert.alert('Checked in', `${name} is in.`);
-      visitors.refetch();
-    } catch (err) {
-      Alert.alert('Could not check in', (err as Error).message);
-    }
+  function confirmCheckIn(v: {
+    id: string;
+    name: string;
+    accessCode?: string;
+    qrPayload?: string;
+    qrCode?: string;
+    unit?: { identifier?: string };
+  }) {
+    const pass = passFor(v);
+    Alert.alert('Allow entry', `${v.name}\nUnit: ${v.unit?.identifier ?? '—'}`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Check in',
+        onPress: async () => {
+          try {
+            await api.checkInVisitor(pass, { gateLocation: 'Main gate' });
+            Alert.alert('Checked in', `${v.name} is in.`);
+            visitors.refetch();
+          } catch (err) {
+            Alert.alert('Could not check in', (err as Error).message);
+          }
+        },
+      },
+    ]);
   }
 
   return (
@@ -50,11 +70,23 @@ export default function ExpectedScreen() {
               <View style={{ flex: 1, paddingRight: 8 }}>
                 <Text style={{ fontWeight: '600' }}>{v.name}</Text>
                 <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                  {v.unit?.identifier ?? '—'} · {new Date(v.expectedAt).toLocaleString()}
+                  {v.unit?.identifier ?? 'Office'} · {new Date(v.expectedAt).toLocaleString()}
                 </Text>
+                {v.accessCode ? (
+                  <Text
+                    style={{
+                      fontFamily: 'monospace',
+                      fontWeight: '700',
+                      marginTop: 4,
+                      letterSpacing: 2,
+                    }}
+                  >
+                    {v.accessCode}
+                  </Text>
+                ) : null}
                 {v.vehiclePlate ? <Pill tone="neutral" label={v.vehiclePlate} /> : null}
               </View>
-              <Button title="Check in" size="sm" onPress={() => checkIn(v.qrCode, v.name)} />
+              <Button title="Allow" size="sm" onPress={() => confirmCheckIn(v)} />
             </View>
           </Card>
         ))

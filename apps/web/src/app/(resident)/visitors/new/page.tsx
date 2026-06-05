@@ -24,9 +24,9 @@ export default function NewVisitorPage() {
     if (!unit) return;
     const payload: CreateVisitorInput = { ...values, unitId: unit.id };
     try {
-      await create.mutateAsync(payload);
+      const created = await create.mutateAsync(payload);
       toast.success('Visitor pass created');
-      router.push('/visitors');
+      router.push(`/visitors/${created.id}`);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -35,7 +35,9 @@ export default function NewVisitorPage() {
   return (
     <div className="max-w-xl">
       <h2 className="sr-section-title mb-1">Pre-register a visitor</h2>
-      <p className="sr-muted mb-6">A QR pass is generated automatically.</p>
+      <p className="sr-muted mb-6">
+        A QR pass and short access code are generated automatically for the guard.
+      </p>
       <Card>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1.5">

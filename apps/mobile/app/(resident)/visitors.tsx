@@ -1,4 +1,10 @@
-import { useCreateVisitor, useMyUnits, useUnitVisitors } from '@smartresidence/api-client';
+import {
+  useApproveVisitor,
+  useCreateVisitor,
+  useMyUnits,
+  useRejectVisitor,
+  useUnitVisitors,
+} from '@smartresidence/api-client';
 import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
 import { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
@@ -10,6 +16,8 @@ export default function VisitorsScreen() {
   const unit = units.data?.[0] as { id: string } | undefined;
   const visitors = useUnitVisitors(api, unit?.id ?? null);
   const create = useCreateVisitor(api);
+  const approve = useApproveVisitor(api);
+  const reject = useRejectVisitor(api);
 
   const [name, setName] = useState('');
   const [plate, setPlate] = useState('');
@@ -27,6 +35,24 @@ export default function VisitorsScreen() {
       setPlate('');
     } catch (err) {
       Alert.alert('Could not create visitor', (err as Error).message);
+    }
+  }
+
+  async function onApprove(id: string) {
+    try {
+      await approve.mutateAsync(id);
+      Alert.alert('Approved', 'Guard may check the visitor in.');
+    } catch (err) {
+      Alert.alert('Could not approve', (err as Error).message);
+    }
+  }
+
+  async function onReject(id: string) {
+    try {
+      await reject.mutateAsync({ visitorId: id });
+      Alert.alert('Rejected', 'Guard has been notified.');
+    } catch (err) {
+      Alert.alert('Could not reject', (err as Error).message);
     }
   }
 
@@ -80,9 +106,16 @@ export default function VisitorsScreen() {
                 <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
                   {new Date(v.expectedAt).toLocaleString()}
                 </Text>
-                {v.vehiclePlate ? (
-                  <Text style={{ color: palette.mutedLight, fontSize: 12 }}>
-                    Plate: {v.vehiclePlate}
+                {v.accessCode ? (
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: '700',
+                      letterSpacing: 2,
+                      marginTop: 8,
+                    }}
+                  >
+                    {v.accessCode}
                   </Text>
                 ) : null}
                 <View style={{ marginTop: 8, flexDirection: 'row' }}>
@@ -90,17 +123,32 @@ export default function VisitorsScreen() {
                     tone={
                       v.status === 'CHECKED_IN'
                         ? 'success'
-                        : v.status === 'CANCELLED'
-                          ? 'danger'
-                          : 'primary'
+                        : v.status === 'PENDING_OWNER_APPROVAL'
+                          ? 'warning'
+                          : v.status === 'CANCELLED' || v.status === 'REJECTED'
+                            ? 'danger'
+                            : 'primary'
                     }
-                    label={v.status.toLowerCase().replace('_', ' ')}
+                    label={v.status.toLowerCase().replace(/_/g, ' ')}
                   />
                 </View>
+                {v.status === 'PENDING_OWNER_APPROVAL' ? (
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                    <Button title="Approve" size="sm" onPress={() => onApprove(v.id)} />
+                    <Button
+                      title="Reject"
+                      size="sm"
+                      variant="outline"
+                      onPress={() => onReject(v.id)}
+                    />
+                  </View>
+                ) : null}
               </View>
-              <View style={{ borderRadius: radius.md, padding: 6, backgroundColor: '#fff' }}>
-                <QRCode value={v.qrCode} size={80} />
-              </View>
+              {v.qrPayload || v.qrCode ? (
+                <View style={{ borderRadius: radius.md, padding: 6, backgroundColor: '#fff' }}>
+                  <QRCode value={v.qrPayload ?? v.qrCode} size={80} />
+                </View>
+              ) : null}
             </View>
           </Card>
         ))

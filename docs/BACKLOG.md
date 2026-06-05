@@ -352,7 +352,7 @@ When a resident opens a thread, the system should assign it to the right managem
 
 | ID | Priority | Roadmap | Description |
 | --- | --- | --- | --- |
-| **F1** | P1 | v0.3 | Visitor Collaboration v2 — two-path visitor flow. |
+| **F1** | ✅ Done | v0.3 | Visitor Collaboration v2 — two-path visitor flow. |
 | **F2** | P3 | future | Dedicated `SUPER_ADMIN` platform / multi-condo view. |
 
 ### F1 — Visitor Collaboration v2

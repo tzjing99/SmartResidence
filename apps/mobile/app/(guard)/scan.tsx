@@ -6,6 +6,20 @@ import { Alert, Text, View } from 'react-native';
 import { api } from '../../src/lib/api';
 import { enqueueCheckIn, flushQueue, pendingCount } from '../../src/lib/guard-queue';
 
+type VerifiedVisitor = {
+  name: string;
+  accessCode?: string;
+  unit?: { identifier?: string; block?: { name?: string } };
+  expectedAt?: string;
+};
+
+function unitLabel(visitor: VerifiedVisitor) {
+  const block = visitor.unit?.block?.name;
+  const unit = visitor.unit?.identifier;
+  if (block && unit) return `${block} · ${unit}`;
+  return unit ?? '—';
+}
+
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [busy, setBusy] = useState(false);
@@ -37,24 +51,35 @@ export default function ScanScreen() {
     );
   }
 
+  async function confirmCheckIn(pass: string, visitor: VerifiedVisitor) {
+    try {
+      await api.checkInVisitor(pass, { gateLocation: 'Main gate' });
+      Alert.alert('Welcome', `${visitor.name} checked in.`);
+    } catch {
+      await enqueueCheckIn({ qrCode: pass, gateLocation: 'Main gate' });
+      Alert.alert('Queued', 'Network unavailable — check-in will sync automatically.');
+      setPending(await pendingCount());
+    }
+  }
+
   async function onScan(value: string) {
     if (busy || value === last) return;
     setBusy(true);
     setLast(value);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
-      const visitor = await api.verifyQr(value);
-      try {
-        await api.checkInVisitor(value, { gateLocation: 'Main gate' });
-        Alert.alert('Welcome', `${(visitor as any).name} checked in.`);
-      } catch {
-        await enqueueCheckIn({ qrCode: value, gateLocation: 'Main gate' });
-        Alert.alert('Queued', 'Network unavailable — check-in will sync automatically.');
-        setPending(await pendingCount());
-      }
+      const visitor = (await api.verifyQr(value)) as VerifiedVisitor;
+      Alert.alert(
+        'Confirm check-in',
+        `${visitor.name}\nUnit: ${unitLabel(visitor)}\nCode: ${visitor.accessCode ?? '—'}`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Check in', onPress: () => void confirmCheckIn(value, visitor) },
+        ],
+      );
     } catch (err) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Unknown QR', (err as Error).message);
+      Alert.alert('Unknown pass', (err as Error).message);
     } finally {
       setTimeout(() => setBusy(false), 1500);
     }

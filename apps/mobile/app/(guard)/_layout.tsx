@@ -40,6 +40,15 @@ export default function GuardLayout() {
         }}
       />
       <Tabs.Screen
+        name="walkin"
+        options={{
+          title: 'Walk-in',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-add-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',

@@ -94,7 +94,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Owner empowerment** | ✅ | `owner/delegated-access` endpoint; **"Who viewed my data"** page (`who-viewed`); per-unit audit reads |
 | **Audit log** | ✅ | `AuditLog` + `audit-log.interceptor`; condo/unit/actor scoped; `AuditAction` enum |
 | **Visitor — pre-register & QR** | ✅ | `visitor.service`: create + `nanoid` QR + QR PNG; guard check-in/out; mobile guard `scan` / `expected` / `manual` screens |
-| **Visitor — two-path / owner approval / access code / offline** | ⬜ | `create()` currently **auto-approves** (`status: APPROVED`, host == approver); no walk-in approval gate, no short access code, no offline tolerance |
+| **Visitor — two-path / owner approval / access code / offline** | ✅ | Pre-reg fast lane (6-char code + `condoId:visitorId:code` QR), walk-in unit (`PENDING_OWNER_APPROVAL`, 15 min timeout), office immediate check-in; guard offline queue on mobile; management read-only |
 | **Billing & payments** | ✅ (core) | `Invoice / InvoiceLine / Payment`; invoice numbering; partial-payment reconciliation; **Stripe + FPX adapters**; pluggable `PaymentProviderAdapter` |
 | **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) + receipts/statements** | ⬜ | `PaymentProvider` enum has STRIPE/FPX/IPAY88/RAZER/MANUAL; e-wallet adapters & itemized statement/receipt PDFs not built |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |

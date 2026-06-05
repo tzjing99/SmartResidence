@@ -1,5 +1,6 @@
 'use client';
 
+import { PageFade } from '@/components/shell-nav';
 import { api, writeSession } from '@/lib/api';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useMyCondos } from '@smartresidence/api-client';
@@ -53,7 +54,9 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
           Sign out
         </button>
       </header>
-      <main className="flex-1 min-w-0 p-6 md:p-10 max-w-4xl w-full mx-auto">{children}</main>
+      <main className="flex-1 min-w-0 p-6 md:p-10 max-w-4xl w-full mx-auto">
+        <PageFade>{children}</PageFade>
+      </main>
     </div>
   );
 }

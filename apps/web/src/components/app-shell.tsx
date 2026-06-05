@@ -1,10 +1,11 @@
 'use client';
 
+import { NavLinks, PageFade } from '@/components/shell-nav';
 import { api, writeSession } from '@/lib/api';
+import { resolveActiveHref } from '@/lib/nav';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useMyCondos } from '@smartresidence/api-client';
-import { cn } from '@smartresidence/ui-web';
 import {
   Bell,
   CalendarClock,
@@ -114,25 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
         {condo ? <div className="px-2 text-xs sr-muted mb-6 truncate">{condo.name}</div> : null}
 
-        <nav className="flex-1 flex flex-col gap-1">
-          {navItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-                  active ? 'bg-coral-500/10 text-coral-500' : 'hover:bg-[rgb(var(--sr-border))]/40',
-                )}
-              >
-                <Icon className="size-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <NavLinks items={navItems} />
         <div className="border-t border-[rgb(var(--sr-border))] pt-4 mt-4 flex flex-col gap-2">
           {me.data ? (
             <div className="text-xs sr-muted px-2 truncate">
@@ -154,7 +137,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-6 py-3 flex items-center justify-between">
           <h1 className="text-base font-semibold tracking-tight">
-            {navItems.find((i) => pathname.startsWith(i.href))?.label ?? 'SmartResidence'}
+            {navItems.find(
+              (i) =>
+                i.href ===
+                resolveActiveHref(
+                  pathname,
+                  navItems.map((n) => n.href),
+                ),
+            )?.label ?? 'SmartResidence'}
           </h1>
           <div className="flex items-center gap-2">
             <button type="button" className="p-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40">
@@ -162,7 +152,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <div className="p-6 md:p-10 max-w-5xl">{children}</div>
+        <div className="p-6 md:p-10 max-w-5xl">
+          <PageFade>{children}</PageFade>
+        </div>
       </main>
     </div>
   );

@@ -26,6 +26,24 @@ test('management admin lands on the /admin portal', async ({ page }) => {
   await expect(sidebar.getByRole('link', { name: 'Roles', exact: true })).toBeVisible();
 });
 
+test('admin nav highlights the active route and not the dashboard index', async ({ page }) => {
+  await signIn(page, 'admin@acacia.demo');
+  await expect(page).toHaveURL(/\/admin/, { timeout: 15_000 });
+  const sidebar = page.getByRole('navigation');
+  const dashboard = sidebar.getByRole('link', { name: 'Dashboard', exact: true });
+  const units = sidebar.getByRole('link', { name: 'Residents & units', exact: true });
+
+  // On the index route, only Dashboard is current.
+  await expect(dashboard).toHaveAttribute('aria-current', 'page');
+  await expect(units).not.toHaveAttribute('aria-current', 'page');
+
+  // Click Units → highlight moves to Units, Dashboard is no longer active.
+  await units.click();
+  await expect(page).toHaveURL(/\/admin\/units/, { timeout: 15_000 });
+  await expect(units).toHaveAttribute('aria-current', 'page');
+  await expect(dashboard).not.toHaveAttribute('aria-current', 'page');
+});
+
 test('security guard lands on the minimal /guard view', async ({ page }) => {
   await signIn(page, 'guard@acacia.demo');
   await expect(page).toHaveURL(/\/guard/, { timeout: 15_000 });

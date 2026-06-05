@@ -1,11 +1,11 @@
 'use client';
 
+import { NavLinks, PageFade } from '@/components/shell-nav';
 import { api, writeSession } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useMyCondos } from '@smartresidence/api-client';
 import { ROLE_LABEL } from '@smartresidence/shared-types';
-import { cn } from '@smartresidence/ui-web';
 import {
   BarChart3,
   Building2,
@@ -21,7 +21,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 /**
@@ -89,7 +89,6 @@ const NAV: Array<{
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const { role, abilities, ready } = useRoleGuard('admin');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -134,25 +133,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {condo.name}
           </div>
         ) : null}
-        <nav className="flex-1 flex flex-col gap-1">
-          {navItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
-                  active ? 'bg-coral-500/10 text-coral-500' : 'hover:bg-[rgb(var(--sr-border))]/40',
-                )}
-              >
-                <Icon className="size-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <NavLinks items={navItems} />
         <button
           type="button"
           onClick={signOut}
@@ -162,7 +143,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           Sign out
         </button>
       </aside>
-      <main className="flex-1 min-w-0 p-6 md:p-10">{children}</main>
+      <main className="flex-1 min-w-0 p-6 md:p-10">
+        <PageFade>{children}</PageFade>
+      </main>
     </div>
   );
 }

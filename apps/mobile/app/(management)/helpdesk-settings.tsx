@@ -1,6 +1,6 @@
 import { useMyCondos, useSlaSettings, useUpdateSlaSettings } from '@smartresidence/api-client';
 import type { ThreadPriority } from '@smartresidence/api-client';
-import { Button, Card, Stack, palette } from '@smartresidence/ui-mobile';
+import { Button, Card, palette } from '@smartresidence/ui-mobile';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
 import { api } from '../../src/lib/api';

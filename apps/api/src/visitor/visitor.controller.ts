@@ -1,7 +1,6 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import {
   BadRequestException,
@@ -18,20 +17,20 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuditAction, type VisitorStatus } from '@prisma/client';
+import { AuditAction } from '@prisma/client';
 import {
   CheckInVisitorDto,
   CreateFavouriteVisitorDto,
   CreateVisitorDto,
-  CreateWalkInOfficeDto,
   CreateWalkInUnitDto,
+  CreateWalkInOfficeDto,
   FlagPlateMismatchDto,
+  ListVisitorsQueryDto,
   RejectVisitorDto,
   SuspendOvernightDto,
   UpdateFavouriteVisitorDto,
   UpdateVisitorSettingsDto,
 } from './dto/visitor.dto';
-import type { VisitorAdminFilter, VisitorListView } from './visitor.constants';
 import { VisitorService } from './visitor.service';
 
 @ApiTags('Visitors')
@@ -230,10 +229,9 @@ export class VisitorController {
   @CheckAbility({ action: 'read', subject: 'Visitor' })
   forUnit(
     @Param('unitId', new ParseUUIDPipe()) unitId: string,
-    @Query() page: PaginationDto,
-    @Query('view') view?: VisitorListView,
-    @Query('status') status?: VisitorStatus,
+    @Query() query: ListVisitorsQueryDto,
   ) {
+    const { view, status, ...page } = query;
     return this.visitors.listForUnit(unitId, { ...page, view, status });
   }
 
@@ -241,11 +239,9 @@ export class VisitorController {
   @CheckAbility({ action: 'read', subject: 'Visitor' })
   forCondo(
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
-    @Query() page: PaginationDto,
-    @Query('status') status?: VisitorStatus,
-    @Query('view') view?: VisitorListView,
-    @Query('filter') filter?: VisitorAdminFilter,
+    @Query() query: ListVisitorsQueryDto,
   ) {
+    const { view, status, filter, ...page } = query;
     return this.visitors.listForCondo(condoId, { ...page, status, view, filter });
   }
 

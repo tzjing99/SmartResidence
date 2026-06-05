@@ -19,7 +19,7 @@ export default function HomeScreen() {
   const unit = units.data?.[0] as { id: string; identifier: string } | undefined;
   const condo = condos.data?.[0];
   const invoices = useUnitInvoices(api, unit?.id ?? null);
-  const visitors = useUnitVisitors(api, unit?.id ?? null);
+  const visitors = useUnitVisitors(api, unit?.id ?? null, 'upcoming');
   const announcements = useCondoAnnouncements(api, condo?.id ?? null);
 
   const openInvoice = (invoices.data?.items as any[] | undefined)?.find(

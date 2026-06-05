@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; identifier: string; condoId: string } | undefined;
   const condo = condos.data?.[0];
-  const visitors = useUnitVisitors(api, unit?.id ?? null);
+  const visitors = useUnitVisitors(api, unit?.id ?? null, 'upcoming');
   const invoices = useUnitInvoices(api, unit?.id ?? null);
   const defects = useUnitDefects(api, unit?.id ?? null);
   const announcements = useCondoAnnouncements(api, condo?.id ?? null);

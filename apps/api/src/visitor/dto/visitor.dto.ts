@@ -1,10 +1,12 @@
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { VisitorEntryMode, VisitorPurpose } from '@prisma/client';
+import { VisitorEntryMode, VisitorPurpose, VisitorStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDate,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -14,6 +16,24 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
+import type { VisitorAdminFilter, VisitorListView } from '../visitor.constants';
+
+export class ListVisitorsQueryDto extends PaginationDto {
+  @ApiPropertyOptional({ enum: ['upcoming', 'history'] })
+  @IsOptional()
+  @IsIn(['upcoming', 'history'])
+  view?: VisitorListView;
+
+  @ApiPropertyOptional({ enum: VisitorStatus })
+  @IsOptional()
+  @IsEnum(VisitorStatus)
+  status?: VisitorStatus;
+
+  @ApiPropertyOptional({ enum: ['overnight_pending', 'urgent_overnight', 'holiday_review'] })
+  @IsOptional()
+  @IsIn(['overnight_pending', 'urgent_overnight', 'holiday_review'])
+  filter?: VisitorAdminFilter;
+}
 
 export class CreateVisitorDto {
   @ApiProperty()
@@ -37,11 +57,11 @@ export class CreateVisitorDto {
   @MaxLength(6)
   phoneCountryCode?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({ maxLength: 30 })
   @IsString()
+  @MinLength(1)
   @MaxLength(30)
-  phone?: string;
+  phone!: string;
 
   @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.DRIVE_IN })
   @IsOptional()
@@ -299,11 +319,11 @@ export class CreateFavouriteVisitorDto {
   @MaxLength(6)
   phoneCountryCode?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({ maxLength: 30 })
   @IsString()
+  @MinLength(1)
   @MaxLength(30)
-  phone?: string;
+  phone!: string;
 
   @ApiPropertyOptional({ enum: VisitorEntryMode, default: VisitorEntryMode.DRIVE_IN })
   @IsOptional()

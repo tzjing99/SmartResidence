@@ -6,19 +6,24 @@ Tracked defects and deferred refinements not yet scheduled into a milestone; see
 
 Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
+## Recently completed
+
+- ✅ **D1 — Announcement rich-text rendering** — sanitized markdown rendering on web (resident + admin pages) and mobile, plus a live markdown preview in the admin composer.
+- ✅ **T1 — Repo-wide lint for green CI** — `corepack pnpm lint` now exits 0 (ignored generated dirs incl. `.docusaurus`; fixed residual format/import-sort errors).
+
 ## Defects
 
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
-| **D1** | P1 | web + mobile | Announcement rich-text rendering. Announcement bodies are authored/stored as markdown but render as literal text (e.g. `## Notice from JMB` and `**June 12, 2026**` appear raw instead of formatted). |
+| **D1** | ✅ Done | web + mobile | Announcement rich-text rendering. Announcement bodies are authored/stored as markdown but render as literal text (e.g. `## Notice from JMB` and `**June 12, 2026**` appear raw instead of formatted). |
 | **D2** | P2 | api + web | Helpdesk thread behavior does not match the intended resident-driven resolution model. |
 
-### D1 — Announcement rich-text rendering
+### D1 — Announcement rich-text rendering ✅ Done
 
 Render markdown/rich text on display in **both** the web announcements pages and the mobile app, **and** provide a rich-text editor in the admin announcements composer (`apps/web/src/app/admin/announcements/page.tsx`).
 
-- Decide on a safe, sanitized markdown renderer for display.
-- Add a lightweight rich-text/markdown editor for authoring.
+- ✅ Safe, sanitized markdown renderer for display (`react-markdown` + `remark-gfm` + `rehype-sanitize` on web via a shared `<Markdown>` component; `react-native-markdown-display` on mobile).
+- ✅ Markdown authoring in the admin composer (textarea + live sanitized preview pane using the same `<Markdown>` component).
 
 Test case (the sample notice should render formatted, not raw):
 
@@ -76,15 +81,15 @@ Super admin currently reuses the `/admin` dashboard labeled "Platform portal"; a
 
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
-| **T1** | P2 | CI | Repo-wide lint for green CI. |
+| **T1** | ✅ Done | CI | Repo-wide lint for green CI. |
 | **T2** | P3 | tests | Confirm test-config additions are acceptable long-term. |
 
-### T1 — Repo-wide lint for green CI
+### T1 — Repo-wide lint for green CI ✅ Done
 
-Full-repo `corepack pnpm lint` still exits 1 on pre-existing issues in files not touched recently.
+Full-repo `corepack pnpm lint` now exits 0 (warnings only; no errors).
 
-- Add generated `apps/docs/.docusaurus` artifacts to Biome's ignore list.
-- Clean residual import-sort / `noExplicitAny` items in `seed.ts`, `auth.service.ts`, `owner.controller.ts`, and `apps/mobile/tsconfig.json` so the CI lint job is green.
+- ✅ Added generated `apps/docs/.docusaurus` (plus generated Expo `expo-env.d.ts` / `nativewind-env.d.ts`) to Biome's ignore list.
+- ✅ Fixed the residual **error**-level issues: `organizeImports` import-sort in `auth.service.ts` and `format` in `apps/mobile/tsconfig.json`. Remaining `noExplicitAny` / `noNonNullAssertion` items (incl. `seed.ts`, `owner.controller.ts`) are configured as warnings and are acceptable.
 
 ### T2 — Confirm test-config additions
 

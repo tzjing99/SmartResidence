@@ -13,10 +13,13 @@
       "**/build",
       "**/.next",
       "**/.expo",
+      "**/.docusaurus",
       "**/coverage",
       "**/generated",
       "**/*.generated.*",
-      "**/prisma/migrations"
+      "**/prisma/migrations",
+      "**/expo-env.d.ts",
+      "**/nativewind-env.d.ts"
     ]
   },
   "formatter": {

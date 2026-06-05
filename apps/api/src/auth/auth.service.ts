@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma, RoleId, UserStatus, VerificationPurpose } from '@prisma/client';
 import * as argon2 from 'argon2';
 import type { RequestOtpDto, SignInDto, SignUpDto, VerifyOtpDto } from './dto/auth.dto';
-import { SessionService, type DeviceInfo } from './session.service';
+import { type DeviceInfo, SessionService } from './session.service';
 import { TotpService } from './totp.service';
 
 const OTP_TTL_SECONDS = 10 * 60;

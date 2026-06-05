@@ -1,11 +1,11 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import type { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditAction, InvoiceStatus, PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import type { CreateInvoiceDto, CreatePaymentDto } from './dto/billing.dto';
-import type { FpxAdapter } from './providers/fpx.adapter';
+import { FpxAdapter } from './providers/fpx.adapter';
 import type { PaymentProviderAdapter } from './providers/payment-provider.interface';
-import type { StripeAdapter } from './providers/stripe.adapter';
+import { StripeAdapter } from './providers/stripe.adapter';
 
 @Injectable()
 export class BillingService {

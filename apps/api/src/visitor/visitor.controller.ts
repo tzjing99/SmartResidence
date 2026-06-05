@@ -18,7 +18,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction, type VisitorStatus } from '@prisma/client';
 import type { CheckInVisitorDto, CreateVisitorDto } from './dto/visitor.dto';
-import type { VisitorService } from './visitor.service';
+import { VisitorService } from './visitor.service';
 
 @ApiTags('Visitors')
 @ApiBearerAuth('access')

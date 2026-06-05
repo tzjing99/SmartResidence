@@ -5,7 +5,7 @@ import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AuditAction } from '@prisma/client';
-import type { AuditService } from './audit.service';
+import { AuditService } from './audit.service';
 
 @ApiTags('Audit')
 @ApiBearerAuth('access')

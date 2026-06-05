@@ -4,7 +4,7 @@ import type { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { TenantService } from './tenant.service';
+import { TenantService } from './tenant.service';
 
 @ApiTags('Tenancy')
 @ApiBearerAuth('access')

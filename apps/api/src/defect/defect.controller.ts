@@ -6,7 +6,7 @@ import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction, type DefectStatus } from '@prisma/client';
-import type { DefectService } from './defect.service';
+import { DefectService } from './defect.service';
 import type { AddDefectUpdateDto, CreateDefectDto, TransitionDefectDto } from './dto/defect.dto';
 
 @ApiTags('Defects')

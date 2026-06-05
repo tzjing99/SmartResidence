@@ -1,6 +1,6 @@
 import type { AppEnv } from '@/config/env.schema';
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import type { PaymentIntentResult, PaymentProviderAdapter } from './payment-provider.interface';
 

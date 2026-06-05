@@ -1,6 +1,6 @@
 import type { AppEnv } from '@/config/env.schema';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { Client as MinioClient } from 'minio';
 
 export interface PresignedUpload {

@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { AppEnv } from '@/config/env.schema';
-import type { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -9,12 +9,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, RoleId, UserStatus, VerificationPurpose } from '@prisma/client';
 import * as argon2 from 'argon2';
 import type { RequestOtpDto, SignInDto, SignUpDto, VerifyOtpDto } from './dto/auth.dto';
-import type { DeviceInfo, SessionService } from './session.service';
-import type { TotpService } from './totp.service';
+import { SessionService, type DeviceInfo } from './session.service';
+import { TotpService } from './totp.service';
 
 const OTP_TTL_SECONDS = 10 * 60;
 

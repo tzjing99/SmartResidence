@@ -1,5 +1,5 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import type { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import type { AuditAction, Prisma } from '@prisma/client';
 

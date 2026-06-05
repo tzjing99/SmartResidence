@@ -6,7 +6,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiProperty } from '@nestjs/swagger';
 import { PushKind } from '@prisma/client';
 import { IsArray, IsEnum, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
-import type { NotificationService } from './notification.service';
+import { NotificationService } from './notification.service';
 
 class RegisterPushDto {
   @ApiProperty({ enum: PushKind })

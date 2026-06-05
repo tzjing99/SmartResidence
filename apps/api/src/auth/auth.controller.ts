@@ -17,8 +17,8 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
 import type { Request } from 'express';
-import type { AbilityFactory } from './abilities/ability.factory';
-import type { AuthService } from './auth.service';
+import { AbilityFactory } from './abilities/ability.factory';
+import { AuthService } from './auth.service';
 import { Public } from './decorators/public.decorator';
 import type {
   EnableTotpDto,

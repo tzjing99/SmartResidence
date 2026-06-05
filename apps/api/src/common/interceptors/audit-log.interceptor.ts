@@ -1,6 +1,6 @@
 import { AUDIT_META_KEY, type AuditMeta } from '@/common/decorators/audit.decorator';
 import type { RequestWithContext } from '@/common/types/request-context';
-import type { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import {
   type CallHandler,
   type ExecutionContext,
@@ -8,7 +8,7 @@ import {
   Logger,
   type NestInterceptor,
 } from '@nestjs/common';
-import type { Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { type Observable, tap } from 'rxjs';
 
 @Injectable()

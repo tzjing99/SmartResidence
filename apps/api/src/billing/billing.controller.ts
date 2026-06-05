@@ -17,9 +17,9 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction, type InvoiceStatus } from '@prisma/client';
-import type { BillingService } from './billing.service';
+import { BillingService } from './billing.service';
 import type { CreateInvoiceDto, CreatePaymentDto } from './dto/billing.dto';
-import type { StripeAdapter } from './providers/stripe.adapter';
+import { StripeAdapter } from './providers/stripe.adapter';
 
 @ApiTags('Billing')
 @ApiBearerAuth('access')

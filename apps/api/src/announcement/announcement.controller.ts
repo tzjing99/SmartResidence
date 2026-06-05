@@ -6,7 +6,7 @@ import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
-import type { AnnouncementService } from './announcement.service';
+import { AnnouncementService } from './announcement.service';
 import type { CreateAnnouncementDto } from './dto/announcement.dto';
 
 @ApiTags('Announcements')

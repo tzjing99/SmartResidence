@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import type { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuditAction, VisitorStatus } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import * as QRCode from 'qrcode';

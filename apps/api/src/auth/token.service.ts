@@ -1,7 +1,7 @@
 import type { AppEnv } from '@/config/env.schema';
-import type { RedisService } from '@/redis/redis.service';
+import { RedisService } from '@/redis/redis.service';
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
 import { SignJWT, jwtVerify } from 'jose';
 import { nanoid } from 'nanoid';

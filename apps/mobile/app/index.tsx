@@ -18,8 +18,11 @@ export default function Bootstrap() {
       }
       try {
         const me = await api.me();
-        const isGuard = (me as any).user?.activeRole === 'SECURITY_GUARD';
-        router.replace(isGuard ? '/(guard)/scan' : '/(resident)/home');
+        const role = (me as { user?: { activeRole?: string } }).user?.activeRole;
+        if (role === 'SECURITY_GUARD') router.replace('/(guard)/scan');
+        else if (role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') {
+          router.replace('/(management)/helpdesk-settings');
+        } else router.replace('/(resident)/home');
       } catch {
         router.replace('/sign-in');
       }

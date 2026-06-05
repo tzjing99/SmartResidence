@@ -215,7 +215,7 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
         </View>
 
         <View style={[{ gap: 8 }, fieldGap]}>
-          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Phone (optional)</Text>
+          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Phone</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
             {PHONE_COUNTRY_CODES.map((code) => {
               const active = form.watch('phoneCountryCode') === code;
@@ -247,11 +247,16 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
           </View>
           <TextInput
             value={form.watch('phone') ?? ''}
-            onChangeText={(v) => form.setValue('phone', v)}
+            onChangeText={(v) => form.setValue('phone', v, { shouldValidate: true })}
             style={inputStyle}
             keyboardType="phone-pad"
             placeholder="Local number"
           />
+          {form.formState.errors.phone ? (
+            <Text style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>
+              {form.formState.errors.phone.message}
+            </Text>
+          ) : null}
         </View>
 
         {entryMode === 'DRIVE_IN' || overnight ? (

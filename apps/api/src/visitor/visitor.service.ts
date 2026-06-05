@@ -245,6 +245,10 @@ export class VisitorService {
       ? VisitorEntryMode.DRIVE_IN
       : (dto.entryMode ?? VisitorEntryMode.DRIVE_IN);
 
+    if (!dto.phone?.trim()) {
+      throw new BadRequestException('Phone number is required for visitors');
+    }
+
     if (entryMode === VisitorEntryMode.DRIVE_IN && !dto.vehiclePlate?.trim()) {
       throw new BadRequestException('Plate number is required for drive-in visitors');
     }
@@ -345,7 +349,7 @@ export class VisitorService {
         hostUserId: user.id,
         name: dto.name,
         identification: dto.identification,
-        phone: dto.phone,
+        phone: dto.phone.trim(),
         phoneCountryCode: dto.phoneCountryCode ?? '+60',
         entryMode,
         vehiclePlate: entryMode === VisitorEntryMode.DRIVE_IN ? dto.vehiclePlate?.trim() : null,
@@ -900,12 +904,15 @@ export class VisitorService {
     if (!this.userCanManageUnit(user, dto.unitId)) {
       throw new ForbiddenException('You cannot manage favourites for this unit');
     }
+    if (!dto.phone?.trim()) {
+      throw new BadRequestException('Phone number is required for favourite visitors');
+    }
     return this.prisma.favouriteVisitor.create({
       data: {
         userId: user.id,
         unitId: dto.unitId,
         name: dto.name,
-        phone: dto.phone,
+        phone: dto.phone.trim(),
         phoneCountryCode: dto.phoneCountryCode ?? '+60',
         entryMode: dto.entryMode ?? VisitorEntryMode.DRIVE_IN,
         vehiclePlate: dto.vehiclePlate,

@@ -39,6 +39,7 @@ export default function VisitorsPage() {
     tab === 'upcoming' || tab === 'history' ? tab : undefined;
   const visitors = useUnitVisitors(api, unit?.id ?? null, listView);
   const favourites = useFavouriteVisitors(api, tab === 'favourites' ? (unit?.id ?? null) : null);
+  const listLoading = units.isPending || visitors.isLoading;
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,7 +68,7 @@ export default function VisitorsPage() {
         <VisitorListPanel
           tab={tab}
           items={(visitors.data?.items ?? []) as Visitor[]}
-          isLoading={visitors.isLoading}
+          isLoading={listLoading}
         />
       )}
     </div>
@@ -206,13 +207,13 @@ function FavouritesPanel({
 
   async function onSaveFavourite(e: React.FormEvent) {
     e.preventDefault();
-    if (!unitId || !name.trim()) return;
+    if (!unitId || !name.trim() || !phone.trim()) return;
     try {
       await createFav.mutateAsync({
         unitId,
         name: name.trim(),
         phoneCountryCode: '+60',
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         vehiclePlate: vehiclePlate.trim() || undefined,
         entryMode: vehiclePlate.trim() ? 'DRIVE_IN' : 'WALK_IN',
       });
@@ -227,6 +228,10 @@ function FavouritesPanel({
   }
 
   function onPreFillFromFavourite(fav: FavouriteVisitor) {
+    if (!fav.phone?.trim()) {
+      toast.error('Add a phone number to this favourite for quick passes');
+      return;
+    }
     const params = new URLSearchParams(favouriteToPreRegParams(fav));
     router.push(`/visitors/new?${params.toString()}`);
   }
@@ -276,7 +281,12 @@ function FavouritesPanel({
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="fav-phone">Phone</Label>
-                <Input id="fav-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Input
+                  id="fav-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="fav-plate">Plate</Label>

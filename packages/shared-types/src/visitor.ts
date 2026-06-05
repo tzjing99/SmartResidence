@@ -98,8 +98,8 @@ export const CreateVisitorSchema = z
     unitId: z.string().uuid(),
     name: z.string().min(2).max(120),
     identification: z.string().max(60).optional(),
-    phoneCountryCode: z.string().max(6).optional().default('+60'),
-    phone: z.string().max(30).optional(),
+    phoneCountryCode: z.string().max(6).default('+60'),
+    phone: z.string().trim().min(1, 'Phone number is required').max(30),
     entryMode: VisitorEntryMode.optional().default('DRIVE_IN'),
     vehiclePlate: z.string().max(20).optional(),
     vehiclePlatePhotoUrl: z.string().max(500).optional(),
@@ -226,7 +226,7 @@ export type FavouriteVisitor = z.infer<typeof FavouriteVisitorSchema>;
 export const CreateFavouriteVisitorSchema = z.object({
   unitId: z.string().uuid(),
   name: z.string().min(2).max(120),
-  phone: z.string().max(30).optional(),
+  phone: z.string().trim().min(1, 'Phone number is required').max(30),
   phoneCountryCode: z.string().max(6).default('+60'),
   entryMode: VisitorEntryMode.default('DRIVE_IN'),
   vehiclePlate: z.string().max(20).optional(),
@@ -242,7 +242,7 @@ export type UpdateFavouriteVisitorInput = z.infer<typeof UpdateFavouriteVisitorS
 /** Build pre-reg query params from a favourite for /visitors/new pre-fill. */
 export function favouriteToPreRegParams(fav: FavouriteVisitor): Record<string, string> {
   const params: Record<string, string> = { name: fav.name };
-  if (fav.phone) params.phone = fav.phone;
+  if (fav.phone?.trim()) params.phone = fav.phone.trim();
   if (fav.phoneCountryCode) params.phoneCountryCode = fav.phoneCountryCode;
   if (fav.vehiclePlate) params.vehiclePlate = fav.vehiclePlate;
   if (fav.entryMode) params.entryMode = fav.entryMode;

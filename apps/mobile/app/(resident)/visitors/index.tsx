@@ -35,6 +35,7 @@ export default function VisitorsScreen() {
     tab === 'upcoming' || tab === 'history' ? tab : undefined;
   const visitors = useUnitVisitors(api, unit?.id ?? null, listView);
   const favourites = useFavouriteVisitors(api, tab === 'favourites' ? (unit?.id ?? null) : null);
+  const listLoading = units.isPending || visitors.isLoading;
 
   return (
     <ScrollView
@@ -100,19 +101,38 @@ export default function VisitorsScreen() {
             unitId={unit?.id}
             items={(favourites.data?.items ?? []) as FavouriteVisitor[]}
             onPreRegister={(fav) => {
+              if (!fav.phone?.trim()) {
+                Alert.alert(
+                  'Phone required',
+                  'Add a phone number to this favourite for quick passes.',
+                );
+                return;
+              }
               const qs = new URLSearchParams(favouriteToPreRegParams(fav)).toString();
               router.push(`/(resident)/visitors/new?${qs}` as Href);
             }}
           />
         ) : (
-          <VisitorsTab tab={tab} items={(visitors.data?.items ?? []) as Visitor[]} />
+          <VisitorsTab
+            tab={tab}
+            items={(visitors.data?.items ?? []) as Visitor[]}
+            isLoading={listLoading}
+          />
         )}
       </View>
     </ScrollView>
   );
 }
 
-function VisitorsTab({ tab, items }: { tab: VisitorListView; items: Visitor[] }) {
+function VisitorsTab({
+  tab,
+  items,
+  isLoading,
+}: {
+  tab: VisitorListView;
+  items: Visitor[];
+  isLoading: boolean;
+}) {
   const approve = useApproveVisitor(api);
   const reject = useRejectVisitor(api);
 
@@ -132,6 +152,10 @@ function VisitorsTab({ tab, items }: { tab: VisitorListView; items: Visitor[] })
     } catch (err) {
       Alert.alert('Could not reject', (err as Error).message);
     }
+  }
+
+  if (isLoading) {
+    return <Text style={{ color: palette.mutedLight, fontSize: 14 }}>Loading visitors…</Text>;
   }
 
   if (items.length === 0) {
@@ -227,13 +251,13 @@ function FavouritesTab({
   const [plate, setPlate] = useState('');
 
   async function onSave() {
-    if (!unitId || !name.trim()) return;
+    if (!unitId || !name.trim() || !phone.trim()) return;
     try {
       await createFav.mutateAsync({
         unitId,
         name: name.trim(),
         phoneCountryCode: '+60',
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         vehiclePlate: plate.trim() || undefined,
         entryMode: plate.trim() ? 'DRIVE_IN' : 'WALK_IN',
       });
@@ -272,10 +296,11 @@ function FavouritesTab({
           <Text style={{ fontWeight: '600', marginBottom: 8 }}>New favourite</Text>
           <TextInput placeholder="Name" value={name} onChangeText={setName} style={inputStyle} />
           <TextInput
-            placeholder="Phone (optional)"
+            placeholder="Phone"
             value={phone}
             onChangeText={setPhone}
             style={[inputStyle, { marginTop: 10 }]}
+            keyboardType="phone-pad"
           />
           <TextInput
             placeholder="Plate (optional)"

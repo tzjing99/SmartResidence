@@ -189,8 +189,11 @@ export default function NewVisitorPage() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">Phone (optional)</Label>
-              <Input id="phone" {...form.register('phone')} />
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" required {...form.register('phone')} />
+              {form.formState.errors.phone ? (
+                <p className="text-xs text-red-600">{form.formState.errors.phone.message}</p>
+              ) : null}
             </div>
           </div>
 

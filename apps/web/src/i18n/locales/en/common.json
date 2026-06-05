@@ -43,26 +43,46 @@
       "allPriorities": "All priorities",
       "allCategories": "All categories",
       "allAssignees": "All assignees",
-      "anySla": "Any SLA",
-      "unassigned": "Unassigned",
-      "sortBySla": "Sort by SLA due"
+      "anySla": "Any deadline",
+      "unassigned": "Not assigned yet",
+      "sortBySla": "Sort by deadline"
     },
     "sla": {
       "onTrack": "On track",
-      "atRisk": "At risk",
-      "breached": "Breached"
+      "atRisk": "Needs attention",
+      "breached": "Overdue",
+      "replyDue": "Reply was due {time} ago",
+      "fixDue": "Should have been fixed {time} ago"
     },
     "actions": {
-      "proposeResolved": "Propose resolved",
-      "requestResident": "Request from resident",
-      "confirmResolved": "Confirm resolved",
-      "notResolved": "Not resolved",
-      "assignToMe": "Assign to me"
+      "markAsFixed": "Mark as fixed",
+      "markAsFixedHint": "Tell the resident you believe this is solved. They'll confirm before we close it.",
+      "askResident": "Ask resident for info",
+      "askResidentHint": "Need something from them? Pauses until they reply.",
+      "closeMisuse": "Close as misuse",
+      "closeMisuseHint": "Spam or abuse. The resident will be notified.",
+      "closeAndNotify": "Close and notify resident",
+      "takeTicket": "Take this ticket",
+      "downloadPdf": "Download conversation (PDF)",
+      "confirmResolved": "Yes, it's fixed",
+      "notResolved": "Not fixed yet",
+      "assignToMe": "Take this ticket"
     },
-    "pendingConfirmation": "Awaiting resident confirmation of resolution.",
-    "pendingConfirmationResident": "Management marked this as resolved. Is your issue sorted?",
+    "status": {
+      "open": "Open",
+      "inProgress": "In progress",
+      "waitingOnResident": "Waiting on resident",
+      "awaitingConfirmation": "Awaiting confirmation",
+      "resolved": "Resolved",
+      "closed": "Closed",
+      "reopened": "Reopened"
+    },
+    "wrapUp": "Wrap up",
+    "pendingConfirmation": "Waiting for resident to confirm it's fixed.",
+    "pendingConfirmationResident": "Management says this is fixed. Does that match what you see?",
     "proposePlaceholder": "Optional note for the resident…",
-    "requestPlaceholder": "What do you need from the resident?"
+    "requestPlaceholder": "What do you need from the resident?",
+    "noAssignee": "No one assigned yet"
   },
   "faq": {
     "title": "Help & FAQ",

@@ -43,26 +43,46 @@
       "allPriorities": "全部优先级",
       "allCategories": "全部类别",
       "allAssignees": "全部负责人",
-      "anySla": "任意 SLA",
-      "unassigned": "未分配",
-      "sortBySla": "按 SLA 到期排序"
+      "anySla": "任意截止时间",
+      "unassigned": "尚未分配",
+      "sortBySla": "按截止时间排序"
     },
     "sla": {
       "onTrack": "正常",
-      "atRisk": "有风险",
-      "breached": "已逾期"
+      "atRisk": "需关注",
+      "breached": "已逾期",
+      "replyDue": "应于 {time} 前回复",
+      "fixDue": "应于 {time} 前解决"
     },
     "actions": {
-      "proposeResolved": "建议已解决",
-      "requestResident": "请求居民",
-      "confirmResolved": "确认已解决",
-      "notResolved": "未解决",
-      "assignToMe": "分配给我"
+      "markAsFixed": "标记为已解决",
+      "markAsFixedHint": "告知居民您认为问题已解决。关闭前需居民确认。",
+      "askResident": "向居民索取信息",
+      "askResidentHint": "需要居民提供资料？工单将暂停至其回复。",
+      "closeMisuse": "以滥用为由关闭",
+      "closeMisuseHint": "垃圾信息或滥用。将通知居民。",
+      "closeAndNotify": "关闭并通知居民",
+      "takeTicket": "接手此工单",
+      "downloadPdf": "下载对话记录（PDF）",
+      "confirmResolved": "是的，已解决",
+      "notResolved": "尚未解决",
+      "assignToMe": "接手此工单"
     },
-    "pendingConfirmation": "等待居民确认解决。",
-    "pendingConfirmationResident": "管理处已将此标记为已解决。您的问题解决了吗？",
+    "status": {
+      "open": "待处理",
+      "inProgress": "处理中",
+      "waitingOnResident": "等待居民",
+      "awaitingConfirmation": "等待确认",
+      "resolved": "已解决",
+      "closed": "已关闭",
+      "reopened": "已重新打开"
+    },
+    "wrapUp": "结案",
+    "pendingConfirmation": "等待居民确认问题已解决。",
+    "pendingConfirmationResident": "管理处认为问题已解决。是否符合您的情况？",
     "proposePlaceholder": "给居民的备注（可选）…",
-    "requestPlaceholder": "您需要居民提供什么？"
+    "requestPlaceholder": "您需要居民提供什么？",
+    "noAssignee": "尚未分配"
   },
   "faq": {
     "title": "帮助与常见问题",

@@ -2,7 +2,14 @@
 
 import { SlaChip } from '@/components/sla-chip';
 import { api } from '@/lib/api';
-import { PRIORITY_TONE, STATUS_TONE, formatTimeLeft, prettyLabel } from '@/lib/thread-ui';
+import {
+  PRIORITY_TONE,
+  STATUS_TONE,
+  categoryLabel,
+  formatDeadline,
+  priorityLabel,
+  statusLabel,
+} from '@/lib/thread-ui';
 import {
   useCloseAbusiveThread,
   useMe,
@@ -88,7 +95,7 @@ export default function AdminThreadPage() {
         note: actionNote.trim() || undefined,
         messageId: selectedSolutionId ?? undefined,
       });
-      toast.success('Resolution proposed — awaiting resident confirmation');
+      toast.success('Marked as fixed — waiting for resident to confirm');
       setComposer(null);
       setActionNote('');
       setSelectedSolutionId(null);
@@ -124,7 +131,7 @@ export default function AdminThreadPage() {
     }
     try {
       await closeAbusive.mutateAsync({ id, reason: actionNote.trim() });
-      toast.success('Thread closed — resident notified');
+      toast.success('Ticket closed — resident notified');
       setComposer(null);
       setActionNote('');
     } catch (err) {
@@ -183,7 +190,7 @@ export default function AdminThreadPage() {
               </div>
               <div className="text-xs sr-muted mt-1">
                 {t.unit?.identifier ? `Unit ${t.unit.identifier} · ` : ''}
-                {t.createdBy?.name ?? 'Resident'} · {prettyLabel(t.category)}
+                {t.createdBy?.name ?? 'Resident'} · {categoryLabel(t.category)}
               </div>
             </div>
             <SlaChip
@@ -217,8 +224,8 @@ export default function AdminThreadPage() {
             <div className="rounded-xl border border-sky-400/40 bg-sky-400/10 px-4 py-3 text-sm flex items-center gap-2">
               <CheckCircle2 className="size-4 text-sky-600 shrink-0" />
               <span>
-                Resolution proposed — awaiting resident confirmation. Select a different message
-                below to change the proposed solution (B2).
+                Waiting for resident to confirm it&apos;s fixed. Tap another message below to change
+                which reply counts as the fix.
               </span>
             </div>
           ) : null}
@@ -260,7 +267,7 @@ export default function AdminThreadPage() {
                   >
                     {isProposed ? (
                       <div className="text-[10px] font-semibold mb-1 opacity-80">
-                        ✓ Proposed solution
+                        ✓ Suggested fix
                       </div>
                     ) : null}
                     {m.body}
@@ -275,9 +282,7 @@ export default function AdminThreadPage() {
                         className="text-[11px] text-sky-600 hover:underline"
                         onClick={() => setSelectedSolutionId(m.id)}
                       >
-                        {selectedSolutionId === m.id || isProposed
-                          ? 'Selected'
-                          : 'Mark as solution'}
+                        {selectedSolutionId === m.id || isProposed ? 'Selected' : 'Use as the fix'}
                       </button>
                     ) : null}
                   </div>
@@ -317,8 +322,8 @@ export default function AdminThreadPage() {
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={PRIORITY_TONE[t.priority]}>{prettyLabel(t.priority)}</Badge>
-              <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
+              <Badge tone={PRIORITY_TONE[t.priority]}>{priorityLabel(t.priority)}</Badge>
+              <Badge tone={STATUS_TONE[t.status]}>{statusLabel(t.status)}</Badge>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -338,7 +343,7 @@ export default function AdminThreadPage() {
               >
                 {PRIORITIES.map((p) => (
                   <option key={p} value={p}>
-                    {prettyLabel(p)}
+                    {priorityLabel(p)}
                   </option>
                 ))}
               </select>
@@ -361,7 +366,7 @@ export default function AdminThreadPage() {
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {prettyLabel(c)}
+                    {categoryLabel(c)}
                   </option>
                 ))}
               </select>
@@ -369,7 +374,7 @@ export default function AdminThreadPage() {
 
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-medium">Assignee</span>
-              <div className="text-sm sr-muted">{t.assignedTo?.name ?? 'Unassigned'}</div>
+              <div className="text-sm sr-muted">{t.assignedTo?.name ?? 'No one assigned yet'}</div>
               {myId && t.assignedTo?.id !== myId ? (
                 <Button
                   variant="secondary"
@@ -377,34 +382,37 @@ export default function AdminThreadPage() {
                   onClick={async () => {
                     try {
                       await update.mutateAsync({ id, assignedToUserId: myId });
-                      toast.success('Assigned to you');
+                      toast.success('You took this ticket');
                     } catch (err) {
                       toast.error((err as Error).message);
                     }
                   }}
                 >
                   <UserCheck className="size-4" />
-                  Assign to me
+                  Take this ticket
                 </Button>
               ) : null}
             </div>
 
             <div className="border-t border-[rgb(var(--sr-border))] pt-3 flex flex-col gap-2">
-              <span className="text-sm font-medium">Resolution</span>
+              <span className="text-sm font-medium">Wrap up</span>
               {awaitingResident ? (
                 <p className="text-xs text-amber-600">
-                  Awaiting resident reply — cannot propose resolution yet (B13).
+                  Waiting for the resident to reply — you can mark as fixed once they&apos;ve
+                  responded.
                 </p>
               ) : null}
               {pending ? (
                 <div className="flex flex-col gap-2">
-                  <p className="text-xs sr-muted">Update proposed solution or wait for resident.</p>
+                  <p className="text-xs sr-muted">
+                    Change which reply is the fix, or wait for the resident to confirm.
+                  </p>
                   <Button
                     size="sm"
                     onClick={runPropose}
                     disabled={propose.isPending || !selectedSolutionId}
                   >
-                    Update proposed solution
+                    Change which reply is the fix
                   </Button>
                 </div>
               ) : finished ? (
@@ -416,8 +424,8 @@ export default function AdminThreadPage() {
                 <div className="flex flex-col gap-2">
                   {mgmtMessages.length > 0 ? (
                     <p className="text-xs sr-muted">
-                      Click &ldquo;Mark as solution&rdquo; on a management message, or propose
-                      without one.
+                      Tap &ldquo;Use as the fix&rdquo; on a management message, or mark as fixed
+                      without picking one.
                     </p>
                   ) : null}
                   <Textarea
@@ -429,7 +437,7 @@ export default function AdminThreadPage() {
                   <div className="flex gap-2">
                     <Button size="sm" onClick={runPropose} disabled={propose.isPending}>
                       <CheckCircle2 className="size-4" />
-                      Propose resolved
+                      Mark as fixed
                     </Button>
                     <Button
                       size="sm"
@@ -443,6 +451,10 @@ export default function AdminThreadPage() {
                       Cancel
                     </Button>
                   </div>
+                  <p className="text-xs sr-muted">
+                    Tell the resident you believe this is solved. They&apos;ll confirm before we
+                    close it.
+                  </p>
                 </div>
               ) : composer === 'request' ? (
                 <div className="flex flex-col gap-2">
@@ -455,7 +467,7 @@ export default function AdminThreadPage() {
                   <div className="flex gap-2">
                     <Button size="sm" onClick={runRequest} disabled={requestResident.isPending}>
                       <UserPlus className="size-4" />
-                      Send to resident
+                      Ask resident for info
                     </Button>
                     <Button
                       size="sm"
@@ -468,25 +480,39 @@ export default function AdminThreadPage() {
                       Cancel
                     </Button>
                   </div>
+                  <p className="text-xs sr-muted">
+                    Need something from them? The ticket pauses until they reply.
+                  </p>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => setComposer('propose')}
-                    disabled={awaitingResident}
-                  >
-                    <CheckCircle2 className="size-4" />
-                    Propose resolved
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => setComposer('request')}>
-                    <UserPlus className="size-4" />
-                    Request from resident
-                  </Button>
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <Button
+                      size="sm"
+                      onClick={() => setComposer('propose')}
+                      disabled={awaitingResident}
+                    >
+                      <CheckCircle2 className="size-4" />
+                      Mark as fixed
+                    </Button>
+                    <p className="text-xs sr-muted mt-1">
+                      Tell the resident you believe this is solved. They&apos;ll confirm before we
+                      close it.
+                    </p>
+                  </div>
+                  <div>
+                    <Button size="sm" variant="secondary" onClick={() => setComposer('request')}>
+                      <UserPlus className="size-4" />
+                      Ask resident for info
+                    </Button>
+                    <p className="text-xs sr-muted mt-1">
+                      Need something from them? Pauses until they reply.
+                    </p>
+                  </div>
                 </div>
               )}
               <p className="text-[11px] sr-muted">
-                Resident confirms resolution. Grace period configurable in{' '}
+                Residents must confirm before we close a ticket. Timing is set in{' '}
                 <Link href="/admin/settings/helpdesk" className="text-coral-600 hover:underline">
                   SLA settings
                 </Link>
@@ -496,7 +522,7 @@ export default function AdminThreadPage() {
 
             {!finished ? (
               <div className="border-t border-[rgb(var(--sr-border))] pt-3 flex flex-col gap-2">
-                <span className="text-sm font-medium text-rose-600">Abusive thread (D7)</span>
+                <span className="text-sm font-medium text-rose-600">Close as misuse</span>
                 {composer === 'abusive' ? (
                   <div className="flex flex-col gap-2">
                     <Textarea
@@ -513,7 +539,7 @@ export default function AdminThreadPage() {
                         disabled={closeAbusive.isPending}
                       >
                         <Ban className="size-4" />
-                        Close thread
+                        Close and notify resident
                       </Button>
                       <Button
                         size="sm"
@@ -526,12 +552,20 @@ export default function AdminThreadPage() {
                         Cancel
                       </Button>
                     </div>
+                    <p className="text-xs sr-muted">
+                      Spam or abuse. The resident will be notified.
+                    </p>
                   </div>
                 ) : (
-                  <Button size="sm" variant="ghost" onClick={() => setComposer('abusive')}>
-                    <Ban className="size-4" />
-                    Flag &amp; close abusive thread
-                  </Button>
+                  <div>
+                    <Button size="sm" variant="ghost" onClick={() => setComposer('abusive')}>
+                      <Ban className="size-4" />
+                      Close as misuse
+                    </Button>
+                    <p className="text-xs sr-muted mt-1">
+                      Spam or abuse. The resident will be notified.
+                    </p>
+                  </div>
                 )}
               </div>
             ) : null}
@@ -539,20 +573,20 @@ export default function AdminThreadPage() {
             <div className="border-t border-[rgb(var(--sr-border))] pt-3">
               <Button size="sm" variant="secondary" onClick={exportPdf}>
                 <Download className="size-4" />
-                Export PDF
+                Download conversation (PDF)
               </Button>
             </div>
 
             <div className="border-t border-[rgb(var(--sr-border))] pt-3 text-xs sr-muted flex flex-col gap-1">
               {t.firstResponseDueAt ? (
                 <div>
-                  First response {formatTimeLeft(t.firstResponseDueAt)} ·{' '}
+                  {formatDeadline(t.firstResponseDueAt, 'firstResponse')} ·{' '}
                   {new Date(t.firstResponseDueAt).toLocaleString()}
                 </div>
               ) : null}
               {t.resolutionDueAt ? (
                 <div>
-                  Resolution {formatTimeLeft(t.resolutionDueAt)} ·{' '}
+                  {formatDeadline(t.resolutionDueAt, 'resolution')} ·{' '}
                   {new Date(t.resolutionDueAt).toLocaleString()}
                 </div>
               ) : null}

@@ -1,6 +1,6 @@
 'use client';
 
-import { SLA_LABEL, SLA_TONE, formatTimeLeft, slaDueAt } from '@/lib/thread-ui';
+import { SLA_LABEL, SLA_TONE, formatDeadline, slaDueInfo } from '@/lib/thread-ui';
 import type { SlaState } from '@smartresidence/api-client';
 import { Badge, cn } from '@smartresidence/ui-web';
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
@@ -22,7 +22,7 @@ const ICONS: Record<Exclude<SlaState, 'NONE'>, React.ComponentType<{ className?:
 };
 
 /**
- * Unmistakable SLA chip: green "On track", amber "At risk", red "Breached".
+ * Unmistakable SLA chip: green "On track", amber "Needs attention", red "Overdue".
  * Breached/at-risk are made to visually pop (ring + stronger weight) and the
  * actual time remaining / overdue amount is surfaced.
  */
@@ -35,7 +35,8 @@ export function SlaChip({
 }: SlaChipProps) {
   if (slaState === 'NONE') return null;
   const Icon = ICONS[slaState];
-  const due = slaDueAt({ slaState, firstResponseDueAt, resolutionDueAt });
+  const due = slaDueInfo({ slaState, firstResponseDueAt, resolutionDueAt });
+  const dueText = due ? formatDeadline(due.dueAt, due.kind) : null;
   const pop =
     slaState === 'BREACHED'
       ? 'ring-1 ring-red-500/40 font-semibold'
@@ -47,12 +48,12 @@ export function SlaChip({
     <Badge
       tone={SLA_TONE[slaState]}
       className={cn(pop, className)}
-      title={due ? new Date(due).toLocaleString() : undefined}
-      aria-label={`SLA ${SLA_LABEL[slaState]}${due ? `, ${formatTimeLeft(due)}` : ''}`}
+      title={due ? new Date(due.dueAt).toLocaleString() : undefined}
+      aria-label={`SLA ${SLA_LABEL[slaState]}${dueText ? `, ${dueText}` : ''}`}
     >
       <Icon className="size-3.5" aria-hidden />
       {SLA_LABEL[slaState]}
-      {showDetail && due ? <span className="opacity-80">· {formatTimeLeft(due)}</span> : null}
+      {showDetail && dueText ? <span className="opacity-80">· {dueText}</span> : null}
     </Badge>
   );
 }

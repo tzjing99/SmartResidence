@@ -43,26 +43,46 @@
       "allPriorities": "Semua keutamaan",
       "allCategories": "Semua kategori",
       "allAssignees": "Semua petugas",
-      "anySla": "Mana-mana SLA",
+      "anySla": "Mana-mana tarikh akhir",
       "unassigned": "Belum ditugaskan",
-      "sortBySla": "Susun mengikut SLA"
+      "sortBySla": "Susun mengikut tarikh akhir"
     },
     "sla": {
       "onTrack": "Mengikut jadual",
-      "atRisk": "Berisiko",
-      "breached": "Dilanggar"
+      "atRisk": "Perlu perhatian",
+      "breached": "Lewat",
+      "replyDue": "Balasan sepatutnya {time} lalu",
+      "fixDue": "Sepatutnya selesai {time} lalu"
     },
     "actions": {
-      "proposeResolved": "Cadang selesai",
-      "requestResident": "Minta daripada penduduk",
-      "confirmResolved": "Sahkan selesai",
+      "markAsFixed": "Tanda sebagai selesai",
+      "markAsFixedHint": "Beritahu penduduk anda rasa isu ini sudah selesai. Mereka akan sahkan sebelum kami tutup.",
+      "askResident": "Minta maklumat daripada penduduk",
+      "askResidentHint": "Perlukan sesuatu daripada mereka? Tiket dijeda sehingga mereka membalas.",
+      "closeMisuse": "Tutup kerana penyalahgunaan",
+      "closeMisuseHint": "Spam atau penyalahgunaan. Penduduk akan dimaklumkan.",
+      "closeAndNotify": "Tutup dan maklumkan penduduk",
+      "takeTicket": "Ambil tiket ini",
+      "downloadPdf": "Muat turun perbualan (PDF)",
+      "confirmResolved": "Ya, sudah selesai",
       "notResolved": "Belum selesai",
-      "assignToMe": "Tugaskan kepada saya"
+      "assignToMe": "Ambil tiket ini"
     },
-    "pendingConfirmation": "Menunggu pengesahan penyelesaian daripada penduduk.",
-    "pendingConfirmationResident": "Pengurusan menanda ini sebagai selesai. Adakah isu anda telah selesai?",
+    "status": {
+      "open": "Terbuka",
+      "inProgress": "Dalam proses",
+      "waitingOnResident": "Menunggu penduduk",
+      "awaitingConfirmation": "Menunggu pengesahan",
+      "resolved": "Selesai",
+      "closed": "Ditutup",
+      "reopened": "Dibuka semula"
+    },
+    "wrapUp": "Tamatkan tiket",
+    "pendingConfirmation": "Menunggu penduduk mengesahkan isu sudah selesai.",
+    "pendingConfirmationResident": "Pengurusan kata isu ini sudah selesai. Adakah itu betul?",
     "proposePlaceholder": "Nota pilihan untuk penduduk…",
-    "requestPlaceholder": "Apa yang anda perlukan daripada penduduk?"
+    "requestPlaceholder": "Apa yang anda perlukan daripada penduduk?",
+    "noAssignee": "Belum ditugaskan"
   },
   "faq": {
     "title": "Bantuan & Soalan Lazim",

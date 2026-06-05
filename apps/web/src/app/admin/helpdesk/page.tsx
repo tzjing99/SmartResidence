@@ -3,7 +3,16 @@
 import { SlaChip } from '@/components/sla-chip';
 import { api } from '@/lib/api';
 import { sortInboxThreads } from '@/lib/inbox-sort';
-import { CATEGORIES, PRIORITY_TONE, STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
+import {
+  CATEGORIES,
+  PRIORITY_TONE,
+  SLA_LABEL,
+  STATUS_LABEL,
+  STATUS_TONE,
+  categoryLabel,
+  priorityLabel,
+  statusLabel,
+} from '@/lib/thread-ui';
 import { useThreads } from '@smartresidence/api-client';
 import type { ThreadCategory, ThreadPriority, ThreadStatus } from '@smartresidence/api-client';
 import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
@@ -14,13 +23,17 @@ import * as React from 'react';
 
 const STATUS_OPTIONS: Array<{ value: ThreadStatus | ''; label: string }> = [
   { value: '', label: 'All statuses' },
-  { value: 'OPEN', label: 'Open' },
-  { value: 'AWAITING_MANAGEMENT', label: 'Awaiting management' },
-  { value: 'AWAITING_RESIDENT', label: 'Awaiting resident' },
-  { value: 'PENDING_RESIDENT_CONFIRMATION', label: 'Pending confirmation' },
-  { value: 'RESOLVED', label: 'Resolved' },
-  { value: 'CLOSED', label: 'Closed' },
-  { value: 'REOPENED', label: 'Reopened' },
+  ...(
+    [
+      'OPEN',
+      'AWAITING_MANAGEMENT',
+      'AWAITING_RESIDENT',
+      'PENDING_RESIDENT_CONFIRMATION',
+      'RESOLVED',
+      'CLOSED',
+      'REOPENED',
+    ] as ThreadStatus[]
+  ).map((value) => ({ value, label: STATUS_LABEL[value] })),
 ];
 
 const PRIORITY_OPTIONS: Array<{ value: ThreadPriority | ''; label: string }> = [
@@ -32,10 +45,10 @@ const PRIORITY_OPTIONS: Array<{ value: ThreadPriority | ''; label: string }> = [
 ];
 
 const SLA_OPTIONS = [
-  { value: '', label: 'Any SLA' },
-  { value: 'BREACHED', label: 'Breached' },
-  { value: 'AT_RISK', label: 'At risk' },
-  { value: 'ON_TRACK', label: 'On track' },
+  { value: '', label: 'Any deadline' },
+  { value: 'BREACHED', label: SLA_LABEL.BREACHED },
+  { value: 'AT_RISK', label: SLA_LABEL.AT_RISK },
+  { value: 'ON_TRACK', label: SLA_LABEL.ON_TRACK },
 ] as const;
 
 const selectCls =
@@ -127,7 +140,7 @@ export default function HelpdeskPage() {
           onChange={(e) => setAssignee(e.target.value)}
         >
           <option value="">All assignees</option>
-          <option value="__unassigned">Unassigned</option>
+          <option value="__unassigned">Not assigned yet</option>
           {assigneeOptions.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name}
@@ -189,7 +202,7 @@ export default function HelpdeskPage() {
                         <div className="lg:col-span-5 min-w-0">
                           <div className="font-medium truncate">{t.subject}</div>
                           <div className="text-xs sr-muted mt-0.5 flex items-center gap-1.5">
-                            <Badge tone="neutral">{prettyLabel(t.category)}</Badge>
+                            <Badge tone="neutral">{categoryLabel(t.category)}</Badge>
                             <span>
                               {t._count?.messages ?? 0} msg · updated{' '}
                               {new Date(t.lastMessageAt).toLocaleDateString()}
@@ -203,12 +216,14 @@ export default function HelpdeskPage() {
                           ) : null}
                         </div>
                         <div className="lg:col-span-1">
-                          <Badge tone={PRIORITY_TONE[t.priority]}>{prettyLabel(t.priority)}</Badge>
+                          <Badge tone={PRIORITY_TONE[t.priority]}>
+                            {priorityLabel(t.priority)}
+                          </Badge>
                         </div>
                         <div className="lg:col-span-2 flex flex-col gap-1 items-start">
-                          <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
+                          <Badge tone={STATUS_TONE[t.status]}>{statusLabel(t.status)}</Badge>
                           <span className="text-xs sr-muted truncate">
-                            {t.assignedTo?.name ?? 'Unassigned'}
+                            {t.assignedTo?.name ?? 'No one assigned yet'}
                           </span>
                         </div>
                         <div className="lg:col-span-2">

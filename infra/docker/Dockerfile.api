@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile --filter @smartresidence/api...
 # --- build ----------------------------------------------------------------
 FROM deps AS build
 COPY apps/api apps/api
-RUN pnpm --filter @smartresidence/api prisma generate \
+RUN pnpm --filter @smartresidence/api exec prisma generate \
  && pnpm --filter @smartresidence/api build
 
 # --- runtime --------------------------------------------------------------

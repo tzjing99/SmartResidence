@@ -5,10 +5,29 @@
     "visitors": "访客",
     "billing": "费用",
     "defects": "维修",
+    "messages": "消息",
     "announcements": "公告",
+    "faq": "帮助与常见问题",
     "activity": "我的动态",
     "whoViewed": "谁查看了我",
+    "helpdesk": "服务台",
     "signOut": "登出"
+  },
+  "messages": {
+    "title": "消息",
+    "subtitle": "有任何问题都可以咨询管理处——每条回复都会被记录。",
+    "new": "新消息",
+    "subject": "主题",
+    "category": "类别",
+    "send": "发送消息",
+    "reply": "写回复…",
+    "empty": "暂无对话"
+  },
+  "faq": {
+    "title": "帮助与常见问题",
+    "subtitle": "由您的管理处整理的解答。",
+    "search": "搜索常见问题…",
+    "helpful": "有帮助"
   },
   "auth": {
     "signIn": "登录",

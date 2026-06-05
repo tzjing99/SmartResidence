@@ -30,6 +30,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       void client.join(`condo:${condoId}`);
       this.logger.debug(`Socket ${client.id} joined condo:${condoId}`);
     }
+    // Per-user room so resident-scoped events (e.g. thread replies) reach only
+    // the participants instead of every connected device in the condo.
+    const userId = client.handshake.query.userId as string | undefined;
+    if (userId) {
+      void client.join(`user:${userId}`);
+      this.logger.debug(`Socket ${client.id} joined user:${userId}`);
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -49,5 +56,37 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   @OnEvent('announcement.published')
   announcementEvent(payload: { condoId: string; announcementId: string }) {
     this.server.to(`condo:${payload.condoId}`).emit('announcement:new', payload);
+  }
+
+  @OnEvent('thread.created')
+  threadCreated(payload: { condoId: string; threadId: string }) {
+    this.server.to(`condo:${payload.condoId}`).emit('thread:update', payload);
+  }
+
+  @OnEvent('thread.message')
+  threadMessage(payload: {
+    condoId: string;
+    threadId: string;
+    messageId: string;
+    internal?: boolean;
+  }) {
+    // Management dashboards (condo room) always get the event. Internal notes
+    // stay within the condo room; resident-visible messages also fan out to
+    // any per-user rooms the gateway client joined for this thread.
+    this.server.to(`condo:${payload.condoId}`).emit('thread:message', payload);
+    if (!payload.internal) {
+      this.server.to(`thread:${payload.threadId}`).emit('thread:message', payload);
+    }
+  }
+
+  @OnEvent('thread.status')
+  threadStatus(payload: { condoId: string; threadId: string }) {
+    this.server.to(`condo:${payload.condoId}`).emit('thread:update', payload);
+    this.server.to(`thread:${payload.threadId}`).emit('thread:update', payload);
+  }
+
+  @OnEvent('thread.sla.escalation')
+  threadSlaEscalation(payload: { condoId: string; threadId: string }) {
+    this.server.to(`condo:${payload.condoId}`).emit('thread:sla', payload);
   }
 }

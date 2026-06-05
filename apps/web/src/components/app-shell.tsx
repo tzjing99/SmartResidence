@@ -10,11 +10,13 @@ import {
   CalendarClock,
   CreditCard,
   Eye,
+  HelpCircle,
   History,
   Home,
   KeyRound,
   LogOut,
   Megaphone,
+  MessageSquare,
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -36,13 +38,40 @@ const NAV_ITEMS: Array<{
   can?: { action: string; subject: string };
 }> = [
   { href: '/dashboard', label: 'Home', icon: Home },
-  { href: '/visitors', label: 'Visitors', icon: CalendarClock, can: { action: 'read', subject: 'Visitor' } },
-  { href: '/billing', label: 'Fees', icon: CreditCard, can: { action: 'read', subject: 'Invoice' } },
+  {
+    href: '/visitors',
+    label: 'Visitors',
+    icon: CalendarClock,
+    can: { action: 'read', subject: 'Visitor' },
+  },
+  {
+    href: '/billing',
+    label: 'Fees',
+    icon: CreditCard,
+    can: { action: 'read', subject: 'Invoice' },
+  },
   { href: '/defects', label: 'Defects', icon: Wrench, can: { action: 'read', subject: 'Defect' } },
-  { href: '/announcements', label: 'Announcements', icon: Megaphone, can: { action: 'read', subject: 'Announcement' } },
+  {
+    href: '/messages',
+    label: 'Messages',
+    icon: MessageSquare,
+    can: { action: 'read', subject: 'Thread' },
+  },
+  {
+    href: '/announcements',
+    label: 'Announcements',
+    icon: Megaphone,
+    can: { action: 'read', subject: 'Announcement' },
+  },
+  { href: '/faq', label: 'Help & FAQ', icon: HelpCircle, can: { action: 'read', subject: 'Faq' } },
   { href: '/activity', label: 'My activity', icon: History },
   { href: '/who-viewed', label: 'Who viewed me', icon: Eye },
-  { href: '/access', label: 'Manage access', icon: KeyRound, can: { action: 'revoke', subject: 'RoleAssignment' } },
+  {
+    href: '/access',
+    label: 'Manage access',
+    icon: KeyRound,
+    can: { action: 'revoke', subject: 'RoleAssignment' },
+  },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -52,7 +81,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const condos = useMyCondos(api);
 
   const navItems = React.useMemo(
-    () => NAV_ITEMS.filter((item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject)),
+    () =>
+      NAV_ITEMS.filter(
+        (item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject),
+      ),
     [abilities],
   );
 

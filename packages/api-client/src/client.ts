@@ -21,6 +21,99 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+// -- Communication threads + FAQ types --------------------------------
+
+export type ThreadCategory =
+  | 'BILLING'
+  | 'MAINTENANCE'
+  | 'FACILITY'
+  | 'SECURITY'
+  | 'COMPLAINT'
+  | 'SUGGESTION'
+  | 'GOVERNANCE'
+  | 'GENERAL';
+export type ThreadPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+export type ThreadStatus =
+  | 'OPEN'
+  | 'AWAITING_RESIDENT'
+  | 'AWAITING_MANAGEMENT'
+  | 'RESOLVED'
+  | 'CLOSED'
+  | 'REOPENED';
+export type ThreadMessageKind = 'MESSAGE' | 'INTERNAL_NOTE' | 'SYSTEM';
+export type SlaState = 'NONE' | 'ON_TRACK' | 'AT_RISK' | 'BREACHED';
+
+export interface ThreadSummary {
+  id: string;
+  subject: string;
+  category: ThreadCategory;
+  priority: ThreadPriority;
+  status: ThreadStatus;
+  slaState: SlaState;
+  lastMessageAt: string;
+  createdAt: string;
+  firstResponseDueAt: string | null;
+  resolutionDueAt: string | null;
+  createdBy?: { id: string; name: string; email: string | null };
+  assignedTo?: { id: string; name: string } | null;
+  unit?: { id: string; identifier: string } | null;
+  _count?: { messages: number };
+}
+
+export interface ThreadMessageItem {
+  id: string;
+  threadId: string;
+  kind: ThreadMessageKind;
+  body: string;
+  createdAt: string;
+  author?: { id: string; name: string };
+  attachments?: Array<{ id: string; key: string; mimeType: string }>;
+}
+
+export interface ThreadDetail extends ThreadSummary {
+  messages: ThreadMessageItem[];
+}
+
+export interface FaqCategoryItem {
+  id: string;
+  condoId: string;
+  name: string;
+  position: number;
+}
+
+export interface FaqArticleItem {
+  id: string;
+  condoId: string;
+  categoryId: string | null;
+  category?: FaqCategoryItem | null;
+  question: string;
+  answer: string;
+  tags: string[];
+  published: boolean;
+  pinned: boolean;
+  viewCount: number;
+  helpfulCount: number;
+  createdAt: string;
+}
+
+export interface ListThreadsParams {
+  status?: ThreadStatus;
+  priority?: ThreadPriority;
+  category?: ThreadCategory;
+  assignedToUserId?: string;
+  slaState?: SlaState;
+  limit?: number;
+  offset?: number;
+}
+
+export interface CreateThreadBody {
+  unitId?: string;
+  subject: string;
+  category: ThreadCategory;
+  body: string;
+  attachmentIds?: string[];
+}
+
 export interface ApiClientConfig {
   baseUrl: string;
   /** Async getter for the access token (lets you read from secure storage). */
@@ -266,6 +359,103 @@ export class ApiClient {
   }
   revokeSession(sessionId: string) {
     return this.request<void>('DELETE', `/api/auth/sessions/${sessionId}`);
+  }
+
+  // Threads ----------------------------------------------------------
+  listThreads(params: ListThreadsParams = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    return this.request<{ items: ThreadSummary[]; total: number }>(
+      'GET',
+      `/api/threads?${qs.toString()}`,
+    );
+  }
+  thread(id: string) {
+    return this.request<ThreadDetail>('GET', `/api/threads/${id}`);
+  }
+  createThread(input: CreateThreadBody) {
+    return this.request<ThreadSummary>('POST', '/api/threads', input);
+  }
+  postThreadMessage(
+    id: string,
+    body: { body: string; internalNote?: boolean; attachmentIds?: string[] },
+  ) {
+    return this.request<ThreadMessageItem>('POST', `/api/threads/${id}/messages`, body);
+  }
+  updateThread(
+    id: string,
+    body: { priority?: ThreadPriority; status?: ThreadStatus; assignedToUserId?: string },
+  ) {
+    return this.request<ThreadSummary>('PATCH', `/api/threads/${id}`, body);
+  }
+  markThreadRead(id: string) {
+    return this.request<void>('POST', `/api/threads/${id}/read`);
+  }
+
+  // FAQ --------------------------------------------------------------
+  faqArticles(condoId: string, params: { q?: string; categoryId?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set('q', params.q);
+    if (params.categoryId) qs.set('categoryId', params.categoryId);
+    return this.request<{ items: FaqArticleItem[]; total: number }>(
+      'GET',
+      `/api/faq/condo/${condoId}?${qs.toString()}`,
+    );
+  }
+  faqCategories(condoId: string) {
+    return this.request<FaqCategoryItem[]>('GET', `/api/faq/condo/${condoId}/categories`);
+  }
+  faqManageList(condoId: string, params: { categoryId?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.categoryId) qs.set('categoryId', params.categoryId);
+    return this.request<{ items: FaqArticleItem[]; total: number }>(
+      'GET',
+      `/api/faq/condo/${condoId}/manage?${qs.toString()}`,
+    );
+  }
+  faqArticle(id: string) {
+    return this.request<FaqArticleItem>('GET', `/api/faq/articles/${id}`);
+  }
+  faqHelpful(id: string) {
+    return this.request<FaqArticleItem>('POST', `/api/faq/articles/${id}/helpful`);
+  }
+  createFaqArticle(body: {
+    condoId: string;
+    categoryId?: string;
+    question: string;
+    answer: string;
+    tags?: string[];
+    published?: boolean;
+    pinned?: boolean;
+  }) {
+    return this.request<FaqArticleItem>('POST', '/api/faq/articles', body);
+  }
+  updateFaqArticle(
+    id: string,
+    body: Partial<{
+      categoryId: string;
+      question: string;
+      answer: string;
+      tags: string[];
+      published: boolean;
+      pinned: boolean;
+    }>,
+  ) {
+    return this.request<FaqArticleItem>('PATCH', `/api/faq/articles/${id}`, body);
+  }
+  deleteFaqArticle(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/faq/articles/${id}`);
+  }
+  createFaqCategory(body: { condoId: string; name: string; position?: number }) {
+    return this.request<FaqCategoryItem>('POST', '/api/faq/categories', body);
+  }
+  updateFaqCategory(id: string, body: { name?: string; position?: number }) {
+    return this.request<FaqCategoryItem>('PATCH', `/api/faq/categories/${id}`, body);
+  }
+  deleteFaqCategory(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/faq/categories/${id}`);
   }
 
   // Storage ----------------------------------------------------------

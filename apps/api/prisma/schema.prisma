@@ -62,6 +62,11 @@ model User {
   pushSubscriptions  PushSubscription[]
   auditEvents        AuditLog[]           @relation("auditActor")
   verificationCodes  VerificationCode[]
+  threadsCreated       Thread[]            @relation("threadCreatedBy")
+  threadsAssigned      Thread[]            @relation("threadAssignedTo")
+  threadMessages       ThreadMessage[]     @relation("threadMessageAuthor")
+  threadParticipations ThreadParticipant[] @relation("threadParticipant")
+  faqArticles          FaqArticle[]        @relation("faqAuthor")
 
   @@index([email])
   @@index([phone])
@@ -158,6 +163,10 @@ model Condo {
   announcements   Announcement[]
   roleAssignments RoleAssignment[]
   auditLogs       AuditLog[]
+  threads         Thread[]
+  slaPolicies     SlaPolicy[]
+  faqCategories   FaqCategory[]
+  faqArticles     FaqArticle[]
 
   @@map("condos")
 }
@@ -209,6 +218,7 @@ model Unit {
   defects          Defect[]
   roleAssignments  RoleAssignment[]
   auditLogs        AuditLog[]
+  threads          Thread[]
 
   @@unique([condoId, identifier])
   @@index([blockId])
@@ -589,6 +599,7 @@ enum AttachmentOwner {
   DEFECT
   DEFECT_UPDATE
   ANNOUNCEMENT
+  THREAD_MESSAGE
   PROFILE
   GENERIC
 }
@@ -606,12 +617,15 @@ model Attachment {
   defect         Defect?          @relation(fields: [defectId], references: [id], onDelete: Cascade)
   defectUpdateId String?          @db.Uuid
   defectUpdate   DefectUpdate?    @relation(fields: [defectUpdateId], references: [id], onDelete: Cascade)
+  threadMessageId String?         @db.Uuid
+  threadMessage  ThreadMessage?   @relation(fields: [threadMessageId], references: [id], onDelete: Cascade)
   metadata       Json             @default("{}")
   createdAt      DateTime         @default(now())
 
   @@unique([bucket, key])
   @@index([defectId])
   @@index([defectUpdateId])
+  @@index([threadMessageId])
   @@map("attachments")
 }
 
@@ -677,6 +691,10 @@ enum NotificationKind {
   ACCESS_GRANTED
   ACCESS_REVOKED
   AUDIT_ALERT
+  THREAD_MESSAGE
+  THREAD_ASSIGNED
+  THREAD_STATUS
+  THREAD_SLA_ESCALATION
   SYSTEM
 }
 
@@ -759,4 +777,169 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([resourceType, resourceId])
   @@map("audit_logs")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Communication threads (resident <-> management) + SLA
+//////////////////////////////////////////////////////////////////////////////
+
+enum ThreadCategory {
+  BILLING
+  MAINTENANCE
+  FACILITY
+  SECURITY
+  COMPLAINT
+  SUGGESTION
+  GOVERNANCE
+  GENERAL
+}
+
+enum ThreadPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ThreadStatus {
+  OPEN
+  AWAITING_RESIDENT
+  AWAITING_MANAGEMENT
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum ThreadMessageKind {
+  MESSAGE
+  INTERNAL_NOTE
+  SYSTEM
+}
+
+model Thread {
+  id                 String         @id @default(uuid()) @db.Uuid
+  condoId            String         @db.Uuid
+  condo              Condo          @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId             String?        @db.Uuid
+  unit               Unit?          @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  createdByUserId    String         @db.Uuid
+  createdBy          User           @relation("threadCreatedBy", fields: [createdByUserId], references: [id])
+  assignedToUserId   String?        @db.Uuid
+  assignedTo         User?          @relation("threadAssignedTo", fields: [assignedToUserId], references: [id])
+  subject            String
+  category           ThreadCategory @default(GENERAL)
+  priority           ThreadPriority @default(NORMAL)
+  status             ThreadStatus   @default(OPEN)
+  slaPolicyId        String?        @db.Uuid
+  slaPolicy          SlaPolicy?     @relation(fields: [slaPolicyId], references: [id])
+  firstResponseDueAt DateTime?
+  resolutionDueAt    DateTime?
+  firstRespondedAt   DateTime?
+  resolvedAt         DateTime?
+  closedAt           DateTime?
+  lastMessageAt      DateTime       @default(now())
+  metadata           Json           @default("{}")
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  messages     ThreadMessage[]
+  participants ThreadParticipant[]
+
+  @@index([condoId, status])
+  @@index([unitId])
+  @@index([createdByUserId])
+  @@index([assignedToUserId])
+  @@index([priority])
+  @@map("threads")
+}
+
+model ThreadMessage {
+  id           String            @id @default(uuid()) @db.Uuid
+  threadId     String            @db.Uuid
+  thread       Thread            @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorUserId String            @db.Uuid
+  author       User              @relation("threadMessageAuthor", fields: [authorUserId], references: [id])
+  kind         ThreadMessageKind @default(MESSAGE)
+  body         String
+  editedAt     DateTime?
+  createdAt    DateTime          @default(now())
+
+  attachments Attachment[]
+
+  @@index([threadId])
+  @@map("thread_messages")
+}
+
+model ThreadParticipant {
+  id         String    @id @default(uuid()) @db.Uuid
+  threadId   String    @db.Uuid
+  thread     Thread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId     String    @db.Uuid
+  user       User      @relation("threadParticipant", fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([threadId, userId])
+  @@index([userId])
+  @@map("thread_participants")
+}
+
+model SlaPolicy {
+  id                String         @id @default(uuid()) @db.Uuid
+  condoId           String         @db.Uuid
+  condo             Condo          @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  priority          ThreadPriority
+  firstResponseMins Int
+  resolutionMins    Int
+  active            Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  threads Thread[]
+
+  @@unique([condoId, priority])
+  @@map("sla_policies")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// FAQ (management-curated knowledge base)
+//////////////////////////////////////////////////////////////////////////////
+
+model FaqCategory {
+  id        String   @id @default(uuid()) @db.Uuid
+  condoId   String   @db.Uuid
+  condo     Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name      String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles FaqArticle[]
+
+  @@index([condoId])
+  @@map("faq_categories")
+}
+
+model FaqArticle {
+  id           String       @id @default(uuid()) @db.Uuid
+  condoId      String       @db.Uuid
+  condo        Condo        @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  categoryId   String?      @db.Uuid
+  category     FaqCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  question     String
+  answer       String
+  tags         String[]
+  published    Boolean      @default(false)
+  pinned       Boolean      @default(false)
+  position     Int          @default(0)
+  viewCount    Int          @default(0)
+  helpfulCount Int          @default(0)
+  authorUserId String?      @db.Uuid
+  author       User?        @relation("faqAuthor", fields: [authorUserId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([condoId, published])
+  @@index([categoryId])
+  @@map("faq_articles")
 }

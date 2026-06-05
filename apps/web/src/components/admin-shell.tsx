@@ -11,7 +11,9 @@ import {
   Building2,
   CalendarClock,
   CreditCard,
+  HelpCircle,
   History,
+  LifeBuoy,
   LogOut,
   Megaphone,
   ShieldAlert,
@@ -34,13 +36,55 @@ const NAV: Array<{
   can?: { action: string; subject: string };
 }> = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
-  { href: '/admin/units', label: 'Residents & units', icon: Building2, can: { action: 'read', subject: 'Unit' } },
-  { href: '/admin/visitors', label: 'Visitors', icon: CalendarClock, can: { action: 'read', subject: 'Visitor' } },
-  { href: '/admin/invoices', label: 'Invoices', icon: CreditCard, can: { action: 'read', subject: 'Invoice' } },
-  { href: '/admin/defects', label: 'Defect board', icon: Wrench, can: { action: 'read', subject: 'Defect' } },
-  { href: '/admin/announcements', label: 'Announcements', icon: Megaphone, can: { action: 'publish', subject: 'Announcement' } },
-  { href: '/admin/audit', label: 'Audit log', icon: History, can: { action: 'read', subject: 'AuditLog' } },
-  { href: '/admin/roles', label: 'Roles', icon: UserCog, can: { action: 'manage', subject: 'RoleAssignment' } },
+  {
+    href: '/admin/units',
+    label: 'Residents & units',
+    icon: Building2,
+    can: { action: 'read', subject: 'Unit' },
+  },
+  {
+    href: '/admin/visitors',
+    label: 'Visitors',
+    icon: CalendarClock,
+    can: { action: 'read', subject: 'Visitor' },
+  },
+  {
+    href: '/admin/invoices',
+    label: 'Invoices',
+    icon: CreditCard,
+    can: { action: 'read', subject: 'Invoice' },
+  },
+  {
+    href: '/admin/defects',
+    label: 'Defect board',
+    icon: Wrench,
+    can: { action: 'read', subject: 'Defect' },
+  },
+  {
+    href: '/admin/helpdesk',
+    label: 'Helpdesk',
+    icon: LifeBuoy,
+    can: { action: 'read', subject: 'Thread' },
+  },
+  {
+    href: '/admin/announcements',
+    label: 'Announcements',
+    icon: Megaphone,
+    can: { action: 'publish', subject: 'Announcement' },
+  },
+  { href: '/admin/faq', label: 'FAQ', icon: HelpCircle, can: { action: 'manage', subject: 'Faq' } },
+  {
+    href: '/admin/audit',
+    label: 'Audit log',
+    icon: History,
+    can: { action: 'read', subject: 'AuditLog' },
+  },
+  {
+    href: '/admin/roles',
+    label: 'Roles',
+    icon: UserCog,
+    can: { action: 'manage', subject: 'RoleAssignment' },
+  },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -51,7 +95,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const condo = condos.data?.[0];
 
   const navItems = React.useMemo(
-    () => NAV.filter((item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject)),
+    () =>
+      NAV.filter((item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject)),
     [abilities],
   );
 

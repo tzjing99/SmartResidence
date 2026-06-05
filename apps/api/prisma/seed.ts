@@ -15,6 +15,10 @@ import {
   PrismaClient,
   RoleId,
   RoleScope,
+  ThreadCategory,
+  ThreadMessageKind,
+  ThreadPriority,
+  ThreadStatus,
   UnitStatus,
   VisitorStatus,
 } from '@prisma/client';
@@ -365,6 +369,215 @@ async function main() {
       audience: { all: true },
     },
   });
+
+  // --- SLA policies -------------------------------------------------
+  await prisma.slaPolicy.createMany({
+    data: [
+      {
+        condoId: condo.id,
+        priority: ThreadPriority.URGENT,
+        firstResponseMins: 60,
+        resolutionMins: 240,
+      },
+      {
+        condoId: condo.id,
+        priority: ThreadPriority.HIGH,
+        firstResponseMins: 240,
+        resolutionMins: 1440,
+      },
+      {
+        condoId: condo.id,
+        priority: ThreadPriority.NORMAL,
+        firstResponseMins: 480,
+        resolutionMins: 4320,
+      },
+      {
+        condoId: condo.id,
+        priority: ThreadPriority.LOW,
+        firstResponseMins: 1440,
+        resolutionMins: 10080,
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  // --- FAQ ----------------------------------------------------------
+  const faqCount = await prisma.faqArticle.count({ where: { condoId: condo.id } });
+  if (faqCount === 0) {
+    const billingCat = await prisma.faqCategory.create({
+      data: { condoId: condo.id, name: 'Billing & Payments', position: 0 },
+    });
+    const facilityCat = await prisma.faqCategory.create({
+      data: { condoId: condo.id, name: 'Facilities', position: 1 },
+    });
+    const generalCat = await prisma.faqCategory.create({
+      data: { condoId: condo.id, name: 'General', position: 2 },
+    });
+    await prisma.faqArticle.createMany({
+      data: [
+        {
+          condoId: condo.id,
+          categoryId: billingCat.id,
+          question: 'How is my monthly maintenance fee calculated?',
+          answer:
+            'Your fee is charged per square foot of your unit. Open any invoice to see the exact formula, e.g. "Maintenance 0.30/sqft × 1,100 sqft = 330.00", plus the sinking fund and a flat garbage charge.',
+          tags: ['fees', 'maintenance', 'sinking fund'],
+          published: true,
+          pinned: true,
+          authorUserId: admin.id,
+        },
+        {
+          condoId: condo.id,
+          categoryId: billingCat.id,
+          question: 'What payment methods are accepted?',
+          answer:
+            'You can pay online by card or FPX directly from the Fees page. A receipt is issued automatically once payment succeeds.',
+          tags: ['payment', 'fpx'],
+          published: true,
+          authorUserId: admin.id,
+        },
+        {
+          condoId: condo.id,
+          categoryId: facilityCat.id,
+          question: 'What are the swimming pool opening hours?',
+          answer:
+            'The pool is open daily from 7:00am to 10:00pm. Children must be supervised at all times.',
+          tags: ['pool', 'facilities'],
+          published: true,
+          authorUserId: admin.id,
+        },
+        {
+          condoId: condo.id,
+          categoryId: facilityCat.id,
+          question: 'How do I register a visitor?',
+          answer:
+            'Go to Visitors → New visitor, fill in their details and expected time. A QR pass is generated that the guardhouse scans on arrival.',
+          tags: ['visitor', 'security'],
+          published: true,
+          authorUserId: admin.id,
+        },
+        {
+          condoId: condo.id,
+          categoryId: generalCat.id,
+          question: 'How do I report a defect or maintenance issue?',
+          answer:
+            'Use Defects → New defect. Add photos and a description; you can track its status from submission to resolution and chat with management on the ticket.',
+          tags: ['defect', 'maintenance'],
+          published: true,
+          authorUserId: admin.id,
+        },
+        {
+          condoId: condo.id,
+          categoryId: generalCat.id,
+          question: 'When is the next AGM?',
+          answer:
+            'The Annual General Meeting notice, agenda and proxy forms are posted under Announcements at least 14 days in advance, as required by the Strata Management Act 2013.',
+          tags: ['agm', 'governance'],
+          published: true,
+          authorUserId: admin.id,
+        },
+      ],
+    });
+  }
+
+  // --- Demo communication threads -----------------------------------
+  const threadCount = await prisma.thread.count({ where: { condoId: condo.id } });
+  if (threadCount === 0) {
+    const now = Date.now();
+    const dueFrom = (start: number, mins: number) => new Date(start + mins * 60_000);
+
+    // 1) URGENT, still OPEN (security)
+    await prisma.thread.create({
+      data: {
+        condoId: condo.id,
+        unitId: ownerUnit.id,
+        createdByUserId: owner.id,
+        subject: 'Suspicious person loitering at Block A lobby',
+        category: ThreadCategory.SECURITY,
+        priority: ThreadPriority.URGENT,
+        status: ThreadStatus.OPEN,
+        firstResponseDueAt: dueFrom(now, 60),
+        resolutionDueAt: dueFrom(now, 240),
+        lastMessageAt: new Date(),
+        participants: { create: { userId: owner.id, lastReadAt: new Date() } },
+        messages: {
+          create: {
+            authorUserId: owner.id,
+            kind: ThreadMessageKind.MESSAGE,
+            body: 'There is an unfamiliar person sitting in the Block A lobby for the past hour. Can security check?',
+          },
+        },
+      },
+    });
+
+    // 2) NORMAL, awaiting management (billing)
+    await prisma.thread.create({
+      data: {
+        condoId: condo.id,
+        unitId: ownerUnit.id,
+        createdByUserId: owner.id,
+        subject: 'Question about the sinking fund contribution',
+        category: ThreadCategory.BILLING,
+        priority: ThreadPriority.NORMAL,
+        status: ThreadStatus.AWAITING_MANAGEMENT,
+        firstResponseDueAt: dueFrom(now, 480),
+        resolutionDueAt: dueFrom(now, 4320),
+        lastMessageAt: new Date(),
+        participants: { create: { userId: owner.id, lastReadAt: new Date() } },
+        messages: {
+          create: {
+            authorUserId: owner.id,
+            kind: ThreadMessageKind.MESSAGE,
+            body: 'Could you clarify how the sinking fund rate was decided for this year?',
+          },
+        },
+      },
+    });
+
+    // 3) HIGH, resolved (maintenance) with a management reply
+    const resolvedStart = now - 26 * 60 * 60 * 1000;
+    await prisma.thread.create({
+      data: {
+        condoId: condo.id,
+        unitId: ownerUnit.id,
+        createdByUserId: owner.id,
+        assignedToUserId: admin.id,
+        subject: 'Corridor light flickering on level 5',
+        category: ThreadCategory.MAINTENANCE,
+        priority: ThreadPriority.HIGH,
+        status: ThreadStatus.RESOLVED,
+        firstResponseDueAt: dueFrom(resolvedStart, 240),
+        resolutionDueAt: dueFrom(resolvedStart, 1440),
+        firstRespondedAt: new Date(resolvedStart + 30 * 60_000),
+        resolvedAt: new Date(now - 60 * 60 * 1000),
+        createdAt: new Date(resolvedStart),
+        lastMessageAt: new Date(now - 60 * 60 * 1000),
+        participants: { create: { userId: owner.id, lastReadAt: new Date() } },
+        messages: {
+          create: [
+            {
+              authorUserId: owner.id,
+              kind: ThreadMessageKind.MESSAGE,
+              body: 'The corridor light outside A-05-2 keeps flickering — a bit unsafe at night.',
+              createdAt: new Date(resolvedStart),
+            },
+            {
+              authorUserId: admin.id,
+              kind: ThreadMessageKind.MESSAGE,
+              body: 'Thanks for reporting. We have logged it and our technician will replace the fitting today.',
+              createdAt: new Date(resolvedStart + 30 * 60_000),
+            },
+            {
+              authorUserId: admin.id,
+              kind: ThreadMessageKind.SYSTEM,
+              body: 'Status changed to RESOLVED',
+              createdAt: new Date(now - 60 * 60 * 1000),
+            },
+          ],
+        },
+      },
+    });
+  }
 
   console.log('');
   console.log('✅ Seed complete.');

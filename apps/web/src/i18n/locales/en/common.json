@@ -5,10 +5,29 @@
     "visitors": "Visitors",
     "billing": "Fees",
     "defects": "Defects",
+    "messages": "Messages",
     "announcements": "Announcements",
+    "faq": "Help & FAQ",
     "activity": "My activity",
     "whoViewed": "Who viewed me",
+    "helpdesk": "Helpdesk",
     "signOut": "Sign out"
+  },
+  "messages": {
+    "title": "Messages",
+    "subtitle": "Ask management anything — every reply is tracked.",
+    "new": "New message",
+    "subject": "Subject",
+    "category": "Category",
+    "send": "Send message",
+    "reply": "Write a reply…",
+    "empty": "No conversations yet"
+  },
+  "faq": {
+    "title": "Help & FAQ",
+    "subtitle": "Answers curated by your management office.",
+    "search": "Search the FAQ…",
+    "helpful": "Helpful"
   },
   "auth": {
     "signIn": "Sign in",

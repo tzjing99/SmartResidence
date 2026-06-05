@@ -36,7 +36,10 @@ export type Subject =
   | 'User'
   | 'RoleAssignment'
   | 'PushSubscription'
-  | 'Notification';
+  | 'Notification'
+  | 'Thread'
+  | 'ThreadMessage'
+  | 'Faq';
 
 export type Action =
   | 'manage'
@@ -110,6 +113,9 @@ export class AbilityFactory {
         can('manage', 'Defect', { condoId: scope.condoId ?? '' });
         can('manage', 'Announcement', { condoId: scope.condoId ?? '' });
         can('manage', 'RoleAssignment', { condoId: scope.condoId ?? '' });
+        can('manage', 'Thread', { condoId: scope.condoId ?? '' });
+        can('manage', 'ThreadMessage');
+        can('manage', 'Faq', { condoId: scope.condoId ?? '' });
         can('read', 'AuditLog', { condoId: scope.condoId ?? '' });
         can('read', 'User');
         can('export', 'Invoice');
@@ -124,6 +130,10 @@ export class AbilityFactory {
         can('update', 'Defect', { condoId: scope.condoId ?? '' });
         can('read', 'Invoice', { condoId: scope.condoId ?? '' });
         can('publish', 'Announcement', { condoId: scope.condoId ?? '' });
+        can('read', 'Thread', { condoId: scope.condoId ?? '' });
+        can('update', 'Thread', { condoId: scope.condoId ?? '' });
+        can('create', 'ThreadMessage');
+        can('read', 'Faq', { condoId: scope.condoId ?? '' });
         return;
 
       case RoleId.SECURITY_GUARD:
@@ -145,6 +155,10 @@ export class AbilityFactory {
         can('manage', 'HouseholdMember', { unitId: scope.unitId ?? '' });
         can('invite', 'User');
         can('revoke', 'RoleAssignment', { unitId: scope.unitId ?? '' });
+        can('read', 'Thread', { unitId: scope.unitId ?? '' });
+        can('create', 'Thread');
+        can('create', 'ThreadMessage');
+        can('read', 'Faq', { condoId: scope.condoId ?? '' });
         // Owner empowerment: full read on own unit's audit log
         can('read', 'AuditLog', { unitId: scope.unitId ?? '' });
         can('read', 'User', { id: scope.userId });
@@ -159,6 +173,10 @@ export class AbilityFactory {
         can('manage', 'Defect', { unitId: scope.unitId ?? '' });
         can('read', 'Announcement', { condoId: scope.condoId ?? '' });
         can('acknowledge', 'Announcement');
+        can('read', 'Thread', { unitId: scope.unitId ?? '' });
+        can('create', 'Thread');
+        can('create', 'ThreadMessage');
+        can('read', 'Faq', { condoId: scope.condoId ?? '' });
         can('read', 'User', { id: scope.userId });
         can('update', 'User', { id: scope.userId });
         return;
@@ -168,6 +186,10 @@ export class AbilityFactory {
         can('create', 'Visitor', { unitId: scope.unitId ?? '' });
         can('read', 'Visitor', { unitId: scope.unitId ?? '' });
         can('read', 'Announcement', { condoId: scope.condoId ?? '' });
+        can('read', 'Thread', { unitId: scope.unitId ?? '' });
+        can('create', 'Thread');
+        can('create', 'ThreadMessage');
+        can('read', 'Faq', { condoId: scope.condoId ?? '' });
         can('read', 'User', { id: scope.userId });
         return;
 

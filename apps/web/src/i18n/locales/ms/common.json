@@ -5,10 +5,29 @@
     "visitors": "Pelawat",
     "billing": "Yuran",
     "defects": "Aduan",
+    "messages": "Mesej",
     "announcements": "Pengumuman",
+    "faq": "Bantuan & Soalan Lazim",
     "activity": "Aktiviti saya",
     "whoViewed": "Siapa melihat saya",
+    "helpdesk": "Meja bantuan",
     "signOut": "Log keluar"
+  },
+  "messages": {
+    "title": "Mesej",
+    "subtitle": "Tanya pihak pengurusan apa sahaja — setiap balasan direkodkan.",
+    "new": "Mesej baharu",
+    "subject": "Tajuk",
+    "category": "Kategori",
+    "send": "Hantar mesej",
+    "reply": "Tulis balasan…",
+    "empty": "Tiada perbualan lagi"
+  },
+  "faq": {
+    "title": "Bantuan & Soalan Lazim",
+    "subtitle": "Jawapan yang disediakan oleh pejabat pengurusan anda.",
+    "search": "Cari Soalan Lazim…",
+    "helpful": "Membantu"
   },
   "auth": {
     "signIn": "Log masuk",

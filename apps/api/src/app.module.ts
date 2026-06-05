@@ -15,11 +15,13 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { DefectModule } from './defect/defect.module';
+import { FaqModule } from './faq/faq.module';
 import { NotificationModule } from './notification/notification.module';
 import { OwnerModule } from './owner/owner.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { StorageModule } from './storage/storage.module';
 import { TenantModule } from './tenant/tenant.module';
+import { ThreadsModule } from './threads/threads.module';
 import { VisitorModule } from './visitor/visitor.module';
 
 @Module({
@@ -48,6 +50,8 @@ import { VisitorModule } from './visitor/visitor.module';
     AuditModule,
     RealtimeModule,
     OwnerModule,
+    ThreadsModule,
+    FaqModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

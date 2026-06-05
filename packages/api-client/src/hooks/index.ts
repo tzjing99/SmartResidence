@@ -2,7 +2,7 @@
 
 import type { CreateDefectInput, CreateVisitorInput } from '@smartresidence/shared-types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ApiClient } from '../client';
+import type { ApiClient, CreateThreadBody, ListThreadsParams } from '../client';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -18,6 +18,12 @@ export const queryKeys = {
   condoAnnouncements: (condoId: string) => ['announcements', 'condo', condoId] as const,
   myActivity: ['audit', 'me', 'activity'] as const,
   whoViewedMe: ['audit', 'me', 'who-viewed'] as const,
+  threads: (params: ListThreadsParams) => ['threads', params] as const,
+  thread: (id: string) => ['threads', id] as const,
+  faqArticles: (condoId: string, q: string) => ['faq', 'condo', condoId, q] as const,
+  faqCategories: (condoId: string) => ['faq', 'categories', condoId] as const,
+  faqManage: (condoId: string) => ['faq', 'manage', condoId] as const,
+  faqArticle: (id: string) => ['faq', 'article', id] as const,
 };
 
 export function useMe(api: ApiClient) {
@@ -143,5 +149,161 @@ export function useWhoViewedMe(api: ApiClient) {
   return useQuery({
     queryKey: queryKeys.whoViewedMe,
     queryFn: () => api.whoViewedMe(),
+  });
+}
+
+// -- Threads ---------------------------------------------------------
+
+export function useThreads(api: ApiClient, params: ListThreadsParams = {}) {
+  return useQuery({
+    queryKey: queryKeys.threads(params),
+    queryFn: () => api.listThreads(params),
+  });
+}
+
+export function useThread(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? queryKeys.thread(id) : ['threads', null],
+    queryFn: () => (id ? api.thread(id) : Promise.reject(new Error('no id'))),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateThread(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateThreadBody) => api.createThread(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['threads'] }),
+  });
+}
+
+export function usePostThreadMessage(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      body: string;
+      internalNote?: boolean;
+      attachmentIds?: string[];
+    }) =>
+      api.postThreadMessage(vars.id, {
+        body: vars.body,
+        internalNote: vars.internalNote,
+        attachmentIds: vars.attachmentIds,
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+export function useUpdateThread(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      priority?: import('../client').ThreadPriority;
+      status?: import('../client').ThreadStatus;
+      assignedToUserId?: string;
+    }) =>
+      api.updateThread(vars.id, {
+        priority: vars.priority,
+        status: vars.status,
+        assignedToUserId: vars.assignedToUserId,
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.thread(vars.id) });
+      qc.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+// -- FAQ -------------------------------------------------------------
+
+export function useFaqArticles(api: ApiClient, condoId: string | null, q = '') {
+  return useQuery({
+    queryKey: condoId ? queryKeys.faqArticles(condoId, q) : ['faq', 'condo', null, q],
+    queryFn: () =>
+      condoId
+        ? api.faqArticles(condoId, { q: q || undefined })
+        : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useFaqCategories(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.faqCategories(condoId) : ['faq', 'categories', null],
+    queryFn: () => (condoId ? api.faqCategories(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useFaqManageList(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.faqManage(condoId) : ['faq', 'manage', null],
+    queryFn: () =>
+      condoId ? api.faqManageList(condoId) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useMarkFaqHelpful(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.faqHelpful(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['faq'] }),
+  });
+}
+
+export function useCreateFaqArticle(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      condoId: string;
+      categoryId?: string;
+      question: string;
+      answer: string;
+      tags?: string[];
+      published?: boolean;
+      pinned?: boolean;
+    }) => api.createFaqArticle(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['faq'] }),
+  });
+}
+
+export function useUpdateFaqArticle(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      data: Partial<{
+        categoryId: string;
+        question: string;
+        answer: string;
+        tags: string[];
+        published: boolean;
+        pinned: boolean;
+      }>;
+    }) => api.updateFaqArticle(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['faq'] }),
+  });
+}
+
+export function useDeleteFaqArticle(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteFaqArticle(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['faq'] }),
+  });
+}
+
+export function useCreateFaqCategory(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { condoId: string; name: string; position?: number }) =>
+      api.createFaqCategory(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['faq'] }),
   });
 }

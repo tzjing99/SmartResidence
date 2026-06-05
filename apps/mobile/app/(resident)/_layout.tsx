@@ -59,7 +59,15 @@ export default function ResidentTabsLayout() {
       />
       <Tabs.Screen name="messages/[id]" options={{ href: null }} />
       <Tabs.Screen name="messages/new" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="activity"
         options={{

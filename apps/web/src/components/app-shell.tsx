@@ -18,7 +18,7 @@ import {
   LogOut,
   Megaphone,
   MessageSquare,
-  Shield,
+  Settings2,
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -66,13 +66,7 @@ const NAV_ITEMS: Array<{
     can: { action: 'read', subject: 'Announcement' },
   },
   { href: '/faq', label: 'Help & FAQ', icon: HelpCircle, can: { action: 'read', subject: 'Faq' } },
-  {
-    href: '/sla-audit',
-    label: 'SLA audit',
-    icon: Shield,
-    can: { action: 'read', subject: 'SlaPolicy' },
-  },
-  { href: '/settings', label: 'Notifications', icon: Bell },
+  { href: '/settings', label: 'Settings', icon: Settings2 },
   { href: '/activity', label: 'My activity', icon: History },
   { href: '/who-viewed', label: 'Who viewed me', icon: Eye },
   {

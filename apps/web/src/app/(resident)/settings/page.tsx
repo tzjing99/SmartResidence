@@ -42,7 +42,7 @@ export default function ProfileSettingsPage() {
   return (
     <div className="max-w-lg flex flex-col gap-6">
       <div>
-        <h2 className="sr-section-title">Notification settings</h2>
+        <h2 className="sr-section-title">Notifications</h2>
         <p className="sr-muted text-sm mt-1">
           In-app and mobile push notifications are always on for thread updates. Configure optional
           email and quiet hours below.

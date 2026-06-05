@@ -262,9 +262,9 @@ export default function HelpdeskSettingsPage() {
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Settings2 className="size-6" /> Helpdesk & SLA settings
-        </h1>
+        <h2 className="sr-section-title flex items-center gap-2">
+          <Settings2 className="size-5" /> Helpdesk & SLA
+        </h2>
         <p className="sr-muted text-sm mt-1">
           Configure response windows per priority. First-response targets are auto-derived at 40% of
           resolution. AT_RISK threshold is fixed at 20% of window remaining.

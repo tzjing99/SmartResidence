@@ -12,13 +12,11 @@ import {
   CalendarClock,
   CreditCard,
   HelpCircle,
-  History,
   LifeBuoy,
   LogOut,
   Megaphone,
   Settings2,
   ShieldAlert,
-  UserCog,
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -68,30 +66,13 @@ const NAV: Array<{
     can: { action: 'read', subject: 'Thread' },
   },
   {
-    href: '/admin/settings/helpdesk',
-    label: 'SLA settings',
-    icon: Settings2,
-    can: { action: 'read', subject: 'SlaPolicy' },
-  },
-  {
     href: '/admin/announcements',
     label: 'Announcements',
     icon: Megaphone,
     can: { action: 'publish', subject: 'Announcement' },
   },
   { href: '/admin/faq', label: 'FAQ', icon: HelpCircle, can: { action: 'manage', subject: 'Faq' } },
-  {
-    href: '/admin/audit',
-    label: 'Audit log',
-    icon: History,
-    can: { action: 'read', subject: 'AuditLog' },
-  },
-  {
-    href: '/admin/roles',
-    label: 'Roles',
-    icon: UserCog,
-    can: { action: 'manage', subject: 'RoleAssignment' },
-  },
+  { href: '/admin/settings', label: 'Settings', icon: Settings2 },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

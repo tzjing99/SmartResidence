@@ -4,8 +4,10 @@ import { PageFade } from '@/components/shell-nav';
 import { api, writeSession } from '@/lib/api';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useMyCondos } from '@smartresidence/api-client';
-import { LogOut, ShieldCheck } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { cn } from '@smartresidence/ui-web';
+import { LogOut, Settings2, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
 /**
@@ -15,6 +17,7 @@ import * as React from 'react';
  */
 export function GuardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { ready } = useRoleGuard('guard');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -45,14 +48,29 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
           </span>
           {condo ? <span className="text-xs sr-muted ml-2 truncate">{condo.name}</span> : null}
         </div>
-        <button
-          type="button"
-          onClick={signOut}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
-        >
-          <LogOut className="size-4" />
-          Sign out
-        </button>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/guard/settings"
+            aria-current={pathname.startsWith('/guard/settings') ? 'page' : undefined}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors',
+              pathname.startsWith('/guard/settings')
+                ? 'text-coral-500 bg-coral-500/10'
+                : 'hover:bg-[rgb(var(--sr-border))]/40',
+            )}
+          >
+            <Settings2 className="size-4" />
+            Settings
+          </Link>
+          <button
+            type="button"
+            onClick={signOut}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
+          >
+            <LogOut className="size-4" />
+            Sign out
+          </button>
+        </div>
       </header>
       <main className="flex-1 min-w-0 p-6 md:p-10 max-w-4xl w-full mx-auto">
         <PageFade>{children}</PageFade>

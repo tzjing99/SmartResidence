@@ -38,7 +38,8 @@ export default function SettingsScreen() {
       style={{ flex: 1, backgroundColor: palette.bgLight }}
       contentContainerStyle={{ padding: 16, gap: 12 }}
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Notifications</Text>
+      <Text style={{ fontSize: 24, fontWeight: '700' }}>Settings</Text>
+      <Text style={{ fontSize: 16, fontWeight: '600', marginTop: 4 }}>Notifications</Text>
       <Text style={{ color: palette.mutedLight, fontSize: 13 }}>
         In-app and push stay on by default. Configure email opt-in and quiet hours below.
       </Text>

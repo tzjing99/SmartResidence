@@ -21,7 +21,7 @@ export default function Bootstrap() {
         const role = (me as { user?: { activeRole?: string } }).user?.activeRole;
         if (role === 'SECURITY_GUARD') router.replace('/(guard)/scan');
         else if (role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') {
-          router.replace('/(management)/helpdesk-settings' as Href);
+          router.replace('/(management)/settings' as Href);
         } else router.replace('/(resident)/home');
       } catch {
         router.replace('/sign-in');

@@ -77,7 +77,7 @@ export default function AdminHome() {
         <h3 className="font-semibold mb-2">Recent activity</h3>
         <p className="text-sm sr-muted">
           For deep filtering use the{' '}
-          <a href="/admin/audit" className="underline">
+          <a href="/admin/settings/audit" className="underline">
             audit log
           </a>
           .

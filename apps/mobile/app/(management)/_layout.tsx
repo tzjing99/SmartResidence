@@ -10,7 +10,8 @@ export default function ManagementLayout() {
         headerStyle: { backgroundColor: palette.bgLight },
       }}
     >
-      <Stack.Screen name="helpdesk-settings" options={{ title: 'SLA settings' }} />
+      <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+      <Stack.Screen name="helpdesk-settings" options={{ title: 'Helpdesk & SLA' }} />
     </Stack>
   );
 }

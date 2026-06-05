@@ -31,6 +31,25 @@ describe('resolveActiveHref', () => {
   it('returns null when nothing matches', () => {
     expect(resolveActiveHref('/somewhere-else', ADMIN_HREFS)).toBeNull();
   });
+
+  it('keeps settings parent active only on exact path when a longer sibling exists', () => {
+    const settingsHrefs = ['/settings', '/settings/sla-audit'];
+    expect(resolveActiveHref('/settings', settingsHrefs)).toBe('/settings');
+    expect(resolveActiveHref('/settings/sla-audit', settingsHrefs)).toBe('/settings/sla-audit');
+  });
+
+  it('highlights nested admin settings routes', () => {
+    const adminSettingsHrefs = ['/admin/settings', '/admin/settings/helpdesk', '/admin/settings/audit'];
+    expect(resolveActiveHref('/admin/settings/helpdesk', adminSettingsHrefs)).toBe(
+      '/admin/settings/helpdesk',
+    );
+    expect(resolveActiveHref('/admin/settings/audit', adminSettingsHrefs)).toBe(
+      '/admin/settings/audit',
+    );
+    expect(resolveActiveHref('/admin/settings/notifications', adminSettingsHrefs)).toBe(
+      '/admin/settings',
+    );
+  });
 });
 
 describe('isActiveHref', () => {

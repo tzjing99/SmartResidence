@@ -10,7 +10,7 @@ type VerifiedVisitor = {
   name: string;
   accessCode?: string;
   unit?: { identifier?: string; block?: { name?: string } };
-  expectedAt?: string;
+  expectedAt?: string | Date;
 };
 
 function unitLabel(visitor: VerifiedVisitor) {

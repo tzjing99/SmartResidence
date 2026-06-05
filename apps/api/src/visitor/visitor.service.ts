@@ -9,8 +9,8 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AuditAction,
-  type Prisma,
   OwnershipStatus,
+  type Prisma,
   TenancyStatus,
   VisitorStatus,
   VisitorVisitType,

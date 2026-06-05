@@ -72,13 +72,13 @@ export default function WalkInScreen() {
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button
           title="Unit"
-          variant={tab === 'unit' ? 'primary' : 'outline'}
+          variant={tab === 'unit' ? 'primary' : 'secondary'}
           size="sm"
           onPress={() => setTab('unit')}
         />
         <Button
           title="Management office"
-          variant={tab === 'office' ? 'primary' : 'outline'}
+          variant={tab === 'office' ? 'primary' : 'secondary'}
           size="sm"
           onPress={() => setTab('office')}
         />

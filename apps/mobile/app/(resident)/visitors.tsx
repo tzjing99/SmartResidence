@@ -138,7 +138,7 @@ export default function VisitorsScreen() {
                     <Button
                       title="Reject"
                       size="sm"
-                      variant="outline"
+                      variant="secondary"
                       onPress={() => onReject(v.id)}
                     />
                   </View>

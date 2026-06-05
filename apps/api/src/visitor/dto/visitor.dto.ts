@@ -81,6 +81,108 @@ export class CreateVisitorDto {
   @MinLength(3)
   @MaxLength(200)
   urgentReason?: string;
+
+  @ApiPropertyOptional({
+    description: 'S3 object key from attachments presign — required for overnight',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  vehiclePlatePhotoUrl?: string;
+}
+
+export class WorkingDaysDto {
+  @ApiProperty({ type: [Number], example: [1, 2, 3, 4, 5] })
+  weekdays!: number[];
+}
+
+export class UpdateVisitorSettingsDto {
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maxOvernightVisitsPerUnitPerMonth?: number;
+
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  overnightSlotsPerNight?: number;
+
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  walkInApprovalMinutes?: number;
+
+  @ApiPropertyOptional({ minimum: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  preRegExpiryBufferMins?: number;
+
+  @ApiPropertyOptional({ minimum: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  urgentOvernightMinHours?: number;
+
+  @ApiPropertyOptional({ type: WorkingDaysDto })
+  @IsOptional()
+  @Type(() => WorkingDaysDto)
+  workingDays?: WorkingDaysDto;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsString({ each: true })
+  publicHolidays?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  countPendingTowardCap?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  requirePlatePhotoOvernight?: boolean;
+
+  @ApiPropertyOptional({ enum: VisitorPurpose })
+  @IsOptional()
+  @IsEnum(VisitorPurpose)
+  defaultPurpose?: VisitorPurpose;
+}
+
+export class SuspendOvernightDto {
+  @ApiProperty({ maxLength: 500 })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(500)
+  reason!: string;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  until?: Date;
+
+  @ApiPropertyOptional({ description: 'Suspend until manually lifted (ignores until when true)' })
+  @IsOptional()
+  @IsBoolean()
+  indefinite?: boolean;
+}
+
+export class FlagPlateMismatchDto {
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+
+  @ApiPropertyOptional({ description: 'Also suspend overnight registration for the unit owner' })
+  @IsOptional()
+  @IsBoolean()
+  suspendOwner?: boolean;
 }
 
 export class CreateWalkInUnitDto {

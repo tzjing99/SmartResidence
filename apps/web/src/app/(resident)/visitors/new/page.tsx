@@ -19,9 +19,23 @@ import {
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import { Car, Footprints, Info } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
+
+async function uploadPlatePhoto(file: File): Promise<string> {
+  const presign = await api.presignAttachment({
+    contentType: file.type || 'image/jpeg',
+    fileName: file.name || 'plate.jpg',
+  });
+  const res = await fetch(presign.url, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': file.type || 'image/jpeg' },
+  });
+  if (!res.ok) throw new Error('Failed to upload plate photo');
+  return presign.key;
+}
 
 export default function NewVisitorPage() {
   const router = useRouter();
@@ -31,6 +45,8 @@ export default function NewVisitorPage() {
   const unit = units.data?.[0] as { id: string; identifier: string } | undefined;
   const condoId = (condos.data?.[0] as { id: string } | undefined)?.id ?? null;
   const create = useCreateVisitor(api);
+  const [platePhotoKey, setPlatePhotoKey] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const form = useForm<CreateVisitorInput>({
     resolver: zodResolver(CreateVisitorSchema),
@@ -54,6 +70,10 @@ export default function NewVisitorPage() {
     expectedAt instanceof Date && !Number.isNaN(expectedAt.getTime()) ? expectedAt : null,
     Boolean(overnight),
   );
+
+  useEffect(() => {
+    if (overnight) form.setValue('entryMode', 'DRIVE_IN');
+  }, [overnight, form]);
 
   useEffect(() => {
     if (unit?.id) form.setValue('unitId', unit.id);
@@ -83,7 +103,16 @@ export default function NewVisitorPage() {
       toast.error('No overnight slots left tonight — contact management');
       return;
     }
-    const payload: CreateVisitorInput = { ...values, unitId: unit.id };
+    const payload: CreateVisitorInput = {
+      ...values,
+      unitId: unit.id,
+      entryMode: values.overnight ? 'DRIVE_IN' : values.entryMode,
+      vehiclePlatePhotoUrl: values.overnight ? platePhotoKey ?? undefined : undefined,
+    };
+    if (values.overnight && !platePhotoKey) {
+      toast.error('Upload a plate photo that matches the typed plate number');
+      return;
+    }
     try {
       const created = await create.mutateAsync(payload);
       if (created.status === 'PENDING_MANAGEMENT_APPROVAL') {
@@ -164,12 +193,48 @@ export default function NewVisitorPage() {
             </div>
           </div>
 
-          {entryMode === 'DRIVE_IN' ? (
+          {entryMode === 'DRIVE_IN' || overnight ? (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="vehiclePlate">Plate number</Label>
               <Input id="vehiclePlate" {...form.register('vehiclePlate')} />
+              {overnight ? (
+                <p className="text-xs sr-muted">
+                  Must match the plate in your photo — management may flag mismatches
+                </p>
+              ) : null}
               {form.formState.errors.vehiclePlate ? (
                 <p className="text-xs text-red-600">{form.formState.errors.vehiclePlate.message}</p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {overnight ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="platePhoto">Plate photo (required)</Label>
+              <Input
+                id="platePhoto"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                disabled={uploadingPhoto}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingPhoto(true);
+                  try {
+                    const key = await uploadPlatePhoto(file);
+                    setPlatePhotoKey(key);
+                    toast.success('Plate photo uploaded');
+                  } catch (err) {
+                    toast.error((err as Error).message);
+                    setPlatePhotoKey(null);
+                  } finally {
+                    setUploadingPhoto(false);
+                  }
+                }}
+              />
+              {platePhotoKey ? (
+                <p className="text-xs text-emerald-700">Photo ready — verify plate matches</p>
               ) : null}
             </div>
           ) : null}
@@ -260,7 +325,10 @@ export default function NewVisitorPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting || slotsBlocked}>
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting || slotsBlocked || uploadingPhoto}
+            >
               {form.formState.isSubmitting ? 'Submitting…' : 'Create pass'}
             </Button>
           </div>

@@ -52,6 +52,7 @@ export type Action =
   | 'resolve'
   | 'approve'
   | 'approve-overnight'
+  | 'manage-overnight-policy'
   | 'reject'
   | 'check-in'
   | 'check-out'
@@ -118,6 +119,7 @@ export class AbilityFactory {
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
         can('export', 'Visitor', { condoId: scope.condoId ?? '' });
         can('approve-overnight', 'Visitor', { condoId: scope.condoId ?? '' });
+        can('manage-overnight-policy', 'Visitor', { condoId: scope.condoId ?? '' });
         can('manage', 'Invoice', { condoId: scope.condoId ?? '' });
         can('manage', 'Payment');
         can('manage', 'Defect', { condoId: scope.condoId ?? '' });

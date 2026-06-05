@@ -3,15 +3,22 @@ import {
   DEFAULT_CONDO_VISITOR_SETTINGS,
   MY_PUBLIC_HOLIDAYS_2026,
   parseCondoVisitorSettings,
+  urgentOvernightMinHours as urgentHoursFromSettings,
 } from './visitor-settings';
 
 export { MY_PUBLIC_HOLIDAYS_2026 };
 
 /** Default overnight visitor capacity per condo per calendar night. */
-export const DEFAULT_OVERNIGHT_SLOTS_PER_NIGHT = DEFAULT_CONDO_VISITOR_SETTINGS.overnightSlotsPerNight;
+export const DEFAULT_OVERNIGHT_SLOTS_PER_NIGHT =
+  DEFAULT_CONDO_VISITOR_SETTINGS.overnightSlotsPerNight;
 
-/** Hours of notice required for standard (non-urgent) overnight on working days. */
-export const OVERNIGHT_ADVANCE_NOTICE_HOURS = 24;
+/** Fallback hours of notice for urgent overnight threshold. */
+export const OVERNIGHT_ADVANCE_NOTICE_HOURS =
+  DEFAULT_CONDO_VISITOR_SETTINGS.urgentOvernightMinHours;
+
+function isUrgentArrival(now: Date, expectedAt: Date, settings: CondoVisitorSettings): boolean {
+  return hoursUntilArrival(now, expectedAt) < urgentHoursFromSettings(settings);
+}
 
 export type OvernightOutcome = {
   status: 'APPROVED' | 'PENDING_MANAGEMENT_APPROVAL';
@@ -106,8 +113,7 @@ export function resolveOvernightOutcome(
   const settings = parseCondoVisitorSettings(condoSettings);
   const arrivalDay = startOfLocalDay(expectedAt);
   const nonWorkingNight = !isWorkingDay(arrivalDay, settings);
-  const hoursAhead = hoursUntilArrival(now, expectedAt);
-  const urgent = hoursAhead < OVERNIGHT_ADVANCE_NOTICE_HOURS;
+  const urgent = isUrgentArrival(now, expectedAt, settings);
   const duration = overnightDurationMins(expectedAt);
   const maxSlots = settings.overnightSlotsPerNight;
 
@@ -148,7 +154,7 @@ export function buildOvernightHelperMessage(
   const isWorkingDayArrival = isWorkingDay(arrivalDay, settings);
   const isHolidayAuto = !isWorkingDayArrival;
   const hoursAhead = hoursUntilArrival(now, expectedAt);
-  const isUrgent = hoursAhead < OVERNIGHT_ADVANCE_NOTICE_HOURS;
+  const isUrgent = isUrgentArrival(now, expectedAt, settings);
   const maxSlots = settings.overnightSlotsPerNight;
   const remainingSlots = Math.max(0, maxSlots - occupiedSlots);
   const slotsFull = isHolidayAuto && occupiedSlots >= maxSlots;

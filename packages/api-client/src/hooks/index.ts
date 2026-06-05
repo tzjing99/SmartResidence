@@ -40,6 +40,9 @@ export const queryKeys = {
   faqArticle: (id: string) => ['faq', 'article', id] as const,
   slaSettings: (condoId: string) => ['sla', 'settings', condoId] as const,
   slaAudit: (condoId: string) => ['sla', 'audit', condoId] as const,
+  condoVisitorSettings: (condoId: string) => ['settings', 'visitor', condoId] as const,
+  overnightUnitSummary: (condoId: string, month?: string) =>
+    ['visitors', 'overnight-summary', condoId, month ?? 'current'] as const,
   preferences: ['auth', 'preferences'] as const,
 };
 
@@ -485,6 +488,76 @@ export function useSlaAudit(api: ApiClient, condoId: string | null) {
     queryKey: condoId ? queryKeys.slaAudit(condoId) : ['sla', 'audit', null],
     queryFn: () => (condoId ? api.slaAudit(condoId) : Promise.reject(new Error('no condo'))),
     enabled: Boolean(condoId),
+  });
+}
+
+export function useCondoVisitorSettings(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoVisitorSettings(condoId) : ['settings', 'visitor', null],
+    queryFn: () =>
+      condoId ? api.condoVisitorSettings(condoId) : Promise.reject(new Error('no condo')),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpdateCondoVisitorSettings(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      data: import('@smartresidence/shared-types').UpdateCondoVisitorSettingsInput;
+    }) => api.updateCondoVisitorSettings(vars.condoId, vars.data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.condoVisitorSettings(vars.condoId) });
+      qc.invalidateQueries({ queryKey: ['visitors', 'overnight-summary', vars.condoId] });
+    },
+  });
+}
+
+export function useOvernightUnitSummary(api: ApiClient, condoId: string | null, month?: string) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.overnightUnitSummary(condoId, month)
+      : ['visitors', 'overnight-summary', null],
+    queryFn: () =>
+      condoId ? api.overnightUnitSummary(condoId, month) : Promise.reject(new Error('no condo')),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useSuspendUnitOvernight(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      unitId: string;
+      reason: string;
+      until?: string;
+      indefinite?: boolean;
+    }) => api.suspendUnitOvernight(vars.condoId, vars.unitId, vars),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['visitors', 'overnight-summary', vars.condoId] });
+    },
+  });
+}
+
+export function useUnsuspendUnitOvernight(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; unitId: string }) =>
+      api.unsuspendUnitOvernight(vars.condoId, vars.unitId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['visitors', 'overnight-summary', vars.condoId] });
+    },
+  });
+}
+
+export function useFlagPlateMismatch(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { visitorId: string; reason?: string; suspendOwner?: boolean }) =>
+      api.flagVisitorPlateMismatch(vars.visitorId, vars),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
   });
 }
 

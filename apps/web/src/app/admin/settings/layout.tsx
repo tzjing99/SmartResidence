@@ -12,6 +12,11 @@ const SETTINGS_NAV: SettingsNavItem[] = [
     label: 'Helpdesk & SLA',
     can: { action: 'read', subject: 'SlaPolicy' },
   },
+  {
+    href: '/admin/settings/visitors',
+    label: 'Visitors',
+    can: { action: 'manage-overnight-policy', subject: 'Visitor' },
+  },
   { href: '/admin/settings/notifications', label: 'Notifications' },
   {
     href: '/admin/settings/audit',

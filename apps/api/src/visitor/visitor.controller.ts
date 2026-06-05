@@ -25,8 +25,11 @@ import {
   CreateVisitorDto,
   CreateWalkInOfficeDto,
   CreateWalkInUnitDto,
+  FlagPlateMismatchDto,
   RejectVisitorDto,
+  SuspendOvernightDto,
   UpdateFavouriteVisitorDto,
+  UpdateVisitorSettingsDto,
 } from './dto/visitor.dto';
 import type { VisitorAdminFilter, VisitorListView } from './visitor.constants';
 import { VisitorService } from './visitor.service';
@@ -49,6 +52,55 @@ export class VisitorController {
       throw new BadRequestException('expectedAt query param must be a valid ISO date-time');
     }
     return this.visitors.overnightPreview(condoId, expectedAt);
+  }
+
+  @Get('admin/overnight-summary/:condoId')
+  @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
+  @ApiOperation({ summary: 'Monthly overnight usage summary per unit owner' })
+  overnightOwnerSummary(
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('month') month?: string,
+  ) {
+    return this.visitors.getOvernightOwnerSummary(condoId, month);
+  }
+
+  @Get('admin/visitor-settings/:condoId')
+  @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
+  visitorSettings(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+    return this.visitors.getVisitorSettings(condoId);
+  }
+
+  @Patch('admin/visitor-settings/:condoId')
+  @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'Condo', resourceIdFrom: 'params.condoId' })
+  updateVisitorSettings(
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Body() dto: UpdateVisitorSettingsDto,
+  ) {
+    return this.visitors.updateVisitorSettings(condoId, dto);
+  }
+
+  @Patch('admin/overnight-policy/:unitId/suspend')
+  @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'UnitVisitorPolicy' })
+  suspendOvernight(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Query('condoId', new ParseUUIDPipe()) condoId: string,
+    @Body() dto: SuspendOvernightDto,
+  ) {
+    return this.visitors.suspendUnitOvernight(condoId, unitId, user, dto);
+  }
+
+  @Patch('admin/overnight-policy/:unitId/unsuspend')
+  @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'UnitVisitorPolicy' })
+  unsuspendOvernight(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Query('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    return this.visitors.unsuspendUnitOvernight(condoId, unitId, user);
   }
 
   @Post()
@@ -91,6 +143,17 @@ export class VisitorController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.visitors.approveOvernight(id, user);
+  }
+
+  @Post(':id/flag-plate-mismatch')
+  @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })
+  flagPlateMismatch(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: FlagPlateMismatchDto,
+  ) {
+    return this.visitors.flagPlateMismatch(id, user, dto);
   }
 
   @Post(':id/reject')

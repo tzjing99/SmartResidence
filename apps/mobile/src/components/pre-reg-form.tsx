@@ -8,16 +8,32 @@ import {
 import {
   type CreateVisitorInput,
   CreateVisitorSchema,
-  defaultExpectedArrival,
   PHONE_COUNTRY_CODES,
+  VISITOR_PURPOSE_OPTIONS,
   type VisitorEntryMode,
   type VisitorPurpose,
-  VISITOR_PURPOSE_OPTIONS,
+  defaultExpectedArrival,
 } from '@smartresidence/shared-types';
 import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
-import { useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { Alert, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, Switch, Text, TextInput, View } from 'react-native';
+
+async function uploadPlatePhoto(uri: string): Promise<string> {
+  const presign = await api.presignAttachment({
+    contentType: 'image/jpeg',
+    fileName: 'plate.jpg',
+  });
+  const blob = await fetch(uri).then((r) => r.blob());
+  const res = await fetch(presign.url, {
+    method: 'PUT',
+    body: blob,
+    headers: { 'Content-Type': 'image/jpeg' },
+  });
+  if (!res.ok) throw new Error('Failed to upload plate photo');
+  return presign.key;
+}
 import { api } from '../lib/api';
 import { useTabletLayout } from '../lib/use-tablet-layout';
 
@@ -41,6 +57,9 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   const unit = units.data?.[0] as { id: string } | undefined;
   const condoId = (condos.data?.[0] as { id: string } | undefined)?.id ?? null;
   const create = useCreateVisitor(api);
+  const [platePhotoUri, setPlatePhotoUri] = useState<string | null>(null);
+  const [platePhotoKey, setPlatePhotoKey] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const form = useForm<CreateVisitorInput>({
     resolver: zodResolver(CreateVisitorSchema),
@@ -72,6 +91,35 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
     if (unit?.id) form.setValue('unitId', unit.id);
   }, [unit?.id, form]);
 
+  useEffect(() => {
+    if (overnight) form.setValue('entryMode', 'DRIVE_IN');
+  }, [overnight, form]);
+
+  async function capturePlatePhoto() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (perm.status !== 'granted') {
+      Alert.alert('Camera permission needed', 'Capture the vehicle plate for overnight visits.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    const uri = result.assets[0].uri;
+    setPlatePhotoUri(uri);
+    setUploadingPhoto(true);
+    try {
+      const key = await uploadPlatePhoto(uri);
+      setPlatePhotoKey(key);
+    } catch (err) {
+      setPlatePhotoKey(null);
+      Alert.alert('Upload failed', (err as Error).message);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   const slotsBlocked = Boolean(overnight && preview.data?.slotsFull);
   const showUrgentReason = Boolean(overnight && preview.data?.isUrgent);
 
@@ -81,8 +129,17 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
       Alert.alert('No slots', 'No overnight slots left tonight — contact management.');
       return;
     }
+    if (values.overnight && !platePhotoKey) {
+      Alert.alert('Plate photo required', 'Capture a photo that matches the typed plate number.');
+      return;
+    }
     try {
-      const created = await create.mutateAsync({ ...values, unitId: unit.id });
+      const created = await create.mutateAsync({
+        ...values,
+        unitId: unit.id,
+        entryMode: values.overnight ? 'DRIVE_IN' : values.entryMode,
+        vehiclePlatePhotoUrl: values.overnight ? (platePhotoKey ?? undefined) : undefined,
+      });
       if (created.status === 'PENDING_MANAGEMENT_APPROVAL') {
         Alert.alert('Submitted', 'Management will review this overnight visit.');
       } else {
@@ -197,7 +254,7 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
           />
         </View>
 
-        {entryMode === 'DRIVE_IN' ? (
+        {entryMode === 'DRIVE_IN' || overnight ? (
           <View style={fieldGap ?? { gap: 6 }}>
             <Text style={{ fontWeight: '600', marginBottom: 6 }}>Plate number</Text>
             <TextInput
@@ -205,6 +262,34 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
               onChangeText={(v) => form.setValue('vehiclePlate', v)}
               style={inputStyle}
               autoCapitalize="characters"
+            />
+            {overnight ? (
+              <Text style={{ fontSize: 12, color: palette.mutedLight, marginTop: 4 }}>
+                Must match your plate photo — mismatches may suspend overnight registration
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {overnight ? (
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontWeight: '600' }}>Plate photo (required)</Text>
+            {platePhotoUri ? (
+              <Image
+                source={{ uri: platePhotoUri }}
+                style={{ height: 140, borderRadius: radius.lg }}
+              />
+            ) : null}
+            <Button
+              title={
+                uploadingPhoto
+                  ? 'Uploading…'
+                  : platePhotoKey
+                    ? 'Retake photo'
+                    : 'Capture plate photo'
+              }
+              onPress={capturePlatePhoto}
+              disabled={uploadingPhoto}
             />
           </View>
         ) : null}
@@ -299,7 +384,7 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
       <Button
         title={create.isPending ? 'Submitting…' : 'Create pass'}
         onPress={form.handleSubmit(onSubmit)}
-        disabled={create.isPending || slotsBlocked}
+        disabled={create.isPending || slotsBlocked || uploadingPhoto}
       />
     </View>
   );

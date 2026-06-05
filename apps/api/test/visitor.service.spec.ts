@@ -21,13 +21,29 @@ function service() {
       count: vi.fn(),
     },
     visitorCheckIn: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
-    ownership: { findMany: vi.fn() },
+    ownership: { findMany: vi.fn(), findFirst: vi.fn() },
     tenancy: { findMany: vi.fn() },
+    unitVisitorPolicy: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(async (cb: any) => (typeof cb === 'function' ? cb(prisma) : cb)),
   };
   const events: any = { emit: vi.fn() };
-  return { svc: new VisitorService(prisma, events), prisma, events };
+  const notifications: any = { dispatch: vi.fn().mockResolvedValue(undefined) };
+  return { svc: new VisitorService(prisma, events, notifications), prisma, events, notifications };
+}
+
+function mockOvernightEligibility(prisma: any) {
+  prisma.ownership.findFirst.mockResolvedValue({
+    userId: 'owner-user',
+    user: { id: 'owner-user', name: 'Owner' },
+  });
+  prisma.unitVisitorPolicy.findMany.mockResolvedValue([]);
 }
 
 const host: any = {
@@ -106,15 +122,19 @@ describe('VisitorService', () => {
 
   it('requires urgent reason for overnight pre-reg under 24h', async () => {
     const { svc, prisma } = service();
+    mockOvernightEligibility(prisma);
     prisma.unit.findUnique.mockResolvedValueOnce({
       id: 'u1',
       condoId: 'c1',
       condo: { id: 'c1', settings: {} },
     });
+    prisma.visitor.count.mockResolvedValue(0);
     await expect(
       svc.create(host, {
         unitId: 'u1',
         name: 'Late guest',
+        vehiclePlate: 'ABC1234',
+        vehiclePlatePhotoUrl: 'uploads/plate.jpg',
         expectedAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
         overnight: true,
       } as any),
@@ -124,6 +144,7 @@ describe('VisitorService', () => {
 
   it('creates overnight pre-reg as PENDING_MANAGEMENT_APPROVAL without pass', async () => {
     const { svc, prisma } = service();
+    mockOvernightEligibility(prisma);
     prisma.unit.findUnique.mockResolvedValueOnce({
       id: 'u1',
       condoId: 'c1',
@@ -140,6 +161,8 @@ describe('VisitorService', () => {
     const v = await svc.create(host, {
       unitId: 'u1',
       name: 'Weekend guest',
+      vehiclePlate: 'WXY9876',
+      vehiclePlatePhotoUrl: 'uploads/plate2.jpg',
       expectedAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
       overnight: true,
     } as any);
@@ -149,7 +172,11 @@ describe('VisitorService', () => {
 
   it('creates walk-in unit as PENDING_OWNER_APPROVAL', async () => {
     const { svc, prisma, events } = service();
-    prisma.unit.findFirst.mockResolvedValueOnce({ id: 'u1', condoId: 'c1' });
+    prisma.unit.findFirst.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: { settings: {} },
+    });
     prisma.visitor.create.mockResolvedValueOnce({
       id: 'v2',
       status: 'PENDING_OWNER_APPROVAL',

@@ -1,10 +1,13 @@
+import { NotificationModule } from '@/notification/notification.module';
 import { Module } from '@nestjs/common';
+import { CondoVisitorSettingsController } from './condo-visitor-settings.controller';
 import { VisitorController } from './visitor.controller';
 import { VisitorService } from './visitor.service';
 
 @Module({
+  imports: [NotificationModule],
   providers: [VisitorService],
-  controllers: [VisitorController],
+  controllers: [VisitorController, CondoVisitorSettingsController],
   exports: [VisitorService],
 })
 export class VisitorModule {}

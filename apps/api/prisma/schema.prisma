@@ -50,6 +50,7 @@ model User {
   sessions           Session[]
   passkeys           PasskeyCredential[]
   hostedVisitors     Visitor[]            @relation("hostUser")
+  visitorPolicies    UnitVisitorPolicy[]
   approvedVisitors   Visitor[]            @relation("approverUser")
   guardCheckIns      VisitorCheckIn[]     @relation("checkInGuard")
   guardCheckOuts     VisitorCheckIn[]     @relation("checkOutGuard")
@@ -161,6 +162,7 @@ model Condo {
   blocks          Block[]
   units           Unit[]
   visitors        Visitor[]
+  unitVisitorPolicies UnitVisitorPolicy[]
   invoices        Invoice[]
   defects         Defect[]
   announcements   Announcement[]
@@ -218,6 +220,7 @@ model Unit {
   householdMembers HouseholdMember[]
   visitors         Visitor[]
   favouriteVisitors FavouriteVisitor[]
+  visitorPolicies  UnitVisitorPolicy[]
   invoices         Invoice[]
   defects          Defect[]
   roleAssignments  RoleAssignment[]
@@ -405,6 +408,8 @@ model Visitor {
   phoneCountryCode String       @default("+60")
   entryMode     VisitorEntryMode @default(WALK_IN)
   vehiclePlate  String?
+  vehiclePlatePhotoUrl String?
+  plateMismatchFlagged Boolean     @default(false)
   purpose       VisitorPurpose @default(VISITOR)
   overnight     Boolean          @default(false)
   urgentOvernight Boolean        @default(false)
@@ -474,6 +479,24 @@ model FavouriteVisitor {
   @@index([unitId])
   @@index([userId])
   @@map("favourite_visitors")
+}
+
+model UnitVisitorPolicy {
+  id                      String    @id @default(uuid()) @db.Uuid
+  condoId                 String    @db.Uuid
+  condo                   Condo     @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId                  String    @db.Uuid
+  unit                    Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId                  String    @db.Uuid
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overnightSuspendedUntil DateTime?
+  suspendReason           String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@unique([unitId, userId])
+  @@index([condoId])
+  @@map("unit_visitor_policies")
 }
 
 //////////////////////////////////////////////////////////////////////////////

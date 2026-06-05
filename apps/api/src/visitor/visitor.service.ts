@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import { NotificationService } from '@/notification/notification.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   BadRequestException,
@@ -9,6 +10,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AuditAction,
+  NotificationKind,
   OwnershipStatus,
   type Prisma,
   RoleId,
@@ -32,21 +34,39 @@ import type {
   CreateVisitorDto,
   CreateWalkInOfficeDto,
   CreateWalkInUnitDto,
+  FlagPlateMismatchDto,
+  SuspendOvernightDto,
   UpdateFavouriteVisitorDto,
+  UpdateVisitorSettingsDto,
 } from './dto/visitor.dto';
 import {
-  OVERNIGHT_ADVANCE_NOTICE_HOURS,
+  INDEFINITE_SUSPEND_UNTIL,
+  checkUnitOvernightEligibility,
+  countMonthlyOvernightForUnit,
+  getPrimaryUnitOwner,
+  getUnitSuspendPolicy,
+  isIndefiniteSuspend,
+  isOvernightSuspended,
+  parseMonthParam,
+} from './overnight-policy';
+import {
   buildOvernightHelperMessage,
   hoursUntilArrival,
   nightRangeForArrival,
   resolveOvernightOutcome,
 } from './overnight-rules';
 import {
+  type CondoVisitorSettings,
+  mergeVisitorSettings,
+  parseCondoVisitorSettings,
+  preRegExpiryBufferMins,
+  urgentOvernightMinHours,
+  walkInApprovalMinutes,
+} from './visitor-settings';
+import {
   DEFAULT_VISIT_DURATION_MINS,
-  PRE_REG_EXPIRY_BUFFER_MINS,
   type VisitorAdminFilter,
   type VisitorListView,
-  WALK_IN_APPROVAL_MINUTES,
   WALK_IN_CHECK_IN_WINDOW_MINS,
   statusesForView,
 } from './visitor.constants';
@@ -66,15 +86,34 @@ export class VisitorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
+    private readonly notifications: NotificationService,
   ) {}
 
   private addMinutes(date: Date, mins: number): Date {
     return new Date(date.getTime() + mins * 60_000);
   }
 
-  private computePreRegExpiresAt(expectedAt: Date, durationMins?: number | null): Date {
+  private computePreRegExpiresAt(
+    expectedAt: Date,
+    durationMins: number | null | undefined,
+    settings: CondoVisitorSettings,
+  ): Date {
     const windowMins = durationMins ?? DEFAULT_VISIT_DURATION_MINS;
-    return this.addMinutes(expectedAt, windowMins + PRE_REG_EXPIRY_BUFFER_MINS);
+    return this.addMinutes(expectedAt, windowMins + preRegExpiryBufferMins(settings));
+  }
+
+  private async unitResidentUserIds(unitId: string): Promise<string[]> {
+    const [ownerships, tenancies] = await Promise.all([
+      this.prisma.ownership.findMany({
+        where: { unitId, status: OwnershipStatus.ACTIVE },
+        select: { userId: true },
+      }),
+      this.prisma.tenancy.findMany({
+        where: { unitId, status: TenancyStatus.ACTIVE },
+        select: { userId: true },
+      }),
+    ]);
+    return [...new Set([...ownerships.map((o) => o.userId), ...tenancies.map((t) => t.userId)])];
   }
 
   private async uniqueAccessCode(condoId: string): Promise<string> {
@@ -189,14 +228,41 @@ export class VisitorService {
     return VisitorPurpose.OTHER;
   }
 
-  private validatePreRegDto(dto: CreateVisitorDto) {
-    const entryMode = dto.entryMode ?? VisitorEntryMode.WALK_IN;
+  private async validatePreRegDto(
+    dto: CreateVisitorDto,
+    unit: { id: string; condoId: string; condo: { settings: unknown } },
+  ) {
+    const overnight = dto.overnight ?? false;
+    const entryMode = overnight
+      ? VisitorEntryMode.DRIVE_IN
+      : (dto.entryMode ?? VisitorEntryMode.WALK_IN);
+
     if (entryMode === VisitorEntryMode.DRIVE_IN && !dto.vehiclePlate?.trim()) {
       throw new BadRequestException('Plate number is required for drive-in visitors');
     }
-    if (dto.overnight) {
+    const settings = parseCondoVisitorSettings(unit.condo.settings);
+    if (overnight) {
+      if (!dto.vehiclePlate?.trim()) {
+        throw new BadRequestException(
+          'Overnight visits require a typed plate number that matches your photo',
+        );
+      }
+      if (settings.requirePlatePhotoOvernight && !dto.vehiclePlatePhotoUrl?.trim()) {
+        throw new BadRequestException(
+          'Overnight visits require a vehicle plate photo — capture the plate on mobile or upload a photo that matches the typed plate',
+        );
+      }
+      const eligibility = await checkUnitOvernightEligibility(
+        this.prisma,
+        unit.id,
+        unit.condoId,
+        settings,
+      );
+      if (!eligibility.allowed) {
+        throw new BadRequestException(eligibility.reason ?? 'Overnight registration not allowed');
+      }
       const hours = hoursUntilArrival(new Date(), dto.expectedAt);
-      if (hours < OVERNIGHT_ADVANCE_NOTICE_HOURS && !dto.urgentReason?.trim()) {
+      if (hours < urgentOvernightMinHours(settings) && !dto.urgentReason?.trim()) {
         throw new BadRequestException(
           'Urgent overnight visits require a brief reason — visit management office before arrival',
         );
@@ -218,10 +284,12 @@ export class VisitorService {
     });
     if (!unit) throw new NotFoundException('Unit not found');
 
-    this.validatePreRegDto(dto);
+    await this.validatePreRegDto(dto, unit);
 
-    const entryMode = dto.entryMode ?? VisitorEntryMode.WALK_IN;
     const overnight = dto.overnight ?? false;
+    const entryMode = overnight
+      ? VisitorEntryMode.DRIVE_IN
+      : (dto.entryMode ?? VisitorEntryMode.WALK_IN);
     const now = new Date();
     let duration = dto.expectedDurationMins ?? DEFAULT_VISIT_DURATION_MINS;
     let status: VisitorStatus = VisitorStatus.APPROVED;
@@ -254,9 +322,11 @@ export class VisitorService {
       }
     }
 
+    const visitorSettings = parseCondoVisitorSettings(unit.condo.settings);
+
     if (status === VisitorStatus.APPROVED) {
       accessCode = await this.uniqueAccessCode(unit.condoId);
-      expiresAt = this.computePreRegExpiresAt(dto.expectedAt, duration);
+      expiresAt = this.computePreRegExpiresAt(dto.expectedAt, duration, visitorSettings);
     }
 
     const visitor = await this.prisma.visitor.create({
@@ -271,7 +341,8 @@ export class VisitorService {
         phoneCountryCode: dto.phoneCountryCode ?? '+60',
         entryMode,
         vehiclePlate: entryMode === VisitorEntryMode.DRIVE_IN ? dto.vehiclePlate?.trim() : null,
-        purpose: dto.purpose ?? VisitorPurpose.VISITOR,
+        vehiclePlatePhotoUrl: overnight ? dto.vehiclePlatePhotoUrl?.trim() : null,
+        purpose: dto.purpose ?? visitorSettings.defaultPurpose,
         overnight,
         urgentOvernight,
         urgentReason: urgentOvernight ? dto.urgentReason?.trim() : null,
@@ -317,9 +388,11 @@ export class VisitorService {
       );
     }
 
+    const condo = await this.prisma.condo.findUnique({ where: { id: visitor.condoId } });
+    const visitorSettings = parseCondoVisitorSettings(condo?.settings);
     const accessCode = await this.uniqueAccessCode(visitor.condoId);
     const duration = visitor.expectedDurationMins ?? DEFAULT_VISIT_DURATION_MINS;
-    const expiresAt = this.computePreRegExpiresAt(visitor.expectedAt, duration);
+    const expiresAt = this.computePreRegExpiresAt(visitor.expectedAt, duration, visitorSettings);
     const pass = this.passFields(visitor.condoId, visitor.id, accessCode);
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -356,10 +429,12 @@ export class VisitorService {
     const condoId = this.guardCondoId(guard);
     const unit = await this.prisma.unit.findFirst({
       where: { id: dto.unitId, condoId },
+      include: { condo: true },
     });
     if (!unit) throw new NotFoundException('Unit not found in this condo');
 
-    const approvalDeadline = this.addMinutes(new Date(), WALK_IN_APPROVAL_MINUTES);
+    const settings = parseCondoVisitorSettings(unit.condo.settings);
+    const approvalDeadline = this.addMinutes(new Date(), walkInApprovalMinutes(settings));
     const visitor = await this.prisma.visitor.create({
       data: {
         condoId,
@@ -847,5 +922,256 @@ export class VisitorService {
       throw new ForbiddenException('You cannot manage favourites for this unit');
     }
     await this.prisma.favouriteVisitor.delete({ where: { id } });
+  }
+
+  async getVisitorSettings(condoId: string) {
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+    return parseCondoVisitorSettings(condo.settings);
+  }
+
+  async updateVisitorSettings(condoId: string, dto: UpdateVisitorSettingsDto) {
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+    const patch: Partial<CondoVisitorSettings> = {};
+    if (dto.maxOvernightVisitsPerUnitPerMonth !== undefined) {
+      patch.maxOvernightVisitsPerUnitPerMonth = dto.maxOvernightVisitsPerUnitPerMonth;
+    }
+    if (dto.overnightSlotsPerNight !== undefined) {
+      patch.overnightSlotsPerNight = dto.overnightSlotsPerNight;
+    }
+    if (dto.walkInApprovalMinutes !== undefined) {
+      patch.walkInApprovalMinutes = dto.walkInApprovalMinutes;
+    }
+    if (dto.preRegExpiryBufferMins !== undefined) {
+      patch.preRegExpiryBufferMins = dto.preRegExpiryBufferMins;
+    }
+    if (dto.urgentOvernightMinHours !== undefined) {
+      patch.urgentOvernightMinHours = dto.urgentOvernightMinHours;
+    }
+    if (dto.workingDays !== undefined) {
+      patch.workingDays = {
+        weekdays: dto.workingDays.weekdays.filter((d) => d >= 1 && d <= 7),
+      };
+    }
+    if (dto.publicHolidays !== undefined) {
+      patch.publicHolidays = dto.publicHolidays;
+    }
+    if (dto.countPendingTowardCap !== undefined) {
+      patch.countPendingTowardCap = dto.countPendingTowardCap;
+    }
+    if (dto.requirePlatePhotoOvernight !== undefined) {
+      patch.requirePlatePhotoOvernight = dto.requirePlatePhotoOvernight;
+    }
+    if (dto.defaultPurpose !== undefined) {
+      patch.defaultPurpose = dto.defaultPurpose;
+    }
+    const settings = mergeVisitorSettings(condo.settings, patch);
+    await this.prisma.condo.update({
+      where: { id: condoId },
+      data: { settings: settings as Prisma.InputJsonValue },
+    });
+    return parseCondoVisitorSettings(settings);
+  }
+
+  async getOvernightOwnerSummary(condoId: string, month?: string) {
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+    const range = parseMonthParam(month);
+    const settings = parseCondoVisitorSettings(condo.settings);
+
+    const units = await this.prisma.unit.findMany({
+      where: { condoId },
+      include: {
+        ownerships: {
+          where: { status: OwnershipStatus.ACTIVE },
+          include: { user: { select: { id: true, name: true, email: true } } },
+          orderBy: [{ isPrimary: 'desc' }, { startDate: 'asc' }],
+        },
+      },
+      orderBy: { identifier: 'asc' },
+    });
+
+    const rows = await Promise.all(
+      units.map(async (unit) => {
+        const count = await countMonthlyOvernightForUnit(this.prisma, unit.id, range, settings);
+        const policy = await getUnitSuspendPolicy(this.prisma, unit.id);
+        const suspended = isOvernightSuspended(policy);
+        const owners = unit.ownerships.map((o) => ({
+          id: o.userId,
+          name: o.user.name,
+          email: o.user.email,
+          isPrimary: o.isPrimary,
+        }));
+        return {
+          unitId: unit.id,
+          unitIdentifier: unit.identifier,
+          owners,
+          overnightCountThisMonth: count,
+          monthlyLimit: settings.maxOvernightVisitsPerUnitPerMonth,
+          status: suspended ? ('suspended' as const) : ('active' as const),
+          overnightSuspendedUntil: policy?.overnightSuspendedUntil ?? null,
+          suspendedIndefinite: isIndefiniteSuspend(policy?.overnightSuspendedUntil),
+          suspendReason: policy?.suspendReason ?? null,
+        };
+      }),
+    );
+
+    return { month: range.key, items: rows, settings };
+  }
+
+  async suspendUnitOvernight(
+    condoId: string,
+    unitId: string,
+    actor: AuthenticatedUser,
+    dto: SuspendOvernightDto,
+  ) {
+    if (!this.userIsManagement(actor, condoId)) {
+      throw new ForbiddenException('Only management can suspend overnight registration');
+    }
+    const owner = await getPrimaryUnitOwner(this.prisma, unitId);
+    if (!owner) throw new BadRequestException('No active owner found for this unit');
+
+    let until: Date;
+    if (dto.indefinite) {
+      until = INDEFINITE_SUSPEND_UNTIL;
+    } else if (dto.until) {
+      until = dto.until;
+    } else {
+      throw new BadRequestException('Provide until date or set indefinite to suspend until lifted');
+    }
+
+    const policy = await this.prisma.unitVisitorPolicy.upsert({
+      where: { unitId_userId: { unitId, userId: owner.userId } },
+      create: {
+        condoId,
+        unitId,
+        userId: owner.userId,
+        overnightSuspendedUntil: until,
+        suspendReason: dto.reason.trim(),
+      },
+      update: {
+        overnightSuspendedUntil: until,
+        suspendReason: dto.reason.trim(),
+      },
+    });
+
+    const unit = await this.prisma.unit.findUnique({ where: { id: unitId } });
+    await this.prisma.auditLog.create({
+      data: {
+        condoId,
+        unitId,
+        actorUserId: actor.id,
+        actorRole: actor.activeRole,
+        action: AuditAction.UPDATE,
+        resourceType: 'UnitVisitorPolicy',
+        resourceId: policy.id,
+        metadata: {
+          action: 'suspend_overnight',
+          until: until.toISOString(),
+          indefinite: dto.indefinite ?? false,
+          reason: dto.reason,
+        },
+      },
+    });
+
+    const residentIds = await this.unitResidentUserIds(unitId);
+    const untilLabel = dto.indefinite
+      ? 'until lifted by management'
+      : `until ${until.toLocaleDateString('en-MY')}`;
+    await this.notifications.dispatch({
+      userIds: residentIds,
+      kind: NotificationKind.ACCESS_REVOKED,
+      title: 'Overnight visitor registration suspended',
+      body: `Unit ${unit?.identifier ?? unitId}: overnight registration is suspended ${untilLabel}. Reason: ${dto.reason.trim()}`,
+      data: { unitId, policyId: policy.id, action: 'overnight_suspended' },
+    });
+
+    return policy;
+  }
+
+  async unsuspendUnitOvernight(condoId: string, unitId: string, actor: AuthenticatedUser) {
+    if (!this.userIsManagement(actor, condoId)) {
+      throw new ForbiddenException('Only management can restore overnight registration');
+    }
+    const policies = await this.prisma.unitVisitorPolicy.findMany({ where: { unitId } });
+    const active = policies.filter((p) => isOvernightSuspended(p));
+    if (active.length === 0) {
+      return { unitId, overnightSuspendedUntil: null, suspendReason: null };
+    }
+
+    await this.prisma.unitVisitorPolicy.updateMany({
+      where: { id: { in: active.map((p) => p.id) } },
+      data: { overnightSuspendedUntil: null, suspendReason: null },
+    });
+
+    const unit = await this.prisma.unit.findUnique({ where: { id: unitId } });
+    for (const policy of active) {
+      await this.prisma.auditLog.create({
+        data: {
+          condoId,
+          unitId,
+          actorUserId: actor.id,
+          actorRole: actor.activeRole,
+          action: AuditAction.UPDATE,
+          resourceType: 'UnitVisitorPolicy',
+          resourceId: policy.id,
+          metadata: { action: 'unsuspend_overnight' },
+        },
+      });
+    }
+
+    const residentIds = await this.unitResidentUserIds(unitId);
+    await this.notifications.dispatch({
+      userIds: residentIds,
+      kind: NotificationKind.ACCESS_GRANTED,
+      title: 'Overnight visitor registration restored',
+      body: `Unit ${unit?.identifier ?? unitId}: you may register overnight visitors again.`,
+      data: { unitId, action: 'overnight_unsuspended' },
+    });
+
+    return { unitId, overnightSuspendedUntil: null, suspendReason: null };
+  }
+
+  async flagPlateMismatch(visitorId: string, actor: AuthenticatedUser, dto: FlagPlateMismatchDto) {
+    const visitor = await this.prisma.visitor.findUnique({
+      where: { id: visitorId },
+      include: { unit: true },
+    });
+    if (!visitor) throw new NotFoundException();
+    if (!this.userIsManagement(actor, visitor.condoId)) {
+      throw new ForbiddenException('Only management can flag plate mismatches');
+    }
+
+    const updated = await this.prisma.visitor.update({
+      where: { id: visitorId },
+      data: { plateMismatchFlagged: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        condoId: visitor.condoId,
+        unitId: visitor.unitId,
+        actorUserId: actor.id,
+        actorRole: actor.activeRole,
+        action: AuditAction.UPDATE,
+        resourceType: 'Visitor',
+        resourceId: visitorId,
+        metadata: {
+          action: 'plate_mismatch_flagged',
+          reason: dto.reason ?? null,
+          vehiclePlate: visitor.vehiclePlate,
+        },
+      },
+    });
+
+    if (dto.suspendOwner && visitor.unitId) {
+      await this.suspendUnitOvernight(visitor.condoId, visitor.unitId, actor, {
+        reason: dto.reason?.trim() || 'Plate number did not match photo evidence',
+        indefinite: true,
+      });
+    }
+
+    return updated;
   }
 }

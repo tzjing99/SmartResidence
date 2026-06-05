@@ -347,6 +347,52 @@ export class ApiClient {
   approveOvernightVisitor(visitorId: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve-overnight`);
   }
+  condoVisitorSettings(condoId: string) {
+    return this.request<import('@smartresidence/shared-types').CondoVisitorSettings>(
+      'GET',
+      `/api/settings/condo/${condoId}/visitor`,
+    );
+  }
+  updateCondoVisitorSettings(
+    condoId: string,
+    body: import('@smartresidence/shared-types').UpdateCondoVisitorSettingsInput,
+  ) {
+    return this.request<import('@smartresidence/shared-types').CondoVisitorSettings>(
+      'PATCH',
+      `/api/settings/condo/${condoId}/visitor`,
+      body,
+    );
+  }
+  overnightUnitSummary(condoId: string, month?: string) {
+    const qs = month ? `?month=${encodeURIComponent(month)}` : '';
+    return this.request<{
+      month: string;
+      items: import('@smartresidence/shared-types').OvernightUnitSummary[];
+      settings: import('@smartresidence/shared-types').CondoVisitorSettings;
+    }>('GET', `/api/visitors/admin/overnight-summary/${condoId}${qs}`);
+  }
+  suspendUnitOvernight(
+    condoId: string,
+    unitId: string,
+    body: { reason: string; until?: string; indefinite?: boolean },
+  ) {
+    const qs = `?condoId=${encodeURIComponent(condoId)}`;
+    return this.request(
+      'PATCH',
+      `/api/visitors/admin/overnight-policy/${unitId}/suspend${qs}`,
+      body,
+    );
+  }
+  unsuspendUnitOvernight(condoId: string, unitId: string) {
+    const qs = `?condoId=${encodeURIComponent(condoId)}`;
+    return this.request('PATCH', `/api/visitors/admin/overnight-policy/${unitId}/unsuspend${qs}`);
+  }
+  flagVisitorPlateMismatch(
+    visitorId: string,
+    body: { reason?: string; suspendOwner?: boolean } = {},
+  ) {
+    return this.request<Visitor>('POST', `/api/visitors/${visitorId}/flag-plate-mismatch`, body);
+  }
   rejectVisitor(visitorId: string, reason?: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/reject`, { reason });
   }

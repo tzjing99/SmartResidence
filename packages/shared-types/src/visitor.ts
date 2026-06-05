@@ -56,6 +56,43 @@ export function toDatetimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+export const CondoVisitorSettingsSchema = z.object({
+  maxOvernightVisitsPerUnitPerMonth: z.number().int().min(1).default(4),
+  overnightSlotsPerNight: z.number().int().min(1).default(10),
+  walkInApprovalMinutes: z.number().int().min(1).default(15),
+  preRegExpiryBufferMins: z.number().int().min(0).default(120),
+  urgentOvernightMinHours: z.number().int().min(1).default(24),
+  workingDays: z.object({ weekdays: z.array(z.number().int().min(1).max(7)) }),
+  publicHolidays: z.array(z.string()),
+  countPendingTowardCap: z.boolean().default(true),
+  requirePlatePhotoOvernight: z.boolean().default(true),
+  defaultPurpose: VisitorPurpose.default('VISITOR'),
+});
+export type CondoVisitorSettings = z.infer<typeof CondoVisitorSettingsSchema>;
+
+export const UpdateCondoVisitorSettingsSchema = CondoVisitorSettingsSchema.partial();
+export type UpdateCondoVisitorSettingsInput = z.infer<typeof UpdateCondoVisitorSettingsSchema>;
+
+export const OvernightUnitSummarySchema = z.object({
+  unitId: z.string().uuid(),
+  unitIdentifier: z.string(),
+  owners: z.array(
+    z.object({
+      id: z.string().uuid(),
+      name: z.string(),
+      email: z.string().nullable().optional(),
+      isPrimary: z.boolean(),
+    }),
+  ),
+  overnightCountThisMonth: z.number().int(),
+  monthlyLimit: z.number().int(),
+  status: z.enum(['active', 'suspended']),
+  overnightSuspendedUntil: z.coerce.date().nullable(),
+  suspendedIndefinite: z.boolean().optional(),
+  suspendReason: z.string().nullable(),
+});
+export type OvernightUnitSummary = z.infer<typeof OvernightUnitSummarySchema>;
+
 export const CreateVisitorSchema = z
   .object({
     unitId: z.string().uuid(),
@@ -65,6 +102,7 @@ export const CreateVisitorSchema = z
     phone: z.string().max(30).optional(),
     entryMode: VisitorEntryMode.optional().default('WALK_IN'),
     vehiclePlate: z.string().max(20).optional(),
+    vehiclePlatePhotoUrl: z.string().max(500).optional(),
     purpose: VisitorPurpose.default('VISITOR'),
     expectedAt: z.coerce.date(),
     expectedDurationMins: z.number().int().min(1).optional(),
@@ -80,6 +118,13 @@ export const CreateVisitorSchema = z
       });
     }
     if (data.overnight) {
+      if (!data.vehiclePlate?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Typed plate number is required for overnight — must match your photo',
+          path: ['vehiclePlate'],
+        });
+      }
       const hours = (data.expectedAt.getTime() - Date.now()) / (60 * 60 * 1000);
       if (hours < 24 && !data.urgentReason?.trim()) {
         ctx.addIssue({

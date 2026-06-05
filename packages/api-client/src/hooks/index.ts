@@ -97,6 +97,39 @@ export function useCreateVisitor(api: ApiClient) {
   });
 }
 
+export function useVisitorQr(api: ApiClient, visitorId: string | null) {
+  return useQuery({
+    queryKey: ['visitors', visitorId, 'qr'] as const,
+    queryFn: () => (visitorId ? api.visitorQr(visitorId) : Promise.reject(new Error('no id'))),
+    enabled: Boolean(visitorId),
+  });
+}
+
+export function useRegenerateVisitorCode(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (visitorId: string) => api.regenerateVisitorCode(visitorId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
+  });
+}
+
+export function useApproveVisitor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (visitorId: string) => api.approveVisitor(visitorId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
+  });
+}
+
+export function useRejectVisitor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { visitorId: string; reason?: string }) =>
+      api.rejectVisitor(vars.visitorId, vars.reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
+  });
+}
+
 export function useUnitInvoices(api: ApiClient, unitId: string | null) {
   return useQuery({
     queryKey: unitId ? queryKeys.unitInvoices(unitId) : ['invoices', 'unit', null],

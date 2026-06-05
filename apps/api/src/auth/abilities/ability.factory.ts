@@ -53,6 +53,7 @@ export type Action =
   | 'reject'
   | 'check-in'
   | 'check-out'
+  | 'create-walk-in'
   | 'pay'
   | 'publish'
   | 'acknowledge'
@@ -149,6 +150,7 @@ export class AbilityFactory {
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
         can('check-in', 'Visitor', { condoId: scope.condoId ?? '' });
         can('check-out', 'Visitor', { condoId: scope.condoId ?? '' });
+        can('create-walk-in', 'Visitor', { condoId: scope.condoId ?? '' });
         return;
 
       case RoleId.UNIT_OWNER:

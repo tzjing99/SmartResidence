@@ -183,6 +183,66 @@ export class NotificationService {
     });
   }
 
+  /** Walk-in unit → notify unit owners/tenants for approval. */
+  @OnEvent('visitor.walk_in_requested')
+  async onWalkInRequested(payload: { visitorId: string }) {
+    const v = await this.prisma.visitor.findUnique({
+      where: { id: payload.visitorId },
+      include: { unit: true },
+    });
+    if (!v?.unitId) return;
+    const [owners, tenants] = await Promise.all([
+      this.prisma.ownership.findMany({
+        where: { unitId: v.unitId, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+      this.prisma.tenancy.findMany({
+        where: { unitId: v.unitId, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+    ]);
+    const userIds = [...new Set([...owners.map((o) => o.userId), ...tenants.map((t) => t.userId)])];
+    if (userIds.length === 0) return;
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.VISITOR_REQUEST,
+      title: `Walk-in: ${v.name}`,
+      body: `Guard requests approval for ${v.name} at ${v.unit?.identifier ?? 'your unit'}. Respond within 15 minutes.`,
+      data: { visitorId: v.id, deeplink: `smartresidence://visitors/${v.id}` },
+    });
+  }
+
+  @OnEvent('visitor.approved')
+  async onVisitorApproved(payload: { visitorId: string }) {
+    const v = await this.prisma.visitor.findUnique({ where: { id: payload.visitorId } });
+    if (!v) return;
+    const guardId = (v.metadata as { createdByGuardId?: string })?.createdByGuardId;
+    const userIds = guardId ? [guardId] : [];
+    if (userIds.length === 0) return;
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.VISITOR_REQUEST,
+      title: `${v.name} approved`,
+      body: 'Owner approved the walk-in — you may check them in.',
+      data: { visitorId: v.id },
+    });
+  }
+
+  @OnEvent('visitor.rejected')
+  async onVisitorRejected(payload: { visitorId: string }) {
+    const v = await this.prisma.visitor.findUnique({ where: { id: payload.visitorId } });
+    if (!v) return;
+    const guardId = (v.metadata as { createdByGuardId?: string })?.createdByGuardId;
+    if (!guardId) return;
+    await this.dispatch({
+      userIds: [guardId],
+      kind: NotificationKind.VISITOR_REQUEST,
+      title: `${v.name} rejected`,
+      body: 'Owner rejected the walk-in — inform the visitor.',
+      data: { visitorId: v.id },
+    });
+  }
+
   /** Visitor checked in → notify host. */
   @OnEvent('visitor.checked_in')
   async onVisitorCheckedIn(payload: { visitorId: string }) {

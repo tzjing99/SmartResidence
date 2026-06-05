@@ -294,19 +294,41 @@ export class ApiClient {
     );
   }
   visitorQr(visitorId: string) {
-    return this.request<{ qrCode: string; png: string }>('GET', `/api/visitors/${visitorId}/qr`);
+    return this.request<{ qrPayload: string; accessCode: string | null; png: string }>(
+      'GET',
+      `/api/visitors/${visitorId}/qr`,
+    );
+  }
+  regenerateVisitorCode(visitorId: string) {
+    return this.request<Visitor>('POST', `/api/visitors/${visitorId}/regenerate-code`);
+  }
+  approveVisitor(visitorId: string) {
+    return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve`);
+  }
+  rejectVisitor(visitorId: string, reason?: string) {
+    return this.request<Visitor>('POST', `/api/visitors/${visitorId}/reject`, { reason });
+  }
+  createWalkInUnit(input: import('@smartresidence/shared-types').CreateWalkInUnitInput) {
+    return this.request<Visitor>('POST', '/api/visitors/walk-in/unit', input);
+  }
+  createWalkInOffice(input: import('@smartresidence/shared-types').CreateWalkInOfficeInput) {
+    return this.request<Visitor>('POST', '/api/visitors/walk-in/office', input);
   }
   cancelVisitor(visitorId: string) {
     return this.request<void>('DELETE', `/api/visitors/${visitorId}`);
   }
+  verifyVisitorPass(pass: string) {
+    return this.request<Visitor>('POST', `/api/visitors/verify/${encodeURIComponent(pass)}`);
+  }
+  /** @deprecated Use verifyVisitorPass */
   verifyQr(qr: string) {
-    return this.request<Visitor>('POST', `/api/visitors/verify/${encodeURIComponent(qr)}`);
+    return this.verifyVisitorPass(qr);
   }
-  checkInVisitor(qr: string, body: { gateLocation?: string; notes?: string } = {}) {
-    return this.request('POST', `/api/visitors/check-in/${encodeURIComponent(qr)}`, body);
+  checkInVisitor(pass: string, body: { gateLocation?: string; notes?: string } = {}) {
+    return this.request('POST', `/api/visitors/check-in/${encodeURIComponent(pass)}`, body);
   }
-  checkOutVisitor(qr: string) {
-    return this.request('POST', `/api/visitors/check-out/${encodeURIComponent(qr)}`);
+  checkOutVisitor(pass: string) {
+    return this.request('POST', `/api/visitors/check-out/${encodeURIComponent(pass)}`);
   }
 
   // Billing ----------------------------------------------------------

@@ -357,8 +357,14 @@ model RoleAssignment {
 // Visitor management
 //////////////////////////////////////////////////////////////////////////////
 
+enum VisitorVisitType {
+  PRE_REG
+  WALKIN_UNIT
+  WALKIN_OFFICE
+}
+
 enum VisitorStatus {
-  PENDING
+  PENDING_OWNER_APPROVAL
   APPROVED
   REJECTED
   CHECKED_IN
@@ -368,13 +374,14 @@ enum VisitorStatus {
 }
 
 model Visitor {
-  id            String        @id @default(uuid()) @db.Uuid
-  condoId       String        @db.Uuid
-  condo         Condo         @relation(fields: [condoId], references: [id], onDelete: Cascade)
-  unitId        String        @db.Uuid
-  unit          Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  hostUserId    String        @db.Uuid
-  host          User          @relation("hostUser", fields: [hostUserId], references: [id], onDelete: Cascade)
+  id            String           @id @default(uuid()) @db.Uuid
+  condoId       String           @db.Uuid
+  condo         Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  visitType     VisitorVisitType @default(PRE_REG)
+  unitId        String?          @db.Uuid
+  unit          Unit?            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  hostUserId    String?          @db.Uuid
+  host          User?            @relation("hostUser", fields: [hostUserId], references: [id], onDelete: Cascade)
   name          String
   identification String?
   phone         String?
@@ -382,23 +389,30 @@ model Visitor {
   purpose       String?
   expectedAt    DateTime
   expectedDurationMins Int?
-  qrCode        String        @unique
-  status        VisitorStatus @default(APPROVED)
-  approvedByUserId String?    @db.Uuid
-  approvedBy    User?         @relation("approverUser", fields: [approvedByUserId], references: [id])
+  qrCode        String?          @unique
+  qrPayload     String?          @unique
+  accessCode    String?
+  expiresAt     DateTime?
+  approvalDeadline DateTime?
+  status        VisitorStatus    @default(APPROVED)
+  approvedByUserId String?       @db.Uuid
+  approvedBy    User?            @relation("approverUser", fields: [approvedByUserId], references: [id])
   approvedAt    DateTime?
   cancelledAt   DateTime?
-  metadata      Json          @default("{}")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  metadata      Json             @default("{}")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   checkIns VisitorCheckIn[]
 
+  @@unique([condoId, accessCode])
   @@index([condoId])
   @@index([unitId])
   @@index([hostUserId])
   @@index([status])
   @@index([expectedAt])
+  @@index([expiresAt])
+  @@index([approvalDeadline])
   @@map("visitors")
 }
 
@@ -683,6 +697,7 @@ model AnnouncementAck {
 
 enum NotificationKind {
   VISITOR_REQUEST
+  VISITOR_WALK_IN_REQUEST
   VISITOR_CHECKED_IN
   VISITOR_CHECKED_OUT
   INVOICE_ISSUED

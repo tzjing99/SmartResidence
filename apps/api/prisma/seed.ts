@@ -21,6 +21,7 @@ import {
   ThreadStatus,
   UnitStatus,
   VisitorStatus,
+  VisitorVisitType,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
 
@@ -344,21 +345,44 @@ async function main() {
     },
   });
 
+  const preRegExpected = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const preRegVisitorId = randomUUID();
+  const preRegCode = 'MEI9L2';
+  const preRegPayload = `${condo.id}:${preRegVisitorId}:${preRegCode}`;
   await prisma.visitor.create({
     data: {
+      id: preRegVisitorId,
       condoId: condo.id,
+      visitType: VisitorVisitType.PRE_REG,
       unitId: ownerUnit.id,
       hostUserId: owner.id,
       name: 'Mei Lin (sister)',
       phone: '+60123456789',
       vehiclePlate: 'WSC 1234',
       purpose: 'Family visit',
-      expectedAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expectedAt: preRegExpected,
       expectedDurationMins: 120,
-      qrCode: randomUUID(),
+      qrPayload: preRegPayload,
+      qrCode: preRegPayload,
+      accessCode: preRegCode,
+      expiresAt: new Date(preRegExpected.getTime() + (120 + 120) * 60_000),
       status: VisitorStatus.APPROVED,
       approvedByUserId: owner.id,
       approvedAt: new Date(),
+    },
+  });
+
+  await prisma.visitor.create({
+    data: {
+      condoId: condo.id,
+      visitType: VisitorVisitType.WALKIN_UNIT,
+      unitId: ownerUnit.id,
+      name: 'Delivery rider (demo pending)',
+      purpose: 'Parcel drop-off',
+      expectedAt: new Date(),
+      status: VisitorStatus.PENDING_OWNER_APPROVAL,
+      approvalDeadline: new Date(Date.now() + 15 * 60_000),
+      metadata: { createdByGuardId: guard.id, demo: true },
     },
   });
 

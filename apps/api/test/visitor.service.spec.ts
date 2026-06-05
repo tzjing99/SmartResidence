@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildQrPayload,
   generateAccessCode,
@@ -72,6 +72,10 @@ describe('access-code', () => {
 });
 
 describe('VisitorService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('creates a PRE_REG visitor with access code and expiry', async () => {
     const { svc, prisma, events } = service();
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });

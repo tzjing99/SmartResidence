@@ -117,7 +117,13 @@ export function useOvernightPreview(
   overnight: boolean,
 ) {
   return useQuery({
-    queryKey: ['visitors', 'overnight-preview', condoId, expectedAt?.toISOString(), overnight] as const,
+    queryKey: [
+      'visitors',
+      'overnight-preview',
+      condoId,
+      expectedAt?.toISOString(),
+      overnight,
+    ] as const,
     queryFn: () =>
       condoId && expectedAt
         ? api.overnightPreview(condoId, expectedAt)

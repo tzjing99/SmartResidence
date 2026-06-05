@@ -46,8 +46,17 @@ export default function VisitorsScreen() {
         gap: 16,
       }}
     >
-      <View style={{ width: '100%', maxWidth: contentMaxWidth, paddingHorizontal: horizontalPadding, gap: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <View
+        style={{
+          width: '100%',
+          maxWidth: contentMaxWidth,
+          paddingHorizontal: horizontalPadding,
+          gap: 16,
+        }}
+      >
+        <View
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+        >
           <Text style={{ fontSize: 24, fontWeight: '700' }}>Visitors</Text>
           <Button
             title="Pre-register"
@@ -142,7 +151,13 @@ function VisitorsTab({ tab, items }: { tab: VisitorListView; items: Visitor[] })
     <>
       {items.map((v) => (
         <Card key={v.id}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={{ fontWeight: '600' }}>{v.name}</Text>
               <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
@@ -158,9 +173,12 @@ function VisitorsTab({ tab, items }: { tab: VisitorListView; items: Visitor[] })
                   tone={
                     v.status === 'CHECKED_IN'
                       ? 'success'
-                      : v.status === 'PENDING_OWNER_APPROVAL' || v.status === 'PENDING_MANAGEMENT_APPROVAL'
+                      : v.status === 'PENDING_OWNER_APPROVAL' ||
+                          v.status === 'PENDING_MANAGEMENT_APPROVAL'
                         ? 'warning'
-                        : v.status === 'CANCELLED' || v.status === 'REJECTED' || v.status === 'EXPIRED'
+                        : v.status === 'CANCELLED' ||
+                            v.status === 'REJECTED' ||
+                            v.status === 'EXPIRED'
                           ? 'danger'
                           : 'primary'
                   }
@@ -171,7 +189,12 @@ function VisitorsTab({ tab, items }: { tab: VisitorListView; items: Visitor[] })
               {v.status === 'PENDING_OWNER_APPROVAL' ? (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
                   <Button title="Approve" size="sm" onPress={() => onApprove(v.id)} />
-                  <Button title="Reject" size="sm" variant="secondary" onPress={() => onReject(v.id)} />
+                  <Button
+                    title="Reject"
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => onReject(v.id)}
+                  />
                 </View>
               ) : null}
             </View>
@@ -278,8 +301,9 @@ function FavouritesTab({
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '600' }}>{fav.name}</Text>
                 <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                  {[fav.phoneCountryCode, fav.phone, fav.vehiclePlate].filter(Boolean).join(' · ') ||
-                    'No details'}
+                  {[fav.phoneCountryCode, fav.phone, fav.vehiclePlate]
+                    .filter(Boolean)
+                    .join(' · ') || 'No details'}
                 </Text>
               </View>
               <View style={{ gap: 8 }}>

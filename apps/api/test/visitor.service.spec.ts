@@ -158,12 +158,19 @@ describe('VisitorService', () => {
       overnight: true,
       urgentOvernight: false,
     });
+    prisma.visitor.findUnique.mockResolvedValue(null);
+    const expectedAt = new Date();
+    expectedAt.setDate(expectedAt.getDate() + 3);
+    while (expectedAt.getDay() === 0 || expectedAt.getDay() === 6) {
+      expectedAt.setDate(expectedAt.getDate() + 1);
+    }
+    expectedAt.setHours(20, 0, 0, 0);
     const v = await svc.create(host, {
       unitId: 'u1',
-      name: 'Weekend guest',
+      name: 'Weekday guest',
       vehiclePlate: 'WXY9876',
       vehiclePlatePhotoUrl: 'uploads/plate2.jpg',
-      expectedAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+      expectedAt,
       overnight: true,
     } as any);
     expect(v.status).toBe('PENDING_MANAGEMENT_APPROVAL');

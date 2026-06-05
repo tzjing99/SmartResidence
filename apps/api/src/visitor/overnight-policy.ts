@@ -30,7 +30,10 @@ export function calendarMonthRange(ref = new Date()): { start: Date; end: Date; 
 
 export function parseMonthParam(month?: string): { start: Date; end: Date; key: string } {
   if (!month || !/^\d{4}-\d{2}$/.test(month)) return calendarMonthRange();
-  const [y, m] = month.split('-').map(Number);
+  const [yRaw, mRaw] = month.split('-');
+  const y = Number(yRaw);
+  const m = Number(mRaw);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return calendarMonthRange();
   const start = new Date(y, m - 1, 1);
   const end = new Date(y, m, 1);
   return { start, end, key: month };

@@ -107,7 +107,7 @@ export default function NewVisitorPage() {
       ...values,
       unitId: unit.id,
       entryMode: values.overnight ? 'DRIVE_IN' : values.entryMode,
-      vehiclePlatePhotoUrl: values.overnight ? platePhotoKey ?? undefined : undefined,
+      vehiclePlatePhotoUrl: values.overnight ? (platePhotoKey ?? undefined) : undefined,
     };
     if (values.overnight && !platePhotoKey) {
       toast.error('Upload a plate photo that matches the typed plate number');

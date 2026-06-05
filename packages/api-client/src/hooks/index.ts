@@ -1,7 +1,7 @@
 'use client';
 
 import type { CreateDefectInput, CreateVisitorInput } from '@smartresidence/shared-types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import type { ApiClient, CreateThreadBody, ListThreadsParams } from '../client';
 
 export const queryKeys = {
@@ -167,6 +167,7 @@ export function useThreads(api: ApiClient, params: ListThreadsParams = {}) {
   return useQuery({
     queryKey: queryKeys.threads(params),
     queryFn: () => api.listThreads(params),
+    placeholderData: keepPreviousData,
   });
 }
 

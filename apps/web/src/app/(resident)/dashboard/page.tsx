@@ -1,6 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { DashboardSkeleton } from '@/components/route-skeletons';
 import {
   useCondoAnnouncements,
   useMyCondos,
@@ -23,6 +24,10 @@ export default function DashboardPage() {
   const invoices = useUnitInvoices(api, unit?.id ?? null);
   const defects = useUnitDefects(api, unit?.id ?? null);
   const announcements = useCondoAnnouncements(api, condo?.id ?? null);
+
+  if (condos.isPending || units.isPending) {
+    return <DashboardSkeleton />;
+  }
 
   const upcomingVisitors = (visitors.data?.items ?? []).slice(0, 3);
   const openInvoice = (

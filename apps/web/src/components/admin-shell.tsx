@@ -1,6 +1,7 @@
 'use client';
 
 import { NavLinks, PageFade } from '@/components/shell-nav';
+import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { api, writeSession } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
@@ -99,7 +100,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center sr-muted text-sm">Loading…</div>
+      <div className="min-h-screen flex bg-[rgb(var(--sr-bg))]">
+        <aside className="w-64 border-r border-[rgb(var(--sr-border))] hidden md:flex md:flex-col p-4 sticky top-0 h-screen">
+          <div className="text-xl font-bold tracking-tight px-2 mb-6 mt-2">
+            Smart<span className="text-coral-500">Residence</span>
+          </div>
+          <ShellNavSkeleton count={NAV.length} />
+        </aside>
+        <main className="flex-1 min-w-0 p-6 md:p-10">
+          <GenericPageSkeleton />
+        </main>
+      </div>
     );
   }
 

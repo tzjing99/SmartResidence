@@ -1,6 +1,7 @@
 'use client';
 
 import { NavLinks, PageFade } from '@/components/shell-nav';
+import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { api, writeSession } from '@/lib/api';
 import { resolveActiveHref } from '@/lib/nav';
 import { hasAbility } from '@/lib/roles';
@@ -105,7 +106,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center sr-muted text-sm">Loading…</div>
+      <div className="min-h-screen flex">
+        <aside className="w-64 border-r border-[rgb(var(--sr-border))] hidden md:flex md:flex-col p-4 sticky top-0 h-screen">
+          <div className="text-xl font-bold tracking-tight px-2 mb-6 mt-2">
+            Smart<span className="text-coral-500">Residence</span>
+          </div>
+          <ShellNavSkeleton count={NAV_ITEMS.length} />
+        </aside>
+        <main className="flex-1 min-w-0">
+          <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-6 py-3">
+            <div className="h-5 w-24 rounded bg-[rgb(var(--sr-border))]/30 animate-shimmer" />
+          </header>
+          <div className="p-6 md:p-10 max-w-5xl">
+            <DashboardSkeleton />
+          </div>
+        </main>
+      </div>
     );
   }
 

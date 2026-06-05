@@ -6,7 +6,7 @@ import { cn, tapScale, tapTransition } from '@smartresidence/ui-web';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { Settings2 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
 export interface SettingsNavItem {
@@ -27,6 +27,7 @@ export function SettingsSubNav({
   abilities?: AbilityRule[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const groupId = React.useId();
   const [pendingHref, setPendingHref] = React.useState<string | null>(null);
@@ -67,8 +68,11 @@ export function SettingsSubNav({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch
                 aria-current={item.href === activeHref ? 'page' : undefined}
                 onPointerDown={() => setPendingHref(item.href)}
+                onMouseEnter={() => router.prefetch(item.href)}
+                onFocus={() => router.prefetch(item.href)}
                 className={cn(
                   'relative inline-flex items-center px-4 h-9 text-sm font-medium leading-none touch-manipulation',
                   'transition-[color,background-color,transform] duration-100 outline-none rounded-full active:scale-[0.98]',

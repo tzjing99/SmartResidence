@@ -4,13 +4,21 @@ import { resolveActiveHref } from '@/lib/nav';
 import { cn } from '@smartresidence/ui-web';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
 export interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+}
+
+function prefetchRoute(router: ReturnType<typeof useRouter>, href: string) {
+  try {
+    router.prefetch(href);
+  } catch {
+    /* ignore prefetch failures */
+  }
 }
 
 /**
@@ -22,9 +30,12 @@ export interface NavItem {
  * `layoutId`; when the user prefers reduced motion the slide is disabled and
  * the highlight snaps instantly. The active link also carries
  * `aria-current="page"` for accessibility and reliable testing.
+ *
+ * Routes are prefetched on hover/focus so warm navigations skip the RSC round-trip.
  */
 export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+  const router = useRouter();
   const reduceMotion = useReducedMotion();
   const groupId = React.useId();
   const [pendingHref, setPendingHref] = React.useState<string | null>(null);
@@ -42,6 +53,11 @@ export function NavLinks({ items }: { items: NavItem[] }) {
     setPendingHref(null);
   }, [pathname]);
 
+  // Warm likely next routes once the shell mounts.
+  React.useEffect(() => {
+    for (const item of items) prefetchRoute(router, item.href);
+  }, [items, router]);
+
   return (
     <nav className="flex-1 flex flex-col gap-1">
       <LayoutGroup id={groupId}>
@@ -52,8 +68,11 @@ export function NavLinks({ items }: { items: NavItem[] }) {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
               aria-current={item.href === activeHref ? 'page' : undefined}
               onPointerDown={() => setPendingHref(item.href)}
+              onMouseEnter={() => prefetchRoute(router, item.href)}
+              onFocus={() => prefetchRoute(router, item.href)}
               className={cn(
                 'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium touch-manipulation',
                 'transition-[color,background-color,transform] duration-100 outline-none active:scale-[0.98]',
@@ -81,26 +100,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
   );
 }
 
-/**
- * Wraps page content in a subtle fade/slide-in that replays on each route
- * change (keyed by pathname). Disabled when the user prefers reduced motion.
- */
+/** Pass-through wrapper — route transitions use loading.tsx skeletons instead. */
 export function PageFade({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) {
-    return <>{children}</>;
-  }
-
-  return (
-    <motion.div
-      key={pathname}
-      initial={{ opacity: 0.85, x: 4 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ type: 'tween', duration: 0.12, ease: 'easeOut' }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <>{children}</>;
 }

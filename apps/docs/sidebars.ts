@@ -19,9 +19,9 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'ADRs',
       items: [
-        'adr/0001-typescript-monorepo',
-        'adr/0002-postgres-row-level-security',
-        'adr/0003-better-auth-and-rbac',
+        'adr/typescript-monorepo',
+        'adr/postgres-row-level-security',
+        'adr/better-auth-and-rbac',
       ],
     },
   ],

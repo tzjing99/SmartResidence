@@ -32,6 +32,22 @@ const config: Config = {
   ],
 
   plugins: [
+    // docusaurus-theme-openapi-docs (v4) bundles postman-code-generators, which
+    // imports the Node `path` module. Webpack 5 no longer polyfills core modules
+    // for the browser bundle, so provide an explicit fallback. (Fixed upstream in
+    // the theme's v5; remove this once we upgrade.)
+    function pathPolyfillPlugin() {
+      return {
+        name: 'smartresidence-path-polyfill',
+        configureWebpack() {
+          return {
+            resolve: {
+              fallback: { path: require.resolve('path-browserify') },
+            },
+          };
+        },
+      };
+    },
     [
       'docusaurus-plugin-openapi-docs',
       {

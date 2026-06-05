@@ -12,9 +12,13 @@
  */
 import type {
   CreateDefectInput,
+  CreateFavouriteVisitorInput,
   CreateVisitorInput,
+  FavouriteVisitor,
   Invoice,
+  UpdateFavouriteVisitorInput,
   Visitor,
+  VisitorListView,
 } from '@smartresidence/shared-types';
 
 export interface ApiResponse<T> {
@@ -278,7 +282,10 @@ export class ApiClient {
   createVisitor(input: CreateVisitorInput) {
     return this.request<Visitor>('POST', '/api/visitors', input);
   }
-  visitorsForUnit(unitId: string, params: { limit?: number; offset?: number } = {}) {
+  visitorsForUnit(
+    unitId: string,
+    params: { limit?: number; offset?: number; view?: VisitorListView } = {},
+  ) {
     return this.request<{ items: Visitor[]; total: number }>(
       'GET',
       `/api/visitors/unit/${unitId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
@@ -286,12 +293,27 @@ export class ApiClient {
   }
   visitorsForCondo(
     condoId: string,
-    params: { status?: string; limit?: number; offset?: number } = {},
+    params: { status?: string; view?: VisitorListView; limit?: number; offset?: number } = {},
   ) {
     return this.request<{ items: Visitor[]; total: number }>(
       'GET',
       `/api/visitors/condo/${condoId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
     );
+  }
+  favouriteVisitorsForUnit(unitId: string) {
+    return this.request<{ items: FavouriteVisitor[]; total: number }>(
+      'GET',
+      `/api/visitors/favourites/unit/${unitId}`,
+    );
+  }
+  createFavouriteVisitor(input: CreateFavouriteVisitorInput) {
+    return this.request<FavouriteVisitor>('POST', '/api/visitors/favourites', input);
+  }
+  updateFavouriteVisitor(id: string, input: UpdateFavouriteVisitorInput) {
+    return this.request<FavouriteVisitor>('PATCH', `/api/visitors/favourites/${id}`, input);
+  }
+  deleteFavouriteVisitor(id: string) {
+    return this.request<void>('DELETE', `/api/visitors/favourites/${id}`);
   }
   visitorQr(visitorId: string) {
     return this.request<{ qrPayload: string; accessCode: string | null; png: string }>(

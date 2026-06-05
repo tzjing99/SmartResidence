@@ -70,3 +70,33 @@ export const VisitorSchema = z.object({
   updatedAt: z.coerce.date(),
 });
 export type Visitor = z.infer<typeof VisitorSchema>;
+
+export const VisitorListView = z.enum(['upcoming', 'history']);
+export type VisitorListView = z.infer<typeof VisitorListView>;
+
+export const FavouriteVisitorSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  name: z.string(),
+  phone: z.string().nullable().optional(),
+  vehiclePlate: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type FavouriteVisitor = z.infer<typeof FavouriteVisitorSchema>;
+
+export const CreateFavouriteVisitorSchema = z.object({
+  unitId: z.string().uuid(),
+  name: z.string().min(2).max(120),
+  phone: z.string().max(30).optional(),
+  vehiclePlate: z.string().max(20).optional(),
+  notes: z.string().max(200).optional(),
+});
+export type CreateFavouriteVisitorInput = z.infer<typeof CreateFavouriteVisitorSchema>;
+
+export const UpdateFavouriteVisitorSchema = CreateFavouriteVisitorSchema.omit({
+  unitId: true,
+}).partial();
+export type UpdateFavouriteVisitorInput = z.infer<typeof UpdateFavouriteVisitorSchema>;

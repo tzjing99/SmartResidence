@@ -69,6 +69,7 @@ model User {
   threadMessages       ThreadMessage[]     @relation("threadMessageAuthor")
   threadParticipations ThreadParticipant[] @relation("threadParticipant")
   faqArticles          FaqArticle[]        @relation("faqAuthor")
+  favouriteVisitors    FavouriteVisitor[]
 
   @@index([email])
   @@index([phone])
@@ -216,6 +217,7 @@ model Unit {
   tenancies        Tenancy[]
   householdMembers HouseholdMember[]
   visitors         Visitor[]
+  favouriteVisitors FavouriteVisitor[]
   invoices         Invoice[]
   defects          Defect[]
   roleAssignments  RoleAssignment[]
@@ -431,6 +433,24 @@ model VisitorCheckIn {
 
   @@index([visitorId])
   @@map("visitor_check_ins")
+}
+
+model FavouriteVisitor {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unitId       String   @db.Uuid
+  unit         Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  name         String
+  phone        String?
+  vehiclePlate String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([unitId])
+  @@index([userId])
+  @@map("favourite_visitors")
 }
 
 //////////////////////////////////////////////////////////////////////////////

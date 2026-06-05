@@ -386,6 +386,56 @@ async function main() {
     },
   });
 
+  const pastVisitAt = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  await prisma.visitor.create({
+    data: {
+      condoId: condo.id,
+      visitType: VisitorVisitType.PRE_REG,
+      unitId: ownerUnit.id,
+      hostUserId: owner.id,
+      name: 'Ah Beng (plumber)',
+      purpose: 'Fix bathroom tap',
+      expectedAt: pastVisitAt,
+      status: VisitorStatus.CHECKED_OUT,
+      approvedByUserId: owner.id,
+      approvedAt: pastVisitAt,
+      expiresAt: new Date(pastVisitAt.getTime() + 4 * 60 * 60 * 1000),
+    },
+  });
+
+  await prisma.visitor.create({
+    data: {
+      condoId: condo.id,
+      visitType: VisitorVisitType.WALKIN_UNIT,
+      unitId: ownerUnit.id,
+      name: 'Unknown courier (rejected)',
+      purpose: 'Unscheduled delivery',
+      expectedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      status: VisitorStatus.REJECTED,
+      metadata: { demo: true },
+    },
+  });
+
+  await prisma.favouriteVisitor.createMany({
+    data: [
+      {
+        userId: owner.id,
+        unitId: ownerUnit.id,
+        name: 'Mei Lin (sister)',
+        phone: '+60123456789',
+        vehiclePlate: 'WSC 1234',
+        notes: 'Family — usually weekends',
+      },
+      {
+        userId: owner.id,
+        unitId: ownerUnit.id,
+        name: 'Cleaner — Kak Siti',
+        phone: '+60198765432',
+        notes: 'Every Tuesday 10am',
+      },
+    ],
+  });
+
   await prisma.defect.create({
     data: {
       condoId: condo.id,

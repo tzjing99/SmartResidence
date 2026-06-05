@@ -12,6 +12,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -19,11 +20,14 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction, type VisitorStatus } from '@prisma/client';
 import {
   CheckInVisitorDto,
+  CreateFavouriteVisitorDto,
   CreateVisitorDto,
   CreateWalkInOfficeDto,
   CreateWalkInUnitDto,
   RejectVisitorDto,
+  UpdateFavouriteVisitorDto,
 } from './dto/visitor.dto';
+import type { VisitorListView } from './visitor.constants';
 import { VisitorService } from './visitor.service';
 
 @ApiTags('Visitors')
@@ -85,10 +89,63 @@ export class VisitorController {
     return this.visitors.regenerateAccessCode(id, user);
   }
 
+  @Get('favourites/unit/:unitId')
+  @CheckAbility({ action: 'read', subject: 'FavouriteVisitor' })
+  @ApiOperation({ summary: 'List saved visitor templates for a unit' })
+  favouritesForUnit(@Param('unitId', new ParseUUIDPipe()) unitId: string) {
+    return this.visitors.listFavourites(unitId);
+  }
+
+  @Post('favourites')
+  @CheckAbility({ action: 'create', subject: 'FavouriteVisitor' })
+  @Audit({
+    action: AuditAction.CREATE,
+    resourceType: 'FavouriteVisitor',
+    resourceIdFrom: 'response.id',
+  })
+  createFavourite(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateFavouriteVisitorDto) {
+    return this.visitors.createFavourite(user, dto);
+  }
+
+  @Patch('favourites/:id')
+  @CheckAbility({ action: 'update', subject: 'FavouriteVisitor' })
+  @Audit({
+    action: AuditAction.UPDATE,
+    resourceType: 'FavouriteVisitor',
+    resourceIdFrom: 'params.id',
+  })
+  updateFavourite(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateFavouriteVisitorDto,
+  ) {
+    return this.visitors.updateFavourite(id, user, dto);
+  }
+
+  @Delete('favourites/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @CheckAbility({ action: 'delete', subject: 'FavouriteVisitor' })
+  @Audit({
+    action: AuditAction.DELETE,
+    resourceType: 'FavouriteVisitor',
+    resourceIdFrom: 'params.id',
+  })
+  deleteFavourite(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.visitors.deleteFavourite(id, user);
+  }
+
   @Get('unit/:unitId')
   @CheckAbility({ action: 'read', subject: 'Visitor' })
-  forUnit(@Param('unitId', new ParseUUIDPipe()) unitId: string, @Query() page: PaginationDto) {
-    return this.visitors.listForUnit(unitId, page);
+  forUnit(
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Query() page: PaginationDto,
+    @Query('view') view?: VisitorListView,
+    @Query('status') status?: VisitorStatus,
+  ) {
+    return this.visitors.listForUnit(unitId, { ...page, view, status });
   }
 
   @Get('condo/:condoId')
@@ -97,8 +154,9 @@ export class VisitorController {
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query() page: PaginationDto,
     @Query('status') status?: VisitorStatus,
+    @Query('view') view?: VisitorListView,
   ) {
-    return this.visitors.listForCondo(condoId, { ...page, status });
+    return this.visitors.listForCondo(condoId, { ...page, status, view });
   }
 
   @Get(':id/qr')

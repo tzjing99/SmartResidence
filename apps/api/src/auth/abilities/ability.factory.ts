@@ -27,6 +27,7 @@ export type Subject =
   | 'HouseholdMember'
   | 'Visitor'
   | 'VisitorCheckIn'
+  | 'FavouriteVisitor'
   | 'Invoice'
   | 'Payment'
   | 'Defect'
@@ -157,6 +158,7 @@ export class AbilityFactory {
         can('read', 'Condo', { id: scope.condoId ?? '' });
         can('read', 'Unit', { id: scope.unitId ?? '' });
         can('manage', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('manage', 'FavouriteVisitor', { unitId: scope.unitId ?? '' });
         can('read', 'Invoice', { unitId: scope.unitId ?? '' });
         can('pay', 'Invoice', { unitId: scope.unitId ?? '' });
         can('manage', 'Defect', { unitId: scope.unitId ?? '' });
@@ -183,6 +185,7 @@ export class AbilityFactory {
         can('read', 'Condo', { id: scope.condoId ?? '' });
         can('read', 'Unit', { id: scope.unitId ?? '' });
         can('manage', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('manage', 'FavouriteVisitor', { unitId: scope.unitId ?? '' });
         can('read', 'Invoice', { unitId: scope.unitId ?? '' });
         can('manage', 'Defect', { unitId: scope.unitId ?? '' });
         can('read', 'Announcement', { condoId: scope.condoId ?? '' });

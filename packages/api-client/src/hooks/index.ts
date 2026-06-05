@@ -1,6 +1,10 @@
 'use client';
 
-import type { CreateDefectInput, CreateVisitorInput } from '@smartresidence/shared-types';
+import type {
+  CreateDefectInput,
+  CreateFavouriteVisitorInput,
+  CreateVisitorInput,
+} from '@smartresidence/shared-types';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   ApiClient,
@@ -15,8 +19,11 @@ export const queryKeys = {
   me: ['me'] as const,
   myCondos: ['condos', 'mine'] as const,
   myUnits: ['units', 'mine'] as const,
-  unitVisitors: (unitId: string) => ['visitors', 'unit', unitId] as const,
-  condoVisitors: (condoId: string) => ['visitors', 'condo', condoId] as const,
+  unitVisitors: (unitId: string, view?: string) =>
+    ['visitors', 'unit', unitId, view ?? 'all'] as const,
+  condoVisitors: (condoId: string, view?: string) =>
+    ['visitors', 'condo', condoId, view ?? 'all'] as const,
+  unitFavouriteVisitors: (unitId: string) => ['visitors', 'favourites', unitId] as const,
   unitInvoices: (unitId: string) => ['invoices', 'unit', unitId] as const,
   invoice: (id: string) => ['invoices', id] as const,
   unitDefects: (unitId: string) => ['defects', 'unit', unitId] as const,
@@ -78,11 +85,17 @@ export function useMyUnits(api: ApiClient) {
   return useQuery({ queryKey: queryKeys.myUnits, queryFn: () => api.myUnits() });
 }
 
-export function useUnitVisitors(api: ApiClient, unitId: string | null) {
+export function useUnitVisitors(
+  api: ApiClient,
+  unitId: string | null,
+  view?: import('@smartresidence/shared-types').VisitorListView,
+) {
   return useQuery({
-    queryKey: unitId ? queryKeys.unitVisitors(unitId) : ['visitors', 'unit', null],
+    queryKey: unitId ? queryKeys.unitVisitors(unitId, view) : ['visitors', 'unit', null],
     queryFn: () =>
-      unitId ? api.visitorsForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
+      unitId
+        ? api.visitorsForUnit(unitId, view ? { view } : {})
+        : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
   });
 }
@@ -127,6 +140,35 @@ export function useRejectVisitor(api: ApiClient) {
     mutationFn: (vars: { visitorId: string; reason?: string }) =>
       api.rejectVisitor(vars.visitorId, vars.reason),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
+  });
+}
+
+export function useFavouriteVisitors(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId ? queryKeys.unitFavouriteVisitors(unitId) : ['visitors', 'favourites', null],
+    queryFn: () =>
+      unitId ? api.favouriteVisitorsForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(unitId),
+  });
+}
+
+export function useCreateFavouriteVisitor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateFavouriteVisitorInput) => api.createFavouriteVisitor(input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.unitFavouriteVisitors(vars.unitId) });
+    },
+  });
+}
+
+export function useDeleteFavouriteVisitor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; unitId: string }) => api.deleteFavouriteVisitor(vars.id),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.unitFavouriteVisitors(vars.unitId) });
+    },
   });
 }
 

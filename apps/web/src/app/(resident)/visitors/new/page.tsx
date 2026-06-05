@@ -5,12 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateVisitor, useMyUnits } from '@smartresidence/api-client';
 import { type CreateVisitorInput, CreateVisitorSchema } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 export default function NewVisitorPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; identifier: string } | undefined;
   const create = useCreateVisitor(api);
@@ -19,6 +21,16 @@ export default function NewVisitorPage() {
     resolver: zodResolver(CreateVisitorSchema),
     defaultValues: { unitId: unit?.id ?? '' },
   });
+
+  useEffect(() => {
+    if (unit?.id) form.setValue('unitId', unit.id);
+    const name = searchParams.get('name');
+    const phone = searchParams.get('phone');
+    const vehiclePlate = searchParams.get('vehiclePlate');
+    if (name) form.setValue('name', name);
+    if (phone) form.setValue('phone', phone);
+    if (vehiclePlate) form.setValue('vehiclePlate', vehiclePlate);
+  }, [unit?.id, searchParams, form]);
 
   async function onSubmit(values: CreateVisitorInput) {
     if (!unit) return;

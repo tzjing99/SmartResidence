@@ -25,15 +25,19 @@ import {
 } from './access-code';
 import type {
   CheckInVisitorDto,
+  CreateFavouriteVisitorDto,
   CreateVisitorDto,
   CreateWalkInOfficeDto,
   CreateWalkInUnitDto,
+  UpdateFavouriteVisitorDto,
 } from './dto/visitor.dto';
 import {
   DEFAULT_VISIT_DURATION_MINS,
   PRE_REG_EXPIRY_BUFFER_MINS,
+  type VisitorListView,
   WALK_IN_APPROVAL_MINUTES,
   WALK_IN_CHECK_IN_WINDOW_MINS,
+  statusesForView,
 } from './visitor.constants';
 
 const CHECK_IN_ALLOWED: VisitorStatus[] = [VisitorStatus.APPROVED];
@@ -394,27 +398,43 @@ export class VisitorService {
     };
   }
 
-  async listForUnit(unitId: string, opts: { limit: number; offset: number }) {
+  async listForUnit(
+    unitId: string,
+    opts: { limit: number; offset: number; view?: VisitorListView; status?: VisitorStatus },
+  ) {
     await this.expireStale();
+    const viewStatuses = statusesForView(opts.view);
+    const statusFilter = opts.status
+      ? { status: opts.status }
+      : viewStatuses
+        ? { status: { in: viewStatuses } }
+        : {};
+    const where = { unitId, ...statusFilter };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.visitor.findMany({
-        where: { unitId },
+        where,
         orderBy: { expectedAt: 'desc' },
         take: opts.limit,
         skip: opts.offset,
         include: visitorInclude,
       }),
-      this.prisma.visitor.count({ where: { unitId } }),
+      this.prisma.visitor.count({ where }),
     ]);
     return { items, total, ...opts };
   }
 
   async listForCondo(
     condoId: string,
-    opts: { limit: number; offset: number; status?: VisitorStatus },
+    opts: { limit: number; offset: number; status?: VisitorStatus; view?: VisitorListView },
   ) {
     await this.expireStale(condoId);
-    const where = { condoId, ...(opts.status ? { status: opts.status } : {}) };
+    const viewStatuses = statusesForView(opts.view);
+    const statusFilter = opts.status
+      ? { status: opts.status }
+      : viewStatuses
+        ? { status: { in: viewStatuses } }
+        : {};
+    const where = { condoId, ...statusFilter };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.visitor.findMany({
         where,
@@ -569,5 +589,56 @@ export class VisitorService {
     });
     this.events.emit('visitor.checked_out', { visitorId: visitor.id, condoId: visitor.condoId });
     return updated;
+  }
+
+  async listFavourites(unitId: string) {
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.favouriteVisitor.findMany({
+        where: { unitId },
+        orderBy: { name: 'asc' },
+        include: { user: { select: { id: true, name: true } } },
+      }),
+      this.prisma.favouriteVisitor.count({ where: { unitId } }),
+    ]);
+    return { items, total };
+  }
+
+  async createFavourite(user: AuthenticatedUser, dto: CreateFavouriteVisitorDto) {
+    if (!this.userCanManageUnit(user, dto.unitId)) {
+      throw new ForbiddenException('You cannot manage favourites for this unit');
+    }
+    return this.prisma.favouriteVisitor.create({
+      data: {
+        userId: user.id,
+        unitId: dto.unitId,
+        name: dto.name,
+        phone: dto.phone,
+        vehiclePlate: dto.vehiclePlate,
+        notes: dto.notes,
+      },
+      include: { user: { select: { id: true, name: true } } },
+    });
+  }
+
+  async updateFavourite(id: string, user: AuthenticatedUser, dto: UpdateFavouriteVisitorDto) {
+    const favourite = await this.prisma.favouriteVisitor.findUnique({ where: { id } });
+    if (!favourite) throw new NotFoundException();
+    if (!this.userCanManageUnit(user, favourite.unitId)) {
+      throw new ForbiddenException('You cannot manage favourites for this unit');
+    }
+    return this.prisma.favouriteVisitor.update({
+      where: { id },
+      data: dto,
+      include: { user: { select: { id: true, name: true } } },
+    });
+  }
+
+  async deleteFavourite(id: string, user: AuthenticatedUser) {
+    const favourite = await this.prisma.favouriteVisitor.findUnique({ where: { id } });
+    if (!favourite) throw new NotFoundException();
+    if (!this.userCanManageUnit(user, favourite.unitId)) {
+      throw new ForbiddenException('You cannot manage favourites for this unit');
+    }
+    await this.prisma.favouriteVisitor.delete({ where: { id } });
   }
 }

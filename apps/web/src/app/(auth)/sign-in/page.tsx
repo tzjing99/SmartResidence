@@ -1,6 +1,7 @@
 'use client';
 
 import { api, writeSession } from '@/lib/api';
+import { type MeResponse, roleToHome } from '@/lib/roles';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import Link from 'next/link';
@@ -32,7 +33,16 @@ export default function SignInPage() {
         activeCondoId: null,
       });
       toast.success('Signed in');
-      router.push('/dashboard');
+      // Route the user to the home that matches their role (management → /admin,
+      // guard → /guard, residents → /dashboard) instead of assuming resident.
+      let home = '/dashboard';
+      try {
+        const me = (await api.me()) as MeResponse;
+        home = roleToHome(me.user?.activeRole ?? null);
+      } catch {
+        /* fall back to resident home */
+      }
+      router.push(home);
     } catch (err) {
       const msg = (err as Error).message;
       if (msg.toLowerCase().includes('2fa')) {

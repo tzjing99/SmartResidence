@@ -1,7 +1,9 @@
 'use client';
 
 import { api, writeSession } from '@/lib/api';
-import { useMe, useMyCondos } from '@smartresidence/api-client';
+import { hasAbility } from '@/lib/roles';
+import { useRoleGuard } from '@/lib/use-role-guard';
+import { useMyCondos } from '@smartresidence/api-client';
 import { cn } from '@smartresidence/ui-web';
 import {
   Bell,
@@ -19,28 +21,40 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
-const NAV_ITEMS = [
+/**
+ * Resident navigation. Items with a `can` clause are only shown when the
+ * user's abilities (from `/api/auth/me`) permit them, so the menu matches what
+ * the API will actually allow — e.g. only UNIT_OWNER sees "Manage access"
+ * (revoke RoleAssignment); HOUSEHOLD_MEMBER doesn't see Fees/Defects. The
+ * owner-empowerment surfaces (My activity, Who viewed me) have no ability gate
+ * because their endpoints are scoped per-user and open to every resident.
+ */
+const NAV_ITEMS: Array<{
+  href: string;
+  label: string;
+  icon: typeof Home;
+  can?: { action: string; subject: string };
+}> = [
   { href: '/dashboard', label: 'Home', icon: Home },
-  { href: '/visitors', label: 'Visitors', icon: CalendarClock },
-  { href: '/billing', label: 'Fees', icon: CreditCard },
-  { href: '/defects', label: 'Defects', icon: Wrench },
-  { href: '/announcements', label: 'Announcements', icon: Megaphone },
+  { href: '/visitors', label: 'Visitors', icon: CalendarClock, can: { action: 'read', subject: 'Visitor' } },
+  { href: '/billing', label: 'Fees', icon: CreditCard, can: { action: 'read', subject: 'Invoice' } },
+  { href: '/defects', label: 'Defects', icon: Wrench, can: { action: 'read', subject: 'Defect' } },
+  { href: '/announcements', label: 'Announcements', icon: Megaphone, can: { action: 'read', subject: 'Announcement' } },
   { href: '/activity', label: 'My activity', icon: History },
   { href: '/who-viewed', label: 'Who viewed me', icon: Eye },
-  { href: '/access', label: 'Manage access', icon: KeyRound },
+  { href: '/access', label: 'Manage access', icon: KeyRound, can: { action: 'revoke', subject: 'RoleAssignment' } },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const me = useMe(api);
+  const { me, abilities, ready } = useRoleGuard('resident');
   const condos = useMyCondos(api);
 
-  React.useEffect(() => {
-    if (me.error) {
-      router.push('/sign-in');
-    }
-  }, [me.error, router]);
+  const navItems = React.useMemo(
+    () => NAV_ITEMS.filter((item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject)),
+    [abilities],
+  );
 
   const condo = condos.data?.[0];
 
@@ -54,7 +68,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/sign-in');
   }
 
-  const isAdmin = pathname.startsWith('/admin');
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center sr-muted text-sm">Loading…</div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -65,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {condo ? <div className="px-2 text-xs sr-muted mb-6 truncate">{condo.name}</div> : null}
 
         <nav className="flex-1 flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
@@ -104,7 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 min-w-0">
         <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-6 py-3 flex items-center justify-between">
           <h1 className="text-base font-semibold tracking-tight">
-            {NAV_ITEMS.find((i) => pathname.startsWith(i.href))?.label ?? 'SmartResidence'}
+            {navItems.find((i) => pathname.startsWith(i.href))?.label ?? 'SmartResidence'}
           </h1>
           <div className="flex items-center gap-2">
             <button type="button" className="p-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40">

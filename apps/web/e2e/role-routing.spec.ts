@@ -1,0 +1,50 @@
+import { expect, test } from '@playwright/test';
+
+const PASSWORD = 'Demo!2026';
+
+async function signIn(page: import('@playwright/test').Page, email: string) {
+  await page.goto('/sign-in');
+  await page.getByLabel(/email/i).fill(email);
+  await page.getByLabel(/password/i).fill(PASSWORD);
+  await page.getByRole('button', { name: /sign in/i }).click();
+}
+
+test('unit owner lands on the resident dashboard with owner-empowerment nav', async ({ page }) => {
+  await signIn(page, 'owner@acacia.demo');
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+  // Owner-only surface (revoke RoleAssignment) is visible…
+  await expect(page.getByRole('link', { name: /manage access/i })).toBeVisible();
+  // …and management-only nav is absent.
+  await expect(page.getByRole('link', { name: /audit log/i })).toHaveCount(0);
+});
+
+test('management admin lands on the /admin portal', async ({ page }) => {
+  await signIn(page, 'admin@acacia.demo');
+  await expect(page).toHaveURL(/\/admin/, { timeout: 15_000 });
+  const sidebar = page.getByRole('navigation');
+  await expect(sidebar.getByRole('link', { name: 'Audit log', exact: true })).toBeVisible();
+  await expect(sidebar.getByRole('link', { name: 'Roles', exact: true })).toBeVisible();
+});
+
+test('security guard lands on the minimal /guard view', async ({ page }) => {
+  await signIn(page, 'guard@acacia.demo');
+  await expect(page).toHaveURL(/\/guard/, { timeout: 15_000 });
+  await expect(page.getByText(/visitor verification/i)).toBeVisible();
+  // No resident or admin navigation for guards.
+  await expect(page.getByRole('link', { name: /manage access/i })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /audit log/i })).toHaveCount(0);
+});
+
+test('resident is redirected away from /admin to their home', async ({ page }) => {
+  await signIn(page, 'owner@acacia.demo');
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+  await page.goto('/admin');
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+});
+
+test('guard is redirected away from resident pages to the gate view', async ({ page }) => {
+  await signIn(page, 'guard@acacia.demo');
+  await expect(page).toHaveURL(/\/guard/, { timeout: 15_000 });
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/guard/, { timeout: 15_000 });
+});

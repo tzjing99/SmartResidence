@@ -57,7 +57,12 @@ function FormSection({
   className?: string;
 }) {
   return (
-    <section className={cn('flex flex-col gap-3', className)}>
+    <section
+      className={cn(
+        'flex flex-col gap-3 rounded-xl border border-[rgb(var(--sr-border))]/80 bg-white p-4 shadow-sm dark:bg-[rgb(var(--sr-card))]',
+        className,
+      )}
+    >
       <div>
         <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
         {description ? <p className="text-xs sr-muted mt-0.5">{description}</p> : null}
@@ -406,24 +411,23 @@ export default function NewVisitorPage() {
             ) : null}
           </FormSection>
 
-          <div className="flex justify-end gap-3 border-t border-[rgb(var(--sr-border))] pt-5">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => router.back()}
-              disabled={form.formState.isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting || slotsBlocked || uploadingPhoto}
-            >
-              {form.formState.isSubmitting ? 'Submitting…' : 'Create pass'}
-            </Button>
-          </div>
-        </form>
-      </Card>
+        <div className="flex justify-end gap-3 rounded-xl border border-[rgb(var(--sr-border))]/80 bg-white p-4 shadow-sm dark:bg-[rgb(var(--sr-card))]">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => router.back()}
+            disabled={form.formState.isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={form.formState.isSubmitting || slotsBlocked || uploadingPhoto}
+          >
+            {form.formState.isSubmitting ? 'Submitting…' : 'Create pass'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

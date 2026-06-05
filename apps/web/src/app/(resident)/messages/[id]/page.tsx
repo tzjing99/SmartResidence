@@ -1,6 +1,7 @@
 'use client';
 
 import { SlaChip } from '@/components/sla-chip';
+import { ThreadMessageList } from '@/components/thread-message-list';
 import { api } from '@/lib/api';
 import { STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
 import {
@@ -10,7 +11,7 @@ import {
   usePostThreadMessage,
   useThread,
 } from '@smartresidence/api-client';
-import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -288,38 +289,16 @@ export default function ResidentThreadPage() {
         </Card>
       ) : null}
 
-      <Card className="flex flex-col gap-4">
-        {t.messages.map((m) => {
-          if (m.kind === 'SYSTEM') {
-            return (
-              <div key={m.id} className="text-center text-xs sr-muted py-1">
-                {m.body} · {new Date(m.createdAt).toLocaleString()}
-              </div>
-            );
-          }
-          const mine = m.author?.id === myId;
-          const isProposed = t.resolutionProposedMessageId === m.id;
-          return (
-            <div key={m.id} className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
-              <div
-                className={cn(
-                  'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line',
-                  mine
-                    ? 'bg-coral-500 text-white rounded-br-sm'
-                    : 'bg-[rgb(var(--sr-border))]/40 rounded-bl-sm',
-                  isProposed && pending && 'ring-2 ring-sky-500',
-                )}
-              >
-                {m.body}
-              </div>
-              <div className="text-[11px] sr-muted mt-1 px-1">
-                {mine ? 'You' : (m.author?.name ?? 'Management')} ·{' '}
-                {new Date(m.createdAt).toLocaleString()}
-              </div>
-            </div>
-          );
-        })}
-        <div ref={bottomRef} />
+      <Card className="p-4">
+        <ThreadMessageList
+          messages={t.messages}
+          variant="resident"
+          viewerId={myId}
+          residentId={t.createdBy?.id}
+          resolutionProposedMessageId={t.resolutionProposedMessageId}
+          highlightProposedSolution={pending}
+          bottomRef={bottomRef}
+        />
       </Card>
 
       {closed || pending || resolved ? null : (

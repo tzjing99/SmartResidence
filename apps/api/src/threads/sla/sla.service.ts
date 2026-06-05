@@ -300,7 +300,7 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
           threadId: thread.id,
           authorUserId: thread.createdByUserId,
           kind: ThreadMessageKind.SYSTEM,
-          body: `Automatically closed — no activity for ${SlaService.INACTIVITY_AUTO_CLOSE_DAYS} days.`,
+          body: 'Closed — no activity.',
         },
       });
     });
@@ -344,7 +344,7 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
           threadId: thread.id,
           authorUserId: systemAuthorId,
           kind: ThreadMessageKind.SYSTEM,
-          body: `Automatically resolved — the resident did not respond to the resolution proposal within ${graceDays} days.`,
+          body: 'Auto-closed — no response in time.',
         },
       });
     });

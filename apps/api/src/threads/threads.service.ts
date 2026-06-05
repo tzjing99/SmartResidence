@@ -508,11 +508,9 @@ export class ThreadsService {
     const now = new Date();
     const note = dto.note?.trim();
     const isUpdate = thread.status === ThreadStatus.PENDING_RESIDENT_CONFIRMATION && dto.messageId;
-    const body = note
-      ? `Management proposed this thread as resolved — awaiting resident confirmation: ${note}`
-      : isUpdate
-        ? 'Management updated the proposed solution.'
-        : 'Management proposed this thread as resolved — awaiting resident confirmation.';
+    const systemBody = isUpdate
+      ? 'Changed which reply is the fix.'
+      : 'Marked as fixed — waiting for resident to confirm.';
 
     const proposedMessageId: string | null = dto.messageId ?? null;
     if (proposedMessageId) {
@@ -536,20 +534,24 @@ export class ThreadsService {
           lastMessageAt: now,
         },
       });
-      if (!isUpdate) {
-        await tx.threadMessage.create({
-          data: { threadId: id, authorUserId: user.id, kind: ThreadMessageKind.SYSTEM, body },
-        });
-      } else {
+      if (note && !proposedMessageId) {
         await tx.threadMessage.create({
           data: {
             threadId: id,
             authorUserId: user.id,
-            kind: ThreadMessageKind.SYSTEM,
-            body: 'Management changed the proposed solution message.',
+            kind: ThreadMessageKind.MESSAGE,
+            body: note,
           },
         });
       }
+      await tx.threadMessage.create({
+        data: {
+          threadId: id,
+          authorUserId: user.id,
+          kind: ThreadMessageKind.SYSTEM,
+          body: systemBody,
+        },
+      });
       return u;
     });
 
@@ -594,7 +596,7 @@ export class ThreadsService {
             threadId: id,
             authorUserId: user.id,
             kind: ThreadMessageKind.SYSTEM,
-            body: 'Resident confirmed the thread is resolved.',
+            body: 'Resident confirmed — ticket closed.',
           },
         });
         return u;
@@ -645,7 +647,7 @@ export class ThreadsService {
           threadId: id,
           authorUserId: user.id,
           kind: ThreadMessageKind.SYSTEM,
-          body: 'Resident rejected the proposed resolution.',
+          body: "Resident said it's not fixed yet.",
         },
       });
       return u;
@@ -698,7 +700,7 @@ export class ThreadsService {
           threadId: id,
           authorUserId: user.id,
           kind: ThreadMessageKind.SYSTEM,
-          body: 'Resident appealed — thread reopened.',
+          body: 'Resident reopened this ticket.',
         },
       });
       return u;
@@ -759,7 +761,7 @@ export class ThreadsService {
             threadId: id,
             authorUserId: user.id,
             kind: ThreadMessageKind.SYSTEM,
-            body: 'Management requested a response from the resident.',
+            body: 'Waiting on resident to reply.',
           },
         });
       }

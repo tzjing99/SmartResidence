@@ -1,6 +1,7 @@
 'use client';
 
 import { SlaChip } from '@/components/sla-chip';
+import { ThreadMessageList } from '@/components/thread-message-list';
 import { api } from '@/lib/api';
 import { STATUS_TONE, categoryLabel, priorityLabel, statusLabel } from '@/lib/thread-ui';
 import {
@@ -13,7 +14,7 @@ import {
   useUpdateThread,
 } from '@smartresidence/api-client';
 import type { ThreadCategory, ThreadPriority } from '@smartresidence/api-client';
-import { Badge, Button, Card, Skeleton, Textarea, cn } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -248,65 +249,18 @@ export default function AdminThreadPage() {
             </div>
           ) : null}
 
-          <Card className="flex flex-col gap-3 p-4">
-            {t.messages.map((m) => {
-              if (m.kind === 'SYSTEM') {
-                return (
-                  <div key={m.id} className="text-center text-xs sr-muted py-1">
-                    {m.body} · {new Date(m.createdAt).toLocaleString()}
-                  </div>
-                );
-              }
-              if (m.kind === 'INTERNAL_NOTE') {
-                return (
-                  <div
-                    key={m.id}
-                    className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm"
-                  >
-                    <div className="text-[11px] font-medium text-amber-600 mb-0.5">
-                      Internal note · {m.author?.name ?? 'Staff'}
-                    </div>
-                    <div className="whitespace-pre-line">{m.body}</div>
-                  </div>
-                );
-              }
-              const mine = m.author?.id === myId;
-              const isProposed = t.resolutionProposedMessageId === m.id;
-              return (
-                <div key={m.id} className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
-                  <div
-                    className={cn(
-                      'max-w-[85%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-line relative',
-                      mine
-                        ? 'bg-coral-500 text-white rounded-br-sm'
-                        : 'bg-[rgb(var(--sr-border))]/40 rounded-bl-sm',
-                      isProposed && 'ring-2 ring-sky-500',
-                    )}
-                  >
-                    {isProposed ? (
-                      <div className="text-[10px] font-semibold mb-0.5 opacity-80">
-                        ✓ Suggested fix
-                      </div>
-                    ) : null}
-                    {m.body}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5 px-1">
-                    <span className="text-[11px] sr-muted">
-                      {m.author?.name ?? 'Resident'} · {new Date(m.createdAt).toLocaleString()}
-                    </span>
-                    {!mine && m.kind === 'MESSAGE' && (composer === 'propose' || pending) ? (
-                      <button
-                        type="button"
-                        className="text-[11px] text-sky-600 hover:underline"
-                        onClick={() => setSelectedSolutionId(m.id)}
-                      >
-                        {selectedSolutionId === m.id || isProposed ? 'Selected' : 'Use as the fix'}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
+          <Card className="p-4">
+            <ThreadMessageList
+              messages={t.messages}
+              variant="admin"
+              viewerId={myId}
+              residentId={t.createdBy?.id}
+              resolutionProposedMessageId={t.resolutionProposedMessageId}
+              highlightProposedSolution={pending}
+              showProposeActions={composer === 'propose' || pending}
+              selectedProposedMessageId={selectedSolutionId}
+              onSelectProposedMessage={setSelectedSolutionId}
+            />
           </Card>
 
           <form onSubmit={send} className="flex flex-col gap-2">

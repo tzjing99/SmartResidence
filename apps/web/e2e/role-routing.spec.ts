@@ -32,7 +32,9 @@ test('management admin lands on the /admin portal', async ({ page }) => {
   await expect(page).toHaveURL(/\/admin\/settings/, { timeout: 15_000 });
   const settingsNav = page.getByRole('navigation', { name: 'Settings sections' });
   await expect(settingsNav.getByRole('link', { name: 'Audit log', exact: true })).toBeVisible();
-  await expect(settingsNav.getByRole('link', { name: 'Roles & access', exact: true })).toBeVisible();
+  await expect(
+    settingsNav.getByRole('link', { name: 'Roles & access', exact: true }),
+  ).toBeVisible();
 });
 
 test('admin nav highlights the active route and not the dashboard index', async ({ page }) => {

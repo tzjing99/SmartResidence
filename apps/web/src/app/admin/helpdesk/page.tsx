@@ -1,6 +1,7 @@
 'use client';
 
 import { SlaChip } from '@/components/sla-chip';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { sortInboxThreads } from '@/lib/inbox-sort';
 import {
@@ -29,40 +30,38 @@ import { Inbox } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 
-const STATUS_OPTIONS: Array<{ value: ThreadStatus | ''; label: string }> = [
-  { value: '', label: 'All statuses' },
-  ...(
-    [
-      'OPEN',
-      'AWAITING_MANAGEMENT',
-      'AWAITING_RESIDENT',
-      'PENDING_RESIDENT_CONFIRMATION',
-      'RESOLVED',
-      'CLOSED',
-      'REOPENED',
-    ] as ThreadStatus[]
-  ).map((value) => ({ value, label: STATUS_LABEL[value] })),
-];
-
-const PRIORITY_OPTIONS: Array<{ value: ThreadPriority | ''; label: string }> = [
-  { value: '', label: 'All priorities' },
-  { value: 'URGENT', label: 'Urgent' },
-  { value: 'HIGH', label: 'High' },
-  { value: 'NORMAL', label: 'Normal' },
-  { value: 'LOW', label: 'Low' },
-];
-
-const SLA_OPTIONS = [
-  { value: '', label: 'Any deadline' },
-  { value: 'BREACHED', label: SLA_LABEL.BREACHED },
-  { value: 'AT_RISK', label: SLA_LABEL.AT_RISK },
-  { value: 'ON_TRACK', label: SLA_LABEL.ON_TRACK },
-] as const;
-
 const selectCls = 'sr-select w-auto';
 
 export default function HelpdeskPage() {
+  const tr = useT();
   const reduceMotion = useReducedMotion();
+  const STATUS_OPTIONS: Array<{ value: ThreadStatus | ''; label: string }> = [
+    { value: '', label: tr('helpdesk.filters.allStatuses') },
+    ...(
+      [
+        'OPEN',
+        'AWAITING_MANAGEMENT',
+        'AWAITING_RESIDENT',
+        'PENDING_RESIDENT_CONFIRMATION',
+        'RESOLVED',
+        'CLOSED',
+        'REOPENED',
+      ] as ThreadStatus[]
+    ).map((value) => ({ value, label: STATUS_LABEL[value] })),
+  ];
+  const PRIORITY_OPTIONS: Array<{ value: ThreadPriority | ''; label: string }> = [
+    { value: '', label: tr('helpdesk.filters.allPriorities') },
+    { value: 'URGENT', label: 'Urgent' },
+    { value: 'HIGH', label: 'High' },
+    { value: 'NORMAL', label: 'Normal' },
+    { value: 'LOW', label: 'Low' },
+  ];
+  const SLA_OPTIONS = [
+    { value: '', label: tr('helpdesk.filters.anySla') },
+    { value: 'BREACHED', label: SLA_LABEL.BREACHED },
+    { value: 'AT_RISK', label: SLA_LABEL.AT_RISK },
+    { value: 'ON_TRACK', label: SLA_LABEL.ON_TRACK },
+  ] as const;
   const [status, setStatus] = React.useState<ThreadStatus | ''>('');
   const [priority, setPriority] = React.useState<ThreadPriority | ''>('');
   const [category, setCategory] = React.useState('');
@@ -99,8 +98,8 @@ export default function HelpdeskPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h2 className="sr-section-title">Helpdesk</h2>
-        <p className="sr-muted">Resident conversations, prioritised and tracked against SLA.</p>
+        <h2 className="sr-section-title">{tr('helpdesk.title')}</h2>
+        <p className="sr-muted">{tr('helpdesk.subtitle')}</p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -134,7 +133,7 @@ export default function HelpdeskPage() {
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
-          <option value="">All categories</option>
+          <option value="">{tr('helpdesk.filters.allCategories')}</option>
           {CATEGORIES.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
@@ -147,8 +146,8 @@ export default function HelpdeskPage() {
           value={assignee}
           onChange={(e) => setAssignee(e.target.value)}
         >
-          <option value="">All assignees</option>
-          <option value="__unassigned">Not assigned yet</option>
+          <option value="">{tr('helpdesk.filters.allAssignees')}</option>
+          <option value="__unassigned">{tr('helpdesk.filters.unassigned')}</option>
           {assigneeOptions.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name}
@@ -179,18 +178,18 @@ export default function HelpdeskPage() {
       ) : visible.length === 0 ? (
         <EmptyState
           icon={<Inbox className="size-6" />}
-          title="No threads"
-          description="No conversations match these filters."
+          title={tr('helpdesk.empty')}
+          description={tr('helpdesk.emptyHint')}
         />
       ) : (
         <>
           {/* Column header (desktop only) */}
           <div className="hidden lg:grid grid-cols-12 gap-4 px-4 text-[11px] font-medium uppercase tracking-wide sr-muted">
-            <div className="col-span-5">Subject</div>
-            <div className="col-span-2">Requester</div>
-            <div className="col-span-1">Priority</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-2">SLA</div>
+            <div className="col-span-5">{tr('helpdesk.columns.subject')}</div>
+            <div className="col-span-2">{tr('helpdesk.columns.requester')}</div>
+            <div className="col-span-1">{tr('helpdesk.columns.priority')}</div>
+            <div className="col-span-2">{tr('helpdesk.columns.status')}</div>
+            <div className="col-span-2">{tr('helpdesk.columns.sla')}</div>
           </div>
 
           <ul className="flex flex-col gap-2">

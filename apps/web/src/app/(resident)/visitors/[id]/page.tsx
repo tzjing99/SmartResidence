@@ -2,34 +2,63 @@
 
 import { api } from '@/lib/api';
 import {
-  useMyUnits,
-  useRegenerateVisitorCode,
-  useUnitVisitors,
-  useVisitorQr,
-} from '@smartresidence/api-client';
+  copyVisitorAccessCode,
+  downloadVisitorQrPng,
+  shareVisitorPass,
+} from '@/lib/visitor-pass-share';
+import { useMyUnits, useUnitVisitors, useVisitorQr } from '@smartresidence/api-client';
+import type { Visitor } from '@smartresidence/shared-types';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
-import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Copy, Download, Share2, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 export default function VisitorPassPage() {
   const params = useParams<{ id: string }>();
   const visitorId = params.id;
   const units = useMyUnits(api);
-  const unit = units.data?.[0] as { id: string } | undefined;
+  const unit = units.data?.[0] as { id: string; identifier: string } | undefined;
   const visitors = useUnitVisitors(api, unit?.id ?? null);
   const qr = useVisitorQr(api, visitorId);
-  const regenerate = useRegenerateVisitorCode(api);
+  const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
 
-  const visitor = (visitors.data?.items as any[] | undefined)?.find((v) => v.id === visitorId);
+  const visitor = (visitors.data?.items as Visitor[] | undefined)?.find((v) => v.id === visitorId);
+  const canShare =
+    visitor?.status === 'APPROVED' &&
+    visitor.visitType === 'PRE_REG' &&
+    Boolean(visitor.accessCode);
 
-  async function onRegenerate() {
+  async function onShare() {
+    if (!visitor?.accessCode) return;
+    const result = await shareVisitorPass({
+      visitorName: visitor.name,
+      accessCode: visitor.accessCode,
+      expectedAt: new Date(visitor.expectedAt),
+      expiresAt: visitor.expiresAt ? new Date(visitor.expiresAt) : null,
+      unitIdentifier: unit?.identifier,
+      qrPngDataUrl: qr.data?.png,
+    });
+    if (result === 'shared') {
+      toast.success('Pass shared');
+      return;
+    }
     try {
-      await regenerate.mutateAsync(visitorId);
-      await qr.refetch();
-      toast.success('New access code generated');
+      await copyVisitorAccessCode(visitor.accessCode);
+      toast.success('Access code copied — share the QR below');
+    } catch {
+      toast.message('Copy the code or download the QR to share');
+    }
+    setShareFallbackOpen(true);
+  }
+
+  async function onCopyCode() {
+    if (!visitor?.accessCode) return;
+    try {
+      await copyVisitorAccessCode(visitor.accessCode);
+      toast.success('Access code copied');
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -101,14 +130,74 @@ export default function VisitorPassPage() {
             </Card>
           ) : null}
 
-          {visitor.status === 'APPROVED' && visitor.visitType === 'PRE_REG' ? (
-            <Button variant="secondary" onClick={onRegenerate} disabled={regenerate.isPending}>
-              <RefreshCw className="size-4" />
-              {regenerate.isPending ? 'Generating…' : 'Regenerate code'}
-            </Button>
+          {canShare ? (
+            <div className="flex flex-col gap-3 pt-2">
+              <Button size="lg" className="w-full" onClick={onShare}>
+                <Share2 className="size-4" />
+                Share pass
+              </Button>
+              <button
+                type="button"
+                onClick={onCopyCode}
+                className="text-sm text-[rgb(var(--sr-coral))] hover:underline self-center inline-flex items-center gap-1.5"
+              >
+                <Copy className="size-3.5" />
+                Copy code only
+              </button>
+            </div>
           ) : null}
         </>
       )}
+
+      {shareFallbackOpen && visitor?.accessCode && qr.data?.png ? (
+        <dialog
+          open
+          className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-black/40 p-4 sm:items-center"
+          aria-labelledby="share-fallback-title"
+        >
+          <Card className="w-full max-w-sm flex flex-col gap-4 p-5 relative">
+            <button
+              type="button"
+              onClick={() => setShareFallbackOpen(false)}
+              className="absolute right-3 top-3 rounded-lg p-1 hover:bg-[rgb(var(--sr-border))]/50"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
+            <div>
+              <h3 id="share-fallback-title" className="font-semibold">
+                Share visitor pass
+              </h3>
+              <p className="text-sm sr-muted mt-1">
+                Access code copied. Download the QR or copy the code again to send to your guest.
+              </p>
+            </div>
+            <div className="flex justify-center py-2">
+              <Image src={qr.data.png} alt="Visitor QR pass" width={200} height={200} unoptimized />
+            </div>
+            <p className="font-mono text-center text-2xl font-bold tracking-[0.25em]">
+              {visitor.accessCode}
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={onCopyCode}>
+                <Copy className="size-4" />
+                Copy code
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const png = qr.data?.png;
+                  const code = visitor.accessCode;
+                  if (png && code) downloadVisitorQrPng(png, code);
+                }}
+              >
+                <Download className="size-4" />
+                Download QR
+              </Button>
+            </div>
+          </Card>
+        </dialog>
+      ) : null}
     </div>
   );
 }

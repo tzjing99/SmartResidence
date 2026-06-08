@@ -1,6 +1,7 @@
 'use client';
 
 import { PillTabs } from '@/components/pill-tabs';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import {
   useApproveVisitor,
@@ -24,14 +25,14 @@ type VisitorTab = VisitorListView | 'favourites';
 
 const SKELETON_KEYS = ['s1', 's2', 's3'];
 
-const TAB_ITEMS: { id: VisitorTab; label: string }[] = [
-  { id: 'upcoming', label: 'Upcoming' },
-  { id: 'history', label: 'History' },
-  { id: 'favourites', label: 'Favourites' },
-];
-
 export default function VisitorsPage() {
+  const t = useT();
   const [tab, setTab] = useState<VisitorTab>('upcoming');
+  const TAB_ITEMS: { id: VisitorTab; label: string }[] = [
+    { id: 'upcoming', label: t('visitors.tabs.upcoming') },
+    { id: 'history', label: t('visitors.tabs.history') },
+    { id: 'favourites', label: t('visitors.tabs.favourites') },
+  ];
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; identifier: string } | undefined;
 
@@ -45,13 +46,13 @@ export default function VisitorsPage() {
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="sr-section-title">Visitors</h2>
-          <p className="sr-muted">Pre-register guests so they walk straight through.</p>
+          <h2 className="sr-section-title">{t('visitors.title')}</h2>
+          <p className="sr-muted">{t('visitors.subtitle')}</p>
         </div>
         <Link href="/visitors/new">
           <Button>
             <Plus className="size-4" />
-            Pre-register
+            {t('visitors.preRegister')}
           </Button>
         </Link>
       </section>

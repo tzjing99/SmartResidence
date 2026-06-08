@@ -29,12 +29,24 @@ export class TenantService {
   }
 
   async listUnits(condoId: string, opts: { limit: number; offset: number; search?: string }) {
-    const where = {
-      condoId,
-      ...(opts.search
-        ? { identifier: { contains: opts.search, mode: 'insensitive' as const } }
-        : {}),
-    };
+    const term = opts.search?.trim();
+    const where = term
+      ? {
+          condoId,
+          OR: [
+            { identifier: { contains: term, mode: 'insensitive' as const } },
+            { block: { name: { contains: term, mode: 'insensitive' as const } } },
+            {
+              ownerships: {
+                some: {
+                  status: 'ACTIVE' as const,
+                  user: { name: { contains: term, mode: 'insensitive' as const } },
+                },
+              },
+            },
+          ],
+        }
+      : { condoId };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.unit.findMany({
         where,

@@ -118,5 +118,92 @@
     "amount": "Jumlah",
     "payCard": "Bayar dengan kad",
     "payFpx": "Bayar dengan FPX"
+  },
+  "visitors": {
+    "title": "Pelawat",
+    "subtitle": "Daftar awal tetamu supaya mereka masuk terus.",
+    "tabs": {
+      "upcoming": "Akan datang",
+      "history": "Sejarah",
+      "favourites": "Kegemaran"
+    },
+    "preRegister": "Daftar awal",
+    "emptyUpcoming": "Tiada pelawat akan datang",
+    "emptyHistory": "Tiada lawatan lepas",
+    "new": {
+      "title": "Daftar awal pelawat",
+      "subtitle": "Kebanyakan tetamu memandu masuk — tetapkan plat, masa ketibaan, dan pilihan menginap semalaman.",
+      "guestDetails": "Butiran tetamu",
+      "guestDetailsDesc": "Nama dan hubungan untuk pas pintu pagar.",
+      "visitDetails": "Butiran lawatan",
+      "vehicle": "Kenderaan",
+      "arrival": "Ketibaan",
+      "name": "Nama penuh",
+      "phone": "Nombor telefon",
+      "purpose": "Tujuan lawatan",
+      "expectedArrival": "Jangkaan ketibaan",
+      "entryMode": "Bagaimana mereka akan tiba?",
+      "driveIn": "Memandu masuk",
+      "walkIn": "Walk-in",
+      "overnight": "Menginap semalaman",
+      "overnightDesc": "Pilihan — tetamu menginap selepas tengah malam."
+    },
+    "guard": {
+      "walkInTitle": "Pelawat walk-in",
+      "walkInBlurb": "Satu lawatan — disahkan sekali di pintu pagar. Menginap semalaman tidak tersedia untuk walk-in; gunakan pendaftaran awal.",
+      "tabUnit": "Unit",
+      "tabOffice": "Pejabat pengurusan",
+      "visitorName": "Nama pelawat",
+      "fullName": "Nama penuh",
+      "phoneOptional": "Telefon (pilihan)",
+      "unitLabel": "Unit",
+      "unitSearch": "Cari blok, nombor unit, atau nama penduduk…",
+      "purposeOptional": "Tujuan (pilihan)",
+      "purposePlaceholder": "Sebab lawatan",
+      "purposeRequiredLabel": "Tujuan (wajib)",
+      "officePurposePlaceholder": "cth. Kutipan bungkusan, pertanyaan AGM",
+      "requestApproval": "Minta kelulusan pemilik",
+      "sending": "Menghantar…",
+      "logAndCheckIn": "Log & daftar masuk",
+      "logging": "Melog…",
+      "unitRequired": "Cari dan pilih unit dahulu",
+      "purposeRequired": "Nyatakan sebab pelawat berjumpa pengurusan",
+      "sentForApproval": "Dihantar untuk kelulusan — pemilik ada 15 minit untuk membalas",
+      "officeLogged": "{name} didaftar masuk di pejabat pengurusan"
+    },
+    "settings": {
+      "title": "Tetapan pelawat",
+      "subtitle": "Kawal cara menginap semalaman, walk-in, dan pendaftaran awal berfungsi untuk {condo}.",
+      "sections": {
+        "overnight": "Pelawat menginap semalaman",
+        "overnightDesc": "Had dan peraturan untuk tetamu yang menginap selepas tengah malam.",
+        "walkIn": "Walk-in & pendaftaran awal",
+        "walkInDesc": "Tamat masa dan lalai untuk tetamu di pintu pagar dan pas pra-daftar.",
+        "holidays": "Cuti & hari bekerja",
+        "holidaysDesc": "Hari yang dikira cuti dan cara peraturan menginap semalaman dikenakan."
+      }
+    },
+    "admin": {
+      "title": "Pelawat",
+      "subtitle": "Log pelawat langsung dan pencegahan penyalahgunaan menginap semalaman.",
+      "tabs": {
+        "live": "Langsung",
+        "history": "Log",
+        "overnight": "Dasar menginap semalaman"
+      },
+      "filters": {
+        "all": "Semua",
+        "overnightPending": "Menginap semalaman menunggu",
+        "urgentOvernight": "Menginap semalaman segera",
+        "holidayReview": "Semakan cuti"
+      },
+      "overnightTable": {
+        "unit": "Unit",
+        "owners": "Pemilik",
+        "thisMonth": "Bulan ini",
+        "status": "Status",
+        "actions": "Tindakan"
+      }
+    }
   }
 }

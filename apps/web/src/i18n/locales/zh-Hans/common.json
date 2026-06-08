@@ -118,5 +118,92 @@
     "amount": "金额",
     "payCard": "用银行卡支付",
     "payFpx": "用 FPX 支付"
+  },
+  "visitors": {
+    "title": "访客",
+    "subtitle": "预先登记访客，让他们顺利通行。",
+    "tabs": {
+      "upcoming": "即将到来",
+      "history": "历史记录",
+      "favourites": "常用访客"
+    },
+    "preRegister": "预先登记",
+    "emptyUpcoming": "暂无即将到来的访客",
+    "emptyHistory": "暂无过往访问记录",
+    "new": {
+      "title": "预先登记访客",
+      "subtitle": "大多数访客驾车到达——请填写车牌、到达时间和可选的过夜选项。",
+      "guestDetails": "访客信息",
+      "guestDetailsDesc": "门卫通行证所需的姓名和联系方式。",
+      "visitDetails": "访问详情",
+      "vehicle": "车辆",
+      "arrival": "到达",
+      "name": "全名",
+      "phone": "电话号码",
+      "purpose": "来访目的",
+      "expectedArrival": "预计到达时间",
+      "entryMode": "如何到达？",
+      "driveIn": "驾车",
+      "walkIn": "步行",
+      "overnight": "过夜住宿",
+      "overnightDesc": "可选——访客在午夜后留宿。"
+    },
+    "guard": {
+      "walkInTitle": "现场登记访客",
+      "walkInBlurb": "单次访问——在门卫处验证一次。现场登记不支持过夜；请使用预先登记。",
+      "tabUnit": "住户单元",
+      "tabOffice": "管理处",
+      "visitorName": "访客姓名",
+      "fullName": "全名",
+      "phoneOptional": "电话（可选）",
+      "unitLabel": "单元",
+      "unitSearch": "搜索楼栋、单元号或住户姓名…",
+      "purposeOptional": "目的（可选）",
+      "purposePlaceholder": "来访原因",
+      "purposeRequiredLabel": "目的（必填）",
+      "officePurposePlaceholder": "例如：取包裹、AGM 咨询",
+      "requestApproval": "请求业主批准",
+      "sending": "发送中…",
+      "logAndCheckIn": "登记并放行",
+      "logging": "登记中…",
+      "unitRequired": "请先搜索并选择单元",
+      "purposeRequired": "请填写访客来访管理处的原因",
+      "sentForApproval": "已发送待批准——业主有 15 分钟回复",
+      "officeLogged": "{name} 已在管理处登记入场"
+    },
+    "settings": {
+      "title": "访客设置",
+      "subtitle": "配置 {condo} 的过夜、现场登记和预先登记规则。",
+      "sections": {
+        "overnight": "过夜访客",
+        "overnightDesc": "午夜后留宿访客的限制与规则。",
+        "walkIn": "现场登记与预先登记",
+        "walkInDesc": "门卫处访客和预先登记通行证的超时与默认值。",
+        "holidays": "节假日与工作日",
+        "holidaysDesc": "哪些日期算作节假日，以及过夜规则如何适用。"
+      }
+    },
+    "admin": {
+      "title": "访客",
+      "subtitle": "实时访客日志与过夜滥用防范。",
+      "tabs": {
+        "live": "实时",
+        "history": "日志",
+        "overnight": "过夜政策"
+      },
+      "filters": {
+        "all": "全部",
+        "overnightPending": "过夜待批",
+        "urgentOvernight": "紧急过夜",
+        "holidayReview": "节假日审核"
+      },
+      "overnightTable": {
+        "unit": "单元",
+        "owners": "业主",
+        "thisMonth": "本月",
+        "status": "状态",
+        "actions": "操作"
+      }
+    }
   }
 }

@@ -338,9 +338,6 @@ export class ApiClient {
       `/api/visitors/${visitorId}/qr`,
     );
   }
-  regenerateVisitorCode(visitorId: string) {
-    return this.request<Visitor>('POST', `/api/visitors/${visitorId}/regenerate-code`);
-  }
   approveVisitor(visitorId: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve`);
   }

@@ -1,7 +1,17 @@
 import { VisitorPurpose } from '@prisma/client';
+import {
+  type ResolvedHoliday,
+  isHolidayDateString,
+  normalizeHolidayState,
+  resolveCondoHolidayList,
+  resolveMyHolidays,
+} from './holidays';
 import { PRE_REG_EXPIRY_BUFFER_MINS, WALK_IN_APPROVAL_MINUTES } from './visitor.constants';
 
-/** Malaysia public holidays for 2026 (hardcoded fallback; override via condo.settings.visitor). */
+/**
+ * Malaysia public holidays for 2026 (federal). Retained for tests and any legacy callers; live
+ * holiday resolution now uses the `date-holidays` package (see holidays.ts) and condo config.
+ */
 export const MY_PUBLIC_HOLIDAYS_2026 = [
   '2026-01-01',
   '2026-01-29',
@@ -24,11 +34,33 @@ export type CondoVisitorSettings = {
   preRegExpiryBufferMins: number;
   urgentOvernightMinHours: number;
   workingDays: { weekdays: number[] };
+  /** Auto-populate Malaysia public holidays from a maintained source. */
+  holidayAuto: boolean;
+  /** date-holidays state code ('' = federal/nationwide only). */
+  holidayState: string;
+  /** Manually added holiday dates (YYYY-MM-DD) on top of the auto list. */
+  customHolidays: string[];
+  /** Auto holiday dates the condo has chosen to exclude (YYYY-MM-DD). */
+  holidayExclusions: string[];
+  /** Effective resolved holiday dates used by overnight auto-approval logic. */
   publicHolidays: string[];
+  /** Effective resolved holidays with friendly names, for display only. */
+  resolvedHolidays: ResolvedHoliday[];
+  /** When true, overnight on holidays/non-working days is auto-approved if slots are available. */
+  holidayOvernightAutoApprove: boolean;
   countPendingTowardCap: boolean;
   requirePlatePhotoOvernight: boolean;
   defaultPurpose: VisitorPurpose;
 };
+
+const DEFAULT_HOLIDAY_CONFIG = {
+  holidayAuto: true,
+  holidayState: '',
+  customHolidays: [] as string[],
+  holidayExclusions: [] as string[],
+};
+
+const DEFAULT_RESOLVED_HOLIDAYS = resolveCondoHolidayList(DEFAULT_HOLIDAY_CONFIG);
 
 export const DEFAULT_CONDO_VISITOR_SETTINGS: CondoVisitorSettings = {
   maxOvernightVisitsPerUnitPerMonth: 4,
@@ -37,7 +69,13 @@ export const DEFAULT_CONDO_VISITOR_SETTINGS: CondoVisitorSettings = {
   preRegExpiryBufferMins: PRE_REG_EXPIRY_BUFFER_MINS,
   urgentOvernightMinHours: 24,
   workingDays: { weekdays: [1, 2, 3, 4, 5] },
-  publicHolidays: [...MY_PUBLIC_HOLIDAYS_2026],
+  holidayAuto: true,
+  holidayState: '',
+  customHolidays: [],
+  holidayExclusions: [],
+  publicHolidays: DEFAULT_RESOLVED_HOLIDAYS.map((h) => h.date),
+  resolvedHolidays: DEFAULT_RESOLVED_HOLIDAYS,
+  holidayOvernightAutoApprove: true,
   countPendingTowardCap: true,
   requirePlatePhotoOvernight: true,
   defaultPurpose: VisitorPurpose.VISITOR,
@@ -61,13 +99,62 @@ function parsePurpose(value: unknown, fallback: VisitorPurpose): VisitorPurpose 
   return values.includes(value) ? (value as VisitorPurpose) : fallback;
 }
 
+function defaultsWithFreshHolidays(): CondoVisitorSettings {
+  const resolved = resolveCondoHolidayList(DEFAULT_HOLIDAY_CONFIG);
+  return {
+    ...DEFAULT_CONDO_VISITOR_SETTINGS,
+    publicHolidays: resolved.map((h) => h.date),
+    resolvedHolidays: resolved,
+  };
+}
+
+type ParsedHolidayConfig = {
+  holidayAuto: boolean;
+  holidayState: string;
+  customHolidays: string[];
+  holidayExclusions: string[];
+};
+
+/**
+ * Parse the stored holiday configuration, migrating legacy records (which only stored a flat
+ * `publicHolidays` array) by preserving any non-standard dates as custom holidays.
+ */
+function parseHolidayConfig(visitor: Record<string, unknown>): ParsedHolidayConfig {
+  const holidayState = normalizeHolidayState(visitor.holidayState);
+  const holidayExclusions = Array.isArray(visitor.holidayExclusions)
+    ? visitor.holidayExclusions.filter(isHolidayDateString)
+    : [];
+
+  const isLegacy = typeof visitor.holidayAuto !== 'boolean';
+  const holidayAuto = isLegacy ? true : (visitor.holidayAuto as boolean);
+
+  let customHolidays = Array.isArray(visitor.customHolidays)
+    ? visitor.customHolidays.filter(isHolidayDateString)
+    : [];
+
+  if (isLegacy && customHolidays.length === 0 && Array.isArray(visitor.publicHolidays)) {
+    const legacy = visitor.publicHolidays.filter(isHolidayDateString);
+    if (legacy.length) {
+      const autoDates = new Set(
+        resolveMyHolidays(holidayState, [
+          new Date().getFullYear(),
+          new Date().getFullYear() + 1,
+        ]).map((h) => h.date),
+      );
+      customHolidays = legacy.filter((d) => !autoDates.has(d));
+    }
+  }
+
+  return { holidayAuto, holidayState, customHolidays, holidayExclusions };
+}
+
 export function parseCondoVisitorSettings(settings: unknown): CondoVisitorSettings {
   if (!settings || typeof settings !== 'object') {
-    return { ...DEFAULT_CONDO_VISITOR_SETTINGS, publicHolidays: [...MY_PUBLIC_HOLIDAYS_2026] };
+    return defaultsWithFreshHolidays();
   }
   const raw = (settings as Record<string, unknown>).visitor;
   if (!raw || typeof raw !== 'object') {
-    return { ...DEFAULT_CONDO_VISITOR_SETTINGS, publicHolidays: [...MY_PUBLIC_HOLIDAYS_2026] };
+    return defaultsWithFreshHolidays();
   }
   const visitor = raw as Record<string, unknown>;
 
@@ -80,9 +167,8 @@ export function parseCondoVisitorSettings(settings: unknown): CondoVisitorSettin
     }
   }
 
-  const holidays = Array.isArray(visitor.publicHolidays)
-    ? visitor.publicHolidays.filter((d): d is string => typeof d === 'string')
-    : [...MY_PUBLIC_HOLIDAYS_2026];
+  const holidayConfig = parseHolidayConfig(visitor);
+  const resolvedHolidays = resolveCondoHolidayList(holidayConfig);
 
   const monthlyCap =
     typeof visitor.maxOvernightVisitsPerUnitPerMonth === 'number' &&
@@ -112,7 +198,16 @@ export function parseCondoVisitorSettings(settings: unknown): CondoVisitorSettin
       DEFAULT_CONDO_VISITOR_SETTINGS.urgentOvernightMinHours,
     ),
     workingDays: { weekdays: weekdays.length ? weekdays : [1, 2, 3, 4, 5] },
-    publicHolidays: holidays,
+    holidayAuto: holidayConfig.holidayAuto,
+    holidayState: holidayConfig.holidayState,
+    customHolidays: holidayConfig.customHolidays,
+    holidayExclusions: holidayConfig.holidayExclusions,
+    publicHolidays: resolvedHolidays.map((h) => h.date),
+    resolvedHolidays,
+    holidayOvernightAutoApprove: parseBoolean(
+      visitor.holidayOvernightAutoApprove,
+      DEFAULT_CONDO_VISITOR_SETTINGS.holidayOvernightAutoApprove,
+    ),
     countPendingTowardCap: parseBoolean(
       visitor.countPendingTowardCap,
       DEFAULT_CONDO_VISITOR_SETTINGS.countPendingTowardCap,
@@ -137,6 +232,17 @@ export function mergeVisitorSettings(
       ? { ...(condoSettings as Record<string, unknown>) }
       : {};
   const current = parseCondoVisitorSettings(condoSettings);
+
+  const holidayConfig = {
+    holidayAuto: patch.holidayAuto ?? current.holidayAuto,
+    holidayState: normalizeHolidayState(patch.holidayState ?? current.holidayState),
+    customHolidays: (patch.customHolidays ?? current.customHolidays).filter(isHolidayDateString),
+    holidayExclusions: (patch.holidayExclusions ?? current.holidayExclusions).filter(
+      isHolidayDateString,
+    ),
+  };
+  const resolvedHolidays = resolveCondoHolidayList(holidayConfig);
+
   const visitor = {
     maxOvernightVisitsPerUnitPerMonth:
       patch.maxOvernightVisitsPerUnitPerMonth ?? current.maxOvernightVisitsPerUnitPerMonth,
@@ -145,7 +251,13 @@ export function mergeVisitorSettings(
     preRegExpiryBufferMins: patch.preRegExpiryBufferMins ?? current.preRegExpiryBufferMins,
     urgentOvernightMinHours: patch.urgentOvernightMinHours ?? current.urgentOvernightMinHours,
     workingDays: patch.workingDays ?? current.workingDays,
-    publicHolidays: patch.publicHolidays ?? current.publicHolidays,
+    holidayAuto: holidayConfig.holidayAuto,
+    holidayState: holidayConfig.holidayState,
+    customHolidays: holidayConfig.customHolidays,
+    holidayExclusions: holidayConfig.holidayExclusions,
+    publicHolidays: resolvedHolidays.map((h) => h.date),
+    holidayOvernightAutoApprove:
+      patch.holidayOvernightAutoApprove ?? current.holidayOvernightAutoApprove,
     countPendingTowardCap: patch.countPendingTowardCap ?? current.countPendingTowardCap,
     requirePlatePhotoOvernight:
       patch.requirePlatePhotoOvernight ?? current.requirePlatePhotoOvernight,

@@ -630,27 +630,6 @@ export class VisitorService {
     return updated;
   }
 
-  async regenerateAccessCode(visitorId: string, user: AuthenticatedUser) {
-    const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
-    if (!visitor) throw new NotFoundException();
-    if (visitor.visitType !== VisitorVisitType.PRE_REG) {
-      throw new BadRequestException('Only pre-registered passes have access codes');
-    }
-    if (visitor.hostUserId !== user.id && !this.userCanManageUnit(user, visitor.unitId ?? '')) {
-      throw new ForbiddenException('Only the host can regenerate this pass');
-    }
-    if (visitor.status !== VisitorStatus.APPROVED) {
-      throw new BadRequestException('Pass cannot be regenerated after use or cancellation');
-    }
-    if (visitor.expiresAt && visitor.expiresAt < new Date()) {
-      throw new BadRequestException('Pass has expired');
-    }
-
-    const accessCode = await this.uniqueAccessCode(visitor.condoId);
-    const pass = this.passFields(visitor.condoId, visitor.id, accessCode);
-    return this.prisma.visitor.update({ where: { id: visitorId }, data: pass });
-  }
-
   async getQrPng(visitorId: string) {
     const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
     if (!visitor) throw new NotFoundException();
@@ -974,8 +953,24 @@ export class VisitorService {
         weekdays: dto.workingDays.weekdays.filter((d) => d >= 1 && d <= 7),
       };
     }
-    if (dto.publicHolidays !== undefined) {
-      patch.publicHolidays = dto.publicHolidays;
+    if (dto.holidayAuto !== undefined) {
+      patch.holidayAuto = dto.holidayAuto;
+    }
+    if (dto.holidayState !== undefined) {
+      patch.holidayState = dto.holidayState;
+    }
+    if (dto.customHolidays !== undefined) {
+      patch.customHolidays = dto.customHolidays;
+    }
+    if (dto.holidayExclusions !== undefined) {
+      patch.holidayExclusions = dto.holidayExclusions;
+    }
+    // Legacy flat list: treat as manual custom additions when explicit fields are absent.
+    if (dto.publicHolidays !== undefined && dto.customHolidays === undefined) {
+      patch.customHolidays = dto.publicHolidays;
+    }
+    if (dto.holidayOvernightAutoApprove !== undefined) {
+      patch.holidayOvernightAutoApprove = dto.holidayOvernightAutoApprove;
     }
     if (dto.countPendingTowardCap !== undefined) {
       patch.countPendingTowardCap = dto.countPendingTowardCap;

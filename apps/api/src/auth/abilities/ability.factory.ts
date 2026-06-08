@@ -153,6 +153,7 @@ export class AbilityFactory {
 
       case RoleId.SECURITY_GUARD:
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
+        can('read', 'Unit', { condoId: scope.condoId ?? '' });
         can('check-in', 'Visitor', { condoId: scope.condoId ?? '' });
         can('check-out', 'Visitor', { condoId: scope.condoId ?? '' });
         can('create-walk-in', 'Visitor', { condoId: scope.condoId ?? '' });

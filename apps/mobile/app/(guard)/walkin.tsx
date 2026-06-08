@@ -2,7 +2,7 @@ import { useMyCondos } from '@smartresidence/api-client';
 import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
 import { useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
-import { UnitSearchPicker, type UnitSearchItem } from '../../src/components/unit-search-picker';
+import { type UnitSearchItem, UnitSearchPicker } from '../../src/components/unit-search-picker';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
@@ -86,7 +86,9 @@ export default function WalkInScreen() {
         }}
       >
         <Text style={{ fontSize: 22, fontWeight: '700' }}>Walk-in visitor</Text>
-        {condo ? <Text style={{ color: palette.mutedLight, fontSize: 12 }}>{condo.name}</Text> : null}
+        {condo ? (
+          <Text style={{ color: palette.mutedLight, fontSize: 12 }}>{condo.name}</Text>
+        ) : null}
         <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
           One visit — validated once at the gate. Security opens the gate; the owner meets the
           visitor. Overnight stays are not available for walk-ins — use pre-registration instead.
@@ -109,8 +111,15 @@ export default function WalkInScreen() {
 
         <Card>
           <Text style={{ fontWeight: '600', marginBottom: 6 }}>Visitor name</Text>
-          <TextInput value={name} onChangeText={setName} placeholder="Full name" style={inputStyle} />
-          <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 6 }}>Phone (optional)</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Full name"
+            style={inputStyle}
+          />
+          <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 6 }}>
+            Phone (optional)
+          </Text>
           <TextInput value={phone} onChangeText={setPhone} placeholder="+60…" style={inputStyle} />
           {tab === 'unit' ? (
             <>

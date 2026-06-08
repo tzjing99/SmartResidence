@@ -7,9 +7,7 @@ const nextConfig = {
     '@smartresidence/api-client',
     '@smartresidence/shared-types',
   ],
-  experimental: {
-    typedRoutes: true,
-  },
+  typedRoutes: true,
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },

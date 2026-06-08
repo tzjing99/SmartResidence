@@ -152,7 +152,37 @@ export class UpdateVisitorSettingsDto {
   @Type(() => WorkingDaysDto)
   workingDays?: WorkingDaysDto;
 
-  @ApiPropertyOptional({ type: [String] })
+  @ApiPropertyOptional({
+    description: 'Auto-populate Malaysia public holidays from a maintained source',
+  })
+  @IsOptional()
+  @IsBoolean()
+  holidayAuto?: boolean;
+
+  @ApiPropertyOptional({ description: "date-holidays state code ('' = federal/nationwide only)" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  holidayState?: string;
+
+  @ApiPropertyOptional({ type: [String], description: 'Manually added holiday dates (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString({ each: true })
+  customHolidays?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Auto holiday dates to exclude (YYYY-MM-DD)',
+  })
+  @IsOptional()
+  @IsString({ each: true })
+  holidayExclusions?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    deprecated: true,
+    description: 'Legacy flat holiday list — superseded by customHolidays/holidayExclusions',
+  })
   @IsOptional()
   @IsString({ each: true })
   publicHolidays?: string[];

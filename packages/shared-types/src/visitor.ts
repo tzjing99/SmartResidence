@@ -56,6 +56,33 @@ export function toDatetimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** Malaysian states/territories for state-specific public holiday resolution (date-holidays codes). */
+export const MY_STATE_OPTIONS = [
+  { value: '', label: 'Federal only (nationwide)' },
+  { value: '01', label: 'Johor' },
+  { value: '02', label: 'Kedah' },
+  { value: '03', label: 'Kelantan' },
+  { value: '04', label: 'Malacca (Melaka)' },
+  { value: '05', label: 'Negeri Sembilan' },
+  { value: '06', label: 'Pahang' },
+  { value: '07', label: 'Penang (Pulau Pinang)' },
+  { value: '08', label: 'Perak' },
+  { value: '09', label: 'Perlis' },
+  { value: '10', label: 'Selangor' },
+  { value: '11', label: 'Terengganu' },
+  { value: '12', label: 'Sabah' },
+  { value: '13', label: 'Sarawak' },
+  { value: '14', label: 'Kuala Lumpur' },
+  { value: '15', label: 'Labuan' },
+  { value: '16', label: 'Putrajaya' },
+] as const;
+
+export const ResolvedHolidaySchema = z.object({
+  date: z.string(),
+  name: z.string(),
+});
+export type ResolvedHoliday = z.infer<typeof ResolvedHolidaySchema>;
+
 export const CondoVisitorSettingsSchema = z.object({
   maxOvernightVisitsPerUnitPerMonth: z.number().int().min(1).default(4),
   overnightSlotsPerNight: z.number().int().min(1).default(10),
@@ -63,7 +90,12 @@ export const CondoVisitorSettingsSchema = z.object({
   preRegExpiryBufferMins: z.number().int().min(0).default(120),
   urgentOvernightMinHours: z.number().int().min(1).default(24),
   workingDays: z.object({ weekdays: z.array(z.number().int().min(1).max(7)) }),
+  holidayAuto: z.boolean().default(true),
+  holidayState: z.string().default(''),
+  customHolidays: z.array(z.string()).default([]),
+  holidayExclusions: z.array(z.string()).default([]),
   publicHolidays: z.array(z.string()),
+  resolvedHolidays: z.array(ResolvedHolidaySchema).default([]),
   countPendingTowardCap: z.boolean().default(true),
   requirePlatePhotoOvernight: z.boolean().default(true),
   defaultPurpose: VisitorPurpose.default('VISITOR'),

@@ -953,8 +953,21 @@ export class VisitorService {
         weekdays: dto.workingDays.weekdays.filter((d) => d >= 1 && d <= 7),
       };
     }
-    if (dto.publicHolidays !== undefined) {
-      patch.publicHolidays = dto.publicHolidays;
+    if (dto.holidayAuto !== undefined) {
+      patch.holidayAuto = dto.holidayAuto;
+    }
+    if (dto.holidayState !== undefined) {
+      patch.holidayState = dto.holidayState;
+    }
+    if (dto.customHolidays !== undefined) {
+      patch.customHolidays = dto.customHolidays;
+    }
+    if (dto.holidayExclusions !== undefined) {
+      patch.holidayExclusions = dto.holidayExclusions;
+    }
+    // Legacy flat list: treat as manual custom additions when explicit fields are absent.
+    if (dto.publicHolidays !== undefined && dto.customHolidays === undefined) {
+      patch.customHolidays = dto.publicHolidays;
     }
     if (dto.countPendingTowardCap !== undefined) {
       patch.countPendingTowardCap = dto.countPendingTowardCap;

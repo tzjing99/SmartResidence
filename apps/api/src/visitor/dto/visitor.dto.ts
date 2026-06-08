@@ -187,6 +187,14 @@ export class UpdateVisitorSettingsDto {
   @IsString({ each: true })
   publicHolidays?: string[];
 
+  @ApiPropertyOptional({
+    description:
+      'When true, overnight on holidays/non-working days is auto-approved if slots are available',
+  })
+  @IsOptional()
+  @IsBoolean()
+  holidayOvernightAutoApprove?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

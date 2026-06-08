@@ -117,7 +117,7 @@ export function resolveOvernightOutcome(
   const duration = overnightDurationMins(expectedAt);
   const maxSlots = settings.overnightSlotsPerNight;
 
-  if (nonWorkingNight) {
+  if (nonWorkingNight && settings.holidayOvernightAutoApprove) {
     if (occupiedSlots >= maxSlots) {
       throw new Error('OVERNIGHT_SLOTS_FULL');
     }
@@ -152,7 +152,7 @@ export function buildOvernightHelperMessage(
   const settings = parseCondoVisitorSettings(condoSettings);
   const arrivalDay = startOfLocalDay(expectedAt);
   const isWorkingDayArrival = isWorkingDay(arrivalDay, settings);
-  const isHolidayAuto = !isWorkingDayArrival;
+  const isHolidayAuto = !isWorkingDayArrival && settings.holidayOvernightAutoApprove;
   const hoursAhead = hoursUntilArrival(now, expectedAt);
   const isUrgent = isUrgentArrival(now, expectedAt, settings);
   const maxSlots = settings.overnightSlotsPerNight;

@@ -96,6 +96,7 @@ export const CondoVisitorSettingsSchema = z.object({
   holidayExclusions: z.array(z.string()).default([]),
   publicHolidays: z.array(z.string()),
   resolvedHolidays: z.array(ResolvedHolidaySchema).default([]),
+  holidayOvernightAutoApprove: z.boolean().default(true),
   countPendingTowardCap: z.boolean().default(true),
   requirePlatePhotoOvernight: z.boolean().default(true),
   defaultPurpose: VisitorPurpose.default('VISITOR'),

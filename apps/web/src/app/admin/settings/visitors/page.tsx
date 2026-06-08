@@ -59,6 +59,7 @@ type EditableSettings = Pick<
   | 'holidayState'
   | 'customHolidays'
   | 'holidayExclusions'
+  | 'holidayOvernightAutoApprove'
   | 'countPendingTowardCap'
   | 'requirePlatePhotoOvernight'
   | 'defaultPurpose'
@@ -76,6 +77,7 @@ function toEditable(s: CondoVisitorSettings): EditableSettings {
     holidayState: s.holidayState,
     customHolidays: [...s.customHolidays],
     holidayExclusions: [...s.holidayExclusions],
+    holidayOvernightAutoApprove: s.holidayOvernightAutoApprove,
     countPendingTowardCap: s.countPendingTowardCap,
     requirePlatePhotoOvernight: s.requirePlatePhotoOvernight,
     defaultPurpose: s.defaultPurpose,
@@ -506,6 +508,18 @@ export default function VisitorSettingsPage() {
             })}
           </div>
         </div>
+
+        <Row
+          label="Auto-approve overnight on holidays"
+          helper="When on, overnight visitors on public holidays are auto-approved if slots are available. When off, management must approve every overnight stay."
+          control={
+            <Toggle
+              label="Auto-approve overnight on holidays"
+              checked={form.holidayOvernightAutoApprove}
+              onChange={(v) => patch('holidayOvernightAutoApprove', v)}
+            />
+          }
+        />
 
         <Row
           label="Use Malaysian public holidays (auto)"

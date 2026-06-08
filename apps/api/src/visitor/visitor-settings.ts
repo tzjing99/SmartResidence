@@ -46,6 +46,8 @@ export type CondoVisitorSettings = {
   publicHolidays: string[];
   /** Effective resolved holidays with friendly names, for display only. */
   resolvedHolidays: ResolvedHoliday[];
+  /** When true, overnight on holidays/non-working days is auto-approved if slots are available. */
+  holidayOvernightAutoApprove: boolean;
   countPendingTowardCap: boolean;
   requirePlatePhotoOvernight: boolean;
   defaultPurpose: VisitorPurpose;
@@ -73,6 +75,7 @@ export const DEFAULT_CONDO_VISITOR_SETTINGS: CondoVisitorSettings = {
   holidayExclusions: [],
   publicHolidays: DEFAULT_RESOLVED_HOLIDAYS.map((h) => h.date),
   resolvedHolidays: DEFAULT_RESOLVED_HOLIDAYS,
+  holidayOvernightAutoApprove: true,
   countPendingTowardCap: true,
   requirePlatePhotoOvernight: true,
   defaultPurpose: VisitorPurpose.VISITOR,
@@ -201,6 +204,10 @@ export function parseCondoVisitorSettings(settings: unknown): CondoVisitorSettin
     holidayExclusions: holidayConfig.holidayExclusions,
     publicHolidays: resolvedHolidays.map((h) => h.date),
     resolvedHolidays,
+    holidayOvernightAutoApprove: parseBoolean(
+      visitor.holidayOvernightAutoApprove,
+      DEFAULT_CONDO_VISITOR_SETTINGS.holidayOvernightAutoApprove,
+    ),
     countPendingTowardCap: parseBoolean(
       visitor.countPendingTowardCap,
       DEFAULT_CONDO_VISITOR_SETTINGS.countPendingTowardCap,
@@ -249,6 +256,8 @@ export function mergeVisitorSettings(
     customHolidays: holidayConfig.customHolidays,
     holidayExclusions: holidayConfig.holidayExclusions,
     publicHolidays: resolvedHolidays.map((h) => h.date),
+    holidayOvernightAutoApprove:
+      patch.holidayOvernightAutoApprove ?? current.holidayOvernightAutoApprove,
     countPendingTowardCap: patch.countPendingTowardCap ?? current.countPendingTowardCap,
     requirePlatePhotoOvernight:
       patch.requirePlatePhotoOvernight ?? current.requirePlatePhotoOvernight,

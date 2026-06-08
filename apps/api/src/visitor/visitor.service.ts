@@ -969,6 +969,9 @@ export class VisitorService {
     if (dto.publicHolidays !== undefined && dto.customHolidays === undefined) {
       patch.customHolidays = dto.publicHolidays;
     }
+    if (dto.holidayOvernightAutoApprove !== undefined) {
+      patch.holidayOvernightAutoApprove = dto.holidayOvernightAutoApprove;
+    }
     if (dto.countPendingTowardCap !== undefined) {
       patch.countPendingTowardCap = dto.countPendingTowardCap;
     }

@@ -48,6 +48,21 @@ describe('overnight-rules', () => {
     expect(outcome.isHolidayAuto).toBe(true);
   });
 
+  it('requires management approval on holiday when auto-approve is off', () => {
+    const settingsWithAutoOff = {
+      visitor: {
+        ...condoSettings.visitor,
+        holidayOvernightAutoApprove: false,
+      },
+    };
+    const now = new Date('2026-06-05T10:00:00');
+    const expectedAt = new Date('2026-06-06T20:00:00');
+    const outcome = resolveOvernightOutcome(now, expectedAt, settingsWithAutoOff, 0);
+    expect(outcome.status).toBe('PENDING_MANAGEMENT_APPROVAL');
+    expect(outcome.isHolidayAuto).toBe(false);
+    expect(outcome.pendingManagementReview).toBe(false);
+  });
+
   it('throws when holiday overnight slots are full', () => {
     const now = new Date('2026-06-05T10:00:00');
     const expectedAt = new Date('2026-06-06T20:00:00');
@@ -84,6 +99,21 @@ describe('overnight-rules', () => {
     expect(previewHoliday.isHolidayAuto).toBe(true);
     expect(previewHoliday.remainingSlots).toBe(8);
     expect(previewHoliday.helperMessage).toContain('Auto-approved');
+
+    const settingsWithAutoOff = {
+      visitor: {
+        ...condoSettings.visitor,
+        holidayOvernightAutoApprove: false,
+      },
+    };
+    const previewHolidayManual = buildOvernightHelperMessage(
+      new Date('2026-06-05T10:00:00'),
+      new Date('2026-06-06T20:00:00'),
+      settingsWithAutoOff,
+      2,
+    );
+    expect(previewHolidayManual.isHolidayAuto).toBe(false);
+    expect(previewHolidayManual.helperMessage).toContain('Management will approve');
   });
 
   it('computes hours until arrival', () => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { PillTabs } from '@/components/pill-tabs';
-import { UnitSearchPicker, type UnitSearchItem } from '@/components/unit-search-picker';
+import { type UnitSearchItem, UnitSearchPicker } from '@/components/unit-search-picker';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { useMyCondos } from '@smartresidence/api-client';

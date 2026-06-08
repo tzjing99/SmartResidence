@@ -162,7 +162,9 @@ export default function AdminVisitorsPage() {
                   <th className="px-3 py-3">{t('visitors.admin.overnightTable.owners')}</th>
                   <th className="px-3 py-3">{t('visitors.admin.overnightTable.thisMonth')}</th>
                   <th className="px-3 py-3">{t('visitors.admin.overnightTable.status')}</th>
-                  <th className="px-3 py-3 text-right">{t('visitors.admin.overnightTable.actions')}</th>
+                  <th className="px-3 py-3 text-right">
+                    {t('visitors.admin.overnightTable.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[rgb(var(--sr-border))]">
@@ -171,7 +173,9 @@ export default function AdminVisitorsPage() {
                     key={row.unitId}
                     className={idx % 2 === 1 ? 'bg-[rgb(var(--sr-bg))]/40' : undefined}
                   >
-                    <td className="py-3 px-3 font-medium whitespace-nowrap">{row.unitIdentifier}</td>
+                    <td className="py-3 px-3 font-medium whitespace-nowrap">
+                      {row.unitIdentifier}
+                    </td>
                     <td className="px-3 sr-muted text-sm leading-relaxed min-w-[10rem]">
                       {row.owners.map((o) => (
                         <span key={o.id} className="block">

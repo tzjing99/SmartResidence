@@ -305,7 +305,10 @@ export default function NewVisitorPage() {
           </div>
         </FormSection>
 
-        <FormSection title={t('visitors.new.overnight')} description={t('visitors.new.overnightDesc')}>
+        <FormSection
+          title={t('visitors.new.overnight')}
+          description={t('visitors.new.overnightDesc')}
+        >
           <label
             className={cn(
               'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors',

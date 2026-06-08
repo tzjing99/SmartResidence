@@ -15,14 +15,32 @@ import type {
 } from '../client';
 import { patchThreadInListCaches } from '../realtime/thread-cache';
 
+/** Identity / tenancy — stable for the logged-in session. */
+const STABLE_SESSION_MS = 5 * 60_000;
+/** List views kept fresh via realtime or explicit mutations. */
+const LIST_VIEW_MS = 30_000;
+
 export const queryKeys = {
   me: ['me'] as const,
   myCondos: ['condos', 'mine'] as const,
   myUnits: ['units', 'mine'] as const,
   unitVisitors: (unitId: string, view?: string) =>
     ['visitors', 'unit', unitId, view ?? 'all'] as const,
-  condoVisitors: (condoId: string, view?: string, filter?: string) =>
-    ['visitors', 'condo', condoId, view ?? 'all', filter ?? 'all'] as const,
+  condoVisitors: (
+    condoId: string,
+    params?: {
+      view?: string;
+      filter?: string;
+      search?: string;
+      status?: string;
+      unitId?: string;
+      from?: string;
+      to?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ) => ['visitors', 'condo', condoId, params ?? {}] as const,
+  visitorAdminStats: (condoId: string) => ['visitors', 'admin', 'stats', condoId] as const,
   guardLiveVisitors: (condoId: string) => ['visitors', 'guard', 'live', condoId] as const,
   unitFavouriteVisitors: (unitId: string) => ['visitors', 'favourites', unitId] as const,
   unitInvoices: (unitId: string) => ['invoices', 'unit', unitId] as const,
@@ -72,6 +90,7 @@ export function useMe(api: ApiClient, options?: { enabled?: boolean }) {
     queryKey: queryKeys.me,
     queryFn: () => api.me(),
     enabled: options?.enabled ?? true,
+    staleTime: STABLE_SESSION_MS,
     // Auth failures should redirect immediately — don't spin retrying 401/500.
     retry: false,
   });
@@ -82,11 +101,26 @@ export function useMyCondos(api: ApiClient, options?: { enabled?: boolean }) {
     queryKey: queryKeys.myCondos,
     queryFn: () => api.myCondos(),
     enabled: options?.enabled ?? true,
+    staleTime: STABLE_SESSION_MS,
   });
 }
 
 export function useMyUnits(api: ApiClient) {
-  return useQuery({ queryKey: queryKeys.myUnits, queryFn: () => api.myUnits() });
+  return useQuery({
+    queryKey: queryKeys.myUnits,
+    queryFn: () => api.myUnits(),
+    staleTime: STABLE_SESSION_MS,
+  });
+}
+
+export function useVisitorAdminStats(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.visitorAdminStats(condoId) : ['visitors', 'admin', 'stats', null],
+    queryFn: () =>
+      condoId ? api.visitorAdminStats(condoId) : Promise.reject(new Error('no condo')),
+    enabled: Boolean(condoId),
+    staleTime: 60_000,
+  });
 }
 
 export function useUnitVisitors(
@@ -101,6 +135,8 @@ export function useUnitVisitors(
         ? api.visitorsForUnit(unitId, view ? { view } : {})
         : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
+    staleTime: LIST_VIEW_MS,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -109,7 +145,8 @@ export function useCreateVisitor(api: ApiClient) {
   return useMutation({
     mutationFn: (input: CreateVisitorInput) => api.createVisitor(input),
     onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.unitVisitors(vars.unitId) });
+      // Prefix only — unitVisitors(unitId) defaults view to 'all' and misses upcoming/live/history keys.
+      qc.invalidateQueries({ queryKey: ['visitors', 'unit', vars.unitId] });
     },
   });
 }
@@ -160,6 +197,17 @@ export function useApproveVisitor(api: ApiClient) {
   });
 }
 
+export function useGuardApproveWalkIn(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      visitorId: string;
+      method: import('@smartresidence/shared-types').GuardApprovalMethod;
+    }) => api.guardApproveWalkIn(vars.visitorId, vars.method),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
+  });
+}
+
 export function useRejectVisitor(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
@@ -169,12 +217,24 @@ export function useRejectVisitor(api: ApiClient) {
   });
 }
 
+export function useCancelVisitor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { visitorId: string; unitId: string }) => api.cancelVisitor(vars.visitorId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['visitors', 'unit', vars.unitId] });
+      qc.invalidateQueries({ queryKey: ['visitors', vars.visitorId] });
+    },
+  });
+}
+
 export function useFavouriteVisitors(api: ApiClient, unitId: string | null) {
   return useQuery({
     queryKey: unitId ? queryKeys.unitFavouriteVisitors(unitId) : ['visitors', 'favourites', null],
     queryFn: () =>
       unitId ? api.favouriteVisitorsForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
+    staleTime: STABLE_SESSION_MS,
   });
 }
 
@@ -299,6 +359,7 @@ export function useThreads(api: ApiClient, params: ListThreadsParams = {}) {
   return useQuery({
     queryKey: queryKeys.threads(params),
     queryFn: () => api.listThreads(params),
+    staleTime: LIST_VIEW_MS,
     placeholderData: keepPreviousData,
   });
 }
@@ -378,7 +439,8 @@ export function usePostThreadMessage(api: ApiClient) {
       qc.setQueriesData<{ items: import('../client').ThreadSummary[]; total: number }>(
         { queryKey: ['threads'] },
         (old) => {
-          if (!old) return old;
+          // ['threads'] also matches the detail cache (no `items`); skip non-list caches.
+          if (!old || !Array.isArray(old.items)) return old;
           return {
             ...old,
             items: old.items.map((t) =>
@@ -432,7 +494,12 @@ export function useConfirmThreadResolution(api: ApiClient) {
       confirmed: boolean;
       rejectReason?: string;
       rejectExpectation?: string;
-    }) => api.confirmThreadResolution(vars.id, vars),
+    }) =>
+      api.confirmThreadResolution(vars.id, {
+        confirmed: vars.confirmed,
+        rejectReason: vars.rejectReason,
+        rejectExpectation: vars.rejectExpectation,
+      }),
     onSuccess: (data, vars) => {
       syncThreadAfterMutation(qc, api, vars.id, data);
     },
@@ -442,7 +509,8 @@ export function useConfirmThreadResolution(api: ApiClient) {
 export function useAppealThread(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: string; reason: string }) => api.appealThread(vars.id, vars),
+    mutationFn: (vars: { id: string; reason: string }) =>
+      api.appealThread(vars.id, { reason: vars.reason }),
     onSuccess: (data, vars) => {
       syncThreadAfterMutation(qc, api, vars.id, data);
     },
@@ -454,6 +522,7 @@ export function useSlaSettings(api: ApiClient, condoId: string | null) {
     queryKey: condoId ? queryKeys.slaSettings(condoId) : ['sla', 'settings', null],
     queryFn: () => (condoId ? api.slaSettings(condoId) : Promise.reject(new Error('no condo'))),
     enabled: Boolean(condoId),
+    staleTime: STABLE_SESSION_MS,
   });
 }
 
@@ -490,6 +559,7 @@ export function useCondoVisitorSettings(api: ApiClient, condoId: string | null) 
     queryFn: () =>
       condoId ? api.condoVisitorSettings(condoId) : Promise.reject(new Error('no condo')),
     enabled: Boolean(condoId),
+    staleTime: STABLE_SESSION_MS,
   });
 }
 
@@ -687,7 +757,9 @@ export function useGuardLiveVisitors(api: ApiClient, condoId: string | undefined
     queryKey: condoId ? queryKeys.guardLiveVisitors(condoId) : ['visitors', 'guard', 'live', null],
     queryFn: () => api.guardLiveVisitors(),
     enabled: Boolean(condoId),
-    refetchInterval: 15_000,
+    staleTime: LIST_VIEW_MS,
+    // Socket `visitor:update` invalidates between polls; 15s was redundant with board timer.
+    refetchInterval: 60_000,
   });
 }
 
@@ -705,6 +777,7 @@ export function usePreferences(api: ApiClient) {
   return useQuery({
     queryKey: queryKeys.preferences,
     queryFn: () => api.preferences(),
+    staleTime: STABLE_SESSION_MS,
   });
 }
 
@@ -720,7 +793,8 @@ export function useUpdatePreferences(api: ApiClient) {
 export function useCloseAbusiveThread(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: string; reason: string }) => api.closeAbusiveThread(vars.id, vars),
+    mutationFn: (vars: { id: string; reason: string }) =>
+      api.closeAbusiveThread(vars.id, { reason: vars.reason }),
     onSuccess: (data, vars) => {
       syncThreadAfterMutation(qc, api, vars.id, data);
     },

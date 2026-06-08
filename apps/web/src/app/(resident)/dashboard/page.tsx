@@ -1,7 +1,9 @@
 'use client';
 
 import { DashboardSkeleton } from '@/components/route-skeletons';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
+import { visitorStatusLabelKey, visitorStatusTone } from '@/lib/visitor-status';
 import {
   useCondoAnnouncements,
   useMyCondos,
@@ -16,6 +18,7 @@ import { CalendarClock, CreditCard, Megaphone, Wrench } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; identifier: string; condoId: string } | undefined;
@@ -168,7 +171,9 @@ export default function DashboardPage() {
                       {v.vehiclePlate ? ` · ${v.vehiclePlate}` : ''}
                     </div>
                   </div>
-                  <Badge tone="primary">{v.status.toLowerCase().replace('_', ' ')}</Badge>
+                  <Badge tone={visitorStatusTone(v.status)}>
+                    {t(visitorStatusLabelKey(v.status))}
+                  </Badge>
                 </li>
               ))}
             </ul>

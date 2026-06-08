@@ -32,6 +32,22 @@ function attachThreadListeners(
   api: ApiClient,
   socket: ReturnType<typeof connectRealtime>,
 ) {
+  const pendingInvalidations = new Map<string, ReturnType<typeof setTimeout>>();
+
+  const scheduleVisitorInvalidation = (condoId: string) => {
+    const existing = pendingInvalidations.get(condoId);
+    if (existing) clearTimeout(existing);
+    pendingInvalidations.set(
+      condoId,
+      setTimeout(() => {
+        pendingInvalidations.delete(condoId);
+        qc.invalidateQueries({ queryKey: queryKeys.guardLiveVisitors(condoId) });
+        qc.invalidateQueries({ queryKey: ['visitors', 'condo', condoId] });
+        qc.invalidateQueries({ queryKey: ['visitors', 'unit'] });
+      }, 400),
+    );
+  };
+
   const onMessage = (payload: ThreadSocketPayload) => {
     void syncThreadFromSocket(qc, api, payload);
   };
@@ -43,9 +59,7 @@ function attachThreadListeners(
   };
   const onVisitorUpdate = (payload: { condoId?: string }) => {
     if (payload.condoId) {
-      qc.invalidateQueries({ queryKey: queryKeys.guardLiveVisitors(payload.condoId) });
-      qc.invalidateQueries({ queryKey: ['visitors', 'condo', payload.condoId] });
-      qc.invalidateQueries({ queryKey: ['visitors', 'unit'] });
+      scheduleVisitorInvalidation(payload.condoId);
     }
   };
 
@@ -55,6 +69,10 @@ function attachThreadListeners(
   socket.on('visitor:update', onVisitorUpdate);
 
   return () => {
+    for (const timer of pendingInvalidations.values()) {
+      clearTimeout(timer);
+    }
+    pendingInvalidations.clear();
     socket.off('thread:message', onMessage);
     socket.off('thread:update', onUpdate);
     socket.off('thread:sla', onSla);

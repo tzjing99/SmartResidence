@@ -119,6 +119,25 @@ export function GenericPageSkeleton({ rows = 4 }: { rows?: number }) {
   );
 }
 
+/** Visitor list with pill tabs (resident / guard expected). */
+export function VisitorListSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeaderSkeleton action />
+      <div className="flex gap-2 overflow-hidden">
+        {['t1', 't2', 't3', 't4'].map((key) => (
+          <Skeleton key={key} className="h-9 w-24 shrink-0 rounded-full" />
+        ))}
+      </div>
+      <div className="flex flex-col gap-3">
+        {['v1', 'v2', 'v3'].map((key) => (
+          <Skeleton key={key} className="h-24 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Sidebar nav placeholders while auth resolves. */
 export function ShellNavSkeleton({ count = 6 }: { count?: number }) {
   const keys = ['n-a', 'n-b', 'n-c', 'n-d', 'n-e', 'n-f', 'n-g', 'n-h'].slice(0, count);

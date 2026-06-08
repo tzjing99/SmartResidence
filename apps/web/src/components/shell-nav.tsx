@@ -21,6 +21,8 @@ function prefetchRoute(router: ReturnType<typeof useRouter>, href: string) {
   }
 }
 
+export { prefetchRoute };
+
 /**
  * Shared sidebar navigation used by the resident and management shells.
  *

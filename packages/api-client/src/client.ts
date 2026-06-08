@@ -17,6 +17,8 @@ import type {
   FavouriteVisitor,
   Invoice,
   UpdateFavouriteVisitorInput,
+  UploadResponse,
+  UploadedAttachment,
   Visitor,
   VisitorListView,
 } from '@smartresidence/shared-types';
@@ -118,7 +120,15 @@ export interface ThreadMessageItem {
   body: string;
   createdAt: string;
   author?: { id: string; name: string };
-  attachments?: Array<{ id: string; key: string; mimeType: string }>;
+  attachments?: Array<{
+    id: string;
+    key: string;
+    thumbnailKey?: string | null;
+    mimeType: string;
+    width?: number | null;
+    height?: number | null;
+    size?: number;
+  }>;
 }
 
 export interface ThreadDetail extends ThreadSummary {
@@ -327,6 +337,10 @@ export class ApiClient {
       status?: string;
       view?: VisitorListView;
       filter?: import('@smartresidence/shared-types').VisitorAdminFilter;
+      search?: string;
+      unitId?: string;
+      from?: string;
+      to?: string;
       limit?: number;
       offset?: number;
     } = {},
@@ -335,9 +349,15 @@ export class ApiClient {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null) qs.set(k, String(v));
     }
-    return this.request<{ items: Visitor[]; total: number }>(
+    return this.request<{ items: Visitor[]; total: number; limit?: number; offset?: number }>(
       'GET',
       `/api/visitors/condo/${condoId}?${qs.toString()}`,
+    );
+  }
+  visitorAdminStats(condoId: string) {
+    return this.request<import('@smartresidence/shared-types').VisitorAdminStats>(
+      'GET',
+      `/api/visitors/admin/stats/${condoId}`,
     );
   }
   favouriteVisitorsForUnit(unitId: string) {
@@ -363,6 +383,12 @@ export class ApiClient {
   }
   approveVisitor(visitorId: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve`);
+  }
+  guardApproveWalkIn(
+    visitorId: string,
+    method: import('@smartresidence/shared-types').GuardApprovalMethod,
+  ) {
+    return this.request<Visitor>('POST', `/api/visitors/${visitorId}/guard-approve`, { method });
   }
   approveOvernightVisitor(visitorId: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve-overnight`);
@@ -755,15 +781,181 @@ export class ApiClient {
   }
 
   // Storage ----------------------------------------------------------
-  presignAttachment(body: { contentType: string; fileName: string }) {
-    return this.request<{ url: string; key: string; bucket: string; attachmentId: string }>(
-      'POST',
-      '/api/attachments/presign',
-      body,
-    );
+  /**
+   * Legacy presigned PUT flow — still used by the visitor plate-photo capture.
+   * Prefer `uploadAttachment` (multipart, server-optimized) for new features.
+   */
+  presignAttachment(body: { contentType: string; fileName: string; size?: number }) {
+    return this.request<{
+      url: string;
+      key: string;
+      bucket: string;
+      attachmentId: string;
+      expiresIn: number;
+    }>('POST', '/api/attachments/presign', body);
+  }
+
+  /**
+   * Multipart upload (server downscales/optimizes + generates a thumbnail).
+   * Uses XHR so callers get upload progress and can abort in-flight requests.
+   */
+  uploadFile(
+    form: FormData,
+    opts: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {},
+  ): Promise<UploadResponse> {
+    return new Promise<UploadResponse>((resolve, reject) => {
+      void (async () => {
+        const token = await this.cfg.getAccessToken?.();
+        const sessionId = await this.cfg.getSessionId?.();
+        const condoId = await this.cfg.getActiveCondoId?.();
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${this.cfg.baseUrl}/api/uploads`);
+        xhr.withCredentials = true;
+        xhr.responseType = 'text';
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        if (sessionId) xhr.setRequestHeader('x-session-id', sessionId);
+        if (condoId) xhr.setRequestHeader('x-condo-id', condoId);
+
+        if (opts.onProgress && xhr.upload) {
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) opts.onProgress?.(e.loaded / e.total);
+          };
+        }
+        xhr.onload = () => {
+          if (xhr.status === 401) void this.cfg.onUnauthorized?.();
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const parsed = JSON.parse(xhr.responseText) as
+                | ApiResponse<UploadResponse>
+                | UploadResponse;
+              resolve(((parsed as ApiResponse<UploadResponse>).data ?? parsed) as UploadResponse);
+            } catch {
+              reject(new ApiError(xhr.status, null, 'Invalid upload response'));
+            }
+          } else {
+            let parsed: unknown = null;
+            try {
+              parsed = JSON.parse(xhr.responseText);
+            } catch {
+              /* ignore */
+            }
+            const message =
+              (parsed as { message?: string } | null)?.message ?? `Upload failed (${xhr.status})`;
+            reject(new ApiError(xhr.status, parsed, message));
+          }
+        };
+        xhr.onerror = () => reject(new ApiError(0, null, 'Network error during upload'));
+        if (opts.signal) {
+          if (opts.signal.aborted) {
+            xhr.abort();
+            reject(new DOMException('Upload aborted', 'AbortError'));
+            return;
+          }
+          opts.signal.addEventListener('abort', () => xhr.abort(), { once: true });
+          xhr.onabort = () => reject(new DOMException('Upload aborted', 'AbortError'));
+        }
+        xhr.send(form);
+      })();
+    });
+  }
+
+  /** Absolute URL for the full optimized image (auth header required). */
+  attachmentRawUrl(id: string): string {
+    return `${this.cfg.baseUrl}/api/attachments/${id}/raw`;
+  }
+  /** Absolute URL for the thumbnail derivative (auth header required). */
+  attachmentThumbUrl(id: string): string {
+    return `${this.cfg.baseUrl}/api/attachments/${id}/thumb`;
+  }
+  /**
+   * Image source descriptor for native image components (expo-image), with the
+   * auth header pre-resolved so the component can stream + cache it lazily.
+   */
+  async attachmentImageSource(
+    id: string,
+    variant: 'raw' | 'thumb' = 'thumb',
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    const token = await this.cfg.getAccessToken?.();
+    const condoId = await this.cfg.getActiveCondoId?.();
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (condoId) headers['x-condo-id'] = condoId;
+    const uri = variant === 'raw' ? this.attachmentRawUrl(id) : this.attachmentThumbUrl(id);
+    return { uri, headers };
+  }
+  /** Fetch attachment bytes as a Blob (web: wrap in an object URL for <img>). */
+  async fetchAttachmentBlob(id: string, variant: 'raw' | 'thumb' = 'thumb'): Promise<Blob> {
+    const token = await this.cfg.getAccessToken?.();
+    const condoId = await this.cfg.getActiveCondoId?.();
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (condoId) headers['x-condo-id'] = condoId;
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const url = variant === 'raw' ? this.attachmentRawUrl(id) : this.attachmentThumbUrl(id);
+    const res = await fetchImpl(url, { headers, credentials: 'include' });
+    if (!res.ok) throw new ApiError(res.status, null, `Failed to load attachment (${res.status})`);
+    return res.blob();
   }
 }
 
 export function createApiClient(cfg: ApiClientConfig): ApiClient {
   return new ApiClient(cfg);
+}
+
+/**
+ * Source for an upload. Provide either a web `file` (`File`/`Blob`) or a React
+ * Native `{ uri, name, type }` descriptor. The bytes are streamed to the API
+ * (`POST /api/uploads`), which optimizes the image + generates a thumbnail.
+ */
+export interface UploadSource {
+  fileName: string;
+  contentType: string;
+  /** Web: the File/Blob to upload. */
+  file?: Blob;
+  /** React Native: local asset/file uri. */
+  uri?: string;
+  /** Local preview to carry through to the UI (object url / asset uri). */
+  previewUrl?: string;
+}
+
+/**
+ * Centralized cross-platform upload: builds the right FormData for web vs.
+ * native and posts it via {@link ApiClient.uploadFile} (progress + abort).
+ * Returns the attachment metadata to attach to a thread message, defect, etc.
+ */
+export async function uploadAttachment(
+  api: ApiClient,
+  source: UploadSource,
+  options: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {},
+): Promise<UploadedAttachment> {
+  const form = new FormData();
+  // The 3-arg `append` overload exists in the DOM lib but not in the React
+  // Native typings, so cast to a loose signature that works on both platforms.
+  const append = form.append.bind(form) as (
+    name: string,
+    value: unknown,
+    fileName?: string,
+  ) => void;
+  if (source.file) {
+    append('file', source.file, source.fileName);
+  } else if (source.uri) {
+    // React Native FormData accepts this {uri,name,type} shape.
+    append('file', { uri: source.uri, name: source.fileName, type: source.contentType });
+  } else {
+    throw new Error('uploadAttachment requires a file or uri');
+  }
+
+  const res: UploadResponse = await api.uploadFile(form, options);
+  return {
+    attachmentId: res.attachmentId,
+    key: res.key,
+    thumbnailKey: res.thumbnailKey,
+    mimeType: res.mimeType,
+    size: res.size,
+    width: res.width,
+    height: res.height,
+    previewUrl: source.previewUrl ?? source.uri,
+    fileName: source.fileName,
+  };
 }

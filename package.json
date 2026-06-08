@@ -49,8 +49,6 @@
     "typescript": "^5.6.3"
   },
   "pnpm": {
-    "neverBuiltDependencies": [
-      "postman-code-generators"
-    ]
+    "neverBuiltDependencies": ["postman-code-generators"]
   }
 }

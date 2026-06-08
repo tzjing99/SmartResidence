@@ -11,9 +11,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, RoleId, UserStatus, VerificationPurpose } from '@prisma/client';
-import * as argon2 from 'argon2';
 import { isValidMalaysiaPhone, normalizeMalaysiaPhone } from '@smartresidence/shared-types';
-import type { RequestOtpDto, SignInDto, SignUpDto, UpdateProfileDto, VerifyOtpDto } from './dto/auth.dto';
+import * as argon2 from 'argon2';
+import type {
+  RequestOtpDto,
+  SignInDto,
+  SignUpDto,
+  UpdateProfileDto,
+  VerifyOtpDto,
+} from './dto/auth.dto';
 import type { UpdateUserPreferencesDto } from './dto/preferences.dto';
 import { type DeviceInfo, SessionService } from './session.service';
 import { TotpService } from './totp.service';

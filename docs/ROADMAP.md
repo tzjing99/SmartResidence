@@ -412,6 +412,10 @@ flowchart LR
   exception, full unit-activity logging, offline tolerance); **apply the RBAC
   correction** (management read/audit only); DuitNow QR / TNG / Boost /
   GrabPay adapters; itemized statements + receipts.
+- **Shipped (visitor polish — V3):** share pass (replaces regenerate); holiday
+  auto-approve toggle + MY public holidays in settings; guard unit search picker
+  (web + mobile); visitor/helpdesk i18n wiring (en/ms/zh-Hans); admin overnight
+  queue filters; Windows `db:migrate` fix. **Still ⬜:** MY payment rails.
 - **Deps:** Threads (context), Notifications, Audit, Billing core.
   **Acceptance:** walk-in cannot enter without owner approval; no
   guard/supervisor override path exists; management office visitor allowed &

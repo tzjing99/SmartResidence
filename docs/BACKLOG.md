@@ -8,6 +8,7 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
+- ✅ **V3 — Visitor polish sprint** — guard walk-in unit search picker (web + mobile, API search by block/unit/resident); i18n hook + visitor/helpdesk/settings wiring (en/ms/zh-Hans); Windows `db:migrate` fix; admin overnight queue filters + readable summary table; mobile guard walk-in tablet layout.
 - ✅ **S1 — Helpdesk & SLA settings panel** — `SlaPolicyService` API + web `/admin/settings/helpdesk` (slider UX, dynamic advisory bands, risky-save announcement, grace period, audit log, **assignee pool editor**) + mobile management screen.
 - ✅ **M1 — Enhanced resolution flow** — accepted-answer, propose-resolve gate, reject why+what-wanted, grace period, auto-close, appeals, reopen badge; **D7** abusive close + **E1** email opt-in shipped in follow-on.
 - ✅ **M2 — Thread auto-assignment (phase 1)** — category → pool routing, triage, recategorise reassign, repeat complainant; **F3** inbox sort, **F4** FAQ deflection, **G2** PDF export shipped in follow-on. ML (**C6**) still deferred.
@@ -52,8 +53,17 @@ Resident-driven resolution model implemented end-to-end (API + web).
 
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
+| **V3** | ✅ Done | web + mobile + api | Visitor polish sprint — guard unit picker, i18n wiring, db:migrate Windows fix, admin overnight queue, mobile tablet parity. |
 | **H1** | ✅ Done | web | Helpdesk dashboard polish. Pairs with D2 (same pass). |
 | **H2** | ✅ Done | web + mobile + api | Realtime helpdesk — optimistic send, socket cache updates, live inbox, assigned-to badge. |
+
+### V3 — Visitor polish sprint ✅ Done
+
+- ✅ **Guard unit picker** — searchable by block, unit number, and resident name; web `/guard/walk-in` + mobile walk-in tab; guards granted `read Unit` in condo scope.
+- ✅ **i18n** — `LocaleProvider` + `useT()`; visitor tabs, pre-reg form sections, admin visitor settings section titles, helpdesk inbox wired to en/ms/zh-Hans keys.
+- ✅ **Dev ergonomics** — `db:migrate` / `db:migrate:deploy` use `corepack pnpm exec prisma generate` (fixes nested `pnpm db:generate` on Windows).
+- ✅ **Admin overnight queue** — Live tab filters (overnight pending / urgent / holiday review); overnight summary table sticky header + zebra rows.
+- ✅ **Mobile parity** — guard walk-in uses unit picker with tablet-centered layout.
 
 ### H1 — Helpdesk dashboard polish ✅ Done
 

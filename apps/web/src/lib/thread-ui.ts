@@ -3,8 +3,8 @@ import type { SlaState, ThreadPriority, ThreadStatus } from '@smartresidence/api
 type Tone = 'neutral' | 'primary' | 'warning' | 'danger' | 'success' | 'info';
 
 export const PRIORITY_TONE: Record<ThreadPriority, Tone> = {
-  LOW: 'neutral',
-  NORMAL: 'primary',
+  LOW: 'success',
+  NORMAL: 'info',
   HIGH: 'warning',
   URGENT: 'danger',
 };

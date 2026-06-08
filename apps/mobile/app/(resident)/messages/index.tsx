@@ -14,11 +14,11 @@ import { type Href, useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { api } from '../../../src/lib/api';
 
-const PRIORITY_TONE: Record<string, 'neutral' | 'warning' | 'danger' | 'info'> = {
+const PRIORITY_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
   URGENT: 'danger',
   HIGH: 'warning',
-  NORMAL: 'neutral',
-  LOW: 'neutral',
+  NORMAL: 'info',
+  LOW: 'success',
 };
 
 const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = {

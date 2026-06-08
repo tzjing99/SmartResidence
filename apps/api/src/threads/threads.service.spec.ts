@@ -124,7 +124,9 @@ function buildService(prisma: ReturnType<typeof buildPrisma>['prisma']) {
     computeSlaState: vi.fn(() => 'ON_TRACK'),
   } as unknown as SlaService;
   const notifications = { dispatch: vi.fn() } as unknown as NotificationService;
-  const ai = { suggestPriority: vi.fn(async () => 'NORMAL') } as unknown as AiAssistProvider;
+  const ai = {
+    suggestPriority: vi.fn(async () => ({ priority: 'NORMAL', source: 'rules' })),
+  } as unknown as AiAssistProvider;
   return new ThreadsService(
     prisma as unknown as PrismaService,
     events,

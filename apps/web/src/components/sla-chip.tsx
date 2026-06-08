@@ -44,21 +44,33 @@ export function SlaChip({
         ? 'font-medium'
         : '';
 
-  return (
-    <Badge
-      tone={SLA_TONE[slaState]}
-      className={cn(pop, className)}
-      title={due ? new Date(due.dueAt).toLocaleString() : undefined}
-      aria-label={`SLA ${SLA_LABEL[slaState]}${dueText ? `, ${dueText}` : ''}`}
-    >
+  const label = `SLA ${SLA_LABEL[slaState]}${dueText ? `, ${dueText}` : ''}`;
+  const title = due ? new Date(due.dueAt).toLocaleString() : undefined;
+
+  const badge = (
+    <Badge tone={SLA_TONE[slaState]} className={cn(pop, 'self-start shrink-0')}>
       <Icon className="size-3.5" aria-hidden />
       {SLA_LABEL[slaState]}
-      {showDetail && dueText ? (
-        <>
-          <span className="text-meta-sep">·</span>
-          <span className="opacity-80 leading-none">{dueText}</span>
-        </>
-      ) : null}
     </Badge>
+  );
+
+  // Stack label + due time so long copy (e.g. "Reply was due 3d ago") doesn't overflow the pill.
+  if (showDetail && dueText) {
+    return (
+      <div
+        className={cn('flex min-w-0 max-w-full flex-col gap-0.5', className)}
+        title={title}
+        aria-label={label}
+      >
+        {badge}
+        <span className="text-[11px] leading-snug sr-muted truncate">{dueText}</span>
+      </div>
+    );
+  }
+
+  return (
+    <span className={cn('inline-flex min-w-0', className)} title={title} aria-label={label}>
+      {badge}
+    </span>
   );
 }

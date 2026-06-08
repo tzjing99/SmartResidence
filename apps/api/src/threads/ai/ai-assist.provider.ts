@@ -13,6 +13,15 @@ export interface AiAssistInput {
   subject: string;
   body: string;
   category: ThreadCategory;
+  /** Per-condo ML models require condo context (C6). */
+  condoId?: string;
+}
+
+export type PrioritySuggestionSource = 'rules_safety' | 'ml' | 'rules';
+
+export interface PrioritySuggestion {
+  priority: ThreadPriority;
+  source: PrioritySuggestionSource;
 }
 
 export interface AiThreadMessage {
@@ -27,7 +36,7 @@ export interface AiThreadMessage {
  */
 export interface AiAssistProvider {
   /** Suggest a priority for a newly opened thread. */
-  suggestPriority(input: AiAssistInput): Promise<ThreadPriority>;
+  suggestPriority(input: AiAssistInput): Promise<PrioritySuggestion>;
   /** Suggest a category from free text (null = no suggestion). */
   suggestCategory(input: { subject: string; body: string }): Promise<ThreadCategory | null>;
   /** Draft a reply for management to review (null = unavailable). */
@@ -49,8 +58,8 @@ export interface AiAssistProvider {
 export class RuleBasedAiAssistProvider implements AiAssistProvider {
   constructor(private readonly priority: ThreadPriorityService) {}
 
-  async suggestPriority(input: AiAssistInput): Promise<ThreadPriority> {
-    return this.priority.suggest(input);
+  async suggestPriority(input: AiAssistInput): Promise<PrioritySuggestion> {
+    return { priority: this.priority.suggest(input), source: 'rules' };
   }
 
   async suggestCategory(): Promise<ThreadCategory | null> {

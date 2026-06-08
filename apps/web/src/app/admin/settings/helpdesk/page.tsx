@@ -10,6 +10,7 @@ import {
   useSlaAudit,
   useSlaSettings,
   useUpdateAutoAssignment,
+  useUpdateMlPriority,
   useUpdateSlaSettings,
 } from '@smartresidence/api-client';
 import type {
@@ -19,7 +20,7 @@ import type {
   ThreadPriority,
 } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
-import { AlertTriangle, History, Save, Settings2, Users } from 'lucide-react';
+import { AlertTriangle, History, Save, Settings2, Sparkles, Users } from 'lucide-react';
 import * as React from 'react';
 
 const PRIORITIES: ThreadPriority[] = ['URGENT', 'HIGH', 'NORMAL', 'LOW'];
@@ -104,6 +105,7 @@ export default function HelpdeskSettingsPage() {
   const audit = useSlaAudit(api, condo?.id ?? null);
   const save = useUpdateSlaSettings(api);
   const savePools = useUpdateAutoAssignment(api);
+  const saveMlPriority = useUpdateMlPriority(api);
 
   const abilities = ((me.data as { abilities?: AbilityRule[] } | undefined)?.abilities ??
     []) as AbilityRule[];
@@ -222,7 +224,18 @@ export default function HelpdeskSettingsPage() {
   }
 
   const policies = settings.data?.policies ?? [];
+  const mlPriority = settings.data?.mlPriority;
   const hasRisky = policies.some((p) => bandForMins(p, resolutionMins[p.priority]) === 'risky');
+
+  async function toggleMlPriority(enabled: boolean) {
+    if (!condo?.id) return;
+    try {
+      await saveMlPriority.mutateAsync({ condoId: condo.id, enabled });
+      toast.success(enabled ? 'Smart priority enabled' : 'Smart priority disabled');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
 
   async function doSave(riskyAcknowledged = false) {
     if (!condo?.id) return;
@@ -313,6 +326,52 @@ export default function HelpdeskSettingsPage() {
           </Button>
         ) : (
           <p className="text-sm sr-muted">Read-only — contact a management admin to edit.</p>
+        )}
+      </Card>
+
+      <Card className="p-5 flex flex-col gap-4">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2">
+            <Sparkles className="size-4" /> Smart priority
+          </h2>
+          <p className="text-xs sr-muted mt-1">
+            Learns from your closed tickets to suggest priority on new threads. Emergency keywords
+            (fire, gas, flood, etc.) always override. Falls back to rules when disabled or
+            insufficient history.
+          </p>
+        </div>
+        {mlPriority ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span>
+                Closed tickets: {mlPriority.closedThreadCount} / {mlPriority.minRequired}
+              </span>
+              {mlPriority.active ? (
+                <Badge tone="success">Active</Badge>
+              ) : mlPriority.ready ? (
+                <Badge tone="warning">Ready — off</Badge>
+              ) : (
+                <Badge tone="neutral">Collecting data</Badge>
+              )}
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={mlPriority.enabled}
+                disabled={!canEdit || saveMlPriority.isPending || (!mlPriority.ready && !mlPriority.enabled)}
+                onChange={(e) => void toggleMlPriority(e.target.checked)}
+              />
+              Enable smart priority suggestions
+            </label>
+            {!mlPriority.ready ? (
+              <p className="text-xs sr-muted">
+                Need {mlPriority.minRequired - mlPriority.closedThreadCount} more closed tickets
+                before ML can be enabled. Rules-based priority is used in the meantime.
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className="text-sm sr-muted">Priority stats unavailable.</p>
         )}
       </Card>
 

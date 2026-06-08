@@ -111,12 +111,13 @@ export class ThreadsService {
     }
     if (!condoId) throw new BadRequestException('No condo context for this thread');
 
-    const priority = await this.ai.suggestPriority({
+    const suggestion = await this.ai.suggestPriority({
       subject: dto.subject,
       body: dto.body,
       category: dto.category,
+      condoId,
     });
-    const due = await this.sla.computeDueDates(condoId, priority);
+    const due = await this.sla.computeDueDates(condoId, suggestion.priority);
     const assign = await this.assignment.assignOnCreate({
       condoId,
       unitId,
@@ -134,7 +135,7 @@ export class ThreadsService {
           assignedToUserId: assign.assignedToUserId,
           subject: dto.subject,
           category: dto.category,
-          priority,
+          priority: suggestion.priority,
           status: ThreadStatus.OPEN,
           slaPolicyId: due.slaPolicyId,
           firstResponseDueAt: due.firstResponseDueAt,
@@ -143,6 +144,7 @@ export class ThreadsService {
           metadata: {
             repeatComplainant: assign.repeatComplainant,
             duplicateSuggestions: assign.duplicateSuggestions,
+            prioritySource: suggestion.source,
           } as Prisma.InputJsonValue,
           participants: { create: { userId: user.id, lastReadAt: new Date() } },
         },

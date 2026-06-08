@@ -19,6 +19,8 @@ export interface AutoAssignmentSettings {
 export interface HelpdeskSettings {
   resolutionConfirmationGraceDays: number;
   autoAssignment?: AutoAssignmentSettings;
+  /** C6 — opt-in ML priority suggestions once enough closed threads exist. */
+  mlPriorityEnabled?: boolean;
 }
 
 export function parseHelpdeskSettings(raw: unknown): HelpdeskSettings {
@@ -46,9 +48,13 @@ export function parseHelpdeskSettings(raw: unknown): HelpdeskSettings {
     };
   }
 
+  const mlPriorityEnabled =
+    typeof helpdesk.mlPriorityEnabled === 'boolean' ? helpdesk.mlPriorityEnabled : false;
+
   return {
     resolutionConfirmationGraceDays: Math.max(1, Math.min(30, grace)),
     autoAssignment,
+    mlPriorityEnabled,
   };
 }
 

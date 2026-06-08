@@ -62,6 +62,14 @@ export interface SlaPolicyItem {
   recommendedResolutionMins: number;
 }
 
+export interface MlPriorityStats {
+  enabled: boolean;
+  closedThreadCount: number;
+  minRequired: number;
+  ready: boolean;
+  active: boolean;
+}
+
 export interface SlaSettingsResponse {
   condoId: string;
   unitCount: number;
@@ -75,6 +83,7 @@ export interface SlaSettingsResponse {
     seniorStaffPool: string[];
   };
   managementStaff?: Array<{ id: string; name: string; email: string | null }>;
+  mlPriority?: MlPriorityStats;
 }
 
 export interface UserPreferences {
@@ -701,6 +710,13 @@ export class ApiClient {
     },
   ) {
     return this.request<{ ok: boolean }>('PUT', `/api/sla/condo/${condoId}/auto-assignment`, body);
+  }
+  updateMlPriority(condoId: string, body: { enabled: boolean }) {
+    return this.request<{ ok: boolean; mlPriority: MlPriorityStats }>(
+      'PUT',
+      `/api/sla/condo/${condoId}/ml-priority`,
+      body,
+    );
   }
 
   // User preferences (E1/E5) ----------------------------------------

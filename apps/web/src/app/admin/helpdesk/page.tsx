@@ -256,7 +256,7 @@ export default function HelpdeskPage() {
                               {t.assignedTo?.name ?? 'No one assigned yet'}
                             </span>
                           </div>
-                          <div className="lg:col-span-2">
+                          <div className="lg:col-span-2 min-w-0">
                             <SlaChip
                               slaState={t.slaState}
                               firstResponseDueAt={t.firstResponseDueAt}

@@ -1,6 +1,7 @@
 import { AnnouncementService } from '@/announcement/announcement.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
+import { MlPriorityService } from '@/threads/ml/ml-priority.service';
 import { SlaService } from '@/threads/sla/sla.service';
 import {
   BadRequestException,
@@ -17,7 +18,7 @@ import {
   ThreadPriority,
   ThreadStatus,
 } from '@prisma/client';
-import type { UpdateAutoAssignmentDto, UpdateSlaPoliciesDto } from './dto/sla.dto';
+import type { UpdateAutoAssignmentDto, UpdateMlPriorityDto, UpdateSlaPoliciesDto } from './dto/sla.dto';
 import {
   type AutoAssignmentSettings,
   DEFAULT_RESOLUTION_CONFIRMATION_GRACE_DAYS,
@@ -58,6 +59,7 @@ export class SlaPolicyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sla: SlaService,
+    private readonly mlPriority: MlPriorityService,
     private readonly announcements: AnnouncementService,
     private readonly events: EventEmitter2,
   ) {}
@@ -126,7 +128,50 @@ export class SlaPolicyService {
         seniorStaffPool: [],
       },
       managementStaff: await this.listManagementStaff(condoId),
+      mlPriority: await this.mlPriority.getStats(condoId),
     };
+  }
+
+  async updateMlPriority(
+    user: AuthenticatedUser,
+    condoId: string,
+    dto: UpdateMlPriorityDto,
+  ) {
+    if (!this.isAdmin(user, condoId)) {
+      throw new ForbiddenException('Only management admins can edit ML priority settings');
+    }
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+
+    if (dto.enabled) {
+      const stats = await this.mlPriority.getStats(condoId);
+      if (!stats.ready) {
+        throw new BadRequestException(
+          `ML priority needs at least ${stats.minRequired} closed threads (currently ${stats.closedThreadCount})`,
+        );
+      }
+    }
+
+    const newSettings = mergeHelpdeskSettings(condo.settings, { mlPriorityEnabled: dto.enabled });
+    await this.prisma.condo.update({
+      where: { id: condoId },
+      data: { settings: newSettings as Prisma.InputJsonValue },
+    });
+    this.mlPriority.invalidateModel(condoId);
+
+    await this.prisma.auditLog.create({
+      data: {
+        condoId,
+        actorUserId: user.id,
+        actorRole: user.activeRole,
+        action: AuditAction.UPDATE,
+        resourceType: 'HelpdeskMlPriority',
+        resourceId: condoId,
+        metadata: { enabled: dto.enabled } as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return { ok: true, mlPriority: await this.mlPriority.getStats(condoId) };
   }
 
   private async listManagementStaff(condoId: string) {

@@ -78,6 +78,12 @@ export class CategoryPoolDto {
   userIds!: string[];
 }
 
+export class UpdateMlPriorityDto {
+  @ApiProperty({ description: 'Enable ML priority suggestions (C6, opt-in).' })
+  @IsBoolean()
+  enabled!: boolean;
+}
+
 export class UpdateAutoAssignmentDto {
   @ApiProperty({ type: [String] })
   @IsArray()

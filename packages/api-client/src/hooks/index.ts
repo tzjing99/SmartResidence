@@ -752,6 +752,16 @@ export function useUpdateAutoAssignment(api: ApiClient) {
   });
 }
 
+export function useUpdateMlPriority(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; enabled: boolean }) =>
+      api.updateMlPriority(vars.condoId, { enabled: vars.enabled }),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: queryKeys.slaSettings(vars.condoId) }),
+  });
+}
+
 export function useGuardLiveVisitors(api: ApiClient, condoId: string | undefined) {
   return useQuery({
     queryKey: condoId ? queryKeys.guardLiveVisitors(condoId) : ['visitors', 'guard', 'live', null],

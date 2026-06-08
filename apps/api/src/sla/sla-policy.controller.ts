@@ -3,7 +3,12 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Param, ParseUUIDPipe, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SlaAuditQueryDto, UpdateAutoAssignmentDto, UpdateSlaPoliciesDto } from './dto/sla.dto';
+import {
+  SlaAuditQueryDto,
+  UpdateAutoAssignmentDto,
+  UpdateMlPriorityDto,
+  UpdateSlaPoliciesDto,
+} from './dto/sla.dto';
 import { SlaPolicyService } from './sla-policy.service';
 
 @ApiTags('SLA')
@@ -31,6 +36,17 @@ export class SlaPolicyController {
     @Body() dto: UpdateSlaPoliciesDto,
   ) {
     return this.slaPolicy.updateSettings(user, condoId, dto);
+  }
+
+  @Put('condo/:condoId/ml-priority')
+  @CheckAbility({ action: 'update', subject: 'SlaPolicy' })
+  @ApiOperation({ summary: 'Enable/disable ML priority suggestions (C6)' })
+  updateMlPriority(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Body() dto: UpdateMlPriorityDto,
+  ) {
+    return this.slaPolicy.updateMlPriority(user, condoId, dto);
   }
 
   @Put('condo/:condoId/auto-assignment')

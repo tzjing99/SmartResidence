@@ -1,6 +1,7 @@
 import type { AnnouncementService } from '@/announcement/announcement.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
+import type { MlPriorityService } from '@/threads/ml/ml-priority.service';
 import type { SlaService } from '@/threads/sla/sla.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
@@ -44,6 +45,7 @@ describe('SlaPolicyService', () => {
     const svc = new SlaPolicyService(
       prisma,
       {} as SlaService,
+      { getStats: vi.fn() } as unknown as MlPriorityService,
       {} as AnnouncementService,
       {} as EventEmitter2,
     );
@@ -66,6 +68,7 @@ describe('SlaPolicyService', () => {
     const svc = new SlaPolicyService(
       prisma,
       { recalculateOpenThreadDueDates: vi.fn() } as unknown as SlaService,
+      { getStats: vi.fn() } as unknown as MlPriorityService,
       {} as AnnouncementService,
       { emit: vi.fn() } as unknown as EventEmitter2,
     );

@@ -53,6 +53,7 @@ describe('AbilityFactory', () => {
       }),
     );
     expect(ability.can('check-in', 'Visitor')).toBe(true);
+    expect(ability.can('read', subject('Unit', { condoId: 'condo-1' }))).toBe(true);
     expect(ability.can('read', 'Invoice')).toBe(false);
     expect(ability.can('manage', 'Defect')).toBe(false);
   });

@@ -14,6 +14,10 @@ const buttonVariants = cva(
       variant: {
         primary:
           'bg-[rgb(var(--sr-coral))] text-[rgb(var(--sr-coral-fg))] hover:brightness-105 shadow-[0_2px_6px_-1px_rgba(255,90,95,0.4)]',
+        'soft-primary':
+          'bg-[rgb(var(--message-mgmt-coral-bg))] text-[rgb(var(--sr-coral))] border border-[rgb(var(--message-mgmt-coral-border))]/80 hover:bg-[rgb(var(--message-mgmt-coral-border))]/25',
+        'soft-sky':
+          'bg-[rgb(var(--message-mgmt-sky-bg))] text-sky-700 dark:text-sky-300 border border-[rgb(var(--message-mgmt-sky-border))]/80 hover:bg-[rgb(var(--message-mgmt-sky-border))]/30 focus-visible:ring-sky-400',
         secondary:
           'bg-[rgb(var(--sr-card))] text-[rgb(var(--sr-fg))] border border-[rgb(var(--sr-border))] hover:bg-[rgb(var(--sr-bg))]',
         ghost: 'hover:bg-[rgb(var(--sr-border))]/50 text-[rgb(var(--sr-fg))]',

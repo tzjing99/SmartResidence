@@ -11,7 +11,9 @@ export interface ThreadSocketPayload {
 /** Merge a thread summary into every cached inbox list query. */
 export function patchThreadInListCaches(qc: QueryClient, summary: ThreadSummary) {
   qc.setQueriesData<{ items: ThreadSummary[]; total: number }>({ queryKey: ['threads'] }, (old) => {
-    if (!old) return old;
+    // The ['threads'] prefix also matches the thread *detail* cache (['threads', id]),
+    // whose shape is ThreadDetail (no `items`). Only touch real inbox list caches.
+    if (!old || !Array.isArray(old.items)) return old;
     const idx = old.items.findIndex((t) => t.id === summary.id);
     if (idx === -1) {
       return { items: [summary, ...old.items], total: old.total + 1 };

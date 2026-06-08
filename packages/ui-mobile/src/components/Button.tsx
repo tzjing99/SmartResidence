@@ -6,7 +6,7 @@ import { palette, radius, spring } from '../tokens';
 import { textBase, typography } from '../typography';
 
 export interface ButtonProps extends PressableProps {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
+  variant?: 'primary' | 'soft-primary' | 'soft-sky' | 'secondary' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
   title: string;
   loading?: boolean;
@@ -31,6 +31,16 @@ export const Button: React.FC<ButtonProps> = ({
     { bg: string; fg: string; border?: string }
   > = {
     primary: { bg: palette.coralPrimary, fg: '#FFFFFF' },
+    'soft-primary': {
+      bg: palette.messageMgmtCoralBg,
+      fg: palette.coralPrimary,
+      border: palette.messageMgmtCoralBorder,
+    },
+    'soft-sky': {
+      bg: palette.messageMgmtSkyBg,
+      fg: palette.messageMgmtSkyText,
+      border: palette.messageMgmtSkyBorder,
+    },
     secondary: { bg: palette.surfaceLight, fg: palette.textLight, border: palette.borderLight },
     ghost: { bg: 'transparent', fg: palette.textLight },
     destructive: { bg: '#EF4444', fg: '#FFFFFF' },

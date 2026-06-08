@@ -9,7 +9,11 @@
     --sr-muted: 107 114 128;
     --sr-border: 229 231 235;
     --sr-card: 255 255 255;
+    /* Elevated surface for cards/tiles on top of --sr-bg (currently mirrors --sr-card). */
+    --sr-surface: 255 255 255;
     --sr-coral: 255 90 95;
+    /* Brand primary — alias of --sr-coral so both token names resolve. */
+    --sr-primary: 255 90 95;
     --sr-coral-fg: 255 255 255;
     --sr-navy: 31 49 72;
     --message-resident-bg: 250 250 249;
@@ -25,7 +29,9 @@
     --sr-muted: 156 163 175;
     --sr-border: 31 41 55;
     --sr-card: 20 34 53;
+    --sr-surface: 20 34 53;
     --sr-coral: 255 111 96;
+    --sr-primary: 255 111 96;
     --sr-coral-fg: 255 255 255;
     --sr-navy: 209 224 240;
     --message-resident-bg: 28 25 23;

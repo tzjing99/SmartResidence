@@ -207,7 +207,7 @@ export default function ResidentThreadPage() {
       {pending && !rejectMode ? (
         <div className="relative overflow-hidden rounded-2xl border border-sky-200/70 bg-sky-50/60 dark:bg-sky-950/20 dark:border-sky-700/40 pl-5 pr-4 py-4 flex flex-col gap-4 before:absolute before:left-0 before:top-3 before:bottom-3 before:w-1 before:rounded-full before:bg-sky-500">
           <div className="flex items-start gap-2 text-sm">
-            <CheckCircle2 className="size-5 text-sky-600 shrink-0" />
+            <CheckCircle2 className="size-5 text-sky-600 dark:text-sky-400 shrink-0" />
             <div>
               <div className="font-semibold">
                 Management says this is fixed. Does that match what you see?
@@ -267,7 +267,7 @@ export default function ResidentThreadPage() {
       ) : null}
 
       {(resolved || closed) && !appealMode ? (
-        <div className="rounded-xl border border-[rgb(var(--sr-border))] px-4 py-3 flex items-center justify-between gap-3">
+        <div className="rounded-xl border border-[rgb(var(--sr-border))] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <span className="text-sm sr-muted">
             {resolved ? 'This thread is resolved.' : 'This conversation is closed.'}
           </span>

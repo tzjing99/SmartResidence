@@ -16,6 +16,7 @@ export const palette = {
   messageResidentBg: '#FAFAF9',
   messageResidentBorder: '#E7E5E4',
   messageMgmtCoralBg: '#FFF1F0',
+  messageMgmtCoralBorder: '#FFB1A8',
   messageMgmtSkyBg: '#F0F9FF',
   messageMgmtSkyBorder: '#BAE6FD',
   messageMgmtSkyText: '#0C4A6E',

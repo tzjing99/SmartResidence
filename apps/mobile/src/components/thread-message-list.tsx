@@ -18,6 +18,7 @@ import {
   messageAlignment,
   messageRole,
 } from '../lib/thread-messages';
+import { AuthImage } from './auth-image';
 
 const AVATAR = 32;
 
@@ -198,6 +199,15 @@ function MessageBubble({
           <AppText variant="bodySm" style={{ color: bubble.text }}>
             {message.body}
           </AppText>
+          {message.attachments && message.attachments.length > 0 ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {message.attachments
+                .filter((a) => a.mimeType.startsWith('image/'))
+                .map((a) => (
+                  <AuthImage key={a.id} attachmentId={a.id} size={92} />
+                ))}
+            </View>
+          ) : null}
         </View>
       </View>
     </View>

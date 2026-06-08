@@ -1,5 +1,6 @@
 'use client';
 
+import { AuthImage } from '@/components/auth-image';
 import {
   type MessageRole,
   type SystemEventIcon,
@@ -224,11 +225,26 @@ function MessageBubble({
             </div>
           ) : null}
           {message.body}
+          {message.attachments && message.attachments.length > 0 ? (
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
+              {message.attachments
+                .filter((a) => a.mimeType.startsWith('image/'))
+                .map((a) => (
+                  <AuthImage
+                    key={a.id}
+                    attachmentId={a.id}
+                    variant="thumb"
+                    alt=""
+                    className="aspect-square rounded-lg border border-black/5"
+                  />
+                ))}
+            </div>
+          ) : null}
         </div>
         {showFixAction && onSelectAsFix ? (
           <button
             type="button"
-            className="text-[11px] text-sky-600 hover:underline px-0.5"
+            className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline px-0.5"
             onClick={() => onSelectAsFix(message.id)}
           >
             {selectedAsFix || isProposed ? 'Selected as fix' : 'Use as the fix'}

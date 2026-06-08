@@ -10,7 +10,9 @@ import { Button, Card, palette } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { PhotoPicker } from '../../../src/components/photo-picker';
 import { api } from '../../../src/lib/api';
+import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
 
 const CATEGORIES: Array<{ value: ThreadCategory; label: string }> = [
   { value: 'BILLING', label: 'Billing' },
@@ -42,6 +44,7 @@ export default function NewMessageScreen() {
     answer: string;
   } | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const photos = usePhotoUpload();
 
   useEffect(() => {
     if (!condo?.id || subject.trim().length < 5 || body.trim().length < 10 || dismissed) {
@@ -72,13 +75,19 @@ export default function NewMessageScreen() {
       Alert.alert('Missing fields', 'Add a subject and message');
       return;
     }
+    if (photos.uploading) {
+      Alert.alert('Please wait', 'Photos are still uploading.');
+      return;
+    }
     try {
       const thread = await create.mutateAsync({
         unitId: unit?.id,
         subject: subject.trim(),
         category,
         body: body.trim(),
+        attachmentIds: photos.attachmentIds.length ? photos.attachmentIds : undefined,
       });
+      photos.reset();
       router.replace(`/(resident)/messages/${thread.id}` as Href);
     } catch (err) {
       Alert.alert('Error', (err as Error).message);
@@ -179,8 +188,14 @@ export default function NewMessageScreen() {
             textAlignVertical: 'top',
           }}
         />
+        <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Photos</Text>
+        <PhotoPicker controller={photos} />
         <View style={{ marginTop: 16 }}>
-          <Button title={create.isPending ? 'Sending…' : 'Send message'} onPress={onSend} />
+          <Button
+            title={create.isPending ? 'Sending…' : 'Send message'}
+            onPress={onSend}
+            disabled={create.isPending || photos.uploading}
+          />
         </View>
       </Card>
     </ScrollView>

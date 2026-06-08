@@ -1,10 +1,12 @@
 'use client';
 
 import { Markdown } from '@/components/markdown';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { CATEGORIES } from '@/lib/thread-ui';
 import { toast } from '@/lib/toast';
 import {
+  uploadAttachment,
   useCreateThread,
   useFaqDeflectMatch,
   useMarkFaqHelpful,
@@ -12,13 +14,24 @@ import {
   useMyUnits,
 } from '@smartresidence/api-client';
 import type { ThreadCategory } from '@smartresidence/api-client';
-import { Badge, Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
+import { MAX_ATTACHMENTS_PER_MESSAGE } from '@smartresidence/shared-types';
+import {
+  Badge,
+  Button,
+  Card,
+  Input,
+  Label,
+  PhotoUpload,
+  type PhotoUploadHandle,
+  Textarea,
+} from '@smartresidence/ui-web';
 import { CheckCircle2, Lightbulb } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 export default function NewMessagePage() {
   const router = useRouter();
+  const t = useT();
   const units = useMyUnits(api);
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -36,6 +49,8 @@ export default function NewMessagePage() {
     answer: string;
   } | null>(null);
   const [dismissedDeflection, setDismissedDeflection] = React.useState(false);
+  const [attachmentIds, setAttachmentIds] = React.useState<string[]>([]);
+  const photoUploadRef = React.useRef<PhotoUploadHandle>(null);
 
   React.useEffect(() => {
     if (!condo?.id || subject.trim().length < 5 || body.trim().length < 10) {
@@ -73,7 +88,9 @@ export default function NewMessagePage() {
         subject: subject.trim(),
         category,
         body: body.trim(),
+        attachmentIds: attachmentIds.length ? attachmentIds : undefined,
       });
+      photoUploadRef.current?.reset();
       toast.success('Message sent to management');
       router.push(`/messages/${thread.id}`);
     } catch (err) {
@@ -102,7 +119,7 @@ export default function NewMessagePage() {
       {deflection && !dismissedDeflection ? (
         <Card className="mb-4 border-emerald-500/40 bg-emerald-500/5">
           <div className="flex items-start gap-2 mb-2">
-            <Lightbulb className="size-5 text-emerald-600 shrink-0 mt-0.5" />
+            <Lightbulb className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className="font-medium text-sm">This FAQ might answer your question</div>
               <Badge tone="success" className="mt-1">
@@ -173,6 +190,29 @@ export default function NewMessagePage() {
                 setDismissedDeflection(false);
               }}
               placeholder="Describe your question or issue…"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('upload.photos')}</Label>
+            <PhotoUpload
+              ref={photoUploadRef}
+              maxFiles={MAX_ATTACHMENTS_PER_MESSAGE}
+              onChange={setAttachmentIds}
+              upload={(file, opts) =>
+                uploadAttachment(
+                  api,
+                  { file, fileName: file.name, contentType: file.type || 'image/jpeg' },
+                  opts,
+                )
+              }
+              labels={{
+                cta: t('upload.cta'),
+                hint: t('upload.hint'),
+                retry: t('upload.retry'),
+                remove: t('upload.remove'),
+                cancel: t('upload.cancel'),
+                tooMany: t('upload.tooMany'),
+              }}
             />
           </div>
           <div className="flex justify-end gap-3 mt-2">

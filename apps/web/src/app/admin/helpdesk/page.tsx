@@ -219,7 +219,7 @@ export default function HelpdeskPage() {
                             'border-l-[3px] border-l-coral-500/70 bg-coral-50/20 dark:bg-coral-950/10',
                         )}
                       >
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:items-center">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:items-start">
                           <div className="lg:col-span-5 min-w-0">
                             <div
                               className={cn(
@@ -243,20 +243,20 @@ export default function HelpdeskPage() {
                               <div className="text-meta">Unit {t.unit.identifier}</div>
                             ) : null}
                           </div>
-                          <div className="lg:col-span-1">
+                          <div className="lg:col-span-1 flex min-w-0 flex-col items-start">
                             <Badge tone={PRIORITY_TONE[t.priority]}>
                               {priorityLabel(t.priority)}
                             </Badge>
                           </div>
-                          <div className="lg:col-span-2 flex flex-col gap-1 justify-center">
-                            <Badge tone={STATUS_TONE[t.status]} className="self-start">
+                          <div className="lg:col-span-2 flex min-w-0 flex-col items-start gap-1">
+                            <Badge tone={STATUS_TONE[t.status]}>
                               {statusLabel(t.status)}
                             </Badge>
-                            <span className="text-meta truncate">
+                            <span className="text-meta block min-w-0 max-w-full truncate leading-snug">
                               {t.assignedTo?.name ?? 'No one assigned yet'}
                             </span>
                           </div>
-                          <div className="lg:col-span-2 min-w-0">
+                          <div className="lg:col-span-2 flex min-w-0 flex-col items-start">
                             <SlaChip
                               slaState={t.slaState}
                               firstResponseDueAt={t.firstResponseDueAt}

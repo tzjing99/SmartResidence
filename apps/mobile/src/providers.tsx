@@ -4,7 +4,7 @@ import * as React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MobileRealtimeProvider } from './realtime-provider';
-import './global.css';
+import '../global.css';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = React.useState(

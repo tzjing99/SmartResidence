@@ -11,7 +11,9 @@
     "splash": {
       "backgroundColor": "#FF5A5F"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "dev.smartresidence.app",
@@ -25,7 +27,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#FF5A5F"
       },
-      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
+      "permissions": [
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -37,7 +43,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#FF5A5F"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

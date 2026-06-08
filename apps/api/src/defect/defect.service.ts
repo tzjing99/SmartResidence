@@ -2,7 +2,7 @@ import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AttachmentOwner, DefectStatus } from '@prisma/client';
+import { AttachmentOwner, AttachmentStatus, DefectStatus } from '@prisma/client';
 import type { AddDefectUpdateDto, CreateDefectDto, TransitionDefectDto } from './dto/defect.dto';
 
 const VALID_TRANSITIONS: Record<DefectStatus, DefectStatus[]> = {
@@ -47,7 +47,11 @@ export class DefectService {
           uploadedByUserId: user.id,
           ownerKind: AttachmentOwner.GENERIC,
         },
-        data: { defectId: defect.id, ownerKind: AttachmentOwner.DEFECT },
+        data: {
+          defectId: defect.id,
+          ownerKind: AttachmentOwner.DEFECT,
+          status: AttachmentStatus.COMMITTED,
+        },
       });
     }
 

@@ -6,6 +6,7 @@ export * from './unit-search';
 export * from './billing';
 export * from './defect';
 export * from './announcement';
+export * from './upload';
 
 export const APP_NAME = 'SmartResidence';
 export const APP_DEEPLINK_SCHEME = 'smartresidence';

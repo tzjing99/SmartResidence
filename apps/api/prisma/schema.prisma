@@ -686,12 +686,21 @@ enum AttachmentOwner {
   GENERIC
 }
 
+enum AttachmentStatus {
+  PENDING
+  COMMITTED
+}
+
 model Attachment {
   id             String           @id @default(uuid()) @db.Uuid
   bucket         String
   key            String
+  thumbnailKey   String?
   mimeType       String
   size           Int
+  width          Int?
+  height         Int?
+  status         AttachmentStatus @default(PENDING)
   ownerKind      AttachmentOwner
   uploadedByUserId String?        @db.Uuid
   uploadedBy     User?            @relation(fields: [uploadedByUserId], references: [id])
@@ -708,6 +717,7 @@ model Attachment {
   @@index([defectId])
   @@index([defectUpdateId])
   @@index([threadMessageId])
+  @@index([status, createdAt])
   @@map("attachments")
 }
 

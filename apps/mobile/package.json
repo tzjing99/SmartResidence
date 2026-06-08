@@ -20,8 +20,8 @@
     "test:e2e": "echo 'Use test:e2e:ios or test:e2e:android with EAS dev-client.'"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
     "@expo/vector-icons": "^14.0.4",
+    "@hookform/resolvers": "^3.9.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@smartresidence/api-client": "workspace:*",
     "@smartresidence/shared-types": "workspace:*",
@@ -35,6 +35,7 @@
     "expo-file-system": "~18.0.12",
     "expo-haptics": "~14.0.0",
     "expo-image": "~2.0.2",
+    "expo-image-manipulator": "~13.0.6",
     "expo-image-picker": "~16.0.3",
     "expo-linking": "~7.0.3",
     "expo-local-authentication": "~15.0.1",

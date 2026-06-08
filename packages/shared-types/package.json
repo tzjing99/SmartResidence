@@ -42,6 +42,10 @@
     "./announcement": {
       "types": "./dist/announcement.d.ts",
       "default": "./dist/announcement.js"
+    },
+    "./upload": {
+      "types": "./dist/upload.d.ts",
+      "default": "./dist/upload.js"
     }
   },
   "scripts": {

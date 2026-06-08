@@ -1,3 +1,4 @@
+import type { Readable } from 'node:stream';
 import type { AppEnv } from '@/config/env.schema';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -9,6 +10,11 @@ export interface PresignedUpload {
   bucket: string;
   key: string;
   expiresIn: number;
+}
+
+export interface ObjectStat {
+  size: number;
+  contentType: string;
 }
 
 @Injectable()
@@ -64,8 +70,43 @@ export class StorageService implements OnModuleInit {
     return this.client.presignedGetObject(this.bucket, key, expiresIn);
   }
 
+  /** Upload an already-prepared buffer (e.g. an optimized image derivative). */
+  async putObject(opts: {
+    key: string;
+    body: Buffer;
+    contentType: string;
+  }): Promise<void> {
+    await this.client.putObject(this.bucket, opts.key, opts.body, opts.body.length, {
+      'Content-Type': opts.contentType,
+    });
+  }
+
+  /** Open a readable stream for an object (for lazy, low-memory delivery). */
+  async getObjectStream(key: string): Promise<Readable> {
+    return this.client.getObject(this.bucket, key);
+  }
+
+  async statObject(key: string): Promise<ObjectStat> {
+    const stat = await this.client.statObject(this.bucket, key);
+    return {
+      size: stat.size,
+      contentType: stat.metaData?.['content-type'] ?? 'application/octet-stream',
+    };
+  }
+
   async remove(key: string): Promise<void> {
     await this.client.removeObject(this.bucket, key);
+  }
+
+  /** Remove multiple objects, ignoring individual failures. */
+  async removeMany(keys: string[]): Promise<void> {
+    const valid = keys.filter((k): k is string => Boolean(k));
+    if (valid.length === 0) return;
+    try {
+      await this.client.removeObjects(this.bucket, valid);
+    } catch (err) {
+      this.logger.warn(`Failed to remove objects: ${(err as Error).message}`);
+    }
   }
 
   bucketName(): string {

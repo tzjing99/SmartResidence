@@ -61,10 +61,14 @@ web-build/
 storybook-static/
 
 # Docusaurus
-docs/.docusaurus
-docs/build
+**/.docusaurus/
+**/docs/build/
 
 # Misc
 *.tgz
 .cache/
 tmp/
+
+# Scratch / scratchpad files
+body.txt
+body2.txt

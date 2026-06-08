@@ -10,9 +10,9 @@ export const PRIORITY_TONE: Record<ThreadPriority, Tone> = {
 };
 
 export const STATUS_TONE: Record<ThreadStatus, Tone> = {
-  OPEN: 'primary',
-  AWAITING_MANAGEMENT: 'primary',
-  AWAITING_RESIDENT: 'warning',
+  OPEN: 'info',
+  AWAITING_MANAGEMENT: 'warning',
+  AWAITING_RESIDENT: 'neutral',
   PENDING_RESIDENT_CONFIRMATION: 'info',
   RESOLVED: 'success',
   CLOSED: 'neutral',

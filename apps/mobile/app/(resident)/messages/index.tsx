@@ -24,7 +24,7 @@ const PRIORITY_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> =
 const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = {
   OPEN: 'info',
   AWAITING_MANAGEMENT: 'warning',
-  AWAITING_RESIDENT: 'warning',
+  AWAITING_RESIDENT: 'neutral',
   PENDING_RESIDENT_CONFIRMATION: 'info',
   RESOLVED: 'success',
   CLOSED: 'neutral',

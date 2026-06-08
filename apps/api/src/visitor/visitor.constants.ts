@@ -22,6 +22,12 @@ export const UPCOMING_VISITOR_STATUSES: VisitorStatus[] = [
 /** Visitors currently on site (checked in, not checked out). */
 export const LIVE_VISITOR_STATUSES: VisitorStatus[] = [VisitorStatus.CHECKED_IN];
 
+/** Admin audit: upcoming passes plus visitors currently on site. */
+export const ACTIVE_VISITOR_STATUSES: VisitorStatus[] = [
+  ...UPCOMING_VISITOR_STATUSES,
+  ...LIVE_VISITOR_STATUSES,
+];
+
 /** Admin list filters for overnight management queues. */
 export type VisitorAdminFilter = 'overnight_pending' | 'urgent_overnight' | 'holiday_review';
 
@@ -33,11 +39,13 @@ export const HISTORY_VISITOR_STATUSES: VisitorStatus[] = [
   VisitorStatus.CANCELLED,
 ];
 
-export type VisitorListView = 'upcoming' | 'live' | 'history';
+export type VisitorListView = 'upcoming' | 'live' | 'active' | 'history' | 'expected' | 'no_show';
 
 export function statusesForView(view?: VisitorListView): VisitorStatus[] | undefined {
-  if (view === 'upcoming') return UPCOMING_VISITOR_STATUSES;
+  if (view === 'upcoming' || view === 'expected') return UPCOMING_VISITOR_STATUSES;
   if (view === 'live') return LIVE_VISITOR_STATUSES;
+  if (view === 'active') return ACTIVE_VISITOR_STATUSES;
   if (view === 'history') return HISTORY_VISITOR_STATUSES;
+  if (view === 'no_show') return [VisitorStatus.EXPIRED];
   return undefined;
 }

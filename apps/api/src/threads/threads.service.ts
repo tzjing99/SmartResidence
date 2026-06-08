@@ -11,6 +11,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AttachmentOwner,
+  AttachmentStatus,
   AuditAction,
   NotificationKind,
   type Prisma,
@@ -161,7 +162,11 @@ export class ThreadsService {
             uploadedByUserId: user.id,
             ownerKind: AttachmentOwner.GENERIC,
           },
-          data: { threadMessageId: message.id, ownerKind: AttachmentOwner.THREAD_MESSAGE },
+          data: {
+            threadMessageId: message.id,
+            ownerKind: AttachmentOwner.THREAD_MESSAGE,
+            status: AttachmentStatus.COMMITTED,
+          },
         });
       }
       return created;
@@ -294,7 +299,11 @@ export class ThreadsService {
             uploadedByUserId: user.id,
             ownerKind: AttachmentOwner.GENERIC,
           },
-          data: { threadMessageId: created.id, ownerKind: AttachmentOwner.THREAD_MESSAGE },
+          data: {
+            threadMessageId: created.id,
+            ownerKind: AttachmentOwner.THREAD_MESSAGE,
+            status: AttachmentStatus.COMMITTED,
+          },
         });
       }
 

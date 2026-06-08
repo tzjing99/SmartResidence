@@ -24,6 +24,24 @@
     "reply": "Tulis balasan…",
     "empty": "Tiada perbualan lagi"
   },
+  "upload": {
+    "photos": "Foto",
+    "cta": "Tambah foto",
+    "hint": "Seret & lepas, tampal, atau klik — kamera atau galeri pada mudah alih",
+    "retry": "Cuba lagi",
+    "remove": "Buang",
+    "cancel": "Batal muat naik",
+    "tooMany": "Anda boleh lampirkan sehingga {max} foto",
+    "addPhoto": "Tambah foto",
+    "takePhoto": "Ambil foto",
+    "chooseFromLibrary": "Pilih dari galeri",
+    "chooseFile": "Pilih fail",
+    "uploading": "Memuat naik…",
+    "uploadFailed": "Muat naik gagal",
+    "permissionTitle": "Kebenaran diperlukan",
+    "permissionPhotos": "Benarkan akses galeri foto untuk melampirkan imej.",
+    "permissionCamera": "Benarkan akses kamera untuk mengambil foto."
+  },
   "helpdesk": {
     "title": "Meja bantuan",
     "subtitle": "Perbualan penduduk, diutamakan dan dijejaki mengikut SLA.",
@@ -137,6 +155,24 @@
     "inviteAgain": "Jemput lagi",
     "inviteAgainSuccess": "Pas pelawat baharu dicipta",
     "inviteAgainNeedPhone": "Tambah nombor telefon untuk menjemput tetamu ini lagi",
+    "inviteAgainConfirmTitle": "Jemput pelawat ini lagi?",
+    "inviteAgainSessionQuestion": "Sesi lawatan yang mana?",
+    "inviteAgainConfirm": "Hantar jemputan",
+    "cancelPass": "Batalkan pas",
+    "cancelPassConfirmTitle": "Batalkan pas pelawat ini?",
+    "cancelPassConfirmBody": "Kod akses akan terus tidak sah. Tetamu anda tidak boleh daftar masuk.",
+    "cancelPassConfirm": "Batalkan pas",
+    "cancelPassSuccess": "Pas pelawat dibatalkan",
+    "statusLabel": {
+      "PENDING_OWNER_APPROVAL": "Menunggu kelulusan anda",
+      "PENDING_MANAGEMENT_APPROVAL": "Menunggu pengurusan",
+      "APPROVED": "Diluluskan",
+      "CHECKED_IN": "Di lokasi",
+      "CHECKED_OUT": "Telah melawat",
+      "REJECTED": "Ditolak",
+      "EXPIRED": "Tamat tempoh",
+      "CANCELLED": "Dibatalkan"
+    },
     "new": {
       "title": "Daftar awal pelawat",
       "subtitle": "Kebanyakan tetamu memandu masuk — tetapkan plat, masa ketibaan, dan pilihan menginap semalaman.",
@@ -163,6 +199,9 @@
       "visitorName": "Nama pelawat",
       "fullName": "Nama penuh",
       "phoneOptional": "Telefon (pilihan)",
+      "phoneRequired": "Nombor telefon",
+      "phoneRequiredError": "Masukkan nombor telefon pelawat",
+      "phoneInvalid": "Masukkan nombor mudah alih Malaysia yang sah (cth. +60123456789)",
       "unitLabel": "Unit",
       "unitSearch": "Cari blok, nombor unit, atau nama penduduk…",
       "purposeOptional": "Tujuan (pilihan)",
@@ -187,6 +226,14 @@
       "noOwnerPhone": "Tiada telefon pemilik — hubungi pengurusan",
       "awaitingOwner": "Menunggu pemilik",
       "waitingOwnerApproval": "Menunggu pemilik unit meluluskan dalam aplikasi. Hubungi mereka jika belum membalas.",
+      "ownerApprovedByPhone": "Pemilik luluskan melalui telefon",
+      "approveVerified": "Luluskan (pelawat disahkan)",
+      "guardApproveHint": "Kedua-dua pilihan membuka pintu sekarang dan menambah pelawat ke papan langsung — tanpa menunggu aplikasi.",
+      "approvedCheckedIn": "{name} diluluskan dan didaftar masuk",
+      "approveVerifiedConfirmTitle": "Luluskan pelawat ini?",
+      "approveVerifiedConfirmBody": "Anda mengesahkan {name} ialah pelawat yang sah. Mereka akan didaftar masuk serta-merta dan ini direkodkan atas nama anda.",
+      "approveVerifiedConfirmCta": "Ya, luluskan & daftar masuk",
+      "cancel": "Batal",
       "deadline": "balas sebelum {time}",
       "pendingWalkIns": "Menunggu kelulusan pemilik",
       "liveTitle": "Di tapak sekarang",
@@ -210,7 +257,39 @@
       "checkOutConfirmYes": "Ya, daftar keluar",
       "checkOutConfirmNo": "Batal",
       "checkOutSuccess": "{name} telah daftar keluar",
-      "checkOutFailed": "Tidak dapat daftar keluar pelawat"
+      "checkOutFailed": "Tidak dapat daftar keluar pelawat",
+      "expectedTitle": "Pelawat dijangka",
+      "expectedBlurb": "Pelawat dijangka hari ini di kondo. Gunakan",
+      "expectedBlurbSuffix": "atau aplikasi pengawal mudah alih untuk mengesahkan pas.",
+      "expectedBlurbShort": "Siapa yang dijangka hari ini — sahkan pelawat yang akan tiba dan semak yang tidak hadir. Gunakan daftar masuk untuk mengesahkan pas di pintu pagar.",
+      "checkInLink": "daftar masuk",
+      "expectedTabsAria": "Paparan pelawat dijangka",
+      "tabs": {
+        "today": "Hari ini",
+        "expected": "Dijangka",
+        "noShow": "Tidak hadir",
+        "history": "Sejarah"
+      },
+      "emptyToday": "Tiada pelawat dijangka hari ini",
+      "emptyExpected": "Tiada pelawat dijangka hari ini",
+      "emptyExpectedHint": "Pelawat pra-daftar dan diluluskan akan muncul di sini sehingga mereka daftar masuk.",
+      "emptyNoShow": "Tiada pas tamat tempoh hari ini",
+      "emptyNoShowHint": "Pelawat yang terlepas tempoh hari ini akan muncul di sini.",
+      "emptyHistory": "Tiada sejarah pelawat",
+      "arrivingSoon": "Akan tiba",
+      "arrivingIn": "Tiba dalam {minutes} min",
+      "overdue": "Lewat",
+      "noShowBadge": "Tidak hadir",
+      "statusApproved": "Dijangka",
+      "statusPendingManagement": "Menunggu pengurusan",
+      "statusCheckedOut": "Daftar keluar",
+      "statusCancelled": "Dibatalkan",
+      "statusRejected": "Ditolak",
+      "tableVisitor": "Pelawat",
+      "tableUnit": "Unit",
+      "tableExpected": "Dijangka",
+      "tableStatus": "Status",
+      "tableActions": "Tindakan"
     },
     "settings": {
       "title": "Tetapan pelawat",
@@ -228,24 +307,84 @@
     },
     "admin": {
       "title": "Pelawat",
-      "subtitle": "Log pelawat langsung dan pencegahan penyalahgunaan menginap semalaman.",
+      "subtitle": "Cari, tapis, dan semak setiap pas pelawat di satu tempat.",
+      "settingsLink": "Tetapan pelawat",
+      "searchPlaceholder": "Cari nama, kod akses, plat, atau unit…",
       "tabs": {
-        "live": "Langsung",
-        "history": "Log",
-        "overnight": "Dasar menginap semalaman"
+        "active": "Aktif",
+        "history": "Sejarah"
       },
       "filters": {
-        "all": "Semua",
-        "overnightPending": "Menginap semalaman menunggu",
-        "urgentOvernight": "Menginap semalaman segera",
-        "holidayReview": "Semakan cuti"
+        "allStatuses": "Semua status",
+        "allUnits": "Semua unit",
+        "fromDate": "Dari",
+        "toDate": "Hingga",
+        "clearDates": "Kosongkan tarikh"
       },
-      "overnightTable": {
+      "stats": {
+        "onSite": "Di tapak sekarang",
+        "expectedToday": "Dijangka hari ini",
+        "checkInsToday": "Daftar masuk hari ini",
+        "walkInsToday": "Walk-in hari ini",
+        "pendingOvernight": "Menginap semalaman menunggu",
+        "pendingOwner": "Menunggu pemilik"
+      },
+      "table": {
+        "guest": "Pelawat",
         "unit": "Unit",
-        "owners": "Pemilik",
-        "thisMonth": "Bulan ini",
+        "when": "Masa",
+        "details": "Butiran",
+        "carPlate": "Plat kereta",
+        "noPlate": "—",
         "status": "Status",
-        "actions": "Tindakan"
+        "actions": "Tindakan",
+        "management": "Pengurusan",
+        "managementHint": "Kelulusan menginap semalaman dan semakan plat tidak sepadan dipaparkan dalam Pengurusan apabila diperlukan. Kebanyakan pelawat tidak memerlukan tindakan.",
+        "office": "Pejabat pengurusan",
+        "driveIn": "Masuk kereta",
+        "walkIn": "Masuk berjalan kaki",
+        "plate": "Plat kereta {plate}",
+        "code": "Kod {code}",
+        "showing": "Memaparkan {from}–{to} daripada {total}",
+        "prev": "Sebelum",
+        "next": "Seterusnya"
+      },
+      "status": {
+        "PENDING_OWNER_APPROVAL": "Menunggu pemilik",
+        "PENDING_MANAGEMENT_APPROVAL": "Perlu kelulusan",
+        "APPROVED": "Diluluskan",
+        "REJECTED": "Ditolak",
+        "CHECKED_IN": "Di tapak",
+        "CHECKED_OUT": "Daftar keluar",
+        "EXPIRED": "Tamat tempoh",
+        "CANCELLED": "Dibatalkan"
+      },
+      "visitType": {
+        "PRE_REG": "Pra-daftar",
+        "WALKIN_UNIT": "Walk-in",
+        "WALKIN_OFFICE": "Lawatan pejabat"
+      },
+      "badges": {
+        "overnight": "Menginap semalaman",
+        "urgent": "Segera",
+        "holidayReview": "Semakan cuti",
+        "driveIn": "Masuk kereta",
+        "plateMismatch": "Plat tidak sepadan"
+      },
+      "actions": {
+        "approveOvernight": "Luluskan menginap semalaman",
+        "flagMismatch": "Tandakan plat tidak sepadan",
+        "approveSuccess": "Lawatan menginap semalaman diluluskan",
+        "flagSuccess": "Plat tidak sepadan ditandakan",
+        "flagPrompt": "Sebab ketidaksepadanan (pilihan)"
+      },
+      "empty": {
+        "activeTitle": "Tiada pelawat aktif",
+        "activeDesc": "Pas diluluskan, walk-in, dan pelawat di tapak dipaparkan di sini.",
+        "historyTitle": "Tiada lawatan lepas",
+        "historyDesc": "Lawatan daftar keluar, tamat tempoh, dan dibatalkan direkod di sini.",
+        "filteredTitle": "Tiada padanan",
+        "filteredDesc": "Cuba laraskan carian atau penapis anda."
       }
     }
   }

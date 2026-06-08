@@ -6,7 +6,7 @@ import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { queryKeys, useGuardWalkInPolicy, useMyCondos } from '@smartresidence/api-client';
-import type { Visitor } from '@smartresidence/shared-types';
+import { type Visitor, isValidMalaysiaPhone } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -40,17 +40,30 @@ export default function GuardWalkInPage() {
     enabled: Boolean(condo && requireOwnerApproval),
   });
 
+  function validatePhone(): boolean {
+    if (!phone.trim()) {
+      toast.error(t('visitors.guard.phoneRequiredError'));
+      return false;
+    }
+    if (!isValidMalaysiaPhone(phone)) {
+      toast.error(t('visitors.guard.phoneInvalid'));
+      return false;
+    }
+    return true;
+  }
+
   async function submitUnit() {
     if (!unit?.id || !name.trim()) {
       toast.error(t('visitors.guard.unitRequired'));
       return;
     }
+    if (!validatePhone()) return;
     setBusy(true);
     try {
       const visitor = await api.createWalkInUnit({
         unitId: unit.id,
         name: name.trim(),
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         purpose: purpose.trim() || undefined,
       });
       if (visitor.status === 'CHECKED_IN') {
@@ -77,11 +90,12 @@ export default function GuardWalkInPage() {
       toast.error(t('visitors.guard.purposeRequired'));
       return;
     }
+    if (!validatePhone()) return;
     setBusy(true);
     try {
       await api.createWalkInOffice({
         name: name.trim(),
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         purpose: purpose.trim(),
         gateLocation: 'Management office',
       });
@@ -115,7 +129,14 @@ export default function GuardWalkInPage() {
       </header>
 
       {pendingVisitor?.status === 'PENDING_OWNER_APPROVAL' ? (
-        <PendingWalkInCard visitor={pendingVisitor} approvalMinutes={approvalMinutes} />
+        <PendingWalkInCard
+          visitor={pendingVisitor}
+          approvalMinutes={approvalMinutes}
+          onResolved={() => {
+            setPendingVisitor(null);
+            pendingWalkIns.refetch();
+          }}
+        />
       ) : null}
 
       <PillTabs items={tabItems} value={tab} onChange={setTab} ariaLabel="Walk-in type" />
@@ -131,12 +152,14 @@ export default function GuardWalkInPage() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="visitor-phone">{t('visitors.guard.phoneOptional')}</Label>
+          <Label htmlFor="visitor-phone">{t('visitors.guard.phoneRequired')}</Label>
           <Input
             id="visitor-phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+60…"
+            inputMode="tel"
+            required
           />
         </div>
 
@@ -188,7 +211,12 @@ export default function GuardWalkInPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t('visitors.guard.pendingWalkIns')}</h2>
           {pendingItems.map((v) => (
-            <PendingWalkInCard key={v.id} visitor={v} approvalMinutes={approvalMinutes} />
+            <PendingWalkInCard
+              key={v.id}
+              visitor={v}
+              approvalMinutes={approvalMinutes}
+              onResolved={() => pendingWalkIns.refetch()}
+            />
           ))}
         </section>
       ) : null}

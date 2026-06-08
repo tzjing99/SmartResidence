@@ -232,7 +232,9 @@ export default function NewVisitorPage() {
               {...form.register('name')}
             />
             {form.formState.errors.name ? (
-              <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {form.formState.errors.name.message}
+              </p>
             ) : null}
           </div>
 
@@ -256,7 +258,9 @@ export default function NewVisitorPage() {
                 {...form.register('phone')}
               />
               {form.formState.errors.phone ? (
-                <p className="text-xs text-red-600">{form.formState.errors.phone.message}</p>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  {form.formState.errors.phone.message}
+                </p>
               ) : null}
             </div>
           </div>
@@ -288,7 +292,9 @@ export default function NewVisitorPage() {
                 </p>
               ) : null}
               {form.formState.errors.vehiclePlate ? (
-                <p className="text-xs text-red-600">{form.formState.errors.vehiclePlate.message}</p>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  {form.formState.errors.vehiclePlate.message}
+                </p>
               ) : null}
             </div>
           </FormSection>
@@ -374,7 +380,9 @@ export default function NewVisitorPage() {
                   )}
                 </div>
                 {platePhotoKey ? (
-                  <p className="text-xs text-emerald-700">Photo ready — verify plate matches</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                    Photo ready — verify plate matches
+                  </p>
                 ) : null}
               </div>
 
@@ -387,7 +395,7 @@ export default function NewVisitorPage() {
                     {...form.register('urgentReason')}
                   />
                   {form.formState.errors.urgentReason ? (
-                    <p className="text-xs text-red-600">
+                    <p className="text-xs text-red-600 dark:text-red-400">
                       {form.formState.errors.urgentReason.message}
                     </p>
                   ) : null}
@@ -411,7 +419,7 @@ export default function NewVisitorPage() {
                         </p>
                       ) : null}
                       {preview.data.slotsFull ? (
-                        <p className="font-medium text-red-600">
+                        <p className="font-medium text-red-600 dark:text-red-400">
                           No slots — contact management or register urgent and visit the office
                         </p>
                       ) : null}

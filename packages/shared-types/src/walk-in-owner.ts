@@ -9,7 +9,9 @@ export const WalkInOwnerContactSchema = z.object({
 export type WalkInOwnerContact = z.infer<typeof WalkInOwnerContactSchema>;
 
 /** Primary owner phone, else first owner with a phone on file. */
-export function pickOwnerPhone(contacts: WalkInOwnerContact[] | undefined): WalkInOwnerContact | null {
+export function pickOwnerPhone(
+  contacts: WalkInOwnerContact[] | undefined,
+): WalkInOwnerContact | null {
   if (!contacts?.length) return null;
   const withPhone = contacts.filter((c) => c.phone?.trim());
   if (!withPhone.length) return null;

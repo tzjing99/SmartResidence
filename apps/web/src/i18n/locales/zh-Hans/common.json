@@ -24,6 +24,24 @@
     "reply": "写回复…",
     "empty": "暂无对话"
   },
+  "upload": {
+    "photos": "照片",
+    "cta": "添加照片",
+    "hint": "拖放、粘贴或点击 — 在手机上可用相机或相册",
+    "retry": "重试",
+    "remove": "移除",
+    "cancel": "取消上传",
+    "tooMany": "最多可附加 {max} 张照片",
+    "addPhoto": "添加照片",
+    "takePhoto": "拍照",
+    "chooseFromLibrary": "从相册选择",
+    "chooseFile": "选择文件",
+    "uploading": "上传中…",
+    "uploadFailed": "上传失败",
+    "permissionTitle": "需要权限",
+    "permissionPhotos": "允许访问相册以附加图片。",
+    "permissionCamera": "允许访问相机以拍照。"
+  },
   "helpdesk": {
     "title": "服务台",
     "subtitle": "居民对话，按优先级排序并依 SLA 跟踪。",
@@ -137,6 +155,24 @@
     "inviteAgain": "再次邀请",
     "inviteAgainSuccess": "已创建新的访客通行证",
     "inviteAgainNeedPhone": "请添加电话号码才能再次邀请此访客",
+    "inviteAgainConfirmTitle": "再次邀请此访客？",
+    "inviteAgainSessionQuestion": "哪次访问？",
+    "inviteAgainConfirm": "发送邀请",
+    "cancelPass": "取消通行证",
+    "cancelPassConfirmTitle": "取消此访客通行证？",
+    "cancelPassConfirmBody": "访问码将立即失效，访客将无法签到。",
+    "cancelPassConfirm": "取消通行证",
+    "cancelPassSuccess": "访客通行证已取消",
+    "statusLabel": {
+      "PENDING_OWNER_APPROVAL": "等待您的批准",
+      "PENDING_MANAGEMENT_APPROVAL": "等待管理处",
+      "APPROVED": "已批准",
+      "CHECKED_IN": "在场",
+      "CHECKED_OUT": "已到访",
+      "REJECTED": "已拒绝",
+      "EXPIRED": "已过期",
+      "CANCELLED": "已取消"
+    },
     "new": {
       "title": "预先登记访客",
       "subtitle": "大多数访客驾车到达——请填写车牌、到达时间和可选的过夜选项。",
@@ -163,6 +199,9 @@
       "visitorName": "访客姓名",
       "fullName": "全名",
       "phoneOptional": "电话（可选）",
+      "phoneRequired": "电话号码",
+      "phoneRequiredError": "请输入访客的电话号码",
+      "phoneInvalid": "请输入有效的马来西亚手机号码（例如 +60123456789）",
       "unitLabel": "单元",
       "unitSearch": "搜索楼栋、单元号或住户姓名…",
       "purposeOptional": "目的（可选）",
@@ -187,6 +226,14 @@
       "noOwnerPhone": "业主未登记电话——请联系管理处",
       "awaitingOwner": "等待业主",
       "waitingOwnerApproval": "等待单元业主在应用中批准。如未回复可致电业主。",
+      "ownerApprovedByPhone": "业主已电话批准",
+      "approveVerified": "批准（已核实访客）",
+      "guardApproveHint": "两种方式都会立即开闸并将访客加入实时看板——无需等待应用。",
+      "approvedCheckedIn": "{name} 已批准并登记入场",
+      "approveVerifiedConfirmTitle": "批准此访客？",
+      "approveVerifiedConfirmBody": "您确认 {name} 是合法访客。访客将立即登记入场，并以您的名义记录。",
+      "approveVerifiedConfirmCta": "是，批准并登记",
+      "cancel": "取消",
       "deadline": "请于 {time} 前回复",
       "pendingWalkIns": "等待业主批准",
       "liveTitle": "当前在场",
@@ -210,7 +257,39 @@
       "checkOutConfirmYes": "是，登记离场",
       "checkOutConfirmNo": "取消",
       "checkOutSuccess": "{name} 已登记离场",
-      "checkOutFailed": "无法登记离场"
+      "checkOutFailed": "无法登记离场",
+      "expectedTitle": "预期访客",
+      "expectedBlurb": "今日预期到访的访客。请使用",
+      "expectedBlurbSuffix": "或移动端门卫应用核验通行证。",
+      "expectedBlurbShort": "今日预期到访人员——确认待到达访客并查看未到场记录。请在门卫处使用入场登记核验通行证。",
+      "checkInLink": "入场登记",
+      "expectedTabsAria": "预期访客视图",
+      "tabs": {
+        "today": "今日",
+        "expected": "预期",
+        "noShow": "未到场",
+        "history": "历史"
+      },
+      "emptyToday": "今日无预期访客",
+      "emptyExpected": "今日无预期访客",
+      "emptyExpectedHint": "预先登记并已批准的访客将在入场前显示在此。",
+      "emptyNoShow": "今日无过期通行证",
+      "emptyNoShowHint": "今日错过有效期的访客将显示在此。",
+      "emptyHistory": "暂无访客历史",
+      "arrivingSoon": "即将到达",
+      "arrivingIn": "{minutes} 分钟后到达",
+      "overdue": "已超时",
+      "noShowBadge": "未到场",
+      "statusApproved": "预期到达",
+      "statusPendingManagement": "待管理处审批",
+      "statusCheckedOut": "已离场",
+      "statusCancelled": "已取消",
+      "statusRejected": "已拒绝",
+      "tableVisitor": "访客",
+      "tableUnit": "单元",
+      "tableExpected": "预期时间",
+      "tableStatus": "状态",
+      "tableActions": "操作"
     },
     "settings": {
       "title": "访客设置",
@@ -228,24 +307,84 @@
     },
     "admin": {
       "title": "访客",
-      "subtitle": "实时访客日志与过夜滥用防范。",
+      "subtitle": "在一个页面搜索、筛选并查看所有访客通行证。",
+      "settingsLink": "访客设置",
+      "searchPlaceholder": "搜索姓名、通行码、车牌或单元…",
       "tabs": {
-        "live": "实时",
-        "history": "日志",
-        "overnight": "过夜政策"
+        "active": "进行中",
+        "history": "历史"
       },
       "filters": {
-        "all": "全部",
-        "overnightPending": "过夜待批",
-        "urgentOvernight": "紧急过夜",
-        "holidayReview": "节假日审核"
+        "allStatuses": "全部状态",
+        "allUnits": "全部单元",
+        "fromDate": "起始",
+        "toDate": "截止",
+        "clearDates": "清除日期"
       },
-      "overnightTable": {
+      "stats": {
+        "onSite": "目前在场",
+        "expectedToday": "今日预计",
+        "checkInsToday": "今日签到",
+        "walkInsToday": "今日现场登记",
+        "pendingOvernight": "过夜待批",
+        "pendingOwner": "待业主确认"
+      },
+      "table": {
+        "guest": "访客",
         "unit": "单元",
-        "owners": "业主",
-        "thisMonth": "本月",
+        "when": "时间",
+        "details": "详情",
+        "carPlate": "车牌",
+        "noPlate": "—",
         "status": "状态",
-        "actions": "操作"
+        "actions": "操作",
+        "management": "管理操作",
+        "managementHint": "需要管理处处理的过夜审批和车牌不符审核会显示在管理操作列。大多数访客无需操作。",
+        "office": "管理处",
+        "driveIn": "驾车进入",
+        "walkIn": "步行进入",
+        "plate": "汽车牌 {plate}",
+        "code": "通行码 {code}",
+        "showing": "显示 {from}–{to}，共 {total} 条",
+        "prev": "上一页",
+        "next": "下一页"
+      },
+      "status": {
+        "PENDING_OWNER_APPROVAL": "待业主确认",
+        "PENDING_MANAGEMENT_APPROVAL": "待审批",
+        "APPROVED": "已批准",
+        "REJECTED": "已拒绝",
+        "CHECKED_IN": "在场",
+        "CHECKED_OUT": "已离场",
+        "EXPIRED": "已过期",
+        "CANCELLED": "已取消"
+      },
+      "visitType": {
+        "PRE_REG": "预登记",
+        "WALKIN_UNIT": "现场登记",
+        "WALKIN_OFFICE": "管理处来访"
+      },
+      "badges": {
+        "overnight": "过夜",
+        "urgent": "紧急",
+        "holidayReview": "节假日审核",
+        "driveIn": "驾车",
+        "plateMismatch": "车牌不符"
+      },
+      "actions": {
+        "approveOvernight": "批准过夜",
+        "flagMismatch": "标记车牌不符",
+        "approveSuccess": "过夜访问已批准",
+        "flagSuccess": "已标记车牌不符",
+        "flagPrompt": "不符原因（可选）"
+      },
+      "empty": {
+        "activeTitle": "暂无进行中的访客",
+        "activeDesc": "已批准的通行证、现场登记和在场访客会显示在这里。",
+        "historyTitle": "暂无历史记录",
+        "historyDesc": "已离场、已过期和已取消的访问记录在这里。",
+        "filteredTitle": "无匹配结果",
+        "filteredDesc": "请尝试调整搜索或筛选条件。"
       }
     }
   }

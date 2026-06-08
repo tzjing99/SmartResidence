@@ -7,9 +7,7 @@ export type UnitSearchItem = {
 };
 
 /** Parse "Block-Floor-Unit" style labels (e.g. "A-01-1" → block A, rest 01-1). */
-export function parseCompositeUnitLabel(
-  term: string,
-): { block: string; rest: string } | null {
+export function parseCompositeUnitLabel(term: string): { block: string; rest: string } | null {
   const match = term.match(/^([A-Za-z0-9]+)[-·\s]+(.+)$/);
   if (!match) return null;
   const block = match[1]?.trim();

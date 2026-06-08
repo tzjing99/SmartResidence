@@ -1,11 +1,14 @@
 'use client';
 
 import { PillTabs } from '@/components/pill-tabs';
+import { ResidentConfirmDialog } from '@/components/resident-confirm-dialog';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { visitorStatusLabelKey, visitorStatusTone } from '@/lib/visitor-status';
 import {
   useApproveVisitor,
+  useCancelVisitor,
   useCreateFavouriteVisitor,
   useCreateVisitor,
   useDeleteFavouriteVisitor,
@@ -15,16 +18,27 @@ import {
   useUnitVisitors,
 } from '@smartresidence/api-client';
 import type { FavouriteVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
-import type { VisitorPurpose } from '@smartresidence/shared-types';
 import {
   canOneClickPreRegFromVisitor,
+  canOwnerCancelVisitor,
   defaultExpectedArrival,
   favouriteToPreRegParams,
+  formatMalaysiaPhoneDisplay,
+  toDatetimeLocalValue,
+  visitorToCreateInput,
   visitorToPreRegParams,
-  VisitorPurpose as VisitorPurposeSchema,
 } from '@smartresidence/shared-types';
-import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { Heart, Plus, Star, Trash2 } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Card,
+  CardFooter,
+  EmptyState,
+  Input,
+  Label,
+  Skeleton,
+} from '@smartresidence/ui-web';
+import { Heart, Plus, Star, Trash2, UserPlus, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -33,9 +47,8 @@ type VisitorTab = VisitorListView | 'favourites';
 
 const SKELETON_KEYS = ['s1', 's2', 's3'];
 
-function resolvePurposeForPreReg(purpose: string | null | undefined): VisitorPurpose {
-  const parsed = VisitorPurposeSchema.safeParse(purpose);
-  return parsed.success ? parsed.data : 'VISITOR';
+function showInviteAgain(tab: VisitorListView, v: Visitor): boolean {
+  return tab === 'history' && (v.status === 'CHECKED_OUT' || v.visitType === 'PRE_REG');
 }
 
 export default function VisitorsPage() {
@@ -118,7 +131,54 @@ function VisitorListPanel({
   const approve = useApproveVisitor(api);
   const reject = useRejectVisitor(api);
   const create = useCreateVisitor(api);
+  const cancel = useCancelVisitor(api);
+  const [inviteAgainVisitor, setInviteAgainVisitor] = useState<Visitor | null>(null);
+  const [inviteExpectedAt, setInviteExpectedAt] = useState<Date>(() => defaultExpectedArrival());
+  const [cancelVisitorTarget, setCancelVisitorTarget] = useState<Visitor | null>(null);
 
+  function openInviteAgain(v: Visitor) {
+    if (!v.phone?.trim()) {
+      toast.error(t('visitors.inviteAgainNeedPhone'));
+      const params = new URLSearchParams(visitorToPreRegParams(v));
+      router.push(`/visitors/new?${params.toString()}`);
+      return;
+    }
+    if (!canOneClickPreRegFromVisitor(v)) {
+      const params = new URLSearchParams(visitorToPreRegParams(v));
+      router.push(`/visitors/new?${params.toString()}`);
+      return;
+    }
+    setInviteExpectedAt(defaultExpectedArrival());
+    setInviteAgainVisitor(v);
+  }
+
+  async function confirmInviteAgain() {
+    if (!unitId || !inviteAgainVisitor) return;
+    try {
+      const created = await create.mutateAsync(
+        visitorToCreateInput(inviteAgainVisitor, unitId, inviteExpectedAt),
+      );
+      setInviteAgainVisitor(null);
+      toast.success(t('visitors.inviteAgainSuccess'));
+      router.push(`/visitors/${created.id}`);
+    } catch (err) {
+      toast.error((err as Error).message);
+      const params = new URLSearchParams(visitorToPreRegParams(inviteAgainVisitor));
+      setInviteAgainVisitor(null);
+      router.push(`/visitors/new?${params.toString()}`);
+    }
+  }
+
+  async function confirmCancelPass() {
+    if (!unitId || !cancelVisitorTarget) return;
+    try {
+      await cancel.mutateAsync({ visitorId: cancelVisitorTarget.id, unitId });
+      setCancelVisitorTarget(null);
+      toast.success(t('visitors.cancelPassSuccess'));
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
   async function onApprove(id: string) {
     try {
       await approve.mutateAsync(id);
@@ -134,41 +194,6 @@ function VisitorListPanel({
       toast.success('Visitor rejected');
     } catch (err) {
       toast.error((err as Error).message);
-    }
-  }
-
-  async function onInviteAgain(v: Visitor) {
-    if (!unitId) return;
-    if (!v.phone?.trim()) {
-      toast.error(t('visitors.inviteAgainNeedPhone'));
-      const params = new URLSearchParams(visitorToPreRegParams(v));
-      router.push(`/visitors/new?${params.toString()}`);
-      return;
-    }
-    if (!canOneClickPreRegFromVisitor(v)) {
-      const params = new URLSearchParams(visitorToPreRegParams(v));
-      router.push(`/visitors/new?${params.toString()}`);
-      return;
-    }
-    const entryMode = v.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
-    try {
-      const created = await create.mutateAsync({
-        unitId,
-        name: v.name,
-        phone: v.phone.trim(),
-        phoneCountryCode: v.phoneCountryCode ?? '+60',
-        purpose: resolvePurposeForPreReg(v.purpose),
-        entryMode,
-        vehiclePlate: v.vehiclePlate?.trim() || undefined,
-        expectedAt: defaultExpectedArrival(),
-        overnight: false,
-      });
-      toast.success(t('visitors.inviteAgainSuccess'));
-      router.push(`/visitors/${created.id}`);
-    } catch (err) {
-      toast.error((err as Error).message);
-      const params = new URLSearchParams(visitorToPreRegParams(v));
-      router.push(`/visitors/new?${params.toString()}`);
     }
   }
 
@@ -201,8 +226,7 @@ function VisitorListPanel({
             }
           : {
               title: t('visitors.emptyHistory'),
-              description:
-                'Past check-ins, expired passes, and declined walk-ins appear here.',
+              description: 'Past check-ins, expired passes, and declined walk-ins appear here.',
             };
     return (
       <EmptyState
@@ -214,7 +238,7 @@ function VisitorListPanel({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="grid gap-3 md:grid-cols-2">
       {items.map((v) => (
         <Card key={v.id}>
           <div className="flex items-start justify-between gap-4">
@@ -258,23 +282,88 @@ function VisitorListPanel({
                 >
                   View pass →
                 </Link>
-              ) : tab === 'history' &&
-                (v.status === 'CHECKED_OUT' || v.visitType === 'PRE_REG') ? (
+              ) : null}
+            </div>
+            <Badge tone={visitorStatusTone(v.status)}>{t(visitorStatusLabelKey(v.status))}</Badge>
+          </div>
+          {showInviteAgain(tab, v) || (tab === 'upcoming' && canOwnerCancelVisitor(v)) ? (
+            <CardFooter className="justify-end gap-2">
+              {tab === 'upcoming' && canOwnerCancelVisitor(v) ? (
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="mt-3"
-                  onClick={() => onInviteAgain(v)}
-                  disabled={create.isPending}
+                  onClick={() => setCancelVisitorTarget(v)}
+                  disabled={cancel.isPending}
+                  className="w-full sm:w-auto"
                 >
+                  <XCircle className="size-4" aria-hidden />
+                  {t('visitors.cancelPass')}
+                </Button>
+              ) : null}
+              {showInviteAgain(tab, v) ? (
+                <Button
+                  size="sm"
+                  variant="soft-sky"
+                  onClick={() => openInviteAgain(v)}
+                  disabled={create.isPending}
+                  className="w-full sm:w-auto"
+                >
+                  <UserPlus className="size-4" aria-hidden />
                   {t('visitors.inviteAgain')}
                 </Button>
               ) : null}
-            </div>
-            <Badge tone={statusTone(v.status)}>{v.status.toLowerCase().replace(/_/g, ' ')}</Badge>
-          </div>
+            </CardFooter>
+          ) : null}
         </Card>
       ))}
+
+      <ResidentConfirmDialog
+        open={inviteAgainVisitor !== null}
+        title={t('visitors.inviteAgainConfirmTitle')}
+        description={
+          inviteAgainVisitor
+            ? `${inviteAgainVisitor.name}${
+                formatMalaysiaPhoneDisplay(
+                  inviteAgainVisitor.phone,
+                  inviteAgainVisitor.phoneCountryCode,
+                )
+                  ? ` · ${formatMalaysiaPhoneDisplay(inviteAgainVisitor.phone, inviteAgainVisitor.phoneCountryCode)}`
+                  : ''
+              }`
+            : undefined
+        }
+        confirmLabel={t('visitors.inviteAgainConfirm')}
+        cancelLabel="Cancel"
+        onConfirm={() => void confirmInviteAgain()}
+        onCancel={() => setInviteAgainVisitor(null)}
+        confirmPending={create.isPending}
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="invite-expected-at">{t('visitors.inviteAgainSessionQuestion')}</Label>
+          <Input
+            id="invite-expected-at"
+            type="datetime-local"
+            value={toDatetimeLocalValue(inviteExpectedAt)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setInviteExpectedAt(v ? new Date(v) : defaultExpectedArrival());
+            }}
+          />
+          <p className="text-xs sr-muted">{t('visitors.new.expectedArrival')}</p>
+        </div>
+      </ResidentConfirmDialog>
+
+      <ResidentConfirmDialog
+        open={cancelVisitorTarget !== null}
+        title={t('visitors.cancelPassConfirmTitle')}
+        description={t('visitors.cancelPassConfirmBody')}
+        confirmLabel={t('visitors.cancelPassConfirm')}
+        cancelLabel="Cancel"
+        onConfirm={() => void confirmCancelPass()}
+        onCancel={() => setCancelVisitorTarget(null)}
+        confirmPending={cancel.isPending}
+        confirmVariant="destructive"
+      />
     </ul>
   );
 }
@@ -441,21 +530,4 @@ function FavouritesPanel({
       )}
     </div>
   );
-}
-
-function statusTone(status: string) {
-  switch (status) {
-    case 'CHECKED_IN':
-      return 'success' as const;
-    case 'CHECKED_OUT':
-      return 'neutral' as const;
-    case 'CANCELLED':
-    case 'REJECTED':
-    case 'EXPIRED':
-      return 'danger' as const;
-    case 'PENDING_OWNER_APPROVAL':
-      return 'warning' as const;
-    default:
-      return 'primary' as const;
-  }
 }

@@ -30,9 +30,8 @@ export function resolveMalaysiaPhoneE164(
     return isValidMalaysiaPhone(normalized) ? normalized : null;
   }
   const code = (phoneCountryCode ?? '+60').replace(/\s/g, '');
-  const withCode = compact.startsWith('0') || compact.startsWith('1')
-    ? compact
-    : `${code}${compact}`;
+  const withCode =
+    compact.startsWith('0') || compact.startsWith('1') ? compact : `${code}${compact}`;
   const normalized = normalizeMalaysiaPhone(withCode);
   return isValidMalaysiaPhone(normalized) ? normalized : null;
 }

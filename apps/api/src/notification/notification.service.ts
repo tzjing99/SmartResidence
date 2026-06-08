@@ -1,13 +1,13 @@
 import { isInQuietHours, parseUserPreferences } from '@/auth/user-preferences';
 import type { AppEnv } from '@/config/env.schema';
 import { PrismaService } from '@/prisma/prisma.service';
+import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationKind, type Prisma, PushKind } from '@prisma/client';
 import { Expo, type ExpoPushMessage } from 'expo-server-sdk';
 import { Resend } from 'resend';
-import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
 
 const THREAD_KINDS: NotificationKind[] = [
   NotificationKind.THREAD_MESSAGE,

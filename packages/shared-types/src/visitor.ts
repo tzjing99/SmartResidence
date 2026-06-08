@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MalaysiaPhoneSchema, OptionalMalaysiaPhoneSchema } from './phone';
+import { MalaysiaPhoneSchema } from './phone';
 import { WalkInOwnerContactSchema } from './walk-in-owner';
 
 export const VisitorVisitType = z.enum(['PRE_REG', 'WALKIN_UNIT', 'WALKIN_OFFICE']);
@@ -189,10 +189,12 @@ export const OvernightPreviewSchema = z.object({
 });
 export type OvernightPreview = z.infer<typeof OvernightPreviewSchema>;
 
+// Guard-registered walk-ins require the visitor's phone (the visitor is at the gate);
+// pre-registration phone rules are unchanged.
 export const CreateWalkInUnitSchema = z.object({
   unitId: z.string().uuid(),
   name: z.string().min(2).max(120),
-  phone: OptionalMalaysiaPhoneSchema,
+  phone: MalaysiaPhoneSchema,
   vehiclePlate: z.string().max(20).optional(),
   purpose: z.string().max(200).optional(),
 });
@@ -200,13 +202,36 @@ export type CreateWalkInUnitInput = z.infer<typeof CreateWalkInUnitSchema>;
 
 export const CreateWalkInOfficeSchema = z.object({
   name: z.string().min(2).max(120),
-  phone: OptionalMalaysiaPhoneSchema,
+  phone: MalaysiaPhoneSchema,
   vehiclePlate: z.string().max(20).optional(),
   purpose: z.string().min(3).max(200),
   gateLocation: z.string().max(120).optional(),
   notes: z.string().max(500).optional(),
 });
 export type CreateWalkInOfficeInput = z.infer<typeof CreateWalkInOfficeSchema>;
+
+/** How a guard cleared a pending unit walk-in at the gate. */
+export const GuardApprovalMethod = z.enum(['OWNER_BY_PHONE', 'GUARD_MANUAL']);
+export type GuardApprovalMethod = z.infer<typeof GuardApprovalMethod>;
+
+/** Plain-language visitor status labels shared across surfaces (no raw enums in UI). */
+export const VISITOR_STATUS_LABELS: Record<VisitorStatus, string> = {
+  PENDING_OWNER_APPROVAL: 'Waiting for your approval',
+  PENDING_MANAGEMENT_APPROVAL: 'Pending management',
+  APPROVED: 'Approved',
+  REJECTED: 'Declined',
+  CHECKED_IN: 'On site',
+  CHECKED_OUT: 'Visited',
+  EXPIRED: 'Expired',
+  CANCELLED: 'Cancelled',
+};
+
+export function visitorStatusLabel(status: VisitorStatus | string): string {
+  return (
+    VISITOR_STATUS_LABELS[status as VisitorStatus] ??
+    String(status).toLowerCase().replace(/_/g, ' ')
+  );
+}
 
 export const VisitorSchema = z.object({
   id: z.string().uuid(),
@@ -242,10 +267,27 @@ export const VisitorSchema = z.object({
 });
 export type Visitor = z.infer<typeof VisitorSchema>;
 
-export const VisitorListView = z.enum(['upcoming', 'live', 'history']);
+export const VisitorListView = z.enum([
+  'upcoming',
+  'live',
+  'active',
+  'history',
+  'expected',
+  'no_show',
+]);
 export type VisitorListView = z.infer<typeof VisitorListView>;
 
 export type VisitorAdminFilter = 'overnight_pending' | 'urgent_overnight' | 'holiday_review';
+
+export const VisitorAdminStatsSchema = z.object({
+  onSiteCount: z.number().int(),
+  expectedToday: z.number().int(),
+  checkInsToday: z.number().int(),
+  walkInsToday: z.number().int(),
+  pendingOvernight: z.number().int(),
+  pendingOwnerApproval: z.number().int(),
+});
+export type VisitorAdminStats = z.infer<typeof VisitorAdminStatsSchema>;
 
 /** Privacy-scoped DTO for guard live board — gate duty fields only. */
 export const GuardLiveVisitorSchema = z.object({
@@ -268,6 +310,25 @@ export const GuardLiveVisitorsResponseSchema = z.object({
   total: z.number().int(),
 });
 export type GuardLiveVisitorsResponse = z.infer<typeof GuardLiveVisitorsResponseSchema>;
+
+/** Privacy-scoped DTO for guard expected / no-show boards — no phone. */
+export const GuardExpectedVisitorSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  expectedAt: z.coerce.date(),
+  vehiclePlate: z.string().nullable().optional(),
+  visitType: VisitorVisitType,
+  status: VisitorStatus,
+  unitLabel: z.string().nullable(),
+  overnight: z.boolean().optional(),
+});
+export type GuardExpectedVisitor = z.infer<typeof GuardExpectedVisitorSchema>;
+
+export const GuardExpectedVisitorsResponseSchema = z.object({
+  items: z.array(GuardExpectedVisitorSchema),
+  total: z.number().int(),
+});
+export type GuardExpectedVisitorsResponse = z.infer<typeof GuardExpectedVisitorsResponseSchema>;
 
 export const FavouriteVisitorSchema = z.object({
   id: z.string().uuid(),
@@ -368,7 +429,39 @@ export function visitorToPreRegParams(visitor: Visitor): Record<string, string> 
 /** Whether a past visit has enough data for one-click pre-registration. */
 export function canOneClickPreRegFromVisitor(visitor: Visitor): boolean {
   if (!visitor.phone?.trim()) return false;
+  if (visitor.overnight) return false;
   const entryMode = visitor.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
   if (entryMode === 'DRIVE_IN' && !visitor.vehiclePlate?.trim()) return false;
   return true;
+}
+
+/** Build create-visitor input from a past visit (invite again). */
+export function visitorToCreateInput(
+  visitor: Visitor,
+  unitId: string,
+  expectedAt: Date = defaultExpectedArrival(),
+): CreateVisitorInput {
+  if (!visitor.phone?.trim()) {
+    throw new Error('Phone required for invite again');
+  }
+  const entryMode = visitor.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
+  return {
+    unitId,
+    name: visitor.name,
+    phone: visitor.phone.trim(),
+    phoneCountryCode: visitor.phoneCountryCode ?? '+60',
+    purpose: resolvePurposeForPreReg(visitor.purpose),
+    entryMode,
+    vehiclePlate: visitor.vehiclePlate?.trim() || undefined,
+    expectedAt,
+    overnight: false,
+  };
+}
+
+/** Upcoming pre-reg passes the owner may cancel. */
+export function canOwnerCancelVisitor(visitor: Visitor): boolean {
+  return (
+    visitor.visitType === 'PRE_REG' &&
+    (visitor.status === 'APPROVED' || visitor.status === 'PENDING_MANAGEMENT_APPROVAL')
+  );
 }

@@ -34,6 +34,21 @@ describe('ListVisitorsQueryDto', () => {
     expect(result.view).toBe('live');
   });
 
+  it('accepts active view with search and unit filters', async () => {
+    const unitId = '550e8400-e29b-41d4-a716-446655440000';
+    const result = await pipe.transform(
+      { view: 'active', search: 'ABC123', unitId, limit: '20', offset: '0' },
+      { type: 'query', metatype: ListVisitorsQueryDto },
+    );
+    expect(result).toMatchObject({
+      view: 'active',
+      search: 'ABC123',
+      unitId,
+      limit: 20,
+      offset: 0,
+    });
+  });
+
   it('rejects unknown query params', async () => {
     await expect(
       pipe.transform(

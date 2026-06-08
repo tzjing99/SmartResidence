@@ -1,7 +1,9 @@
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ThreadCategory, ThreadPriority, ThreadStatus } from '@prisma/client';
+import { MAX_ATTACHMENTS_PER_MESSAGE } from '@smartresidence/shared-types';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -39,6 +41,7 @@ export class CreateThreadDto {
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAX_ATTACHMENTS_PER_MESSAGE)
   @IsUUID('4', { each: true })
   attachmentIds?: string[];
 }
@@ -57,6 +60,7 @@ export class PostMessageDto {
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAX_ATTACHMENTS_PER_MESSAGE)
   @IsUUID('4', { each: true })
   attachmentIds?: string[];
 }

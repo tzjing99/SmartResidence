@@ -183,6 +183,23 @@ describe('ThreadsService — M1 resolution flow', () => {
     expect(updates[0].status).toBe(ThreadStatus.PENDING_RESIDENT_CONFIRMATION);
   });
 
+  it('confirms resolution and closes ticket (B2)', async () => {
+    const thread = makeThread({
+      status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,
+      resolutionProposedAt: new Date(),
+      resolutionProposedByUserId: MANAGER_ID,
+    });
+    const { prisma, updates } = buildPrisma(thread);
+    const service = buildService(prisma);
+
+    await service.confirmResolution(resident(), thread.id, { confirmed: true });
+
+    expect(updates[0].status).toBe(ThreadStatus.RESOLVED);
+    expect(updates[0].resolvedAt).toBeInstanceOf(Date);
+    expect(updates[0].resolutionProposedAt).toBeNull();
+    expect(updates[0].resolutionProposedByUserId).toBeNull();
+  });
+
   it('requires reject reason and expectation (B3)', async () => {
     const thread = makeThread({
       status: ThreadStatus.PENDING_RESIDENT_CONFIRMATION,

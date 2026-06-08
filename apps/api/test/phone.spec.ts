@@ -49,13 +49,13 @@ describe('phone utilities', () => {
     expect(isValidMalaysiaPhone('+6591234567')).toBe(false);
   });
 
-  it('accepts walk-in without phone and normalizes when provided', () => {
+  it('requires phone for guard walk-in and normalizes when provided', () => {
     expect(
       CreateWalkInUnitSchema.safeParse({
         unitId: '550e8400-e29b-41d4-a716-446655440000',
         name: 'Bob',
       }).success,
-    ).toBe(true);
+    ).toBe(false);
     const parsed = CreateWalkInUnitSchema.parse({
       unitId: '550e8400-e29b-41d4-a716-446655440000',
       name: 'Bob',

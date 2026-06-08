@@ -1,10 +1,7 @@
 'use client';
 
 import { useT } from '@/i18n/locale-provider';
-import {
-  formatMalaysiaPhoneDisplay,
-  malaysiaPhoneTelHref,
-} from '@smartresidence/shared-types';
+import { formatMalaysiaPhoneDisplay, malaysiaPhoneTelHref } from '@smartresidence/shared-types';
 import { Button } from '@smartresidence/ui-web';
 import { Phone } from 'lucide-react';
 

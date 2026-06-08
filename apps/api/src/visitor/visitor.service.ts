@@ -34,6 +34,7 @@ import {
   normalizePassInput,
   parseQrPayload,
 } from './access-code';
+import { condoDayBounds } from './condo-timezone';
 import type {
   CheckInVisitorDto,
   CreateFavouriteVisitorDto,
@@ -72,6 +73,8 @@ import {
 } from './visitor-settings';
 import {
   DEFAULT_VISIT_DURATION_MINS,
+  HISTORY_VISITOR_STATUSES,
+  UPCOMING_VISITOR_STATUSES,
   type VisitorAdminFilter,
   type VisitorListView,
   WALK_IN_CHECK_IN_WINDOW_MINS,
@@ -79,6 +82,14 @@ import {
 } from './visitor.constants';
 
 const CHECK_IN_ALLOWED: VisitorStatus[] = [VisitorStatus.APPROVED];
+
+/**
+ * How a guard cleared a pending unit walk-in at the gate:
+ * - OWNER_BY_PHONE: guard phoned the owner who verbally confirmed
+ * - GUARD_MANUAL: guard judged the visitor legitimate and approved directly
+ */
+export type GuardApprovalMethod = 'OWNER_BY_PHONE' | 'GUARD_MANUAL';
+export const GUARD_APPROVAL_METHODS: GuardApprovalMethod[] = ['OWNER_BY_PHONE', 'GUARD_MANUAL'];
 
 const visitorInclude = {
   unit: {
@@ -467,10 +478,6 @@ export class VisitorService {
     return normalized;
   }
 
-  private normalizeWalkInPhone(phone?: string | null): string | null {
-    return this.normalizeMalaysiaPhoneField(phone, false);
-  }
-
   private resolveVisitorPhoneForGuard(
     phone?: string | null,
     phoneCountryCode?: string | null,
@@ -493,7 +500,7 @@ export class VisitorService {
     }
 
     const approvalDeadline = this.addMinutes(new Date(), walkInApprovalMinutes(settings));
-    const phone = this.normalizeWalkInPhone(dto.phone);
+    const phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
     const visitor = await this.prisma.visitor.create({
       data: {
         condoId,
@@ -531,6 +538,78 @@ export class VisitorService {
 
   private isGuard(user: AuthenticatedUser): boolean {
     return user.roles.some((r) => r.roleId === RoleId.SECURITY_GUARD);
+  }
+
+  private async condoTimezone(condoId: string): Promise<string> {
+    const condo = await this.prisma.condo.findUnique({
+      where: { id: condoId },
+      select: { timezone: true },
+    });
+    return condo?.timezone ?? 'Asia/Kuala_Lumpur';
+  }
+
+  /** Guards may only see today's expected visitors or past history — never future pre-reg. */
+  private async guardCondoListWhere(
+    condoId: string,
+    opts: {
+      status?: VisitorStatus;
+      view?: VisitorListView;
+      statusFilter: Prisma.VisitorWhereInput;
+      adminFilter: Prisma.VisitorWhereInput;
+    },
+  ): Promise<Prisma.VisitorWhereInput> {
+    if (opts.view === 'upcoming') {
+      throw new BadRequestException('Guards cannot list future expected visitors');
+    }
+
+    const { start, end } = condoDayBounds(await this.condoTimezone(condoId));
+    const noFuture: Prisma.VisitorWhereInput = { expectedAt: { lt: end } };
+
+    if (opts.view === 'history') {
+      return {
+        condoId,
+        ...opts.adminFilter,
+        AND: [
+          noFuture,
+          {
+            OR: [{ expectedAt: { lt: start } }, { status: { in: HISTORY_VISITOR_STATUSES } }],
+          },
+        ],
+      };
+    }
+
+    if (opts.view === 'live') {
+      return { condoId, ...opts.statusFilter, ...opts.adminFilter, ...noFuture };
+    }
+
+    if (opts.view === 'expected') {
+      return {
+        condoId,
+        ...opts.adminFilter,
+        expectedAt: { gte: start, lt: end },
+        status: { in: UPCOMING_VISITOR_STATUSES },
+      };
+    }
+
+    if (opts.view === 'no_show') {
+      return {
+        condoId,
+        ...opts.adminFilter,
+        expectedAt: { gte: start, lt: end },
+        status: VisitorStatus.EXPIRED,
+      };
+    }
+
+    const todayActive: Prisma.VisitorWhereInput = opts.status
+      ? { status: opts.status }
+      : { status: { notIn: HISTORY_VISITOR_STATUSES } };
+
+    return {
+      condoId,
+      ...todayActive,
+      ...opts.adminFilter,
+      expectedAt: { gte: start, lt: end },
+    };
   }
 
   private async enrichWalkInOwnerContacts<
@@ -588,7 +667,7 @@ export class VisitorService {
     unitId: string,
     dto: CreateWalkInUnitDto,
   ) {
-    const phone = this.normalizeWalkInPhone(dto.phone);
+    const phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
     const visitor = await this.prisma.$transaction(async (tx) => {
       const v = await tx.visitor.create({
         data: {
@@ -669,7 +748,7 @@ export class VisitorService {
       throw new BadRequestException('Purpose is required for management office visitors');
     }
 
-    const phone = this.normalizeWalkInPhone(dto.phone);
+    const phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
     const visitor = await this.prisma.$transaction(async (tx) => {
       const v = await tx.visitor.create({
         data: {
@@ -772,6 +851,98 @@ export class VisitorService {
     return updated;
   }
 
+  /**
+   * Guard clears a pending unit walk-in at the gate without waiting for the owner's
+   * in-app response (no deadlock). The visitor is physically present, so this
+   * approves AND checks them in atomically — they go straight to on-site (CHECKED_IN),
+   * never landing in Expected or being flagged overdue. The approval method
+   * (owner-by-phone vs guard-manual) is recorded on the visitor and in the audit log.
+   */
+  async approveWalkInByGuard(
+    visitorId: string,
+    guard: AuthenticatedUser,
+    method: GuardApprovalMethod,
+  ) {
+    const condoId = this.guardCondoId(guard);
+    const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
+    if (!visitor || visitor.condoId !== condoId) {
+      throw new NotFoundException('Visitor not found');
+    }
+    if (visitor.visitType !== VisitorVisitType.WALKIN_UNIT) {
+      throw new BadRequestException('Only unit walk-in visitors can be approved at the gate');
+    }
+    if (visitor.status !== VisitorStatus.PENDING_OWNER_APPROVAL) {
+      throw new BadRequestException(
+        visitor.status === VisitorStatus.EXPIRED
+          ? 'Approval window expired — re-register the visitor'
+          : `Visitor is ${visitor.status}, not awaiting approval`,
+      );
+    }
+
+    const now = new Date();
+    const existingMetadata =
+      visitor.metadata && typeof visitor.metadata === 'object' && !Array.isArray(visitor.metadata)
+        ? (visitor.metadata as Record<string, unknown>)
+        : {};
+    const methodNote =
+      method === 'OWNER_BY_PHONE'
+        ? 'Owner approved by phone (guard-recorded)'
+        : 'Approved at gate by guard (verified visitor)';
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const v = await tx.visitor.update({
+        where: { id: visitorId },
+        data: {
+          status: VisitorStatus.CHECKED_IN,
+          approvedByUserId: guard.id,
+          approvedAt: now,
+          metadata: {
+            ...existingMetadata,
+            approvalMethod: method,
+            approvedByGuardId: guard.id,
+            guardApprovedAt: now.toISOString(),
+          },
+        },
+      });
+      const checkIn = await tx.visitorCheckIn.create({
+        data: {
+          visitorId: v.id,
+          checkInGuardId: guard.id,
+          gateLocation: 'Main gate',
+          notes: methodNote,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          condoId: visitor.condoId,
+          unitId: visitor.unitId,
+          actorUserId: guard.id,
+          actorRole: guard.activeRole,
+          action: AuditAction.UPDATE,
+          resourceType: 'Visitor',
+          resourceId: visitorId,
+          metadata: { decision: 'guard_approved', method, autoCheckIn: true },
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          condoId: visitor.condoId,
+          unitId: visitor.unitId,
+          actorUserId: guard.id,
+          actorRole: guard.activeRole,
+          action: AuditAction.CREATE,
+          resourceType: 'VisitorCheckIn',
+          resourceId: checkIn.id,
+          metadata: { visitType: 'WALKIN_UNIT', approvalMethod: method },
+        },
+      });
+      return v;
+    });
+
+    this.events.emit('visitor.checked_in', { visitorId, condoId: visitor.condoId });
+    return updated;
+  }
+
   async reject(visitorId: string, user: AuthenticatedUser, reason?: string) {
     await this.expireStale();
     const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
@@ -850,6 +1021,75 @@ export class VisitorService {
     return { items, total, ...opts };
   }
 
+  private buildVisitorSearchFilter(search?: string): Prisma.VisitorWhereInput {
+    const term = search?.trim();
+    if (!term) return {};
+    return {
+      OR: [
+        { name: { contains: term, mode: 'insensitive' } },
+        { accessCode: { contains: term, mode: 'insensitive' } },
+        { vehiclePlate: { contains: term, mode: 'insensitive' } },
+        { unit: { identifier: { contains: term, mode: 'insensitive' } } },
+      ],
+    };
+  }
+
+  async getAdminVisitorStats(condoId: string) {
+    await this.expireStale(condoId);
+    const tz = await this.condoTimezone(condoId);
+    const { start, end } = condoDayBounds(tz);
+    const [
+      onSiteCount,
+      expectedToday,
+      checkInsToday,
+      walkInsToday,
+      pendingOvernight,
+      pendingOwnerApproval,
+    ] = await Promise.all([
+      this.prisma.visitor.count({
+        where: { condoId, status: VisitorStatus.CHECKED_IN },
+      }),
+      this.prisma.visitor.count({
+        where: {
+          condoId,
+          expectedAt: { gte: start, lt: end },
+          status: { in: UPCOMING_VISITOR_STATUSES },
+        },
+      }),
+      this.prisma.visitorCheckIn.count({
+        where: {
+          visitor: { condoId },
+          checkInAt: { gte: start, lt: end },
+        },
+      }),
+      this.prisma.visitor.count({
+        where: {
+          condoId,
+          visitType: { in: [VisitorVisitType.WALKIN_UNIT, VisitorVisitType.WALKIN_OFFICE] },
+          createdAt: { gte: start, lt: end },
+        },
+      }),
+      this.prisma.visitor.count({
+        where: {
+          condoId,
+          overnight: true,
+          status: VisitorStatus.PENDING_MANAGEMENT_APPROVAL,
+        },
+      }),
+      this.prisma.visitor.count({
+        where: { condoId, status: VisitorStatus.PENDING_OWNER_APPROVAL },
+      }),
+    ]);
+    return {
+      onSiteCount,
+      expectedToday,
+      checkInsToday,
+      walkInsToday,
+      pendingOvernight,
+      pendingOwnerApproval,
+    };
+  }
+
   async listForCondo(
     condoId: string,
     opts: {
@@ -858,6 +1098,10 @@ export class VisitorService {
       status?: VisitorStatus;
       view?: VisitorListView;
       filter?: VisitorAdminFilter;
+      search?: string;
+      unitId?: string;
+      from?: Date;
+      to?: Date;
       viewer?: AuthenticatedUser;
     },
   ) {
@@ -883,18 +1127,49 @@ export class VisitorService {
           return {};
       }
     })();
-    const where = { condoId, ...statusFilter, ...adminFilter };
+    const dateFilter =
+      opts.from || opts.to
+        ? {
+            expectedAt: {
+              ...(opts.from ? { gte: opts.from } : {}),
+              ...(opts.to ? { lte: opts.to } : {}),
+            },
+          }
+        : {};
+    const unitFilter = opts.unitId ? { unitId: opts.unitId } : {};
+    const searchFilter = this.buildVisitorSearchFilter(opts.search);
+    const baseWhere: Prisma.VisitorWhereInput =
+      opts.viewer && this.isGuard(opts.viewer)
+        ? await this.guardCondoListWhere(condoId, {
+            status: opts.status,
+            view: opts.view,
+            statusFilter,
+            adminFilter,
+          })
+        : { condoId, ...statusFilter, ...adminFilter, ...dateFilter, ...unitFilter };
+    const where: Prisma.VisitorWhereInput =
+      Object.keys(searchFilter).length > 0 ? { AND: [baseWhere, searchFilter] } : baseWhere;
+    const guardExpectedView =
+      opts.viewer &&
+      this.isGuard(opts.viewer) &&
+      (opts.view === 'expected' || opts.view === 'no_show');
+    const orderBy =
+      guardExpectedView && opts.view === 'expected'
+        ? { expectedAt: 'asc' as const }
+        : { expectedAt: 'desc' as const };
     const [rawItems, total] = await this.prisma.$transaction([
       this.prisma.visitor.findMany({
         where,
-        orderBy: { expectedAt: 'desc' },
+        orderBy,
         take: opts.limit,
         skip: opts.offset,
         include: visitorInclude,
       }),
       this.prisma.visitor.count({ where }),
     ]);
-    const items = await this.enrichGuardVisitorList(rawItems, opts.viewer);
+    const items = guardExpectedView
+      ? rawItems.map((v) => this.toGuardExpectedVisitor(v))
+      : await this.enrichGuardVisitorList(rawItems, opts.viewer);
     return { items, total, limit: opts.limit, offset: opts.offset };
   }
 
@@ -940,6 +1215,20 @@ export class VisitorService {
     return active?.checkInAt ?? visitor.updatedAt;
   }
 
+  /** Acknowledgment-only fields for guard expected / no-show lists — no phone. */
+  private toGuardExpectedVisitor(visitor: VisitorWithRelations) {
+    return {
+      id: visitor.id,
+      name: visitor.name,
+      expectedAt: visitor.expectedAt,
+      vehiclePlate: visitor.vehiclePlate,
+      visitType: visitor.visitType,
+      status: visitor.status,
+      unitLabel: this.formatVisitorUnitLabel(visitor),
+      overnight: visitor.overnight ?? false,
+    };
+  }
+
   /** Strip PII beyond gate-duty minimum (no email, ID, QR, host records). */
   private async toGuardLiveVisitor(visitor: VisitorWithRelations) {
     const rawOwnerContacts =
@@ -966,13 +1255,18 @@ export class VisitorService {
   async cancel(visitorId: string, user: AuthenticatedUser) {
     const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
     if (!visitor) throw new NotFoundException();
-    if (visitor.hostUserId !== user.id) {
-      throw new BadRequestException('Only the host can cancel this visitor');
+    if (!visitor.unitId || !this.userCanManageUnit(user, visitor.unitId)) {
+      throw new BadRequestException('Only the unit owner can cancel this visitor');
     }
-    return this.prisma.visitor.update({
+    if (!UPCOMING_VISITOR_STATUSES.includes(visitor.status)) {
+      throw new BadRequestException('Only upcoming passes can be cancelled');
+    }
+    const updated = await this.prisma.visitor.update({
       where: { id: visitorId },
       data: { status: VisitorStatus.CANCELLED, cancelledAt: new Date() },
     });
+    this.events.emit('visitor.cancelled', { visitorId, condoId: visitor.condoId });
+    return updated;
   }
 
   /** Resolve a visitor pass by QR payload, access code, or visitor id. */
@@ -1025,6 +1319,9 @@ export class VisitorService {
   }
 
   private enrichVerifyResult(visitor: VisitorWithRelations): VisitorWithRelations {
+    if (visitor.status === VisitorStatus.CANCELLED) {
+      throw new BadRequestException('Visitor pass has been cancelled');
+    }
     if (visitor.status === VisitorStatus.EXPIRED) {
       throw new BadRequestException(
         visitor.visitType === VisitorVisitType.WALKIN_UNIT

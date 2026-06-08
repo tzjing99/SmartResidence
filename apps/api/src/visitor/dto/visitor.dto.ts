@@ -19,9 +19,11 @@ import {
 import type { VisitorAdminFilter, VisitorListView } from '../visitor.constants';
 
 export class ListVisitorsQueryDto extends PaginationDto {
-  @ApiPropertyOptional({ enum: ['upcoming', 'live', 'history'] })
+  @ApiPropertyOptional({
+    enum: ['upcoming', 'live', 'active', 'history', 'expected', 'no_show'],
+  })
   @IsOptional()
-  @IsIn(['upcoming', 'live', 'history'])
+  @IsIn(['upcoming', 'live', 'active', 'history', 'expected', 'no_show'])
   view?: VisitorListView;
 
   @ApiPropertyOptional({ enum: VisitorStatus })
@@ -33,6 +35,29 @@ export class ListVisitorsQueryDto extends PaginationDto {
   @IsOptional()
   @IsIn(['overnight_pending', 'urgent_overnight', 'holiday_review'])
   filter?: VisitorAdminFilter;
+
+  @ApiPropertyOptional({ description: 'Search name, access code, plate, or unit number' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  search?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  unitId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter expectedAt on or after (ISO date-time)' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  from?: Date;
+
+  @ApiPropertyOptional({ description: 'Filter expectedAt on or before (ISO date-time)' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  to?: Date;
 }
 
 export class CreateVisitorDto {
@@ -268,11 +293,14 @@ export class CreateWalkInUnitDto {
   @MaxLength(120)
   name!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({
+    maxLength: 30,
+    description: 'Required — Malaysia mobile of the visitor at the gate',
+  })
   @IsString()
+  @MinLength(1)
   @MaxLength(30)
-  phone?: string;
+  phone!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -300,11 +328,14 @@ export class CreateWalkInOfficeDto {
   @MaxLength(120)
   name!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({
+    maxLength: 30,
+    description: 'Required — Malaysia mobile of the visitor at the gate',
+  })
   @IsString()
+  @MinLength(1)
   @MaxLength(30)
-  phone?: string;
+  phone!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -327,6 +358,16 @@ export class CreateWalkInOfficeDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+export class GuardApproveWalkInDto {
+  @ApiProperty({
+    enum: ['OWNER_BY_PHONE', 'GUARD_MANUAL'],
+    description:
+      'OWNER_BY_PHONE = guard phoned the owner who confirmed; GUARD_MANUAL = guard verified the visitor directly',
+  })
+  @IsIn(['OWNER_BY_PHONE', 'GUARD_MANUAL'])
+  method!: 'OWNER_BY_PHONE' | 'GUARD_MANUAL';
 }
 
 export class RejectVisitorDto {

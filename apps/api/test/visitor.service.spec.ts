@@ -271,7 +271,11 @@ describe('VisitorService', () => {
         user: { id: 'owner-user', name: 'Owner', phone: '+60123456789' },
       },
     ]);
-    const v = await svc.createWalkInUnit(guard, { unitId: 'u1', name: 'Bob' } as any);
+    const v = await svc.createWalkInUnit(guard, {
+      unitId: 'u1',
+      name: 'Bob',
+      phone: '+60123456789',
+    } as any);
     expect(v.status).toBe('PENDING_OWNER_APPROVAL');
     expect(v.ownerContacts).toEqual([
       { id: 'owner-user', name: 'Owner', phone: '+60123456789', isPrimary: true },
@@ -279,27 +283,25 @@ describe('VisitorService', () => {
     expect(events.emit).toHaveBeenCalledWith('visitor.walk_in_requested', expect.any(Object));
   });
 
-  it('creates walk-in unit without phone', async () => {
+  it('rejects guard walk-in unit without phone', async () => {
     const { svc, prisma } = service();
     prisma.unit.findFirst.mockResolvedValueOnce({
       id: 'u1',
       condoId: 'c1',
       condo: { settings: {} },
     });
-    prisma.visitor.create.mockResolvedValueOnce({
-      id: 'v2',
-      status: 'PENDING_OWNER_APPROVAL',
-      visitType: 'WALKIN_UNIT',
-      unitId: 'u1',
-      phone: null,
-    });
-    prisma.ownership.findMany.mockResolvedValueOnce([]);
-    await svc.createWalkInUnit(guard, { unitId: 'u1', name: 'Bob' } as any);
-    expect(prisma.visitor.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ phone: null }),
-      }),
+    await expect(svc.createWalkInUnit(guard, { unitId: 'u1', name: 'Bob' } as any)).rejects.toThrow(
+      /phone number is required/i,
     );
+    expect(prisma.visitor.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects guard walk-in office without phone', async () => {
+    const { svc, prisma } = service();
+    await expect(
+      svc.createWalkInOffice(guard, { name: 'Courier', purpose: 'Parcel' } as any),
+    ).rejects.toThrow(/phone number is required/i);
+    expect(prisma.visitor.create).not.toHaveBeenCalled();
   });
 
   it('normalizes walk-in phone when provided', async () => {
@@ -427,6 +429,163 @@ describe('VisitorService', () => {
     await expect(svc.getWalkInOwnerContacts('v2', guard)).rejects.toThrow(/awaiting approval/i);
   });
 
+  it('rejects upcoming view for guard condo list', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    prisma.condo.findUnique.mockResolvedValueOnce({ timezone: 'Asia/Kuala_Lumpur' });
+    await expect(
+      svc.listForCondo('c1', {
+        limit: 20,
+        offset: 0,
+        view: 'upcoming',
+        viewer: guard,
+      }),
+    ).rejects.toThrow(/future expected visitors/i);
+    expect(prisma.visitor.findMany).not.toHaveBeenCalled();
+  });
+
+  it('scopes guard condo list to today by default', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    prisma.condo.findUnique.mockResolvedValueOnce({ timezone: 'UTC' });
+    prisma.visitor.findMany.mockResolvedValueOnce([]);
+    prisma.visitor.count.mockResolvedValueOnce(0);
+    await svc.listForCondo('c1', { limit: 20, offset: 0, viewer: guard });
+    const where = prisma.visitor.findMany.mock.calls[0]?.[0]?.where;
+    expect(where.expectedAt.gte).toBeInstanceOf(Date);
+    expect(where.expectedAt.lt).toBeInstanceOf(Date);
+    expect(where.expectedAt.lt.getTime() - where.expectedAt.gte.getTime()).toBe(
+      24 * 60 * 60 * 1000,
+    );
+    expect(where.status).toEqual({ notIn: expect.arrayContaining(['CHECKED_OUT', 'EXPIRED']) });
+  });
+
+  it('excludes future expected visitors for guard today list', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    prisma.condo.findUnique.mockResolvedValueOnce({ timezone: 'UTC' });
+    prisma.visitor.findMany.mockResolvedValueOnce([]);
+    prisma.visitor.count.mockResolvedValueOnce(0);
+    await svc.listForCondo('c1', { limit: 20, offset: 0, status: 'APPROVED', viewer: guard });
+    const where = prisma.visitor.findMany.mock.calls[0]?.[0]?.where;
+    expect(where.status).toBe('APPROVED');
+    expect(where.expectedAt.lt.getTime()).toBeLessThanOrEqual(
+      where.expectedAt.gte.getTime() + 24 * 60 * 60 * 1000,
+    );
+    const tomorrow = new Date(where.expectedAt.lt);
+    expect(tomorrow.getTime()).toBeGreaterThan(Date.now() - 60_000);
+  });
+
+  it('scopes guard expected view to today upcoming statuses only', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    prisma.condo.findUnique.mockResolvedValueOnce({ timezone: 'UTC' });
+    prisma.visitor.findMany.mockResolvedValueOnce([
+      {
+        id: 'v-expected',
+        name: 'Alex Guest',
+        status: 'APPROVED',
+        expectedAt: new Date(),
+        visitType: 'PRE_REG',
+        phone: '+60199887766',
+        phoneCountryCode: '+60',
+        unit: { block: { name: 'A' }, identifier: 'A-12-03' },
+        host: null,
+        checkIns: [],
+      },
+    ]);
+    prisma.visitor.count.mockResolvedValueOnce(1);
+    const result = await svc.listForCondo('c1', {
+      limit: 20,
+      offset: 0,
+      view: 'expected',
+      viewer: guard,
+    });
+    const where = prisma.visitor.findMany.mock.calls[0]?.[0]?.where;
+    expect(where.expectedAt.gte).toBeInstanceOf(Date);
+    expect(where.expectedAt.lt).toBeInstanceOf(Date);
+    expect(where.status).toEqual({
+      in: expect.arrayContaining(['APPROVED', 'PENDING_OWNER_APPROVAL']),
+    });
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        id: 'v-expected',
+        name: expect.any(String),
+        unitLabel: expect.any(String),
+      }),
+    );
+    expect(result.items[0]).not.toHaveProperty('phone');
+    expect(prisma.visitor.findMany.mock.calls[0]?.[0]?.orderBy).toEqual({ expectedAt: 'asc' });
+  });
+
+  it('scopes guard no_show view to today expired passes', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    prisma.condo.findUnique.mockResolvedValueOnce({ timezone: 'UTC' });
+    prisma.visitor.findMany.mockResolvedValueOnce([]);
+    prisma.visitor.count.mockResolvedValueOnce(0);
+    await svc.listForCondo('c1', {
+      limit: 20,
+      offset: 0,
+      view: 'no_show',
+      viewer: guard,
+    });
+    const where = prisma.visitor.findMany.mock.calls[0]?.[0]?.where;
+    expect(where.expectedAt.gte).toBeInstanceOf(Date);
+    expect(where.status).toBe('EXPIRED');
+  });
+
+  it('returns past and completed visitors for guard history view', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    prisma.condo.findUnique.mockResolvedValueOnce({ timezone: 'UTC' });
+    prisma.visitor.findMany.mockResolvedValueOnce([]);
+    prisma.visitor.count.mockResolvedValueOnce(0);
+    await svc.listForCondo('c1', {
+      limit: 20,
+      offset: 0,
+      view: 'history',
+      viewer: guard,
+    });
+    const where = prisma.visitor.findMany.mock.calls[0]?.[0]?.where;
+    expect(where.AND).toEqual(
+      expect.arrayContaining([
+        { expectedAt: { lt: expect.any(Date) } },
+        {
+          OR: [
+            { expectedAt: { lt: expect.any(Date) } },
+            { status: { in: expect.arrayContaining(['CHECKED_OUT', 'EXPIRED']) } },
+          ],
+        },
+      ]),
+    );
+  });
+
+  it('does not apply guard date filters for management viewers', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    prisma.visitor.findMany.mockResolvedValueOnce([]);
+    prisma.visitor.count.mockResolvedValueOnce(0);
+    const admin: any = {
+      id: 'admin-user',
+      activeRole: 'MANAGEMENT_ADMIN',
+      activeCondoId: 'c1',
+      roles: [{ roleId: 'MANAGEMENT_ADMIN', condoId: 'c1', unitId: null, permissions: [] }],
+    };
+    await svc.listForCondo('c1', {
+      limit: 20,
+      offset: 0,
+      view: 'upcoming',
+      viewer: admin,
+    });
+    const where = prisma.visitor.findMany.mock.calls[0]?.[0]?.where;
+    expect(where).toEqual({
+      condoId: 'c1',
+      status: { in: expect.arrayContaining(['APPROVED', 'PENDING_OWNER_APPROVAL']) },
+    });
+    expect(prisma.condo.findUnique).not.toHaveBeenCalled();
+  });
+
   it('does not attach owner contacts for non-guard list viewers', async () => {
     const { svc, prisma } = service();
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
@@ -463,7 +622,11 @@ describe('VisitorService', () => {
       visitType: 'WALKIN_UNIT',
     });
     prisma.visitorCheckIn.create.mockResolvedValueOnce({ id: 'ci-1' });
-    const v = await svc.createWalkInUnit(guard, { unitId: 'u1', name: 'Bob' } as any);
+    const v = await svc.createWalkInUnit(guard, {
+      unitId: 'u1',
+      name: 'Bob',
+      phone: '+60123456789',
+    } as any);
     expect(v.status).toBe('CHECKED_IN');
     expect(events.emit).toHaveBeenCalledWith('visitor.checked_in', expect.any(Object));
     expect(events.emit).not.toHaveBeenCalledWith('visitor.walk_in_requested', expect.any(Object));
@@ -486,6 +649,90 @@ describe('VisitorService', () => {
     expect(events.emit).toHaveBeenCalledWith('visitor.approved', expect.any(Object));
   });
 
+  it('guard manual approval of pending walk-in goes straight to CHECKED_IN', async () => {
+    const { svc, prisma, events } = service();
+    prisma.visitor.findUnique.mockResolvedValueOnce({
+      id: 'v2',
+      condoId: 'c1',
+      unitId: 'u1',
+      visitType: 'WALKIN_UNIT',
+      status: 'PENDING_OWNER_APPROVAL',
+      metadata: { createdByGuardId: 'guard-user', singleVisit: true },
+    });
+    prisma.visitor.update.mockResolvedValueOnce({ id: 'v2', status: 'CHECKED_IN' });
+    prisma.visitorCheckIn.create.mockResolvedValueOnce({ id: 'ci-1' });
+    const v = await svc.approveWalkInByGuard('v2', guard, 'GUARD_MANUAL');
+    expect(v.status).toBe('CHECKED_IN');
+    // approve + check-in happen atomically — never lands in APPROVED/expected
+    expect(prisma.visitor.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'CHECKED_IN',
+          approvedByUserId: 'guard-user',
+          metadata: expect.objectContaining({ approvalMethod: 'GUARD_MANUAL' }),
+        }),
+      }),
+    );
+    expect(prisma.visitorCheckIn.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ visitorId: 'v2', checkInGuardId: 'guard-user' }),
+      }),
+    );
+    expect(events.emit).toHaveBeenCalledWith('visitor.checked_in', expect.any(Object));
+    expect(events.emit).not.toHaveBeenCalledWith('visitor.approved', expect.any(Object));
+  });
+
+  it('owner-by-phone approval records method and checks in', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.findUnique.mockResolvedValueOnce({
+      id: 'v2',
+      condoId: 'c1',
+      unitId: 'u1',
+      visitType: 'WALKIN_UNIT',
+      status: 'PENDING_OWNER_APPROVAL',
+      metadata: {},
+    });
+    prisma.visitor.update.mockResolvedValueOnce({ id: 'v2', status: 'CHECKED_IN' });
+    prisma.visitorCheckIn.create.mockResolvedValueOnce({ id: 'ci-1' });
+    const v = await svc.approveWalkInByGuard('v2', guard, 'OWNER_BY_PHONE');
+    expect(v.status).toBe('CHECKED_IN');
+    expect(prisma.visitor.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'CHECKED_IN',
+          metadata: expect.objectContaining({ approvalMethod: 'OWNER_BY_PHONE' }),
+        }),
+      }),
+    );
+    // audit log records the guard decision + method
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          resourceType: 'Visitor',
+          metadata: expect.objectContaining({
+            decision: 'guard_approved',
+            method: 'OWNER_BY_PHONE',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('rejects guard approval for non-pending walk-in', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.findUnique.mockResolvedValueOnce({
+      id: 'v2',
+      condoId: 'c1',
+      unitId: 'u1',
+      visitType: 'WALKIN_UNIT',
+      status: 'CHECKED_IN',
+    });
+    await expect(svc.approveWalkInByGuard('v2', guard, 'GUARD_MANUAL')).rejects.toThrow(
+      /not awaiting approval/i,
+    );
+    expect(prisma.visitorCheckIn.create).not.toHaveBeenCalled();
+  });
+
   it('rejects check-in for pending walk-in', async () => {
     const { svc, prisma } = service();
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
@@ -498,6 +745,54 @@ describe('VisitorService', () => {
       qrPayload: 'c1:v2:ABC123',
     });
     await expect(svc.checkIn('c1:v2:ABC123', guard, {} as any)).rejects.toThrow(/Cannot check in/);
+  });
+
+  it('rejects verify and check-in for cancelled pass by access code', async () => {
+    const { svc, prisma } = service();
+    prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
+    const cancelled = {
+      id: 'v-cancel',
+      condoId: 'c1',
+      unitId: 'u1',
+      status: 'CANCELLED',
+      visitType: 'PRE_REG',
+      accessCode: 'X7K9M2',
+      qrPayload: 'c1:v-cancel:X7K9M2',
+    };
+    prisma.visitor.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(cancelled);
+    await expect(svc.verifyByPass('X7K9M2', 'c1')).rejects.toThrow(/cancelled/i);
+    prisma.visitor.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(cancelled);
+    await expect(svc.checkIn('X7K9M2', guard, {} as any)).rejects.toThrow(/cancelled/i);
+  });
+
+  it('cancels upcoming pre-reg for unit owner', async () => {
+    const { svc, prisma, events } = service();
+    prisma.visitor.findUnique.mockResolvedValueOnce({
+      id: 'v-up',
+      unitId: 'u1',
+      condoId: 'c1',
+      status: 'APPROVED',
+      visitType: 'PRE_REG',
+    });
+    prisma.visitor.update.mockResolvedValueOnce({ id: 'v-up', status: 'CANCELLED' });
+    const v = await svc.cancel('v-up', owner);
+    expect(v.status).toBe('CANCELLED');
+    expect(prisma.visitor.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'v-up' },
+        data: expect.objectContaining({ status: 'CANCELLED' }),
+      }),
+    );
+    expect(events.emit).toHaveBeenCalledWith('visitor.cancelled', {
+      visitorId: 'v-up',
+      condoId: 'c1',
+    });
   });
 
   it('does not allow regenerating access codes after pass creation', () => {

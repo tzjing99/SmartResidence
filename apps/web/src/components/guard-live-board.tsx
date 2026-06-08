@@ -1,14 +1,22 @@
 'use client';
 
-import { GuardLiveVisitorDetail } from '@/components/guard-live-visitor-detail';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { formatTimeOnSite } from '@/lib/format-time-on-site';
-import { queryKeys, useGuardLiveVisitors, useMyCondos } from '@smartresidence/api-client';
+import { useGuardLiveVisitors, useMyCondos } from '@smartresidence/api-client';
 import type { GuardLiveVisitor } from '@smartresidence/shared-types';
 import { Badge, Card, EmptyState, Skeleton, cn } from '@smartresidence/ui-web';
-import { useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import * as React from 'react';
+
+const GuardLiveVisitorDetail = dynamic(
+  () =>
+    import('@/components/guard-live-visitor-detail').then((m) => ({
+      default: m.GuardLiveVisitorDetail,
+    })),
+  { ssr: false },
+);
 
 function visitTypeLabel(
   visitType: GuardLiveVisitor['visitType'],
@@ -102,19 +110,10 @@ function LiveVisitorCard({
 
 export function GuardLiveBoard() {
   const t = useT();
-  const qc = useQueryClient();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const live = useGuardLiveVisitors(api, condo?.id);
   const [selected, setSelected] = React.useState<GuardLiveVisitor | null>(null);
-
-  React.useEffect(() => {
-    if (!condo?.id) return;
-    const id = window.setInterval(() => {
-      void qc.invalidateQueries({ queryKey: queryKeys.guardLiveVisitors(condo.id) });
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, [condo?.id, qc]);
 
   const items = live.data?.items ?? [];
   const total = live.data?.total ?? 0;
@@ -146,7 +145,7 @@ export function GuardLiveBoard() {
       </Card>
 
       {live.isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <Skeleton className="h-28 rounded-2xl" />
           <Skeleton className="h-28 rounded-2xl" />
         </div>
@@ -156,7 +155,7 @@ export function GuardLiveBoard() {
           description={t('visitors.guard.liveEmptyHint')}
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {items.map((visitor) => (
             <LiveVisitorCard
               key={visitor.id}
@@ -168,13 +167,16 @@ export function GuardLiveBoard() {
         </div>
       )}
 
-      {selected ? (
-        <GuardLiveVisitorDetail
-          visitor={selected}
-          onClose={() => setSelected(null)}
-          onCheckedOut={() => setSelected(null)}
-        />
-      ) : null}
+      <AnimatePresence>
+        {selected ? (
+          <GuardLiveVisitorDetail
+            key={selected.id}
+            visitor={selected}
+            onClose={() => setSelected(null)}
+            onCheckedOut={() => setSelected(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

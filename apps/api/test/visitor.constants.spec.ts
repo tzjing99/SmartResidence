@@ -26,8 +26,10 @@ describe('visitor list view filters', () => {
 
   it('statusesForView maps each tab', () => {
     expect(statusesForView('upcoming')).toBe(UPCOMING_VISITOR_STATUSES);
+    expect(statusesForView('expected')).toBe(UPCOMING_VISITOR_STATUSES);
     expect(statusesForView('live')).toBe(LIVE_VISITOR_STATUSES);
     expect(statusesForView('history')).toBe(HISTORY_VISITOR_STATUSES);
+    expect(statusesForView('no_show')).toEqual(['EXPIRED']);
     expect(statusesForView(undefined)).toBeUndefined();
   });
 });

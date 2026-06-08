@@ -2,9 +2,9 @@
 
 import { useT } from '@/i18n/locale-provider';
 import {
+  type WalkInOwnerContact,
   formatMalaysiaPhoneDisplay,
   malaysiaPhoneTelHref,
-  type WalkInOwnerContact,
 } from '@smartresidence/shared-types';
 import { Phone } from 'lucide-react';
 

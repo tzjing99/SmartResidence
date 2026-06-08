@@ -1,109 +1,169 @@
 'use client';
 
-import { WalkInContactPanel } from '@/components/walk-in-contact-panel';
+import { GuardExpectedVisitorCard } from '@/components/guard-expected-visitor-card';
+import { PillTabs } from '@/components/pill-tabs';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { queryKeys, useMyCondos } from '@smartresidence/api-client';
-import {
-  formatMalaysiaPhoneDisplay,
-  malaysiaPhoneTelHref,
-  type Visitor,
-} from '@smartresidence/shared-types';
-import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { useQuery } from '@tanstack/react-query';
+import type { GuardExpectedVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
+import { EmptyState, Skeleton } from '@smartresidence/ui-web';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
+
+type ExpectedTab = 'expected' | 'no_show' | 'history';
+
+const TAB_VIEWS: Record<ExpectedTab, VisitorListView> = {
+  expected: 'expected',
+  no_show: 'no_show',
+  history: 'history',
+};
+
+const TAB_IDS: ExpectedTab[] = ['expected', 'no_show', 'history'];
+
+function toCardVisitor(
+  v: GuardExpectedVisitor | (Visitor & { unit?: { identifier?: string } }),
+): GuardExpectedVisitor {
+  if ('unitLabel' in v && v.unitLabel !== undefined) {
+    return v as GuardExpectedVisitor;
+  }
+  const visitor = v as Visitor & { unit?: { identifier?: string } };
+  return {
+    id: visitor.id,
+    name: visitor.name,
+    expectedAt: visitor.expectedAt,
+    vehiclePlate: visitor.vehiclePlate,
+    visitType: visitor.visitType,
+    status: visitor.status,
+    unitLabel: visitor.unit?.identifier ?? null,
+    overnight: visitor.overnight,
+  };
+}
+
+function guardExpectedListKey(condoId: string, view: VisitorListView) {
+  return [...queryKeys.condoVisitors(condoId, { view }), 'guard-expected'] as const;
+}
 
 export default function GuardExpectedPage() {
+  const t = useT();
+  const qc = useQueryClient();
+  const [tab, setTab] = useState<ExpectedTab>('expected');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
-  const visitors = useQuery({
-    queryKey: condo ? queryKeys.condoVisitors(condo.id) : ['visitors', 'condo', null],
-    queryFn: () =>
-      condo ? api.visitorsForCondo(condo.id) : Promise.resolve({ items: [], total: 0 }),
-    enabled: Boolean(condo),
-    refetchInterval: 30_000,
+  const activeView = TAB_VIEWS[tab];
+
+  const counts = useQueries({
+    queries: TAB_IDS.map((id) => ({
+      queryKey: condo
+        ? [...queryKeys.condoVisitors(condo.id, { view: TAB_VIEWS[id] }), 'guard-expected-count']
+        : ['visitors', 'condo', null, id],
+      queryFn: () =>
+        condo
+          ? api.visitorsForCondo(condo.id, { view: TAB_VIEWS[id], limit: 1 })
+          : Promise.resolve({ items: [], total: 0 }),
+      enabled: Boolean(condo),
+      staleTime: 30_000,
+    })),
   });
 
-  const items = (visitors.data?.items ?? []) as Array<
-    Visitor & { unit?: { identifier?: string } }
+  const activeVisitors = useQuery({
+    queryKey: condo ? guardExpectedListKey(condo.id, activeView) : ['visitors', 'condo', null, tab],
+    queryFn: () =>
+      condo
+        ? api.visitorsForCondo(condo.id, { view: activeView, limit: 50 })
+        : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condo),
+    staleTime: 30_000,
+    refetchInterval: tab === 'expected' ? 30_000 : false,
+  });
+
+  const prefetchTab = useCallback(
+    (nextTab: ExpectedTab) => {
+      if (!condo || nextTab === tab) return;
+      const view = TAB_VIEWS[nextTab];
+      void qc.prefetchQuery({
+        queryKey: guardExpectedListKey(condo.id, view),
+        queryFn: () => api.visitorsForCondo(condo.id, { view, limit: 50 }),
+        staleTime: 30_000,
+      });
+    },
+    [condo, qc, tab],
+  );
+
+  const handleTabChange = useCallback(
+    (nextTab: ExpectedTab) => {
+      prefetchTab(nextTab);
+      setTab(nextTab);
+    },
+    [prefetchTab],
+  );
+
+  const items = (activeVisitors.data?.items ?? []) as Array<
+    GuardExpectedVisitor | (Visitor & { unit?: { identifier?: string } })
   >;
+
+  const TAB_ITEMS = useMemo(
+    () =>
+      TAB_IDS.map((id, i) => {
+        const count = counts[i]?.data?.total ?? 0;
+        const base =
+          id === 'expected'
+            ? t('visitors.guard.tabs.expected')
+            : id === 'no_show'
+              ? t('visitors.guard.tabs.noShow')
+              : t('visitors.guard.tabs.history');
+        return {
+          id,
+          label: count > 0 ? `${base} (${count})` : base,
+        };
+      }),
+    [t, counts],
+  );
+
+  const emptyTitle =
+    tab === 'history'
+      ? t('visitors.guard.emptyHistory')
+      : tab === 'no_show'
+        ? t('visitors.guard.emptyNoShow')
+        : t('visitors.guard.emptyExpected');
+
+  const emptyDescription =
+    tab === 'expected'
+      ? t('visitors.guard.emptyExpectedHint')
+      : tab === 'no_show'
+        ? t('visitors.guard.emptyNoShowHint')
+        : undefined;
 
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight">Expected visitors</h1>
-        <p className="sr-muted mt-1">
-          Upcoming and pending visitors across the condo. Use{' '}
-          <a href="/guard/check-in" className="text-coral-500 hover:underline">
-            check-in
-          </a>{' '}
-          or the mobile guard app to verify passes.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('visitors.guard.expectedTitle')}</h1>
+        <p className="sr-muted mt-1 max-w-2xl">{t('visitors.guard.expectedBlurbShort')}</p>
       </header>
 
-      {visitors.isLoading ? (
-        <Skeleton className="h-40" />
+      <PillTabs
+        items={TAB_ITEMS}
+        value={tab}
+        onChange={handleTabChange}
+        ariaLabel={t('visitors.guard.expectedTabsAria')}
+      />
+
+      {activeVisitors.isLoading ? (
+        <div className="grid gap-3 md:grid-cols-2">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-24 rounded-2xl" />
+        </div>
       ) : items.length === 0 ? (
-        <EmptyState title="No visitors expected" />
+        <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
-        <Card>
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase sr-muted">
-              <tr>
-                <th className="py-2">Visitor</th>
-                <th>Unit</th>
-                <th>Expected</th>
-                <th>Status</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[rgb(var(--sr-border))]">
-              {items.map((v) => (
-                <tr key={v.id}>
-                  <td className="py-3 font-medium">
-                    {v.name}
-                    {v.vehiclePlate ? (
-                      <span className="sr-muted font-normal"> · {v.vehiclePlate}</span>
-                    ) : null}
-                  </td>
-                  <td>{v.unit?.identifier ?? '—'}</td>
-                  <td className="sr-muted">{new Date(v.expectedAt).toLocaleString()}</td>
-                  <td>
-                    <Badge
-                      tone={
-                        v.status === 'CHECKED_IN'
-                          ? 'success'
-                          : v.status === 'CANCELLED' || v.status === 'REJECTED'
-                            ? 'danger'
-                            : v.status === 'PENDING_OWNER_APPROVAL'
-                              ? 'warning'
-                              : 'primary'
-                      }
-                    >
-                      {v.status.toLowerCase().replaceAll('_', ' ')}
-                    </Badge>
-                  </td>
-                  <td className="py-3 text-right align-top">
-                    {v.status === 'PENDING_OWNER_APPROVAL' ? (
-                      <WalkInContactPanel
-                        visitorPhone={v.phone}
-                        visitorPhoneCountryCode={v.phoneCountryCode}
-                        ownerContacts={v.ownerContacts}
-                        compact
-                      />
-                    ) : (() => {
-                      const display = formatMalaysiaPhoneDisplay(v.phone, v.phoneCountryCode);
-                      const href = malaysiaPhoneTelHref(v.phone, v.phoneCountryCode);
-                      return display && href ? (
-                        <a href={href} className="text-sm text-coral-600 hover:underline">
-                          {display}
-                        </a>
-                      ) : null;
-                    })()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+        <div className="grid gap-3 md:grid-cols-2">
+          {items.map((v) => (
+            <GuardExpectedVisitorCard
+              key={v.id}
+              visitor={toCardVisitor(v)}
+              variant={tab === 'history' ? 'history' : tab}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

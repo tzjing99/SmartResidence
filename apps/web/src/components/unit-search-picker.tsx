@@ -2,9 +2,9 @@
 
 import { api } from '@/lib/api';
 import {
+  type UnitSearchItem,
   formatUnitLabel,
   normalizeUnitSearchTerm,
-  type UnitSearchItem,
 } from '@smartresidence/shared-types';
 import { Input, Label, cn } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';

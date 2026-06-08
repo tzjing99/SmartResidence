@@ -1,8 +1,14 @@
-import { useGuardWalkInPolicy, useMyCondos } from '@smartresidence/api-client';
 import {
-  formatMalaysiaPhoneDisplay,
-  malaysiaPhoneTelHref,
+  useGuardApproveWalkIn,
+  useGuardWalkInPolicy,
+  useMyCondos,
+} from '@smartresidence/api-client';
+import {
+  type GuardApprovalMethod,
   type Visitor,
+  formatMalaysiaPhoneDisplay,
+  isValidMalaysiaPhone,
+  malaysiaPhoneTelHref,
   pickOwnerPhone,
 } from '@smartresidence/shared-types';
 import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
@@ -19,7 +25,10 @@ function callPhone(phone: string, label: string, phoneCountryCode?: string | nul
   const href = malaysiaPhoneTelHref(phone, phoneCountryCode);
   if (!href) return;
   Linking.openURL(href).catch(() => {
-    Alert.alert('Could not open dialer', `${label}: ${formatMalaysiaPhoneDisplay(phone, phoneCountryCode) ?? phone}`);
+    Alert.alert(
+      'Could not open dialer',
+      `${label}: ${formatMalaysiaPhoneDisplay(phone, phoneCountryCode) ?? phone}`,
+    );
   });
 }
 
@@ -46,6 +55,7 @@ export default function WalkInScreen() {
   const [purpose, setPurpose] = useState('');
   const [busy, setBusy] = useState(false);
   const [pendingVisitor, setPendingVisitor] = useState<Visitor | null>(null);
+  const approveWalkIn = useGuardApproveWalkIn(api);
 
   const pendingWalkIns = useQuery({
     queryKey: ['guard', 'pending-walk-ins', condo?.id],
@@ -57,17 +67,55 @@ export default function WalkInScreen() {
     enabled: Boolean(condo && requireOwnerApproval),
   });
 
+  function validatePhone(): boolean {
+    if (!phone.trim()) {
+      Alert.alert('Phone required', "Enter the visitor's phone number.");
+      return false;
+    }
+    if (!isValidMalaysiaPhone(phone)) {
+      Alert.alert('Invalid phone', 'Enter a valid Malaysia mobile number (e.g. +60123456789).');
+      return false;
+    }
+    return true;
+  }
+
+  function handleGuardApprove(visitor: Visitor, method: GuardApprovalMethod) {
+    const run = async () => {
+      try {
+        await approveWalkIn.mutateAsync({ visitorId: visitor.id, method });
+        Alert.alert('Checked in', `${visitor.name} approved and checked in at the gate.`);
+        if (pendingVisitor?.id === visitor.id) setPendingVisitor(null);
+        pendingWalkIns.refetch();
+      } catch (err) {
+        Alert.alert('Could not approve', (err as Error).message);
+      }
+    };
+    if (method === 'GUARD_MANUAL') {
+      Alert.alert(
+        'Approve this visitor?',
+        `You're confirming ${visitor.name} is a legitimate visitor. They'll be checked in immediately and recorded against your name.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Approve & check in', onPress: run },
+        ],
+      );
+    } else {
+      void run();
+    }
+  }
+
   async function submitUnit() {
     if (!unit?.id || !name.trim()) {
       Alert.alert('Unit required', 'Search and select the unit the visitor is going to.');
       return;
     }
+    if (!validatePhone()) return;
     setBusy(true);
     try {
       const visitor = await api.createWalkInUnit({
         unitId: unit.id,
         name: name.trim(),
-        phone: phone || undefined,
+        phone: phone.trim(),
         purpose: purpose || undefined,
       });
       if (visitor.status === 'CHECKED_IN') {
@@ -97,11 +145,12 @@ export default function WalkInScreen() {
       Alert.alert('Purpose required', 'Enter why the visitor is seeing management.');
       return;
     }
+    if (!validatePhone()) return;
     setBusy(true);
     try {
       await api.createWalkInOffice({
         name: name.trim(),
-        phone: phone || undefined,
+        phone: phone.trim(),
         purpose: purpose.trim(),
         gateLocation: 'Management office',
       });
@@ -150,6 +199,8 @@ export default function WalkInScreen() {
             visitor={pendingVisitor}
             approvalMinutes={approvalMinutes}
             onCall={() => callOwner(pendingVisitor.ownerContacts)}
+            onApprove={(method) => handleGuardApprove(pendingVisitor, method)}
+            approving={approveWalkIn.isPending}
           />
         ) : null}
 
@@ -176,10 +227,14 @@ export default function WalkInScreen() {
             placeholder="Full name"
             style={inputStyle}
           />
-          <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 6 }}>
-            Phone (optional)
-          </Text>
-          <TextInput value={phone} onChangeText={setPhone} placeholder="+60…" style={inputStyle} />
+          <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 6 }}>Phone number</Text>
+          <TextInput
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="+60…"
+            keyboardType="phone-pad"
+            style={inputStyle}
+          />
           {tab === 'unit' ? (
             <>
               <View style={{ marginTop: 12 }}>
@@ -245,6 +300,8 @@ export default function WalkInScreen() {
                 visitor={v}
                 approvalMinutes={approvalMinutes}
                 onCall={() => callOwner(v.ownerContacts)}
+                onApprove={(method) => handleGuardApprove(v, method)}
+                approving={approveWalkIn.isPending}
               />
             ))}
           </View>
@@ -258,14 +315,17 @@ function PendingCard({
   visitor,
   approvalMinutes,
   onCall,
+  onApprove,
+  approving,
 }: {
   visitor: Visitor & { unit?: { identifier?: string } };
   approvalMinutes: number;
   onCall: () => void;
+  onApprove: (method: GuardApprovalMethod) => void;
+  approving: boolean;
 }) {
   const contact = pickOwnerPhone(visitor.ownerContacts);
-  const ownersWithPhone =
-    visitor.ownerContacts?.filter((owner) => owner.phone?.trim()) ?? [];
+  const ownersWithPhone = visitor.ownerContacts?.filter((owner) => owner.phone?.trim()) ?? [];
   const visitorPhone = formatMalaysiaPhoneDisplay(visitor.phone, visitor.phoneCountryCode);
 
   return (
@@ -276,7 +336,9 @@ function PendingCard({
       </Text>
 
       <View style={{ marginTop: 12, gap: 10 }}>
-        <Text style={{ fontSize: 11, fontWeight: '600', color: palette.mutedLight, letterSpacing: 0.5 }}>
+        <Text
+          style={{ fontSize: 11, fontWeight: '600', color: palette.mutedLight, letterSpacing: 0.5 }}
+        >
           CONTACTS
         </Text>
 
@@ -303,7 +365,7 @@ function PendingCard({
                 style={{ fontSize: 14, color: palette.coralPrimary, fontWeight: '600' }}
                 onPress={() => callPhone(owner.phone ?? '', owner.name)}
               >
-                {owner.name} · {owner.phone}
+                {owner.name} · {formatMalaysiaPhoneDisplay(owner.phone) ?? owner.phone}
               </Text>
             ))
           ) : (
@@ -316,6 +378,23 @@ function PendingCard({
         {contact?.phone ? (
           <Button title={`Call owner (${contact.name})`} variant="secondary" onPress={onCall} />
         ) : null}
+      </View>
+
+      <View style={{ marginTop: 14, gap: 8 }}>
+        <Button
+          title="Owner approved by phone"
+          onPress={() => onApprove('OWNER_BY_PHONE')}
+          loading={approving}
+        />
+        <Button
+          title="Approve (verified visitor)"
+          variant="secondary"
+          onPress={() => onApprove('GUARD_MANUAL')}
+          loading={approving}
+        />
+        <Text style={{ fontSize: 12, color: palette.mutedLight }}>
+          Both open the gate now and add the visitor to the live board — no waiting on the app.
+        </Text>
       </View>
     </Card>
   );

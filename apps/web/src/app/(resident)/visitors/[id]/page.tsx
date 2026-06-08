@@ -90,7 +90,7 @@ export default function VisitorPassPage() {
 
           {visitor.status === 'PENDING_MANAGEMENT_APPROVAL' ? (
             <Card className="flex gap-3 border-amber-500/30 bg-amber-500/5 p-4">
-              <AlertTriangle className="size-5 shrink-0 text-amber-600" />
+              <AlertTriangle className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-sm">
                 {visitor.urgentOvernight
                   ? 'Urgent overnight — please visit the management office before your guest arrives. Management will issue the pass after review.'

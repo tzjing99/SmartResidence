@@ -1,8 +1,8 @@
 'use client';
 
 import { useT } from '@/i18n/locale-provider';
-import { Button } from '@smartresidence/ui-web';
 import { type WalkInOwnerContact, pickOwnerPhone } from '@smartresidence/shared-types';
+import { Button } from '@smartresidence/ui-web';
 import { Phone } from 'lucide-react';
 
 type CallOwnerButtonProps = {
@@ -22,9 +22,7 @@ export function CallOwnerButton({
   const contact = pickOwnerPhone(ownerContacts);
 
   if (!contact?.phone) {
-    return (
-      <p className="text-xs sr-muted">{t('visitors.guard.noOwnerPhone')}</p>
-    );
+    return <p className="text-xs sr-muted">{t('visitors.guard.noOwnerPhone')}</p>;
   }
 
   const dial = contact.phone.replace(/[\s-]/g, '');

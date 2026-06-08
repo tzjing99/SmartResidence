@@ -25,6 +25,7 @@ import {
   CreateWalkInOfficeDto,
   CreateWalkInUnitDto,
   FlagPlateMismatchDto,
+  GuardApproveWalkInDto,
   ListVisitorsQueryDto,
   RejectVisitorDto,
   SuspendOvernightDto,
@@ -51,6 +52,13 @@ export class VisitorController {
       throw new BadRequestException('expectedAt query param must be a valid ISO date-time');
     }
     return this.visitors.overnightPreview(condoId, expectedAt);
+  }
+
+  @Get('admin/stats/:condoId')
+  @CheckAbility({ action: 'read', subject: 'Visitor' })
+  @ApiOperation({ summary: 'Management visitor insight metrics for today' })
+  adminVisitorStats(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+    return this.visitors.getAdminVisitorStats(condoId);
   }
 
   @Get('admin/overnight-summary/:condoId')
@@ -152,6 +160,21 @@ export class VisitorController {
     return this.visitors.approve(id, user);
   }
 
+  @Post(':id/guard-approve')
+  @CheckAbility({ action: 'create-walk-in', subject: 'Visitor' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })
+  @ApiOperation({
+    summary:
+      'Guard clears a pending unit walk-in at the gate (owner-by-phone or guard-manual) — goes straight to checked-in',
+  })
+  guardApproveWalkIn(
+    @CurrentUser() guard: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: GuardApproveWalkInDto,
+  ) {
+    return this.visitors.approveWalkInByGuard(id, guard, dto.method);
+  }
+
   @Post(':id/approve-overnight')
   @CheckAbility({ action: 'approve-overnight', subject: 'Visitor' })
   @Audit({ action: AuditAction.UPDATE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })
@@ -187,7 +210,11 @@ export class VisitorController {
 
   @Post(':id/check-out')
   @CheckAbility({ action: 'check-out', subject: 'Visitor' })
-  @Audit({ action: AuditAction.UPDATE, resourceType: 'VisitorCheckIn', resourceIdFrom: 'params.id' })
+  @Audit({
+    action: AuditAction.UPDATE,
+    resourceType: 'VisitorCheckIn',
+    resourceIdFrom: 'params.id',
+  })
   @ApiOperation({ summary: 'Guard checks out a visitor by id (live board)' })
   checkOutById(
     @CurrentUser() guard: AuthenticatedUser,
@@ -261,8 +288,18 @@ export class VisitorController {
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query() query: ListVisitorsQueryDto,
   ) {
-    const { view, status, filter, ...page } = query;
-    return this.visitors.listForCondo(condoId, { ...page, status, view, filter, viewer: user });
+    const { view, status, filter, search, unitId, from, to, ...page } = query;
+    return this.visitors.listForCondo(condoId, {
+      ...page,
+      status,
+      view,
+      filter,
+      search,
+      unitId,
+      from,
+      to,
+      viewer: user,
+    });
   }
 
   @Get(':id/walk-in-owner-contacts')

@@ -24,6 +24,24 @@
     "reply": "Write a reply…",
     "empty": "No conversations yet"
   },
+  "upload": {
+    "photos": "Photos",
+    "cta": "Add photos",
+    "hint": "Drag & drop, paste, or click — camera or gallery on mobile",
+    "retry": "Retry",
+    "remove": "Remove",
+    "cancel": "Cancel upload",
+    "tooMany": "You can attach up to {max} photos",
+    "addPhoto": "Add photo",
+    "takePhoto": "Take photo",
+    "chooseFromLibrary": "Choose from library",
+    "chooseFile": "Choose file",
+    "uploading": "Uploading…",
+    "uploadFailed": "Upload failed",
+    "permissionTitle": "Permission needed",
+    "permissionPhotos": "Allow photo library access to attach images.",
+    "permissionCamera": "Allow camera access to take a photo."
+  },
   "helpdesk": {
     "title": "Helpdesk",
     "subtitle": "Resident conversations, prioritised and tracked against SLA.",
@@ -137,6 +155,24 @@
     "inviteAgain": "Invite again",
     "inviteAgainSuccess": "New visitor pass created",
     "inviteAgainNeedPhone": "Add a phone number to invite this guest again",
+    "inviteAgainConfirmTitle": "Invite this visitor again?",
+    "inviteAgainSessionQuestion": "Which visit session?",
+    "inviteAgainConfirm": "Send invite",
+    "cancelPass": "Cancel pass",
+    "cancelPassConfirmTitle": "Cancel this visitor pass?",
+    "cancelPassConfirmBody": "The access code will stop working immediately. Your guest will not be able to check in.",
+    "cancelPassConfirm": "Cancel pass",
+    "cancelPassSuccess": "Visitor pass cancelled",
+    "statusLabel": {
+      "PENDING_OWNER_APPROVAL": "Waiting for your approval",
+      "PENDING_MANAGEMENT_APPROVAL": "Pending management",
+      "APPROVED": "Approved",
+      "CHECKED_IN": "On site",
+      "CHECKED_OUT": "Visited",
+      "REJECTED": "Declined",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled"
+    },
     "new": {
       "title": "Pre-register a visitor",
       "subtitle": "Most guests drive in — set plate, arrival time, and optional overnight stay.",
@@ -163,6 +199,9 @@
       "visitorName": "Visitor name",
       "fullName": "Full name",
       "phoneOptional": "Phone (optional)",
+      "phoneRequired": "Phone number",
+      "phoneRequiredError": "Enter the visitor's phone number",
+      "phoneInvalid": "Enter a valid Malaysia mobile number (e.g. +60123456789)",
       "unitLabel": "Unit",
       "unitSearch": "Search block, unit number, or resident name…",
       "purposeOptional": "Purpose (optional)",
@@ -187,6 +226,14 @@
       "noOwnerPhone": "No owner phone on file — contact management",
       "awaitingOwner": "Awaiting owner",
       "waitingOwnerApproval": "Waiting for the unit owner to approve in the app. Call them if they have not replied.",
+      "ownerApprovedByPhone": "Owner approved by phone",
+      "approveVerified": "Approve (verified visitor)",
+      "guardApproveHint": "Both options open the gate now and add the visitor to the live board — no waiting on the app.",
+      "approvedCheckedIn": "{name} approved and checked in",
+      "approveVerifiedConfirmTitle": "Approve this visitor?",
+      "approveVerifiedConfirmBody": "You're confirming {name} is a legitimate visitor. They'll be checked in immediately and this is recorded against your name.",
+      "approveVerifiedConfirmCta": "Yes, approve & check in",
+      "cancel": "Cancel",
       "deadline": "respond by {time}",
       "pendingWalkIns": "Awaiting owner approval",
       "liveTitle": "On site now",
@@ -210,7 +257,39 @@
       "checkOutConfirmYes": "Yes, check out",
       "checkOutConfirmNo": "Cancel",
       "checkOutSuccess": "{name} checked out",
-      "checkOutFailed": "Could not check out visitor"
+      "checkOutFailed": "Could not check out visitor",
+      "expectedTitle": "Expected visitors",
+      "expectedBlurb": "Visitors expected today across the condo. Use",
+      "expectedBlurbSuffix": "or the mobile guard app to verify passes.",
+      "expectedBlurbShort": "Who's arriving today — acknowledge anticipated visitors and review no-shows. Use check-in to verify passes at the gate.",
+      "checkInLink": "check-in",
+      "expectedTabsAria": "Expected visitor views",
+      "tabs": {
+        "today": "Today",
+        "expected": "Expected",
+        "noShow": "No-shows",
+        "history": "History"
+      },
+      "emptyToday": "No visitors expected today",
+      "emptyExpected": "No visitors expected today",
+      "emptyExpectedHint": "Pre-registered and approved visitors will appear here until they check in.",
+      "emptyNoShow": "No expired passes today",
+      "emptyNoShowHint": "Visitors who missed their window today will appear here.",
+      "emptyHistory": "No visitor history",
+      "arrivingSoon": "Arriving soon",
+      "arrivingIn": "Arriving in {minutes}m",
+      "overdue": "Overdue",
+      "noShowBadge": "No-show",
+      "statusApproved": "Expected",
+      "statusPendingManagement": "Pending management",
+      "statusCheckedOut": "Checked out",
+      "statusCancelled": "Cancelled",
+      "statusRejected": "Rejected",
+      "tableVisitor": "Visitor",
+      "tableUnit": "Unit",
+      "tableExpected": "Expected",
+      "tableStatus": "Status",
+      "tableActions": "Actions"
     },
     "settings": {
       "title": "Visitor settings",
@@ -228,24 +307,84 @@
     },
     "admin": {
       "title": "Visitors",
-      "subtitle": "Live visitor log and overnight abuse prevention.",
+      "subtitle": "Search, filter, and review every guest pass in one place.",
+      "settingsLink": "Visitor settings",
+      "searchPlaceholder": "Search name, access code, plate, or unit…",
       "tabs": {
-        "live": "Live",
-        "history": "Logs",
-        "overnight": "Overnight policy"
+        "active": "Active",
+        "history": "History"
       },
       "filters": {
-        "all": "All",
-        "overnightPending": "Overnight pending",
-        "urgentOvernight": "Urgent overnight",
-        "holidayReview": "Holiday review"
+        "allStatuses": "All statuses",
+        "allUnits": "All units",
+        "fromDate": "From",
+        "toDate": "To",
+        "clearDates": "Clear dates"
       },
-      "overnightTable": {
+      "stats": {
+        "onSite": "On site now",
+        "expectedToday": "Expected today",
+        "checkInsToday": "Check-ins today",
+        "walkInsToday": "Walk-ins today",
+        "pendingOvernight": "Pending overnight",
+        "pendingOwner": "Awaiting owner"
+      },
+      "table": {
+        "guest": "Guest",
         "unit": "Unit",
-        "owners": "Owners",
-        "thisMonth": "This month",
+        "when": "When",
+        "details": "Details",
+        "carPlate": "Car plate",
+        "noPlate": "—",
         "status": "Status",
-        "actions": "Actions"
+        "actions": "Actions",
+        "management": "Management",
+        "managementHint": "Overnight approvals and plate mismatch reviews appear in Management when needed. Most visitors require no action.",
+        "office": "Management office",
+        "driveIn": "Drive-in",
+        "walkIn": "Walk in",
+        "plate": "Car plate {plate}",
+        "code": "Code {code}",
+        "showing": "Showing {from}–{to} of {total}",
+        "prev": "Previous",
+        "next": "Next"
+      },
+      "status": {
+        "PENDING_OWNER_APPROVAL": "Awaiting owner",
+        "PENDING_MANAGEMENT_APPROVAL": "Needs approval",
+        "APPROVED": "Approved",
+        "REJECTED": "Declined",
+        "CHECKED_IN": "On site",
+        "CHECKED_OUT": "Checked out",
+        "EXPIRED": "Expired",
+        "CANCELLED": "Cancelled"
+      },
+      "visitType": {
+        "PRE_REG": "Pre-registered",
+        "WALKIN_UNIT": "Walk-in",
+        "WALKIN_OFFICE": "Office visit"
+      },
+      "badges": {
+        "overnight": "Overnight",
+        "urgent": "Urgent",
+        "holidayReview": "Holiday review",
+        "driveIn": "Drive-in",
+        "plateMismatch": "Plate mismatch"
+      },
+      "actions": {
+        "approveOvernight": "Approve overnight",
+        "flagMismatch": "Flag plate mismatch",
+        "approveSuccess": "Overnight visit approved",
+        "flagSuccess": "Plate mismatch flagged",
+        "flagPrompt": "Mismatch reason (optional)"
+      },
+      "empty": {
+        "activeTitle": "No active visitors",
+        "activeDesc": "Approved passes, walk-ins, and guests on site appear here.",
+        "historyTitle": "No past visits",
+        "historyDesc": "Checked-out, expired, and cancelled visits are logged here.",
+        "filteredTitle": "No matches",
+        "filteredDesc": "Try adjusting your search or filters."
       }
     }
   }

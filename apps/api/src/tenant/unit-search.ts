@@ -1,8 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import {
-  normalizeUnitSearchTerm,
-  parseCompositeUnitLabel,
-} from '@smartresidence/shared-types';
+import { normalizeUnitSearchTerm, parseCompositeUnitLabel } from '@smartresidence/shared-types';
 
 export { normalizeUnitSearchTerm, parseCompositeUnitLabel };
 
@@ -48,10 +45,7 @@ export function buildUnitSearchOrConditions(term: string): Prisma.UnitWhereInput
   return conditions;
 }
 
-export function buildUnitListWhere(
-  condoId: string,
-  search?: string,
-): Prisma.UnitWhereInput {
+export function buildUnitListWhere(condoId: string, search?: string): Prisma.UnitWhereInput {
   const term = search?.trim();
   if (!term) return { condoId };
   const normalized = normalizeUnitSearchTerm(term);

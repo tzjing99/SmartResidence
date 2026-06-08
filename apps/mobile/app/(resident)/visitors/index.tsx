@@ -1,5 +1,6 @@
 import {
   useApproveVisitor,
+  useCancelVisitor,
   useCreateFavouriteVisitor,
   useCreateVisitor,
   useDeleteFavouriteVisitor,
@@ -11,15 +12,18 @@ import {
 import type { FavouriteVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
 import {
   canOneClickPreRegFromVisitor,
+  canOwnerCancelVisitor,
   defaultExpectedArrival,
   favouriteToPreRegParams,
+  formatMalaysiaPhoneDisplay,
+  visitorStatusLabel,
+  visitorToCreateInput,
   visitorToPreRegParams,
-  VisitorPurpose,
 } from '@smartresidence/shared-types';
 import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { api } from '../../../src/lib/api';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
@@ -32,7 +36,7 @@ function liveTabLabel(count: number): string {
 
 export default function VisitorsScreen() {
   const router = useRouter();
-  const { contentMaxWidth, horizontalPadding } = useTabletLayout();
+  const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
   const [tab, setTab] = useState<VisitorTab>('upcoming');
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
@@ -131,6 +135,7 @@ export default function VisitorsScreen() {
             unitId={unit?.id}
             items={(visitors.data?.items ?? []) as Visitor[]}
             isLoading={listLoading}
+            twoColumn={twoColumn}
           />
         )}
       </View>
@@ -143,16 +148,67 @@ function VisitorsTab({
   unitId,
   items,
   isLoading,
+  twoColumn,
 }: {
   tab: VisitorListView;
   unitId?: string;
   items: Visitor[];
   isLoading: boolean;
+  twoColumn?: boolean;
 }) {
   const router = useRouter();
   const approve = useApproveVisitor(api);
   const reject = useRejectVisitor(api);
   const create = useCreateVisitor(api);
+  const cancelPass = useCancelVisitor(api);
+  const [inviteAgainVisitor, setInviteAgainVisitor] = useState<Visitor | null>(null);
+  const [inviteExpectedAt, setInviteExpectedAt] = useState<Date>(() => defaultExpectedArrival());
+
+  function openInviteAgain(v: Visitor) {
+    if (!canOneClickPreRegFromVisitor(v)) {
+      const qs = new URLSearchParams(visitorToPreRegParams(v)).toString();
+      router.push(`/(resident)/visitors/new?${qs}` as Href);
+      return;
+    }
+    setInviteExpectedAt(defaultExpectedArrival());
+    setInviteAgainVisitor(v);
+  }
+
+  async function confirmInviteAgain() {
+    if (!unitId || !inviteAgainVisitor) return;
+    try {
+      const created = await create.mutateAsync(
+        visitorToCreateInput(inviteAgainVisitor, unitId, inviteExpectedAt),
+      );
+      setInviteAgainVisitor(null);
+      router.push(`/(resident)/visitors/${created.id}` as Href);
+    } catch (err) {
+      Alert.alert('Could not invite again', (err as Error).message);
+      const qs = new URLSearchParams(visitorToPreRegParams(inviteAgainVisitor)).toString();
+      setInviteAgainVisitor(null);
+      router.push(`/(resident)/visitors/new?${qs}` as Href);
+    }
+  }
+
+  function promptCancelPass(v: Visitor) {
+    Alert.alert(
+      'Cancel this visitor pass?',
+      'The access code will stop working immediately. Your guest will not be able to check in.',
+      [
+        { text: 'Keep pass', style: 'cancel' },
+        {
+          text: 'Cancel pass',
+          style: 'destructive',
+          onPress: () => {
+            if (!unitId) return;
+            void cancelPass
+              .mutateAsync({ visitorId: v.id, unitId })
+              .catch((err) => Alert.alert('Could not cancel', (err as Error).message));
+          },
+        },
+      ],
+    );
+  }
 
   async function onApprove(id: string) {
     try {
@@ -169,35 +225,6 @@ function VisitorsTab({
       Alert.alert('Rejected', 'Guard has been notified.');
     } catch (err) {
       Alert.alert('Could not reject', (err as Error).message);
-    }
-  }
-
-  async function onInviteAgain(v: Visitor) {
-    if (!unitId) return;
-    if (!canOneClickPreRegFromVisitor(v)) {
-      const qs = new URLSearchParams(visitorToPreRegParams(v)).toString();
-      router.push(`/(resident)/visitors/new?${qs}` as Href);
-      return;
-    }
-    const entryMode = v.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
-    const purposeParsed = VisitorPurpose.safeParse(v.purpose);
-    try {
-      const created = await create.mutateAsync({
-        unitId,
-        name: v.name,
-        phone: v.phone!.trim(),
-        phoneCountryCode: v.phoneCountryCode ?? '+60',
-        purpose: purposeParsed.success ? purposeParsed.data : 'VISITOR',
-        entryMode,
-        vehiclePlate: v.vehiclePlate?.trim() || undefined,
-        expectedAt: defaultExpectedArrival(),
-        overnight: false,
-      });
-      router.push(`/(resident)/visitors/${created.id}` as Href);
-    } catch (err) {
-      Alert.alert('Could not invite again', (err as Error).message);
-      const qs = new URLSearchParams(visitorToPreRegParams(v)).toString();
-      router.push(`/(resident)/visitors/new?${qs}` as Href);
     }
   }
 
@@ -227,101 +254,201 @@ function VisitorsTab({
   }
 
   return (
-    <>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
       {items.map((v) => (
-        <Pressable
+        <View
           key={v.id}
-          onPress={() => {
-            if (tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED') {
-              router.push(`/(resident)/visitors/${v.id}` as Href);
-            }
+          style={{
+            width: twoColumn ? '48%' : '100%',
+            flexGrow: 1,
+            minWidth: twoColumn ? 280 : undefined,
           }}
-          disabled={!(tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED')}
         >
-          <Card>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-              }}
-            >
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text style={{ fontWeight: '600' }}>{v.name}</Text>
-                <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                  {tab === 'live'
-                    ? 'On site now'
-                    : tab === 'history' && v.status === 'CHECKED_OUT'
-                      ? 'Visited'
-                      : new Date(v.expectedAt).toLocaleString()}
-                </Text>
-                {v.accessCode && tab === 'upcoming' ? (
-                  <Text style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}>
-                    {v.accessCode}
+          <Pressable
+            onPress={() => {
+              if (tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED') {
+                router.push(`/(resident)/visitors/${v.id}` as Href);
+              }
+            }}
+            disabled={!(tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED')}
+          >
+            <Card>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}
+              >
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={{ fontWeight: '600' }}>{v.name}</Text>
+                  <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
+                    {tab === 'live'
+                      ? 'On site now'
+                      : tab === 'history' && v.status === 'CHECKED_OUT'
+                        ? 'Visited'
+                        : new Date(v.expectedAt).toLocaleString()}
                   </Text>
-                ) : null}
-                {tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED' ? (
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: palette.coralPrimary,
-                      fontWeight: '600',
-                      marginTop: 6,
-                    }}
-                  >
-                    View pass →
-                  </Text>
-                ) : null}
-                <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  <Pill
-                    tone={
-                      v.status === 'CHECKED_IN'
-                        ? 'success'
-                        : v.status === 'PENDING_OWNER_APPROVAL' ||
-                            v.status === 'PENDING_MANAGEMENT_APPROVAL'
-                          ? 'warning'
-                          : v.status === 'CANCELLED' ||
-                              v.status === 'REJECTED' ||
-                              v.status === 'EXPIRED'
-                            ? 'danger'
-                            : 'primary'
-                    }
-                    label={v.status.toLowerCase().replace(/_/g, ' ')}
-                  />
-                  {v.urgentOvernight ? <Pill tone="warning" label="Urgent" /> : null}
-                </View>
-                {v.status === 'PENDING_OWNER_APPROVAL' ? (
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
-                    <Button title="Approve" size="sm" onPress={() => onApprove(v.id)} />
-                    <Button
-                      title="Reject"
-                      size="sm"
-                      variant="secondary"
-                      onPress={() => onReject(v.id)}
+                  {v.accessCode && tab === 'upcoming' ? (
+                    <Text
+                      style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}
+                    >
+                      {v.accessCode}
+                    </Text>
+                  ) : null}
+                  {tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED' ? (
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: palette.coralPrimary,
+                        fontWeight: '600',
+                        marginTop: 6,
+                      }}
+                    >
+                      View pass →
+                    </Text>
+                  ) : null}
+                  <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    <Pill
+                      tone={
+                        v.status === 'CHECKED_IN'
+                          ? 'success'
+                          : v.status === 'PENDING_OWNER_APPROVAL' ||
+                              v.status === 'PENDING_MANAGEMENT_APPROVAL'
+                            ? 'warning'
+                            : v.status === 'CANCELLED' ||
+                                v.status === 'REJECTED' ||
+                                v.status === 'EXPIRED'
+                              ? 'danger'
+                              : 'primary'
+                      }
+                      label={visitorStatusLabel(v.status)}
                     />
+                    {v.urgentOvernight ? <Pill tone="warning" label="Urgent" /> : null}
                   </View>
-                ) : tab === 'history' &&
+                  {v.status === 'PENDING_OWNER_APPROVAL' ? (
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+                      <Button title="Approve" size="sm" onPress={() => onApprove(v.id)} />
+                      <Button
+                        title="Reject"
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => onReject(v.id)}
+                      />
+                    </View>
+                  ) : null}
+                  {tab === 'upcoming' && canOwnerCancelVisitor(v) ? (
+                    <View style={{ marginTop: 12 }}>
+                      <Button
+                        title="Cancel pass"
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => promptCancelPass(v)}
+                      />
+                    </View>
+                  ) : null}
+                  {tab === 'history' &&
                   (v.status === 'CHECKED_OUT' || v.visitType === 'PRE_REG') ? (
-                  <View style={{ marginTop: 10 }}>
-                    <Button
-                      title="Invite again"
-                      size="sm"
-                      variant="secondary"
-                      onPress={() => void onInviteAgain(v)}
-                    />
+                    <View
+                      style={{
+                        marginTop: 12,
+                        paddingTop: 12,
+                        borderTopWidth: 1,
+                        borderTopColor: palette.borderLight,
+                      }}
+                    >
+                      <Button
+                        title="Invite again"
+                        size="sm"
+                        variant="soft-sky"
+                        style={{ width: '100%' }}
+                        onPress={() => openInviteAgain(v)}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+                {tab === 'upcoming' && (v.qrPayload || v.qrCode) ? (
+                  <View style={{ borderRadius: radius.md, padding: 6, backgroundColor: '#fff' }}>
+                    <QRCode value={v.qrPayload ?? v.qrCode ?? ''} size={80} />
                   </View>
                 ) : null}
               </View>
-              {tab === 'upcoming' && (v.qrPayload || v.qrCode) ? (
-                <View style={{ borderRadius: radius.md, padding: 6, backgroundColor: '#fff' }}>
-                  <QRCode value={v.qrPayload ?? v.qrCode ?? ''} size={80} />
-                </View>
-              ) : null}
-            </View>
-          </Card>
-        </Pressable>
+            </Card>
+          </Pressable>
+        </View>
       ))}
-    </>
+
+      <Modal
+        visible={inviteAgainVisitor !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInviteAgainVisitor(null)}
+      >
+        <Pressable
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+          onPress={() => setInviteAgainVisitor(null)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: radius.xl,
+              padding: 20,
+              gap: 16,
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={{ fontSize: 18, fontWeight: '700' }}>Invite this visitor again?</Text>
+            {inviteAgainVisitor ? (
+              <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
+                {inviteAgainVisitor.name}
+                {(() => {
+                  const phone = formatMalaysiaPhoneDisplay(
+                    inviteAgainVisitor.phone,
+                    inviteAgainVisitor.phoneCountryCode,
+                  );
+                  return phone ? ` · ${phone}` : '';
+                })()}
+              </Text>
+            ) : null}
+            <View style={{ gap: 6 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600' }}>Which visit session?</Text>
+              <TextInput
+                value={
+                  inviteExpectedAt instanceof Date && !Number.isNaN(inviteExpectedAt.getTime())
+                    ? inviteExpectedAt.toISOString().slice(0, 16).replace('T', ' ')
+                    : ''
+                }
+                onChangeText={(v) => {
+                  const parsed = new Date(v.replace(' ', 'T'));
+                  if (!Number.isNaN(parsed.getTime())) setInviteExpectedAt(parsed);
+                }}
+                style={inputStyle}
+                placeholder="YYYY-MM-DD HH:mm"
+              />
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+              <Button
+                title="Cancel"
+                size="sm"
+                variant="secondary"
+                onPress={() => setInviteAgainVisitor(null)}
+              />
+              <Button
+                title="Send invite"
+                size="sm"
+                loading={create.isPending}
+                onPress={() => void confirmInviteAgain()}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
@@ -417,7 +544,7 @@ function FavouritesTab({
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '600' }}>{fav.name}</Text>
                 <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                  {[fav.phoneCountryCode, fav.phone, fav.vehiclePlate]
+                  {[formatMalaysiaPhoneDisplay(fav.phone, fav.phoneCountryCode), fav.vehiclePlate]
                     .filter(Boolean)
                     .join(' · ') || 'No details'}
                 </Text>

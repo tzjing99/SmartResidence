@@ -1,7 +1,7 @@
 import {
+  type UnitSearchItem,
   formatUnitLabel,
   normalizeUnitSearchTerm,
-  type UnitSearchItem,
 } from '@smartresidence/shared-types';
 import { palette, radius } from '@smartresidence/ui-mobile';
 import { useQuery } from '@tanstack/react-query';

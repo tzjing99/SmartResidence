@@ -182,7 +182,7 @@ function VisitorListPanel({
   async function onApprove(id: string) {
     try {
       await approve.mutateAsync(id);
-      toast.success('Visitor approved — guard may check them in');
+      toast.success(t('visitors.approveSuccess'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -191,7 +191,7 @@ function VisitorListPanel({
   async function onReject(id: string) {
     try {
       await reject.mutateAsync({ visitorId: id });
-      toast.success('Visitor rejected');
+      toast.success(t('visitors.rejectSuccess'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -212,7 +212,7 @@ function VisitorListPanel({
       tab === 'upcoming'
         ? {
             title: t('visitors.emptyUpcoming'),
-            description: 'Pre-register a guest or approve a walk-in request.',
+            description: t('visitors.emptyUpcomingHint'),
             action: (
               <Link href="/visitors/new">
                 <Button>{t('visitors.preRegister')}</Button>
@@ -226,7 +226,7 @@ function VisitorListPanel({
             }
           : {
               title: t('visitors.emptyHistory'),
-              description: 'Past check-ins, expired passes, and declined walk-ins appear here.',
+              description: t('visitors.emptyHistoryHint'),
             };
     return (
       <EmptyState
@@ -245,12 +245,14 @@ function VisitorListPanel({
             <div className="flex-1">
               <div className="font-medium">{v.name}</div>
               <div className="text-xs sr-muted mt-0.5">
-                {v.visitType === 'WALKIN_UNIT' ? 'Walk-in · ' : ''}
+                {v.visitType === 'WALKIN_UNIT'
+                  ? `${t('visitors.guard.visitTypeWalkInUnit')} · `
+                  : ''}
                 {tab === 'live'
                   ? t('visitors.onSiteNow')
                   : tab === 'history' && v.status === 'CHECKED_OUT'
-                    ? 'Visited'
-                    : `Expected ${new Date(v.expectedAt).toLocaleString()}`}
+                    ? t('visitors.statusLabel.CHECKED_OUT')
+                    : t('visitors.expectedAt', { time: new Date(v.expectedAt).toLocaleString() })}
                 {v.vehiclePlate ? ` · ${v.vehiclePlate}` : ''}
                 {v.purpose ? ` · ${v.purpose}` : ''}
               </div>
@@ -264,7 +266,7 @@ function VisitorListPanel({
               {v.status === 'PENDING_OWNER_APPROVAL' ? (
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" onClick={() => onApprove(v.id)} disabled={approve.isPending}>
-                    Approve
+                    {t('visitors.approve')}
                   </Button>
                   <Button
                     size="sm"
@@ -272,7 +274,7 @@ function VisitorListPanel({
                     onClick={() => onReject(v.id)}
                     disabled={reject.isPending}
                   >
-                    Reject
+                    {t('visitors.reject')}
                   </Button>
                 </div>
               ) : v.visitType === 'PRE_REG' && v.status === 'APPROVED' && tab === 'upcoming' ? (
@@ -280,7 +282,7 @@ function VisitorListPanel({
                   href={`/visitors/${v.id}`}
                   className="text-sm text-coral-500 hover:underline mt-2 inline-block"
                 >
-                  View pass →
+                  {t('visitors.viewPass')} →
                 </Link>
               ) : null}
             </div>
@@ -333,7 +335,7 @@ function VisitorListPanel({
             : undefined
         }
         confirmLabel={t('visitors.inviteAgainConfirm')}
-        cancelLabel="Cancel"
+        cancelLabel={t('actions.cancel')}
         onConfirm={() => void confirmInviteAgain()}
         onCancel={() => setInviteAgainVisitor(null)}
         confirmPending={create.isPending}
@@ -358,7 +360,7 @@ function VisitorListPanel({
         title={t('visitors.cancelPassConfirmTitle')}
         description={t('visitors.cancelPassConfirmBody')}
         confirmLabel={t('visitors.cancelPassConfirm')}
-        cancelLabel="Cancel"
+        cancelLabel={t('actions.cancel')}
         onConfirm={() => void confirmCancelPass()}
         onCancel={() => setCancelVisitorTarget(null)}
         confirmPending={cancel.isPending}
@@ -377,6 +379,7 @@ function FavouritesPanel({
   items: FavouriteVisitor[];
   isLoading: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const createFav = useCreateFavouriteVisitor(api);
   const deleteFav = useDeleteFavouriteVisitor(api);
@@ -401,7 +404,7 @@ function FavouritesPanel({
       setPhone('');
       setVehiclePlate('');
       setShowForm(false);
-      toast.success('Favourite saved');
+      toast.success(t('visitors.favourites.savedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -409,7 +412,7 @@ function FavouritesPanel({
 
   function onPreFillFromFavourite(fav: FavouriteVisitor) {
     if (!fav.phone?.trim()) {
-      toast.error('Add a phone number to this favourite for quick passes');
+      toast.error(t('visitors.favourites.needPhone'));
       return;
     }
     const params = new URLSearchParams(favouriteToPreRegParams(fav));
@@ -420,7 +423,7 @@ function FavouritesPanel({
     if (!unitId) return;
     try {
       await deleteFav.mutateAsync({ id, unitId });
-      toast.success('Removed from favourites');
+      toast.success(t('visitors.favourites.removedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -439,10 +442,10 @@ function FavouritesPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm sr-muted">Saved profiles for one-tap pre-registration.</p>
+        <p className="text-sm sr-muted">{t('visitors.favourites.blurb')}</p>
         <Button size="sm" variant="secondary" onClick={() => setShowForm((v) => !v)}>
           <Heart className="size-4" />
-          {showForm ? 'Cancel' : 'Add favourite'}
+          {showForm ? t('actions.cancel') : t('visitors.favourites.addCta')}
         </Button>
       </div>
 
@@ -450,7 +453,7 @@ function FavouritesPanel({
         <Card>
           <form className="flex flex-col gap-3" onSubmit={onSaveFavourite}>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="fav-name">Name</Label>
+              <Label htmlFor="fav-name">{t('visitors.favourites.nameLabel')}</Label>
               <Input
                 id="fav-name"
                 value={name}
@@ -460,7 +463,7 @@ function FavouritesPanel({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="fav-phone">Phone</Label>
+                <Label htmlFor="fav-phone">{t('visitors.favourites.phoneLabel')}</Label>
                 <Input
                   id="fav-phone"
                   value={phone}
@@ -469,7 +472,7 @@ function FavouritesPanel({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="fav-plate">Plate</Label>
+                <Label htmlFor="fav-plate">{t('visitors.favourites.plateLabel')}</Label>
                 <Input
                   id="fav-plate"
                   value={vehiclePlate}
@@ -479,7 +482,7 @@ function FavouritesPanel({
             </div>
             <div className="flex justify-end">
               <Button type="submit" disabled={createFav.isPending}>
-                Save favourite
+                {t('visitors.favourites.saveCta')}
               </Button>
             </div>
           </form>
@@ -488,12 +491,12 @@ function FavouritesPanel({
 
       {items.length === 0 ? (
         <EmptyState
-          title="No favourites yet"
-          description="Save frequent guests — family, cleaners, regular deliveries — for quick passes."
+          title={t('visitors.favourites.emptyTitle')}
+          description={t('visitors.favourites.emptyDesc')}
           action={
             <Button variant="secondary" onClick={() => setShowForm(true)}>
               <Star className="size-4" />
-              Add your first favourite
+              {t('visitors.favourites.emptyCta')}
             </Button>
           }
         />
@@ -506,12 +509,12 @@ function FavouritesPanel({
                   <div className="font-medium">{fav.name}</div>
                   <div className="text-xs sr-muted mt-0.5">
                     {[fav.phone, fav.vehiclePlate].filter(Boolean).join(' · ') ||
-                      'No contact details'}
+                      t('visitors.favourites.noContact')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Button size="sm" onClick={() => onPreFillFromFavourite(fav)}>
-                    Pre-register
+                    {t('visitors.preRegister')}
                   </Button>
                   <Button
                     size="sm"

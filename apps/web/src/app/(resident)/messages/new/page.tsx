@@ -79,7 +79,7 @@ export default function NewMessagePage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!subject.trim() || !body.trim()) {
-      toast.error('Please add a subject and a message');
+      toast.error(t('messages.validationToast'));
       return;
     }
     try {
@@ -91,7 +91,7 @@ export default function NewMessagePage() {
         attachmentIds: attachmentIds.length ? attachmentIds : undefined,
       });
       photoUploadRef.current?.reset();
-      toast.success('Message sent to management');
+      toast.success(t('messages.sentToast'));
       router.push(`/messages/${thread.id}`);
     } catch (err) {
       toast.error((err as Error).message);
@@ -102,7 +102,7 @@ export default function NewMessagePage() {
     if (!deflection) return;
     try {
       await helpful.mutateAsync(deflection.articleId);
-      toast.success('Glad we could help — no thread opened');
+      toast.success(t('messages.deflectHelpfulToast'));
       router.push('/messages');
     } catch (err) {
       toast.error((err as Error).message);
@@ -111,19 +111,17 @@ export default function NewMessagePage() {
 
   return (
     <div className="max-w-xl">
-      <h2 className="sr-section-title mb-1">New message</h2>
-      <p className="sr-muted mb-6">
-        Pick a category so we route it to the right team and apply the correct SLA.
-      </p>
+      <h2 className="sr-section-title mb-1">{t('messages.new')}</h2>
+      <p className="sr-muted mb-6">{t('messages.newSubtitle')}</p>
 
       {deflection && !dismissedDeflection ? (
         <Card className="mb-4 border-emerald-500/40 bg-emerald-500/5">
           <div className="flex items-start gap-2 mb-2">
             <Lightbulb className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <div className="font-medium text-sm">This FAQ might answer your question</div>
+              <div className="font-medium text-sm">{t('messages.deflectTitle')}</div>
               <Badge tone="success" className="mt-1">
-                Strong match
+                {t('messages.deflectStrongMatch')}
               </Badge>
             </div>
           </div>
@@ -134,7 +132,7 @@ export default function NewMessagePage() {
           <div className="flex flex-wrap gap-2 mt-4">
             <Button type="button" onClick={onAnswered} disabled={helpful.isPending}>
               <CheckCircle2 className="size-4" />
-              This answered my question
+              {t('messages.deflectAnswered')}
             </Button>
             <Button
               type="button"
@@ -144,7 +142,7 @@ export default function NewMessagePage() {
                 setDeflection(null);
               }}
             >
-              Still need help — send message
+              {t('messages.deflectStillNeedHelp')}
             </Button>
           </div>
         </Card>
@@ -153,7 +151,7 @@ export default function NewMessagePage() {
       <Card>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="subject">{t('messages.subject')}</Label>
             <Input
               id="subject"
               value={subject}
@@ -161,11 +159,11 @@ export default function NewMessagePage() {
                 setSubject(e.target.value);
                 setDismissedDeflection(false);
               }}
-              placeholder="e.g. Water leak in the kitchen ceiling"
+              placeholder={t('messages.subjectPlaceholder')}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="category">{t('messages.category')}</Label>
             <select
               id="category"
               className="h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-4 text-sm focus:border-[rgb(var(--sr-coral))] focus:ring-2 focus:ring-[rgb(var(--sr-coral))]/30"
@@ -180,7 +178,7 @@ export default function NewMessagePage() {
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="body">Message</Label>
+            <Label htmlFor="body">{t('messages.bodyLabel')}</Label>
             <Textarea
               id="body"
               rows={6}
@@ -189,7 +187,7 @@ export default function NewMessagePage() {
                 setBody(e.target.value);
                 setDismissedDeflection(false);
               }}
-              placeholder="Describe your question or issue…"
+              placeholder={t('messages.bodyPlaceholder')}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -217,10 +215,10 @@ export default function NewMessagePage() {
           </div>
           <div className="flex justify-end gap-3 mt-2">
             <Button type="button" variant="ghost" onClick={() => router.back()}>
-              Cancel
+              {t('actions.cancel')}
             </Button>
             <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? 'Sending…' : 'Send message'}
+              {create.isPending ? t('messages.sending') : t('messages.send')}
             </Button>
           </div>
         </form>

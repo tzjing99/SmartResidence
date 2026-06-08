@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -17,6 +18,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
 export default function VisitorPassPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const visitorId = params.id;
   const units = useMyUnits(api);
@@ -42,14 +44,14 @@ export default function VisitorPassPage() {
       qrPngDataUrl: qr.data?.png,
     });
     if (result === 'shared') {
-      toast.success('Pass shared');
+      toast.success(t('visitors.pass.sharedToast'));
       return;
     }
     try {
       await copyVisitorAccessCode(visitor.accessCode);
-      toast.success('Access code copied — share the QR below');
+      toast.success(t('visitors.pass.copiedShareToast'));
     } catch {
-      toast.message('Copy the code or download the QR to share');
+      toast.message(t('visitors.pass.copyFallbackToast'));
     }
     setShareFallbackOpen(true);
   }
@@ -58,7 +60,7 @@ export default function VisitorPassPage() {
     if (!visitor?.accessCode) return;
     try {
       await copyVisitorAccessCode(visitor.accessCode);
-      toast.success('Access code copied');
+      toast.success(t('visitors.pass.copiedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -71,7 +73,7 @@ export default function VisitorPassPage() {
         className="inline-flex items-center gap-2 text-sm sr-muted hover:underline"
       >
         <ArrowLeft className="size-4" />
-        Back to visitors
+        {t('visitors.pass.back')}
       </Link>
 
       {!visitor ? (
@@ -81,10 +83,10 @@ export default function VisitorPassPage() {
           <header>
             <h2 className="sr-section-title">{visitor.name}</h2>
             <p className="sr-muted text-sm mt-1">
-              Expected {new Date(visitor.expectedAt).toLocaleString()}
+              {t('visitors.expectedAt', { time: new Date(visitor.expectedAt).toLocaleString() })}
             </p>
             <Badge tone={visitor.status === 'APPROVED' ? 'primary' : 'neutral'} className="mt-2">
-              {visitor.status.toLowerCase().replace(/_/g, ' ')}
+              {t(`visitors.statusLabel.${visitor.status}`)}
             </Badge>
           </header>
 
@@ -93,8 +95,8 @@ export default function VisitorPassPage() {
               <AlertTriangle className="size-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-sm">
                 {visitor.urgentOvernight
-                  ? 'Urgent overnight — please visit the management office before your guest arrives. Management will issue the pass after review.'
-                  : 'Submitted for management approval. You will receive the access code once approved (within 1 working day).'}
+                  ? t('visitors.pass.pendingMgmtUrgent')
+                  : t('visitors.pass.pendingMgmt')}
               </p>
             </Card>
           ) : null}
@@ -102,21 +104,20 @@ export default function VisitorPassPage() {
           {visitor.pendingManagementReview && visitor.status === 'APPROVED' ? (
             <Card className="flex gap-3 border-[rgb(var(--sr-primary)/0.25)] bg-[rgb(var(--sr-primary)/0.05)] p-4">
               <AlertTriangle className="size-5 shrink-0 text-[rgb(var(--sr-primary))]" />
-              <p className="text-sm">
-                Auto-approved for tonight. Management will review this overnight stay on the next
-                working day. Your pass is valid from the expected arrival time.
-              </p>
+              <p className="text-sm">{t('visitors.pass.autoApproved')}</p>
             </Card>
           ) : null}
 
           {visitor.accessCode ? (
             <Card className="text-center py-8">
-              <p className="text-xs uppercase tracking-widest sr-muted mb-2">Access code</p>
+              <p className="text-xs uppercase tracking-widest sr-muted mb-2">
+                {t('visitors.pass.accessCode')}
+              </p>
               <p className="font-mono text-4xl font-bold tracking-[0.3em]">{visitor.accessCode}</p>
               <p className="text-xs sr-muted mt-3">
                 {visitor.overnight
-                  ? 'Active from expected arrival time. Tell the guard this code or show the QR below.'
-                  : 'Tell the guard this code or show the QR below.'}
+                  ? t('visitors.pass.codeHintOvernight')
+                  : t('visitors.pass.codeHint')}
               </p>
             </Card>
           ) : null}
@@ -125,8 +126,14 @@ export default function VisitorPassPage() {
             <Skeleton className="h-64" />
           ) : qr.data?.png ? (
             <Card className="flex flex-col items-center gap-3 py-6">
-              <Image src={qr.data.png} alt="Visitor QR pass" width={256} height={256} unoptimized />
-              <p className="text-xs sr-muted">Scan at the guardhouse</p>
+              <Image
+                src={qr.data.png}
+                alt={t('visitors.pass.qrAlt')}
+                width={256}
+                height={256}
+                unoptimized
+              />
+              <p className="text-xs sr-muted">{t('visitors.pass.scanHint')}</p>
             </Card>
           ) : null}
 
@@ -134,7 +141,7 @@ export default function VisitorPassPage() {
             <div className="flex flex-col gap-3 pt-2">
               <Button size="lg" className="w-full" onClick={onShare}>
                 <Share2 className="size-4" />
-                Share pass
+                {t('visitors.pass.share')}
               </Button>
               <button
                 type="button"
@@ -142,7 +149,7 @@ export default function VisitorPassPage() {
                 className="text-sm text-[rgb(var(--sr-coral))] hover:underline self-center inline-flex items-center gap-1.5"
               >
                 <Copy className="size-3.5" />
-                Copy code only
+                {t('visitors.pass.copyOnly')}
               </button>
             </div>
           ) : null}
@@ -160,20 +167,24 @@ export default function VisitorPassPage() {
               type="button"
               onClick={() => setShareFallbackOpen(false)}
               className="absolute right-3 top-3 rounded-lg p-1 hover:bg-[rgb(var(--sr-border))]/50"
-              aria-label="Close"
+              aria-label={t('visitors.pass.close')}
             >
               <X className="size-4" />
             </button>
             <div>
               <h3 id="share-fallback-title" className="font-semibold">
-                Share visitor pass
+                {t('visitors.pass.shareDialogTitle')}
               </h3>
-              <p className="text-sm sr-muted mt-1">
-                Access code copied. Download the QR or copy the code again to send to your guest.
-              </p>
+              <p className="text-sm sr-muted mt-1">{t('visitors.pass.shareDialogBody')}</p>
             </div>
             <div className="flex justify-center py-2">
-              <Image src={qr.data.png} alt="Visitor QR pass" width={200} height={200} unoptimized />
+              <Image
+                src={qr.data.png}
+                alt={t('visitors.pass.qrAlt')}
+                width={200}
+                height={200}
+                unoptimized
+              />
             </div>
             <p className="font-mono text-center text-2xl font-bold tracking-[0.25em]">
               {visitor.accessCode}
@@ -181,7 +192,7 @@ export default function VisitorPassPage() {
             <div className="flex flex-col gap-2">
               <Button onClick={onCopyCode}>
                 <Copy className="size-4" />
-                Copy code
+                {t('visitors.pass.copyCode')}
               </Button>
               <Button
                 variant="secondary"
@@ -192,7 +203,7 @@ export default function VisitorPassPage() {
                 }}
               >
                 <Download className="size-4" />
-                Download QR
+                {t('visitors.pass.downloadQr')}
               </Button>
             </div>
           </Card>

@@ -2,6 +2,7 @@
 
 import { SlaChip } from '@/components/sla-chip';
 import { ThreadMessageList } from '@/components/thread-message-list';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
 import { toast } from '@/lib/toast';
@@ -28,6 +29,7 @@ import { useParams } from 'next/navigation';
 import * as React from 'react';
 
 export default function ResidentThreadPage() {
+  const tr = useT();
   const params = useParams<{ id: string }>();
   const id = params.id;
   const me = useMe(api);
@@ -65,7 +67,7 @@ export default function ResidentThreadPage() {
     }
     try {
       await confirm.mutateAsync({ id, confirmed: true });
-      toast.success("Thanks — we'll close this out.");
+      toast.success(tr('helpdesk.resident.toastConfirmed'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -73,7 +75,7 @@ export default function ResidentThreadPage() {
 
   async function submitReject() {
     if (!rejectReason.trim() || !rejectExpectation.trim()) {
-      toast.error("Please tell us what's still wrong and what you need");
+      toast.error(tr('helpdesk.resident.toastRejectValidation'));
       return;
     }
     try {
@@ -83,7 +85,7 @@ export default function ResidentThreadPage() {
         rejectReason: rejectReason.trim(),
         rejectExpectation: rejectExpectation.trim(),
       });
-      toast.success('Sent back to management');
+      toast.success(tr('messages.reopenSentToast'));
       setRejectMode(false);
       setRejectReason('');
       setRejectExpectation('');
@@ -94,12 +96,12 @@ export default function ResidentThreadPage() {
 
   async function submitAppeal() {
     if (appealReason.trim().length < 10) {
-      toast.error('Please provide a reason (at least 10 characters)');
+      toast.error(tr('messages.appealReasonValidation'));
       return;
     }
     try {
       await appeal.mutateAsync({ id, reason: appealReason.trim() });
-      toast.success('Ticket reopened — management will take another look');
+      toast.success(tr('helpdesk.resident.toastReopened'));
       setAppealMode(false);
       setAppealReason('');
     } catch (err) {
@@ -141,7 +143,7 @@ export default function ResidentThreadPage() {
 
   if (thread.isLoading) return <Skeleton className="h-96" />;
   const t = thread.data;
-  if (!t) return <div className="sr-muted text-sm">Conversation not found.</div>;
+  if (!t) return <div className="sr-muted text-sm">{tr('messages.notFound')}</div>;
 
   const closed = t.status === 'CLOSED';
   const resolved = t.status === 'RESOLVED';
@@ -153,7 +155,7 @@ export default function ResidentThreadPage() {
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
       <Link href="/messages" className="inline-flex items-center gap-1 text-sm sr-muted w-fit">
-        <ArrowLeft className="size-4" /> All messages
+        <ArrowLeft className="size-4" /> {tr('messages.allMessages')}
       </Link>
 
       <header className="flex flex-col gap-2">
@@ -184,7 +186,7 @@ export default function ResidentThreadPage() {
                   }}
                 >
                   <Download className="size-4 shrink-0" />
-                  Download PDF
+                  {tr('messages.downloadPdf')}
                 </button>
               </div>
             ) : null}
@@ -199,7 +201,9 @@ export default function ResidentThreadPage() {
           />
           <span className="text-xs sr-muted">{prettyLabel(t.category)}</span>
           {t.assignedTo ? (
-            <span className="text-xs sr-muted">Assigned to {t.assignedTo.name}</span>
+            <span className="text-xs sr-muted">
+              {tr('messages.assignedTo', { name: t.assignedTo.name })}
+            </span>
           ) : null}
         </div>
       </header>
@@ -209,15 +213,13 @@ export default function ResidentThreadPage() {
           <div className="flex items-start gap-2 text-sm">
             <CheckCircle2 className="size-5 text-sky-600 dark:text-sky-400 shrink-0" />
             <div>
-              <div className="font-semibold">
-                Management says this is fixed. Does that match what you see?
-              </div>
+              <div className="font-semibold">{tr('helpdesk.pendingConfirmationResident')}</div>
             </div>
           </div>
           {proposedMsg ? (
             <div className="message-bubble-proposed rounded-xl px-4 py-3 text-sm">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-400 mb-1">
-                Suggested fix
+                {tr('helpdesk.resident.suggestedFix')}
               </div>
               <div className="whitespace-pre-line leading-relaxed">{proposedMsg.body}</div>
             </div>
@@ -225,7 +227,7 @@ export default function ResidentThreadPage() {
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => respondResolution(true)} disabled={confirm.isPending}>
               <CheckCircle2 className="size-4" />
-              Yes, it&apos;s fixed
+              {tr('helpdesk.resident.yesFixed')}
             </Button>
             <Button
               size="sm"
@@ -234,7 +236,7 @@ export default function ResidentThreadPage() {
               disabled={confirm.isPending}
             >
               <XCircle className="size-4" />
-              No, still an issue
+              {tr('helpdesk.resident.stillAnIssue')}
             </Button>
           </div>
         </div>
@@ -242,25 +244,25 @@ export default function ResidentThreadPage() {
 
       {rejectMode ? (
         <Card className="p-4 flex flex-col gap-3">
-          <div className="font-medium text-sm">Tell us what&apos;s still wrong</div>
+          <div className="font-medium text-sm">{tr('helpdesk.resident.rejectHeading')}</div>
           <Textarea
             rows={2}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="What's still not working?"
+            placeholder={tr('helpdesk.resident.rejectReasonPlaceholder')}
           />
           <Textarea
             rows={2}
             value={rejectExpectation}
             onChange={(e) => setRejectExpectation(e.target.value)}
-            placeholder="What would 'fixed' look like for you?"
+            placeholder={tr('helpdesk.resident.rejectExpectationPlaceholder')}
           />
           <div className="flex gap-2">
             <Button size="sm" onClick={submitReject} disabled={confirm.isPending}>
-              Submit
+              {tr('actions.submit')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setRejectMode(false)}>
-              Cancel
+              {tr('actions.cancel')}
             </Button>
           </div>
         </Card>
@@ -269,30 +271,30 @@ export default function ResidentThreadPage() {
       {(resolved || closed) && !appealMode ? (
         <div className="rounded-xl border border-[rgb(var(--sr-border))] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <span className="text-sm sr-muted">
-            {resolved ? 'This thread is resolved.' : 'This conversation is closed.'}
+            {resolved ? tr('messages.resolvedNotice') : tr('messages.closedNotice')}
           </span>
           <Button size="sm" variant="secondary" onClick={() => setAppealMode(true)}>
             <RotateCcw className="size-4" />
-            Reopen this ticket
+            {tr('helpdesk.resident.reopenTicket')}
           </Button>
         </div>
       ) : null}
 
       {appealMode ? (
         <Card className="p-4 flex flex-col gap-3">
-          <div className="font-medium text-sm">What still isn&apos;t fixed?</div>
+          <div className="font-medium text-sm">{tr('helpdesk.resident.whatStillBroken')}</div>
           <Textarea
             rows={3}
             value={appealReason}
             onChange={(e) => setAppealReason(e.target.value)}
-            placeholder="What's still wrong or missing? Tell us in a few words…"
+            placeholder={tr('helpdesk.resident.appealPlaceholder')}
           />
           <div className="flex gap-2">
             <Button size="sm" onClick={submitAppeal} disabled={appeal.isPending}>
-              Reopen this ticket
+              {tr('helpdesk.resident.reopenTicket')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setAppealMode(false)}>
-              Cancel
+              {tr('actions.cancel')}
             </Button>
           </div>
         </Card>
@@ -316,12 +318,12 @@ export default function ResidentThreadPage() {
             rows={3}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Write a reply…"
+            placeholder={tr('messages.reply')}
           />
           <div className="flex justify-end">
             <Button type="submit" disabled={!body.trim()}>
               <Send className="size-4" />
-              Send
+              {tr('actions.send')}
             </Button>
           </div>
         </form>

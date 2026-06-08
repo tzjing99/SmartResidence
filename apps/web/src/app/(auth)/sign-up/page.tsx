@@ -74,7 +74,9 @@ export default function SignUpPage() {
               {...form.register('phone')}
             />
             {form.formState.errors.phone ? (
-              <p className="text-xs text-red-500">{form.formState.errors.phone.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {form.formState.errors.phone.message}
+              </p>
             ) : (
               <p className="text-xs sr-muted">
                 Malaysia mobile — guards may call you for walk-in approvals.
@@ -90,7 +92,9 @@ export default function SignUpPage() {
               {...form.register('password')}
             />
             {form.formState.errors.password ? (
-              <p className="text-xs text-red-500">{form.formState.errors.password.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {form.formState.errors.password.message}
+              </p>
             ) : (
               <p className="text-xs sr-muted">10+ chars, mix of upper/lower/digit.</p>
             )}

@@ -249,7 +249,7 @@ export default function AdminThreadPage() {
               className="relative overflow-hidden rounded-xl border border-sky-200/70 bg-sky-50/60 dark:bg-sky-950/20 dark:border-sky-700/40 pl-4 pr-4 py-3 text-sm flex items-center gap-2 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-sky-500"
               title="Tap a management message below to change which reply counts as the fix."
             >
-              <CheckCircle2 className="size-4 text-sky-600 shrink-0" />
+              <CheckCircle2 className="size-4 text-sky-600 dark:text-sky-400 shrink-0" />
               <span>Waiting for resident to confirm the fix.</span>
             </div>
           ) : null}
@@ -462,7 +462,9 @@ export default function AdminThreadPage() {
 
           {composer === 'abusive' ? (
             <Card className="p-4 flex flex-col gap-2 border-red-200/60">
-              <h3 className="text-sm font-medium text-rose-600">Close as misuse</h3>
+              <h3 className="text-sm font-medium text-red-600 dark:text-red-400">
+                Close as misuse
+              </h3>
               <Textarea
                 rows={3}
                 value={actionNote}
@@ -506,7 +508,7 @@ export default function AdminThreadPage() {
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-[rgb(var(--sr-border))]/40 text-left text-rose-600"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-[rgb(var(--sr-border))]/40 text-left text-red-600 dark:text-red-400"
                     onClick={() => {
                       setMoreOpen(false);
                       setComposer('abusive');

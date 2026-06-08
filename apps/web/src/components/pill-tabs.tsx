@@ -29,7 +29,13 @@ export function PillTabs<T extends string>({
   const groupId = React.useId();
 
   return (
-    <nav aria-label={ariaLabel} className={cn('flex flex-wrap gap-1.5', className)}>
+    <nav
+      aria-label={ariaLabel}
+      className={cn(
+        'flex flex-nowrap sm:flex-wrap gap-1.5 overflow-x-auto max-w-full -mx-1 px-1 pb-0.5 scrollbar-none',
+        className,
+      )}
+    >
       <LayoutGroup id={groupId}>
         {items.map((item) => {
           const active = item.id === value;

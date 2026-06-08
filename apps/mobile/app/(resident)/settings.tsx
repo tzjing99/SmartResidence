@@ -3,10 +3,12 @@ import { AlignRow, AppText, Button, Card, Field, Input, palette } from '@smartre
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Switch, View } from 'react-native';
 import { api } from '../../src/lib/api';
+import { useSignOut } from '../../src/lib/use-sign-out';
 
 export default function SettingsScreen() {
   const prefs = usePreferences(api);
   const save = useUpdatePreferences(api);
+  const { signOut, busy: signingOut } = useSignOut();
 
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [quietEnabled, setQuietEnabled] = useState(false);
@@ -77,6 +79,17 @@ export default function SettingsScreen() {
       </Card>
 
       <Button title={save.isPending ? 'Saving…' : 'Save preferences'} onPress={onSave} />
+      <Button
+        title="Sign out"
+        variant="secondary"
+        loading={signingOut}
+        onPress={() => {
+          Alert.alert('Sign out?', 'You will need to sign in again to continue.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+          ]);
+        }}
+      />
     </ScrollView>
   );
 }

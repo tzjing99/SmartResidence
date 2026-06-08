@@ -1,11 +1,12 @@
 'use client';
 
+import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { NavLinks, PageFade } from '@/components/shell-nav';
 import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
-import { useSignOut } from '@/lib/use-sign-out';
 import { useRoleGuard } from '@/lib/use-role-guard';
+import { useSignOut } from '@/lib/use-sign-out';
 import { useMyCondos } from '@smartresidence/api-client';
 import { ROLE_LABEL } from '@smartresidence/shared-types';
 import {
@@ -132,9 +133,18 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           Sign out
         </button>
       </aside>
-      <main className="flex-1 min-w-0 p-6 md:p-10">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-10 pb-20 md:pb-10">
         <PageFade>{children}</PageFade>
       </main>
+      <MobileTabBar
+        ariaLabel="Management navigation"
+        items={navItems.slice(0, 5).map((item) => ({
+          href: item.href,
+          label: item.label,
+          isActive: (p) =>
+            p === item.href || (item.href !== '/admin' && p.startsWith(`${item.href}/`)),
+        }))}
+      />
     </div>
   );
 }

@@ -93,7 +93,9 @@ export default function SignInPage() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" autoComplete="email" {...form.register('email')} />
             {form.formState.errors.email ? (
-              <p className="text-xs text-red-500">{form.formState.errors.email.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {form.formState.errors.email.message}
+              </p>
             ) : null}
           </div>
           <div className="flex flex-col gap-1.5">

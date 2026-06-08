@@ -74,7 +74,7 @@ function PrioritySlider({
           style={{ left: `${recPct}%`, width: `${accPct - recPct}%` }}
         />
         <div
-          className="absolute inset-y-0 bg-rose-400/50"
+          className="absolute inset-y-0 bg-red-400/50"
           style={{ left: `${accPct}%`, right: 0 }}
         />
       </div>
@@ -382,7 +382,7 @@ export default function HelpdeskSettingsPage() {
       {showRiskyModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <Card className="max-w-md w-full p-5 flex flex-col gap-4">
-            <div className="flex items-start gap-2 text-amber-600">
+            <div className="flex items-start gap-2 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="size-5 shrink-0" />
               <div>
                 <div className="font-semibold">Risky SLA settings</div>

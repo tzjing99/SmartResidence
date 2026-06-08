@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { AlignRow, AppText, Card, palette } from '@smartresidence/ui-mobile';
+import { AlignRow, AppText, Button, Card, palette } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { useSignOut } from '../../src/lib/use-sign-out';
 
 const SECTIONS = [
   {
@@ -20,6 +21,7 @@ const SECTIONS = [
 
 export default function ManagementSettingsScreen() {
   const router = useRouter();
+  const { signOut, busy } = useSignOut();
 
   return (
     <ScrollView
@@ -51,6 +53,17 @@ export default function ManagementSettingsScreen() {
           </Card>
         </Pressable>
       ))}
+      <Button
+        title="Sign out"
+        variant="secondary"
+        loading={busy}
+        onPress={() => {
+          Alert.alert('Sign out?', 'You will need to sign in again to continue.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+          ]);
+        }}
+      />
     </ScrollView>
   );
 }

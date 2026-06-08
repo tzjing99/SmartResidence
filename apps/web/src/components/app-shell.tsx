@@ -1,12 +1,13 @@
 'use client';
 
+import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { NavLinks, PageFade } from '@/components/shell-nav';
 import { api } from '@/lib/api';
 import { resolveActiveHref } from '@/lib/nav';
 import { hasAbility } from '@/lib/roles';
-import { useSignOut } from '@/lib/use-sign-out';
 import { useRoleGuard } from '@/lib/use-role-guard';
+import { useSignOut } from '@/lib/use-sign-out';
 import { useMyCondos } from '@smartresidence/api-client';
 import {
   Bell,
@@ -164,10 +165,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </header>
-        <div className="p-6 md:p-10 max-w-5xl">
+        <div className="p-4 sm:p-6 md:p-10 max-w-5xl pb-20 md:pb-10">
           <PageFade>{children}</PageFade>
         </div>
       </main>
+      <MobileTabBar
+        ariaLabel="Resident navigation"
+        items={navItems.slice(0, 5).map((item) => ({
+          href: item.href,
+          label: item.label,
+          isActive: (p) =>
+            p === item.href || (item.href !== '/dashboard' && p.startsWith(`${item.href}/`)),
+        }))}
+      />
     </div>
   );
 }

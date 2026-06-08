@@ -121,7 +121,7 @@ export default function ProfileSettingsPage() {
                 {...profileForm.register('phone')}
               />
               {profileForm.formState.errors.phone ? (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                   {profileForm.formState.errors.phone.message}
                 </p>
               ) : null}

@@ -1,13 +1,13 @@
 import { useWindowDimensions } from 'react-native';
 
-/** Tablet breakpoints aligned with Airbnb-style wide layouts (600px+). */
+/** Tablet breakpoints aligned with web md (768px+) layouts. */
 export function useTabletLayout() {
   const { width, height } = useWindowDimensions();
-  const isTablet = width >= 600;
+  const isTablet = width >= 768;
   const isLandscape = width > height;
-  const contentMaxWidth = isTablet ? Math.min(768, width * 0.88) : width;
+  const contentMaxWidth = isTablet ? Math.min(960, width * 0.88) : width;
   const horizontalPadding = isTablet ? 32 : 20;
-  const twoColumn = isTablet && isLandscape;
+  const twoColumn = isTablet;
 
   return {
     isTablet,

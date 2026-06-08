@@ -3,7 +3,7 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import type { ApiClient } from '../client';
-import { useMe, useMyCondos } from '../hooks/index';
+import { queryKeys, useMe, useMyCondos } from '../hooks/index';
 import {
   type RealtimeConnectConfig,
   connectRealtime,
@@ -41,15 +41,24 @@ function attachThreadListeners(
   const onSla = (payload: ThreadSocketPayload) => {
     void syncThreadFromSocket(qc, api, payload);
   };
+  const onVisitorUpdate = (payload: { condoId?: string }) => {
+    if (payload.condoId) {
+      qc.invalidateQueries({ queryKey: queryKeys.guardLiveVisitors(payload.condoId) });
+      qc.invalidateQueries({ queryKey: ['visitors', 'condo', payload.condoId] });
+      qc.invalidateQueries({ queryKey: ['visitors', 'unit'] });
+    }
+  };
 
   socket.on('thread:message', onMessage);
   socket.on('thread:update', onUpdate);
   socket.on('thread:sla', onSla);
+  socket.on('visitor:update', onVisitorUpdate);
 
   return () => {
     socket.off('thread:message', onMessage);
     socket.off('thread:update', onUpdate);
     socket.off('thread:sla', onSla);
+    socket.off('visitor:update', onVisitorUpdate);
   };
 }
 

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { MalaysiaPhoneSchema, OptionalMalaysiaPhoneSchema } from './phone';
+import { WalkInOwnerContactSchema } from './walk-in-owner';
 
 export const VisitorVisitType = z.enum(['PRE_REG', 'WALKIN_UNIT', 'WALKIN_OFFICE']);
 export type VisitorVisitType = z.infer<typeof VisitorVisitType>;
@@ -87,6 +89,8 @@ export const CondoVisitorSettingsSchema = z.object({
   maxOvernightVisitsPerUnitPerMonth: z.number().int().min(1).default(4),
   overnightSlotsPerNight: z.number().int().min(1).default(10),
   walkInApprovalMinutes: z.number().int().min(1).default(15),
+  /** When true, unit walk-ins wait for owner/tenant approval before check-in. */
+  walkInRequireOwnerApproval: z.boolean().default(true),
   preRegExpiryBufferMins: z.number().int().min(0).default(120),
   urgentOvernightMinHours: z.number().int().min(1).default(24),
   workingDays: z.object({ weekdays: z.array(z.number().int().min(1).max(7)) }),
@@ -132,7 +136,7 @@ export const CreateVisitorSchema = z
     name: z.string().min(2).max(120),
     identification: z.string().max(60).optional(),
     phoneCountryCode: z.string().max(6).default('+60'),
-    phone: z.string().trim().min(1, 'Phone number is required').max(30),
+    phone: MalaysiaPhoneSchema,
     entryMode: VisitorEntryMode.optional().default('DRIVE_IN'),
     vehiclePlate: z.string().max(20).optional(),
     vehiclePlatePhotoUrl: z.string().max(500).optional(),
@@ -188,7 +192,7 @@ export type OvernightPreview = z.infer<typeof OvernightPreviewSchema>;
 export const CreateWalkInUnitSchema = z.object({
   unitId: z.string().uuid(),
   name: z.string().min(2).max(120),
-  phone: z.string().max(30).optional(),
+  phone: OptionalMalaysiaPhoneSchema,
   vehiclePlate: z.string().max(20).optional(),
   purpose: z.string().max(200).optional(),
 });
@@ -196,7 +200,7 @@ export type CreateWalkInUnitInput = z.infer<typeof CreateWalkInUnitSchema>;
 
 export const CreateWalkInOfficeSchema = z.object({
   name: z.string().min(2).max(120),
-  phone: z.string().max(30).optional(),
+  phone: OptionalMalaysiaPhoneSchema,
   vehiclePlate: z.string().max(20).optional(),
   purpose: z.string().min(3).max(200),
   gateLocation: z.string().max(120).optional(),
@@ -233,13 +237,37 @@ export const VisitorSchema = z.object({
   cancelledAt: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
+  /** Guard-only: unit owner contacts while awaiting owner approval. */
+  ownerContacts: z.array(WalkInOwnerContactSchema).optional(),
 });
 export type Visitor = z.infer<typeof VisitorSchema>;
 
-export const VisitorListView = z.enum(['upcoming', 'history']);
+export const VisitorListView = z.enum(['upcoming', 'live', 'history']);
 export type VisitorListView = z.infer<typeof VisitorListView>;
 
 export type VisitorAdminFilter = 'overnight_pending' | 'urgent_overnight' | 'holiday_review';
+
+/** Privacy-scoped DTO for guard live board — gate duty fields only. */
+export const GuardLiveVisitorSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  phone: z.string().nullable().optional(),
+  purpose: z.string().nullable().optional(),
+  vehiclePlate: z.string().nullable().optional(),
+  checkedInAt: z.coerce.date(),
+  unitLabel: z.string().nullable(),
+  visitType: VisitorVisitType,
+  overnight: z.boolean().optional(),
+  /** Unit owners — name + phone only, for tel: links during gate duty. */
+  ownerContacts: z.array(WalkInOwnerContactSchema).optional(),
+});
+export type GuardLiveVisitor = z.infer<typeof GuardLiveVisitorSchema>;
+
+export const GuardLiveVisitorsResponseSchema = z.object({
+  items: z.array(GuardLiveVisitorSchema),
+  total: z.number().int(),
+});
+export type GuardLiveVisitorsResponse = z.infer<typeof GuardLiveVisitorsResponseSchema>;
 
 export const FavouriteVisitorSchema = z.object({
   id: z.string().uuid(),
@@ -259,7 +287,7 @@ export type FavouriteVisitor = z.infer<typeof FavouriteVisitorSchema>;
 export const CreateFavouriteVisitorSchema = z.object({
   unitId: z.string().uuid(),
   name: z.string().min(2).max(120),
-  phone: z.string().trim().min(1, 'Phone number is required').max(30),
+  phone: MalaysiaPhoneSchema,
   phoneCountryCode: z.string().max(6).default('+60'),
   entryMode: VisitorEntryMode.default('DRIVE_IN'),
   vehiclePlate: z.string().max(20).optional(),
@@ -317,4 +345,30 @@ export function favouriteToPreRegParams(fav: FavouriteVisitor): Record<string, s
   if (fav.vehiclePlate) params.vehiclePlate = fav.vehiclePlate;
   if (fav.entryMode) params.entryMode = fav.entryMode;
   return params;
+}
+
+function resolvePurposeForPreReg(purpose: string | null | undefined): VisitorPurpose {
+  const parsed = VisitorPurpose.safeParse(purpose);
+  return parsed.success ? parsed.data : 'VISITOR';
+}
+
+/** Build pre-reg query params from a past visit for /visitors/new pre-fill or one-click re-register. */
+export function visitorToPreRegParams(visitor: Visitor): Record<string, string> {
+  const params: Record<string, string> = { name: visitor.name };
+  if (visitor.phone?.trim()) params.phone = visitor.phone.trim();
+  if (visitor.phoneCountryCode) params.phoneCountryCode = visitor.phoneCountryCode;
+  if (visitor.vehiclePlate?.trim()) params.vehiclePlate = visitor.vehiclePlate.trim();
+  const entryMode = visitor.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
+  params.entryMode = entryMode;
+  params.purpose = resolvePurposeForPreReg(visitor.purpose);
+  params.expectedAt = defaultExpectedArrival().toISOString();
+  return params;
+}
+
+/** Whether a past visit has enough data for one-click pre-registration. */
+export function canOneClickPreRegFromVisitor(visitor: Visitor): boolean {
+  if (!visitor.phone?.trim()) return false;
+  const entryMode = visitor.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
+  if (entryMode === 'DRIVE_IN' && !visitor.vehiclePlate?.trim()) return false;
+  return true;
 }

@@ -23,6 +23,7 @@ export const queryKeys = {
     ['visitors', 'unit', unitId, view ?? 'all'] as const,
   condoVisitors: (condoId: string, view?: string, filter?: string) =>
     ['visitors', 'condo', condoId, view ?? 'all', filter ?? 'all'] as const,
+  guardLiveVisitors: (condoId: string) => ['visitors', 'guard', 'live', condoId] as const,
   unitFavouriteVisitors: (unitId: string) => ['visitors', 'favourites', unitId] as const,
   unitInvoices: (unitId: string) => ['invoices', 'unit', unitId] as const,
   invoice: (id: string) => ['invoices', id] as const,
@@ -492,6 +493,13 @@ export function useCondoVisitorSettings(api: ApiClient, condoId: string | null) 
   });
 }
 
+export function useGuardWalkInPolicy(api: ApiClient) {
+  return useQuery({
+    queryKey: ['visitors', 'guard', 'walk-in-policy'],
+    queryFn: () => api.guardWalkInPolicy(),
+  });
+}
+
 export function useUpdateCondoVisitorSettings(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
@@ -671,6 +679,25 @@ export function useUpdateAutoAssignment(api: ApiClient) {
     }) => api.updateAutoAssignment(vars.condoId, vars),
     onSuccess: (_d, vars) =>
       qc.invalidateQueries({ queryKey: queryKeys.slaSettings(vars.condoId) }),
+  });
+}
+
+export function useGuardLiveVisitors(api: ApiClient, condoId: string | undefined) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.guardLiveVisitors(condoId) : ['visitors', 'guard', 'live', null],
+    queryFn: () => api.guardLiveVisitors(),
+    enabled: Boolean(condoId),
+    refetchInterval: 15_000,
+  });
+}
+
+export function useCheckOutVisitor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (visitorId: string) => api.checkOutVisitorById(visitorId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['visitors'] });
+    },
   });
 }
 

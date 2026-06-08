@@ -37,7 +37,7 @@ export default function BillingPage() {
         <ul className="flex flex-col gap-3">
           {(invoices.data?.items as any[])?.map((inv) => (
             <Link key={inv.id} href={`/billing/${inv.id}`}>
-              <Card className="cursor-pointer">
+              <Card interactive className="cursor-pointer">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-medium">{inv.number}</div>

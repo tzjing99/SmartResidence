@@ -2,11 +2,11 @@
 
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
 import { Badge, Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 export default function AdminAnnouncementsPage() {
   const condos = useMyCondos(api);

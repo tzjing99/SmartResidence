@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { buildUnitListWhere, normalizeUnitSearchTerm } from './unit-search';
 
 @Injectable()
 export class TenantService {
@@ -29,24 +30,8 @@ export class TenantService {
   }
 
   async listUnits(condoId: string, opts: { limit: number; offset: number; search?: string }) {
-    const term = opts.search?.trim();
-    const where = term
-      ? {
-          condoId,
-          OR: [
-            { identifier: { contains: term, mode: 'insensitive' as const } },
-            { block: { name: { contains: term, mode: 'insensitive' as const } } },
-            {
-              ownerships: {
-                some: {
-                  status: 'ACTIVE' as const,
-                  user: { name: { contains: term, mode: 'insensitive' as const } },
-                },
-              },
-            },
-          ],
-        }
-      : { condoId };
+    const term = opts.search ? normalizeUnitSearchTerm(opts.search) : undefined;
+    const where = buildUnitListWhere(condoId, term);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.unit.findMany({
         where,

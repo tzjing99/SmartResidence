@@ -67,7 +67,10 @@ export default function MessagesPage() {
               }
             >
               <Link href={`/messages/${t.id}`}>
-                <Card className="transition-[box-shadow,border-color] duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25">
+                <Card
+                  interactive
+                  className="transition-[box-shadow,border-color] duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25"
+                >
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="font-medium truncate leading-tight">{t.subject}</div>

@@ -87,6 +87,31 @@ export async function getPrimaryUnitOwner(
   return fallback ? { userId: fallback.userId, name: fallback.user.name } : null;
 }
 
+export type UnitOwnerContact = {
+  id: string;
+  name: string;
+  phone: string | null;
+  isPrimary: boolean;
+};
+
+/** Active unit owners with phone — primary first, for guard walk-in fallback. */
+export async function getUnitOwnerContacts(
+  prisma: PrismaService,
+  unitId: string,
+): Promise<UnitOwnerContact[]> {
+  const ownerships = await prisma.ownership.findMany({
+    where: { unitId, status: OwnershipStatus.ACTIVE },
+    include: { user: { select: { id: true, name: true, phone: true } } },
+    orderBy: [{ isPrimary: 'desc' }, { startDate: 'asc' }],
+  });
+  return ownerships.map((o) => ({
+    id: o.user.id,
+    name: o.user.name,
+    phone: o.user.phone,
+    isPrimary: o.isPrimary,
+  }));
+}
+
 export async function getUnitSuspendPolicy(
   prisma: PrismaService,
   unitId: string,

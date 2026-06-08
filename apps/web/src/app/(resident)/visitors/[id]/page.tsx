@@ -1,6 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import {
   copyVisitorAccessCode,
   downloadVisitorQrPng,
@@ -14,7 +15,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 export default function VisitorPassPage() {
   const params = useParams<{ id: string }>();

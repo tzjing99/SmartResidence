@@ -75,7 +75,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
               onFocus={() => prefetchRoute(router, item.href)}
               className={cn(
                 'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium touch-manipulation',
-                'transition-[color,background-color,transform] duration-100 outline-none active:scale-[0.98]',
+                'transition-[color,background-color] duration-100 outline-none',
                 'focus-visible:ring-2 focus-visible:ring-coral-500/50',
                 active ? 'text-coral-500' : 'text-[inherit] hover:bg-[rgb(var(--sr-border))]/40',
               )}

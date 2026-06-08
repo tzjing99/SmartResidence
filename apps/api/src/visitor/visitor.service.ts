@@ -20,6 +20,12 @@ import {
   VisitorStatus,
   VisitorVisitType,
 } from '@prisma/client';
+import {
+  formatUnitLabel,
+  isValidMalaysiaPhone,
+  normalizeMalaysiaPhone,
+  resolveMalaysiaPhoneE164,
+} from '@smartresidence/shared-types';
 import * as QRCode from 'qrcode';
 import {
   buildQrPayload,
@@ -44,6 +50,7 @@ import {
   checkUnitOvernightEligibility,
   countMonthlyOvernightForUnit,
   getPrimaryUnitOwner,
+  getUnitOwnerContacts,
   getUnitSuspendPolicy,
   isIndefiniteSuspend,
   isOvernightSuspended,
@@ -74,7 +81,15 @@ import {
 const CHECK_IN_ALLOWED: VisitorStatus[] = [VisitorStatus.APPROVED];
 
 const visitorInclude = {
-  unit: { include: { block: true } },
+  unit: {
+    include: {
+      block: true,
+      ownerships: {
+        where: { status: OwnershipStatus.ACTIVE },
+        include: { user: { select: { name: true } } },
+      },
+    },
+  },
   host: true,
   checkIns: true,
 } as const;
@@ -245,9 +260,7 @@ export class VisitorService {
       ? VisitorEntryMode.DRIVE_IN
       : (dto.entryMode ?? VisitorEntryMode.DRIVE_IN);
 
-    if (!dto.phone?.trim()) {
-      throw new BadRequestException('Phone number is required for visitors');
-    }
+    this.normalizeMalaysiaPhoneField(dto.phone, true);
 
     if (entryMode === VisitorEntryMode.DRIVE_IN && !dto.vehiclePlate?.trim()) {
       throw new BadRequestException('Plate number is required for drive-in visitors');
@@ -341,6 +354,8 @@ export class VisitorService {
       expiresAt = this.computePreRegExpiresAt(dto.expectedAt, duration, visitorSettings);
     }
 
+    const phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
+
     const visitor = await this.prisma.visitor.create({
       data: {
         condoId: unit.condoId,
@@ -349,8 +364,8 @@ export class VisitorService {
         hostUserId: user.id,
         name: dto.name,
         identification: dto.identification,
-        phone: dto.phone.trim(),
-        phoneCountryCode: dto.phoneCountryCode ?? '+60',
+        phone,
+        phoneCountryCode: '+60',
         entryMode,
         vehiclePlate: entryMode === VisitorEntryMode.DRIVE_IN ? dto.vehiclePlate?.trim() : null,
         vehiclePlatePhotoUrl: overnight ? dto.vehiclePlatePhotoUrl?.trim() : null,
@@ -437,6 +452,32 @@ export class VisitorService {
     return updated;
   }
 
+  private readonly malaysiaPhoneError =
+    'Enter a valid Malaysia mobile number (e.g. +60123456789 or 012-345 6789)';
+
+  private normalizeMalaysiaPhoneField(phone?: string | null, required = false): string | null {
+    if (!phone?.trim()) {
+      if (required) throw new BadRequestException('Phone number is required for visitors');
+      return null;
+    }
+    const normalized = normalizeMalaysiaPhone(phone);
+    if (!isValidMalaysiaPhone(normalized)) {
+      throw new BadRequestException(this.malaysiaPhoneError);
+    }
+    return normalized;
+  }
+
+  private normalizeWalkInPhone(phone?: string | null): string | null {
+    return this.normalizeMalaysiaPhoneField(phone, false);
+  }
+
+  private resolveVisitorPhoneForGuard(
+    phone?: string | null,
+    phoneCountryCode?: string | null,
+  ): string | null {
+    return resolveMalaysiaPhoneE164(phone, phoneCountryCode) ?? phone?.trim() ?? null;
+  }
+
   async createWalkInUnit(guard: AuthenticatedUser, dto: CreateWalkInUnitDto) {
     this.rejectWalkInOvernight(dto.overnight);
     const condoId = this.guardCondoId(guard);
@@ -447,7 +488,12 @@ export class VisitorService {
     if (!unit) throw new NotFoundException('Unit not found in this condo');
 
     const settings = parseCondoVisitorSettings(unit.condo.settings);
+    if (!settings.walkInRequireOwnerApproval) {
+      return this.createWalkInUnitImmediateCheckIn(guard, condoId, unit.id, dto);
+    }
+
     const approvalDeadline = this.addMinutes(new Date(), walkInApprovalMinutes(settings));
+    const phone = this.normalizeWalkInPhone(dto.phone);
     const visitor = await this.prisma.visitor.create({
       data: {
         condoId,
@@ -455,7 +501,7 @@ export class VisitorService {
         unitId: unit.id,
         hostUserId: null,
         name: dto.name,
-        phone: dto.phone,
+        phone,
         vehiclePlate: dto.vehiclePlate,
         purpose: this.mapWalkInPurpose(dto.purpose),
         overnight: false,
@@ -480,7 +526,140 @@ export class VisitorService {
     });
 
     this.events.emit('visitor.walk_in_requested', { visitorId: visitor.id, condoId });
+    return this.enrichWalkInOwnerContacts(visitor, unit.id);
+  }
+
+  private isGuard(user: AuthenticatedUser): boolean {
+    return user.roles.some((r) => r.roleId === RoleId.SECURITY_GUARD);
+  }
+
+  private async enrichWalkInOwnerContacts<
+    T extends { status: VisitorStatus; unitId: string | null },
+  >(
+    visitor: T,
+    unitId: string,
+  ): Promise<T & { ownerContacts?: Awaited<ReturnType<typeof getUnitOwnerContacts>> }> {
+    if (visitor.status !== VisitorStatus.PENDING_OWNER_APPROVAL) return visitor;
+    const ownerContacts = await getUnitOwnerContacts(this.prisma, unitId);
+    return { ...visitor, ownerContacts };
+  }
+
+  private async enrichGuardVisitorList(
+    items: VisitorWithRelations[],
+    viewer?: AuthenticatedUser,
+  ): Promise<
+    Array<
+      VisitorWithRelations & { ownerContacts?: Awaited<ReturnType<typeof getUnitOwnerContacts>> }
+    >
+  > {
+    if (!viewer || !this.isGuard(viewer)) return items;
+    return Promise.all(
+      items.map(async (v) => {
+        const phone = this.resolveVisitorPhoneForGuard(v.phone, v.phoneCountryCode);
+        if (v.status !== VisitorStatus.PENDING_OWNER_APPROVAL || !v.unitId) {
+          return phone === v.phone ? v : { ...v, phone };
+        }
+        const ownerContacts = await getUnitOwnerContacts(this.prisma, v.unitId);
+        return { ...v, phone, ownerContacts };
+      }),
+    );
+  }
+
+  async getWalkInOwnerContacts(visitorId: string, guard: AuthenticatedUser) {
+    const condoId = this.guardCondoId(guard);
+    const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
+    if (!visitor || visitor.condoId !== condoId) {
+      throw new NotFoundException('Visitor not found');
+    }
+    if (visitor.visitType !== VisitorVisitType.WALKIN_UNIT) {
+      throw new BadRequestException('Only unit walk-in visitors have owner contacts');
+    }
+    if (visitor.status !== VisitorStatus.PENDING_OWNER_APPROVAL) {
+      throw new BadRequestException('Owner contacts are only available while awaiting approval');
+    }
+    if (!visitor.unitId) throw new BadRequestException('Visitor has no unit');
+    const ownerContacts = await getUnitOwnerContacts(this.prisma, visitor.unitId);
+    return { visitorId, ownerContacts };
+  }
+
+  private async createWalkInUnitImmediateCheckIn(
+    guard: AuthenticatedUser,
+    condoId: string,
+    unitId: string,
+    dto: CreateWalkInUnitDto,
+  ) {
+    const phone = this.normalizeWalkInPhone(dto.phone);
+    const visitor = await this.prisma.$transaction(async (tx) => {
+      const v = await tx.visitor.create({
+        data: {
+          condoId,
+          visitType: VisitorVisitType.WALKIN_UNIT,
+          unitId,
+          hostUserId: null,
+          name: dto.name,
+          phone,
+          vehiclePlate: dto.vehiclePlate,
+          purpose: this.mapWalkInPurpose(dto.purpose),
+          overnight: false,
+          expectedAt: new Date(),
+          status: VisitorStatus.CHECKED_IN,
+          metadata: {
+            createdByGuardId: guard.id,
+            singleVisit: true,
+            ownerApprovalSkipped: true,
+          },
+        },
+      });
+      const checkIn = await tx.visitorCheckIn.create({
+        data: {
+          visitorId: v.id,
+          checkInGuardId: guard.id,
+          gateLocation: 'Main gate',
+          notes: dto.purpose?.trim() ? `Purpose: ${dto.purpose.trim()}` : null,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          condoId,
+          unitId,
+          actorUserId: guard.id,
+          actorRole: guard.activeRole,
+          action: AuditAction.CREATE,
+          resourceType: 'Visitor',
+          resourceId: v.id,
+          metadata: {
+            visitType: 'WALKIN_UNIT',
+            status: 'CHECKED_IN',
+            ownerApprovalSkipped: true,
+          },
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          condoId,
+          unitId,
+          actorUserId: guard.id,
+          actorRole: guard.activeRole,
+          action: AuditAction.CREATE,
+          resourceType: 'VisitorCheckIn',
+          resourceId: checkIn.id,
+          metadata: { visitType: 'WALKIN_UNIT', ownerApprovalSkipped: true },
+        },
+      });
+      return v;
+    });
+
+    this.events.emit('visitor.checked_in', { visitorId: visitor.id, condoId });
     return visitor;
+  }
+
+  async getGuardWalkInPolicy(guard: AuthenticatedUser) {
+    const condoId = this.guardCondoId(guard);
+    const settings = await this.getVisitorSettings(condoId);
+    return {
+      walkInRequireOwnerApproval: settings.walkInRequireOwnerApproval,
+      walkInApprovalMinutes: settings.walkInApprovalMinutes,
+    };
   }
 
   async createWalkInOffice(guard: AuthenticatedUser, dto: CreateWalkInOfficeDto) {
@@ -490,6 +669,7 @@ export class VisitorService {
       throw new BadRequestException('Purpose is required for management office visitors');
     }
 
+    const phone = this.normalizeWalkInPhone(dto.phone);
     const visitor = await this.prisma.$transaction(async (tx) => {
       const v = await tx.visitor.create({
         data: {
@@ -498,7 +678,7 @@ export class VisitorService {
           unitId: null,
           hostUserId: null,
           name: dto.name,
-          phone: dto.phone,
+          phone,
           vehiclePlate: dto.vehiclePlate,
           purpose: this.mapWalkInPurpose(dto.purpose),
           overnight: false,
@@ -655,10 +835,12 @@ export class VisitorService {
         ? { status: { in: viewStatuses } }
         : {};
     const where = { unitId, ...statusFilter };
+    const orderBy =
+      opts.view === 'live' ? { updatedAt: 'desc' as const } : { expectedAt: 'desc' as const };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.visitor.findMany({
         where,
-        orderBy: { expectedAt: 'desc' },
+        orderBy,
         take: opts.limit,
         skip: opts.offset,
         include: visitorInclude,
@@ -676,6 +858,7 @@ export class VisitorService {
       status?: VisitorStatus;
       view?: VisitorListView;
       filter?: VisitorAdminFilter;
+      viewer?: AuthenticatedUser;
     },
   ) {
     await this.expireStale(condoId);
@@ -701,7 +884,7 @@ export class VisitorService {
       }
     })();
     const where = { condoId, ...statusFilter, ...adminFilter };
-    const [items, total] = await this.prisma.$transaction([
+    const [rawItems, total] = await this.prisma.$transaction([
       this.prisma.visitor.findMany({
         where,
         orderBy: { expectedAt: 'desc' },
@@ -711,7 +894,73 @@ export class VisitorService {
       }),
       this.prisma.visitor.count({ where }),
     ]);
+    const items = await this.enrichGuardVisitorList(rawItems, opts.viewer);
     return { items, total, limit: opts.limit, offset: opts.offset };
+  }
+
+  /** Checked-in visitors on site — privacy-scoped for guard gate duty. */
+  async listLiveForGuard(guard: AuthenticatedUser) {
+    const condoId = this.guardCondoId(guard);
+    await this.expireStale(condoId);
+    const rawItems = await this.prisma.visitor.findMany({
+      where: { condoId, status: VisitorStatus.CHECKED_IN },
+      include: visitorInclude,
+    });
+    const items = await Promise.all(rawItems.map((v) => this.toGuardLiveVisitor(v)));
+    items.sort((a, b) => b.checkedInAt.getTime() - a.checkedInAt.getTime());
+    return { items, total: items.length };
+  }
+
+  private formatVisitorUnitLabel(visitor: VisitorWithRelations): string | null {
+    if (visitor.visitType === VisitorVisitType.WALKIN_OFFICE) {
+      return 'Management office';
+    }
+    if (!visitor.unit) return null;
+    return formatUnitLabel({
+      id: visitor.unit.id,
+      identifier: visitor.unit.identifier,
+      block: visitor.unit.block,
+      ownerships: visitor.unit.ownerships,
+    });
+  }
+
+  private normalizeOwnerContactsForGuard(
+    contacts: Awaited<ReturnType<typeof getUnitOwnerContacts>>,
+  ) {
+    return contacts.map((contact) => ({
+      ...contact,
+      phone: this.resolveVisitorPhoneForGuard(contact.phone, '+60'),
+    }));
+  }
+
+  private activeCheckInAt(visitor: VisitorWithRelations): Date {
+    const active = visitor.checkIns
+      .filter((ci) => !ci.checkOutAt)
+      .sort((a, b) => b.checkInAt.getTime() - a.checkInAt.getTime())[0];
+    return active?.checkInAt ?? visitor.updatedAt;
+  }
+
+  /** Strip PII beyond gate-duty minimum (no email, ID, QR, host records). */
+  private async toGuardLiveVisitor(visitor: VisitorWithRelations) {
+    const rawOwnerContacts =
+      visitor.unitId && visitor.visitType !== VisitorVisitType.WALKIN_OFFICE
+        ? await getUnitOwnerContacts(this.prisma, visitor.unitId)
+        : undefined;
+    const ownerContacts = rawOwnerContacts?.length
+      ? this.normalizeOwnerContactsForGuard(rawOwnerContacts)
+      : undefined;
+    return {
+      id: visitor.id,
+      name: visitor.name,
+      phone: this.resolveVisitorPhoneForGuard(visitor.phone, visitor.phoneCountryCode),
+      purpose: visitor.purpose,
+      vehiclePlate: visitor.vehiclePlate,
+      checkedInAt: this.activeCheckInAt(visitor),
+      unitLabel: this.formatVisitorUnitLabel(visitor),
+      visitType: visitor.visitType,
+      overnight: visitor.overnight ?? false,
+      ...(ownerContacts?.length ? { ownerContacts } : {}),
+    };
   }
 
   async cancel(visitorId: string, user: AuthenticatedUser) {
@@ -883,16 +1132,14 @@ export class VisitorService {
     if (!this.userCanManageUnit(user, dto.unitId)) {
       throw new ForbiddenException('You cannot manage favourites for this unit');
     }
-    if (!dto.phone?.trim()) {
-      throw new BadRequestException('Phone number is required for favourite visitors');
-    }
+    const phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
     return this.prisma.favouriteVisitor.create({
       data: {
         userId: user.id,
         unitId: dto.unitId,
         name: dto.name,
-        phone: dto.phone.trim(),
-        phoneCountryCode: dto.phoneCountryCode ?? '+60',
+        phone,
+        phoneCountryCode: '+60',
         entryMode: dto.entryMode ?? VisitorEntryMode.DRIVE_IN,
         vehiclePlate: dto.vehiclePlate,
         notes: dto.notes,
@@ -907,9 +1154,14 @@ export class VisitorService {
     if (!this.userCanManageUnit(user, favourite.unitId)) {
       throw new ForbiddenException('You cannot manage favourites for this unit');
     }
+    const data = { ...dto } as UpdateFavouriteVisitorDto;
+    if (dto.phone !== undefined) {
+      data.phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
+      data.phoneCountryCode = '+60';
+    }
     return this.prisma.favouriteVisitor.update({
       where: { id },
-      data: dto,
+      data,
       include: { user: { select: { id: true, name: true } } },
     });
   }
@@ -941,6 +1193,9 @@ export class VisitorService {
     }
     if (dto.walkInApprovalMinutes !== undefined) {
       patch.walkInApprovalMinutes = dto.walkInApprovalMinutes;
+    }
+    if (dto.walkInRequireOwnerApproval !== undefined) {
+      patch.walkInRequireOwnerApproval = dto.walkInRequireOwnerApproval;
     }
     if (dto.preRegExpiryBufferMins !== undefined) {
       patch.preRegExpiryBufferMins = dto.preRegExpiryBufferMins;

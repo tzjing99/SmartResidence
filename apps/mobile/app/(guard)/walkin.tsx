@@ -1,23 +1,61 @@
-import { useMyCondos } from '@smartresidence/api-client';
+import { useGuardWalkInPolicy, useMyCondos } from '@smartresidence/api-client';
+import {
+  formatMalaysiaPhoneDisplay,
+  malaysiaPhoneTelHref,
+  type Visitor,
+  pickOwnerPhone,
+} from '@smartresidence/shared-types';
 import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, ScrollView, Text, TextInput, View } from 'react-native';
 import { type UnitSearchItem, UnitSearchPicker } from '../../src/components/unit-search-picker';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
 type Tab = 'unit' | 'office';
 
+function callPhone(phone: string, label: string, phoneCountryCode?: string | null) {
+  const href = malaysiaPhoneTelHref(phone, phoneCountryCode);
+  if (!href) return;
+  Linking.openURL(href).catch(() => {
+    Alert.alert('Could not open dialer', `${label}: ${formatMalaysiaPhoneDisplay(phone, phoneCountryCode) ?? phone}`);
+  });
+}
+
+function callOwner(contacts: Visitor['ownerContacts']) {
+  const contact = pickOwnerPhone(contacts);
+  if (!contact?.phone) {
+    Alert.alert('No phone on file', 'The unit owner has no phone number — contact management.');
+    return;
+  }
+  callPhone(contact.phone, contact.name);
+}
+
 export default function WalkInScreen() {
   const { contentMaxWidth, horizontalPadding } = useTabletLayout();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
+  const walkInPolicy = useGuardWalkInPolicy(api);
+  const requireOwnerApproval = walkInPolicy.data?.walkInRequireOwnerApproval ?? true;
+  const approvalMinutes = walkInPolicy.data?.walkInApprovalMinutes ?? 15;
   const [tab, setTab] = useState<Tab>('unit');
   const [unit, setUnit] = useState<UnitSearchItem | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [purpose, setPurpose] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pendingVisitor, setPendingVisitor] = useState<Visitor | null>(null);
+
+  const pendingWalkIns = useQuery({
+    queryKey: ['guard', 'pending-walk-ins', condo?.id],
+    queryFn: () =>
+      condo
+        ? api.visitorsForCondo(condo.id, { status: 'PENDING_OWNER_APPROVAL', limit: 20 })
+        : Promise.resolve({ items: [], total: 0 }),
+    refetchInterval: 15_000,
+    enabled: Boolean(condo && requireOwnerApproval),
+  });
 
   async function submitUnit() {
     if (!unit?.id || !name.trim()) {
@@ -26,17 +64,27 @@ export default function WalkInScreen() {
     }
     setBusy(true);
     try {
-      await api.createWalkInUnit({
+      const visitor = await api.createWalkInUnit({
         unitId: unit.id,
         name: name.trim(),
         phone: phone || undefined,
         purpose: purpose || undefined,
       });
-      Alert.alert('Sent for approval', 'Unit owner has 15 minutes to respond.');
+      if (visitor.status === 'CHECKED_IN') {
+        Alert.alert('Checked in', `${name.trim()} checked in at the gate.`);
+        setPendingVisitor(null);
+      } else {
+        Alert.alert(
+          'Sent for approval',
+          `Unit owner has ${approvalMinutes} minutes to respond. You can call them if needed.`,
+        );
+        setPendingVisitor(visitor);
+      }
       setName('');
       setPhone('');
       setPurpose('');
       setUnit(null);
+      pendingWalkIns.refetch();
     } catch (err) {
       Alert.alert('Could not register', (err as Error).message);
     } finally {
@@ -61,12 +109,15 @@ export default function WalkInScreen() {
       setName('');
       setPhone('');
       setPurpose('');
+      setPendingVisitor(null);
     } catch (err) {
       Alert.alert('Could not log visitor', (err as Error).message);
     } finally {
       setBusy(false);
     }
   }
+
+  const pendingItems = (pendingWalkIns.data?.items ?? []) as Visitor[];
 
   return (
     <ScrollView
@@ -93,6 +144,14 @@ export default function WalkInScreen() {
           One visit — validated once at the gate. Security opens the gate; the owner meets the
           visitor. Overnight stays are not available for walk-ins — use pre-registration instead.
         </Text>
+
+        {pendingVisitor?.status === 'PENDING_OWNER_APPROVAL' ? (
+          <PendingCard
+            visitor={pendingVisitor}
+            approvalMinutes={approvalMinutes}
+            onCall={() => callOwner(pendingVisitor.ownerContacts)}
+          />
+        ) : null}
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Button
@@ -143,7 +202,13 @@ export default function WalkInScreen() {
               />
               <View style={{ marginTop: 16 }}>
                 <Button
-                  title={busy ? 'Sending…' : 'Request owner approval'}
+                  title={
+                    busy
+                      ? 'Sending…'
+                      : requireOwnerApproval
+                        ? 'Request owner approval'
+                        : 'Log & check in'
+                  }
                   onPress={submitUnit}
                   loading={busy}
                 />
@@ -170,8 +235,89 @@ export default function WalkInScreen() {
             </>
           )}
         </Card>
+
+        {requireOwnerApproval && pendingItems.length > 0 ? (
+          <View style={{ gap: 12 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700' }}>Awaiting owner approval</Text>
+            {pendingItems.map((v) => (
+              <PendingCard
+                key={v.id}
+                visitor={v}
+                approvalMinutes={approvalMinutes}
+                onCall={() => callOwner(v.ownerContacts)}
+              />
+            ))}
+          </View>
+        ) : null}
       </View>
     </ScrollView>
+  );
+}
+
+function PendingCard({
+  visitor,
+  approvalMinutes,
+  onCall,
+}: {
+  visitor: Visitor & { unit?: { identifier?: string } };
+  approvalMinutes: number;
+  onCall: () => void;
+}) {
+  const contact = pickOwnerPhone(visitor.ownerContacts);
+  const ownersWithPhone =
+    visitor.ownerContacts?.filter((owner) => owner.phone?.trim()) ?? [];
+  const visitorPhone = formatMalaysiaPhoneDisplay(visitor.phone, visitor.phoneCountryCode);
+
+  return (
+    <Card>
+      <Text style={{ fontWeight: '700' }}>{visitor.name}</Text>
+      <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 4 }}>
+        {visitor.unit?.identifier ?? 'Unit'} · waiting for owner ({approvalMinutes} min window)
+      </Text>
+
+      <View style={{ marginTop: 12, gap: 10 }}>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: palette.mutedLight, letterSpacing: 0.5 }}>
+          CONTACTS
+        </Text>
+
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 12, color: palette.mutedLight }}>Visitor phone</Text>
+          {visitorPhone ? (
+            <Text
+              style={{ fontSize: 14, color: palette.coralPrimary, fontWeight: '600' }}
+              onPress={() => callPhone(visitor.phone ?? '', visitor.name, visitor.phoneCountryCode)}
+            >
+              {visitorPhone}
+            </Text>
+          ) : (
+            <Text style={{ fontSize: 14, color: palette.mutedLight }}>Not provided</Text>
+          )}
+        </View>
+
+        <View style={{ gap: 4 }}>
+          <Text style={{ fontSize: 12, color: palette.mutedLight }}>Owner phone</Text>
+          {ownersWithPhone.length > 0 ? (
+            ownersWithPhone.map((owner) => (
+              <Text
+                key={owner.id}
+                style={{ fontSize: 14, color: palette.coralPrimary, fontWeight: '600' }}
+                onPress={() => callPhone(owner.phone ?? '', owner.name)}
+              >
+                {owner.name} · {owner.phone}
+              </Text>
+            ))
+          ) : (
+            <Text style={{ fontSize: 14, color: palette.mutedLight }}>
+              No owner phone on file — contact management
+            </Text>
+          )}
+        </View>
+
+        {contact?.phone ? (
+          <Button title={`Call owner (${contact.name})`} variant="secondary" onPress={onCall} />
+        ) : null}
+      </View>
+    </Card>
   );
 }
 

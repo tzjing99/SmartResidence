@@ -1,17 +1,19 @@
 'use client';
 
 import { api, writeSession } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { MalaysiaPhoneSchema } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 
 const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
+  phone: MalaysiaPhoneSchema,
   password: z
     .string()
     .min(10, 'At least 10 characters')
@@ -61,6 +63,23 @@ export default function SignUpPage() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" autoComplete="email" {...form.register('email')} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="phone">Mobile phone</Label>
+            <Input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+60123456789"
+              {...form.register('phone')}
+            />
+            {form.formState.errors.phone ? (
+              <p className="text-xs text-red-500">{form.formState.errors.phone.message}</p>
+            ) : (
+              <p className="text-xs sr-muted">
+                Malaysia mobile — guards may call you for walk-in approvals.
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="password">Password</Label>

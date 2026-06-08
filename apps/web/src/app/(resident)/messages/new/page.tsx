@@ -3,6 +3,7 @@
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { CATEGORIES } from '@/lib/thread-ui';
+import { toast } from '@/lib/toast';
 import {
   useCreateThread,
   useFaqDeflectMatch,
@@ -15,7 +16,6 @@ import { Badge, Button, Card, Input, Label, Textarea } from '@smartresidence/ui-
 import { CheckCircle2, Lightbulb } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
-import { toast } from 'sonner';
 
 export default function NewMessagePage() {
   const router = useRouter();

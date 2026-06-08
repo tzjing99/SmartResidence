@@ -2,6 +2,7 @@
 
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import {
   useCondoVisitorSettings,
   useMyCondos,
@@ -28,7 +29,6 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 
 const WEEKDAY_OPTIONS = [
   { value: 1, label: 'Mon' },
@@ -53,6 +53,7 @@ type EditableSettings = Pick<
   | 'maxOvernightVisitsPerUnitPerMonth'
   | 'overnightSlotsPerNight'
   | 'walkInApprovalMinutes'
+  | 'walkInRequireOwnerApproval'
   | 'preRegExpiryBufferMins'
   | 'urgentOvernightMinHours'
   | 'workingDays'
@@ -71,6 +72,7 @@ function toEditable(s: CondoVisitorSettings): EditableSettings {
     maxOvernightVisitsPerUnitPerMonth: s.maxOvernightVisitsPerUnitPerMonth,
     overnightSlotsPerNight: s.overnightSlotsPerNight,
     walkInApprovalMinutes: s.walkInApprovalMinutes,
+    walkInRequireOwnerApproval: s.walkInRequireOwnerApproval,
     preRegExpiryBufferMins: s.preRegExpiryBufferMins,
     urgentOvernightMinHours: s.urgentOvernightMinHours,
     workingDays: { weekdays: [...s.workingDays.weekdays].sort((a, b) => a - b) },
@@ -150,6 +152,7 @@ function Stepper({
   max = 999,
   step = 1,
   unit,
+  disabled,
 }: {
   value: number;
   onChange: (v: number) => void;
@@ -157,15 +160,16 @@ function Stepper({
   max?: number;
   step?: number;
   unit?: string;
+  disabled?: boolean;
 }) {
   const clamp = (v: number) => Math.min(max, Math.max(min, v));
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex items-center gap-2${disabled ? ' opacity-50' : ''}`}>
       <div className="flex items-center rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))]">
         <button
           type="button"
           aria-label="Decrease"
-          disabled={value <= min}
+          disabled={disabled || value <= min}
           onClick={() => onChange(clamp(value - step))}
           className="flex size-10 items-center justify-center rounded-l-xl text-[rgb(var(--sr-fg))] transition-colors hover:bg-[rgb(var(--sr-bg))] disabled:opacity-40"
         >
@@ -177,13 +181,14 @@ function Stepper({
           min={min}
           max={max}
           aria-label="Value"
+          disabled={disabled}
           onChange={(e) => onChange(clamp(Number(e.target.value) || min))}
           className="h-10 w-14 border-x border-[rgb(var(--sr-border))] bg-transparent text-center text-sm font-medium tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <button
           type="button"
           aria-label="Increase"
-          disabled={value >= max}
+          disabled={disabled || value >= max}
           onClick={() => onChange(clamp(value + step))}
           className="flex size-10 items-center justify-center rounded-r-xl text-[rgb(var(--sr-fg))] transition-colors hover:bg-[rgb(var(--sr-bg))] disabled:opacity-40"
         >
@@ -434,6 +439,17 @@ export default function VisitorSettingsPage() {
         description={t('visitors.settings.sections.walkInDesc')}
       >
         <Row
+          label={t('visitors.settings.walkInRequireOwnerApproval')}
+          helper={t('visitors.settings.walkInRequireOwnerApprovalDesc')}
+          control={
+            <Toggle
+              label={t('visitors.settings.walkInRequireOwnerApproval')}
+              checked={form.walkInRequireOwnerApproval}
+              onChange={(v) => patch('walkInRequireOwnerApproval', v)}
+            />
+          }
+        />
+        <Row
           label="Walk-in approval timeout"
           helper="How long a resident has to approve a walk-in guest before the request expires at the gate."
           control={
@@ -443,6 +459,7 @@ export default function VisitorSettingsPage() {
               max={120}
               unit="minutes"
               onChange={(v) => patch('walkInApprovalMinutes', v)}
+              disabled={!form.walkInRequireOwnerApproval}
             />
           }
         />

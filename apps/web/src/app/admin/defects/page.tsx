@@ -1,10 +1,10 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { useCondoDefects, useMyCondos, useTransitionDefect } from '@smartresidence/api-client';
 import { type DefectStatus, KANBAN_COLUMNS } from '@smartresidence/shared-types';
 import { Badge, Card, Skeleton } from '@smartresidence/ui-web';
-import { toast } from 'sonner';
 
 const SKELETON_KEYS = ['s1', 's2', 's3', 's4', 's5'];
 

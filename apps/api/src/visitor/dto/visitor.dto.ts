@@ -19,9 +19,9 @@ import {
 import type { VisitorAdminFilter, VisitorListView } from '../visitor.constants';
 
 export class ListVisitorsQueryDto extends PaginationDto {
-  @ApiPropertyOptional({ enum: ['upcoming', 'history'] })
+  @ApiPropertyOptional({ enum: ['upcoming', 'live', 'history'] })
   @IsOptional()
-  @IsIn(['upcoming', 'history'])
+  @IsIn(['upcoming', 'live', 'history'])
   view?: VisitorListView;
 
   @ApiPropertyOptional({ enum: VisitorStatus })
@@ -134,6 +134,14 @@ export class UpdateVisitorSettingsDto {
   @IsInt()
   @Min(1)
   walkInApprovalMinutes?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, unit walk-ins require owner/tenant approval. When false, guard checks in immediately.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  walkInRequireOwnerApproval?: boolean;
 
   @ApiPropertyOptional({ minimum: 0 })
   @IsOptional()

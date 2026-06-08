@@ -110,10 +110,29 @@ export class VisitorController {
     return this.visitors.create(user, dto);
   }
 
+  @Get('guard/walk-in-policy')
+  @CheckAbility({ action: 'create-walk-in', subject: 'Visitor' })
+  @ApiOperation({ summary: 'Walk-in policy for the guard condo (approval toggle, timeout)' })
+  guardWalkInPolicy(@CurrentUser() guard: AuthenticatedUser) {
+    return this.visitors.getGuardWalkInPolicy(guard);
+  }
+
+  @Get('guard/live')
+  @CheckAbility({ action: 'read', subject: 'Visitor' })
+  @ApiOperation({
+    summary: 'Guard live board — visitors currently checked in (privacy-scoped)',
+  })
+  guardLive(@CurrentUser() guard: AuthenticatedUser) {
+    return this.visitors.listLiveForGuard(guard);
+  }
+
   @Post('walk-in/unit')
   @CheckAbility({ action: 'create-walk-in', subject: 'Visitor' })
   @Audit({ action: AuditAction.CREATE, resourceType: 'Visitor', resourceIdFrom: 'response.id' })
-  @ApiOperation({ summary: 'Guard registers a walk-in visitor awaiting unit owner approval' })
+  @ApiOperation({
+    summary:
+      'Guard registers a unit walk-in (owner approval or immediate check-in per condo policy)',
+  })
   walkInUnit(@CurrentUser() guard: AuthenticatedUser, @Body() dto: CreateWalkInUnitDto) {
     return this.visitors.createWalkInUnit(guard, dto);
   }
@@ -164,6 +183,17 @@ export class VisitorController {
     @Body() dto: RejectVisitorDto,
   ) {
     return this.visitors.reject(id, user, dto.reason);
+  }
+
+  @Post(':id/check-out')
+  @CheckAbility({ action: 'check-out', subject: 'Visitor' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'VisitorCheckIn', resourceIdFrom: 'params.id' })
+  @ApiOperation({ summary: 'Guard checks out a visitor by id (live board)' })
+  checkOutById(
+    @CurrentUser() guard: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.visitors.checkOut(id, guard);
   }
 
   @Get('favourites/unit/:unitId')
@@ -227,11 +257,24 @@ export class VisitorController {
   @Get('condo/:condoId')
   @CheckAbility({ action: 'read', subject: 'Visitor' })
   forCondo(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query() query: ListVisitorsQueryDto,
   ) {
     const { view, status, filter, ...page } = query;
-    return this.visitors.listForCondo(condoId, { ...page, status, view, filter });
+    return this.visitors.listForCondo(condoId, { ...page, status, view, filter, viewer: user });
+  }
+
+  @Get(':id/walk-in-owner-contacts')
+  @CheckAbility({ action: 'create-walk-in', subject: 'Visitor' })
+  @ApiOperation({
+    summary: 'Guard: owner phone contacts for a pending unit walk-in (fallback call)',
+  })
+  walkInOwnerContacts(
+    @CurrentUser() guard: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.visitors.getWalkInOwnerContacts(id, guard);
   }
 
   @Get(':id/qr')

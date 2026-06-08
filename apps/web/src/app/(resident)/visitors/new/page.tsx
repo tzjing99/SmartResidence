@@ -2,6 +2,7 @@
 
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   useCreateVisitor,
@@ -22,7 +23,6 @@ import { Car, Footprints, Info, Upload } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { toast } from 'sonner';
 
 async function uploadPlatePhoto(file: File): Promise<string> {
   const presign = await api.presignAttachment({
@@ -115,11 +115,18 @@ export default function NewVisitorPage() {
     const phoneCountryCode = searchParams.get('phoneCountryCode');
     const vehiclePlate = searchParams.get('vehiclePlate');
     const entry = searchParams.get('entryMode');
+    const purpose = searchParams.get('purpose');
+    const expectedAtRaw = searchParams.get('expectedAt');
     if (name) form.setValue('name', name);
     if (phone) form.setValue('phone', phone);
     if (phoneCountryCode) form.setValue('phoneCountryCode', phoneCountryCode);
     if (vehiclePlate) form.setValue('vehiclePlate', vehiclePlate);
     if (entry === 'WALK_IN' || entry === 'DRIVE_IN') form.setValue('entryMode', entry);
+    if (purpose) form.setValue('purpose', purpose as CreateVisitorInput['purpose']);
+    if (expectedAtRaw) {
+      const parsed = new Date(expectedAtRaw);
+      if (!Number.isNaN(parsed.getTime())) form.setValue('expectedAt', parsed);
+    }
   }, [unit?.id, searchParams, form]);
 
   const slotsBlocked = Boolean(overnight && preview.data?.slotsFull);

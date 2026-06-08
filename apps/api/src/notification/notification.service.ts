@@ -7,6 +7,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationKind, type Prisma, PushKind } from '@prisma/client';
 import { Expo, type ExpoPushMessage } from 'expo-server-sdk';
 import { Resend } from 'resend';
+import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
 
 const THREAD_KINDS: NotificationKind[] = [
   NotificationKind.THREAD_MESSAGE,
@@ -188,9 +189,10 @@ export class NotificationService {
   async onWalkInRequested(payload: { visitorId: string }) {
     const v = await this.prisma.visitor.findUnique({
       where: { id: payload.visitorId },
-      include: { unit: true },
+      include: { unit: true, condo: true },
     });
     if (!v?.unitId) return;
+    const minutes = walkInApprovalMinutes(parseCondoVisitorSettings(v.condo?.settings));
     const [owners, tenants] = await Promise.all([
       this.prisma.ownership.findMany({
         where: { unitId: v.unitId, status: 'ACTIVE' },
@@ -207,7 +209,7 @@ export class NotificationService {
       userIds,
       kind: NotificationKind.VISITOR_REQUEST,
       title: `Walk-in: ${v.name}`,
-      body: `Guard requests approval for ${v.name} at ${v.unit?.identifier ?? 'your unit'}. Respond within 15 minutes.`,
+      body: `Guard requests approval for ${v.name} at ${v.unit?.identifier ?? 'your unit'}. Respond within ${minutes} minutes.`,
       data: { visitorId: v.id, deeplink: `smartresidence://visitors/${v.id}` },
     });
   }

@@ -169,6 +169,8 @@ export interface ApiClientConfig {
   baseUrl: string;
   /** Async getter for the access token (lets you read from secure storage). */
   getAccessToken?: () => Promise<string | null> | string | null;
+  /** Session id for server-side revocation (`x-session-id` on sign-out). */
+  getSessionId?: () => Promise<string | null> | string | null;
   /** Called when the API responds with 401 so the host can refresh / sign-out. */
   onUnauthorized?: () => Promise<void> | void;
   /** Currently selected condo (sent as `x-condo-id` for tenant scoping). */
@@ -198,6 +200,9 @@ export class ApiClient {
 
     const token = await this.cfg.getAccessToken?.();
     if (token) headers.Authorization = `Bearer ${token}`;
+
+    const sessionId = await this.cfg.getSessionId?.();
+    if (sessionId) headers['x-session-id'] = sessionId;
 
     const condoId = await this.cfg.getActiveCondoId?.();
     if (condoId) headers['x-condo-id'] = condoId;
@@ -236,12 +241,30 @@ export class ApiClient {
       sessionId: string;
     }>('POST', '/api/auth/sign-in', input);
   }
-  signUp(input: { email: string; password: string; name: string }) {
+  signUp(input: { email: string; password: string; name: string; phone: string }) {
     return this.request<{ accessToken: string; refreshToken: string; sessionId: string }>(
       'POST',
       '/api/auth/sign-up',
       input,
     );
+  }
+  getProfile() {
+    return this.request<{
+      id: string;
+      email: string | null;
+      phone: string | null;
+      name: string;
+      locale: string;
+    }>('GET', '/api/auth/profile');
+  }
+  updateProfile(input: { name?: string; phone?: string }) {
+    return this.request<{
+      id: string;
+      email: string | null;
+      phone: string | null;
+      name: string;
+      locale: string;
+    }>('PATCH', '/api/auth/profile', input);
   }
   refresh(refreshToken: string) {
     return this.request<{
@@ -393,8 +416,26 @@ export class ApiClient {
   rejectVisitor(visitorId: string, reason?: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/reject`, { reason });
   }
+  guardWalkInPolicy() {
+    return this.request<{
+      walkInRequireOwnerApproval: boolean;
+      walkInApprovalMinutes: number;
+    }>('GET', '/api/visitors/guard/walk-in-policy');
+  }
+  guardLiveVisitors() {
+    return this.request<import('@smartresidence/shared-types').GuardLiveVisitorsResponse>(
+      'GET',
+      '/api/visitors/guard/live',
+    );
+  }
   createWalkInUnit(input: import('@smartresidence/shared-types').CreateWalkInUnitInput) {
     return this.request<Visitor>('POST', '/api/visitors/walk-in/unit', input);
+  }
+  walkInOwnerContacts(visitorId: string) {
+    return this.request<{
+      visitorId: string;
+      ownerContacts: import('@smartresidence/shared-types').WalkInOwnerContact[];
+    }>('GET', `/api/visitors/${visitorId}/walk-in-owner-contacts`);
   }
   createWalkInOffice(input: import('@smartresidence/shared-types').CreateWalkInOfficeInput) {
     return this.request<Visitor>('POST', '/api/visitors/walk-in/office', input);
@@ -414,6 +455,9 @@ export class ApiClient {
   }
   checkOutVisitor(pass: string) {
     return this.request('POST', `/api/visitors/check-out/${encodeURIComponent(pass)}`);
+  }
+  checkOutVisitorById(visitorId: string) {
+    return this.request('POST', `/api/visitors/${encodeURIComponent(visitorId)}/check-out`);
   }
 
   // Billing ----------------------------------------------------------

@@ -1,6 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateDefect, useMyUnits } from '@smartresidence/api-client';
 import {
@@ -11,7 +12,6 @@ import {
 import { Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 
 export default function NewDefectPage() {
   const router = useRouter();

@@ -1,9 +1,9 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 type VerifiedVisitor = {
   id: string;

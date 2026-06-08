@@ -1,6 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import {
   useCreateFaqArticle,
   useDeleteFaqArticle,
@@ -21,7 +22,6 @@ import {
 } from '@smartresidence/ui-web';
 import { Trash2 } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
 
 const selectCls =
   'h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-4 text-sm';

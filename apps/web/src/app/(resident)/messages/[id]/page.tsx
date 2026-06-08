@@ -4,6 +4,7 @@ import { SlaChip } from '@/components/sla-chip';
 import { ThreadMessageList } from '@/components/thread-message-list';
 import { api } from '@/lib/api';
 import { STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
+import { toast } from '@/lib/toast';
 import {
   useAppealThread,
   useConfirmThreadResolution,
@@ -25,7 +26,6 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as React from 'react';
-import { toast } from 'sonner';
 
 export default function ResidentThreadPage() {
   const params = useParams<{ id: string }>();

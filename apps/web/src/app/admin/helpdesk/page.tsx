@@ -212,6 +212,7 @@ export default function HelpdeskPage() {
                   >
                     <Link href={`/admin/helpdesk/${t.id}`}>
                       <Card
+                        interactive
                         className={cn(
                           'transition-[box-shadow,border-color] duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25',
                           needsAttention &&

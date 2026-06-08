@@ -26,6 +26,14 @@ describe('ListVisitorsQueryDto', () => {
     expect(result.view).toBe('history');
   });
 
+  it('accepts live view for on-site visitors', async () => {
+    const result = await pipe.transform(
+      { view: 'live' },
+      { type: 'query', metatype: ListVisitorsQueryDto },
+    );
+    expect(result.view).toBe('live');
+  });
+
   it('rejects unknown query params', async () => {
     await expect(
       pipe.transform(

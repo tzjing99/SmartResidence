@@ -3,6 +3,7 @@
 import { api } from '@/lib/api';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
 import { CATEGORIES, prettyLabel } from '@/lib/thread-ui';
+import { toast } from '@/lib/toast';
 import {
   useMe,
   useMyCondos,
@@ -20,7 +21,6 @@ import type {
 import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
 import { AlertTriangle, History, Save, Settings2, Users } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
 
 const PRIORITIES: ThreadPriority[] = ['URGENT', 'HIGH', 'NORMAL', 'LOW'];
 const POOL_CATEGORIES: ThreadCategory[] = CATEGORIES.map((c) => c.value as ThreadCategory);

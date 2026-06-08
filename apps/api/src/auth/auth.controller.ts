@@ -27,6 +27,7 @@ import {
   RequestOtpDto,
   SignInDto,
   SignUpDto,
+  UpdateProfileDto,
   VerifyOtpDto,
 } from './dto/auth.dto';
 import { UpdateUserPreferencesDto } from './dto/preferences.dto';
@@ -95,6 +96,23 @@ export class AuthController {
       user,
       abilities: this.abilities.rulesFor(user),
     };
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('access')
+  @Get('profile')
+  @ApiOperation({ summary: 'Current user profile (name, email, phone)' })
+  getProfile(@CurrentUser() user: AuthenticatedUser) {
+    return this.auth.getProfile(user.id);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('access')
+  @Patch('profile')
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'User', resourceIdFrom: 'response.id' })
+  @ApiOperation({ summary: 'Update name or phone on your profile' })
+  updateProfile(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateProfileDto) {
+    return this.auth.updateProfile(user.id, dto);
   }
 
   @UseGuards(AuthGuard)

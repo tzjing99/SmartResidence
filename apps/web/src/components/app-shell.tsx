@@ -2,9 +2,10 @@
 
 import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { NavLinks, PageFade } from '@/components/shell-nav';
-import { api, writeSession } from '@/lib/api';
+import { api } from '@/lib/api';
 import { resolveActiveHref } from '@/lib/nav';
 import { hasAbility } from '@/lib/roles';
+import { useSignOut } from '@/lib/use-sign-out';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useMyCondos } from '@smartresidence/api-client';
 import {
@@ -23,7 +24,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import * as React from 'react';
 
 /**
@@ -79,10 +80,10 @@ const NAV_ITEMS: Array<{
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
   const { me, abilities, ready } = useRoleGuard('resident');
   const condos = useMyCondos(api);
+  const signOut = useSignOut();
 
   const navItems = React.useMemo(
     () =>
@@ -93,16 +94,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   const condo = condos.data?.[0];
-
-  async function signOut() {
-    try {
-      await api.signOut();
-    } catch {
-      /* ignore */
-    }
-    writeSession(null);
-    router.push('/sign-in');
-  }
 
   if (!ready) {
     return (
@@ -144,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={signOut}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl touch-manipulation transition-[background-color,transform] duration-100 active:scale-[0.98] hover:bg-[rgb(var(--sr-border))]/40 text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl touch-manipulation transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/40 text-sm"
           >
             <LogOut className="size-4" />
             Sign out
@@ -167,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="p-2 rounded-xl touch-manipulation transition-[background-color,transform] duration-100 active:scale-[0.98] hover:bg-[rgb(var(--sr-border))]/40"
+              className="p-2 rounded-xl touch-manipulation transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/40"
             >
               <Bell className="size-5" />
             </button>

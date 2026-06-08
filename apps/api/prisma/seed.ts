@@ -149,9 +149,10 @@ async function main() {
 
   const owner = await prisma.user.upsert({
     where: { email: 'owner@acacia.demo' },
-    update: {},
+    update: { phone: '+60123456789' },
     create: {
       email: 'owner@acacia.demo',
+      phone: '+60123456789',
       name: 'Aisyah binti Rahman',
       passwordHash,
       emailVerifiedAt: new Date(),
@@ -161,9 +162,10 @@ async function main() {
 
   const tenant = await prisma.user.upsert({
     where: { email: 'tenant@acacia.demo' },
-    update: {},
+    update: { phone: '+60198765432' },
     create: {
       email: 'tenant@acacia.demo',
+      phone: '+60198765432',
       name: 'Wong Wei Ming',
       passwordHash,
       emailVerifiedAt: new Date(),
@@ -173,9 +175,10 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@acacia.demo' },
-    update: {},
+    update: { phone: '+60111222333' },
     create: {
       email: 'admin@acacia.demo',
+      phone: '+60111222333',
       name: 'Daniel Lim (Manager)',
       passwordHash,
       emailVerifiedAt: new Date(),
@@ -184,9 +187,10 @@ async function main() {
 
   const guard = await prisma.user.upsert({
     where: { email: 'guard@acacia.demo' },
-    update: {},
+    update: { phone: '+60177665544' },
     create: {
       email: 'guard@acacia.demo',
+      phone: '+60177665544',
       name: 'Encik Hassan (Guard)',
       passwordHash,
       emailVerifiedAt: new Date(),
@@ -195,9 +199,10 @@ async function main() {
 
   const platformAdmin = await prisma.user.upsert({
     where: { email: 'super@smartresidence.dev' },
-    update: {},
+    update: { phone: '+60199887766' },
     create: {
       email: 'super@smartresidence.dev',
+      phone: '+60199887766',
       name: 'Platform Admin',
       passwordHash,
       emailVerifiedAt: new Date(),
@@ -217,12 +222,13 @@ async function main() {
         startDate: new Date('2024-01-01T00:00:00Z'),
       },
     },
-    update: {},
+    update: { status: 'ACTIVE', isPrimary: true },
     create: {
       unitId: ownerUnit.id,
       userId: owner.id,
       sharePercent: 100,
       isPrimary: true,
+      status: 'ACTIVE',
       startDate: new Date('2024-01-01T00:00:00Z'),
     },
   });
@@ -374,7 +380,7 @@ async function main() {
       unitId: ownerUnit.id,
       hostUserId: owner.id,
       name: 'Mei Lin (sister)',
-      phone: '123456789',
+      phone: '+60123456789',
       phoneCountryCode: '+60',
       entryMode: VisitorEntryMode.DRIVE_IN,
       vehiclePlate: 'WSC 1234',
@@ -445,7 +451,7 @@ async function main() {
       unitId: ownerUnit.id,
       hostUserId: owner.id,
       name: 'Cousin Alex (overnight pending)',
-      phone: '198765432',
+      phone: '+60198765432',
       phoneCountryCode: '+60',
       entryMode: VisitorEntryMode.DRIVE_IN,
       vehiclePlate: 'WKL 3344',
@@ -483,7 +489,7 @@ async function main() {
         userId: owner.id,
         unitId: ownerUnit.id,
         name: 'Mei Lin (sister)',
-        phone: '123456789',
+        phone: '+60123456789',
         phoneCountryCode: '+60',
         entryMode: VisitorEntryMode.DRIVE_IN,
         vehiclePlate: 'WSC 1234',

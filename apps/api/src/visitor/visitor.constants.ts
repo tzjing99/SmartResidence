@@ -12,13 +12,15 @@ export const WALK_IN_APPROVAL_MINUTES = 15;
 /** After owner approves a walk-in, guard has this long to check them in. */
 export const WALK_IN_CHECK_IN_WINDOW_MINS = 120;
 
-/** Active passes and pending walk-in approvals. */
+/** Active passes and pending walk-in approvals — not yet checked in. */
 export const UPCOMING_VISITOR_STATUSES: VisitorStatus[] = [
   VisitorStatus.PENDING_OWNER_APPROVAL,
   VisitorStatus.PENDING_MANAGEMENT_APPROVAL,
   VisitorStatus.APPROVED,
-  VisitorStatus.CHECKED_IN,
 ];
+
+/** Visitors currently on site (checked in, not checked out). */
+export const LIVE_VISITOR_STATUSES: VisitorStatus[] = [VisitorStatus.CHECKED_IN];
 
 /** Admin list filters for overnight management queues. */
 export type VisitorAdminFilter = 'overnight_pending' | 'urgent_overnight' | 'holiday_review';
@@ -31,10 +33,11 @@ export const HISTORY_VISITOR_STATUSES: VisitorStatus[] = [
   VisitorStatus.CANCELLED,
 ];
 
-export type VisitorListView = 'upcoming' | 'history';
+export type VisitorListView = 'upcoming' | 'live' | 'history';
 
 export function statusesForView(view?: VisitorListView): VisitorStatus[] | undefined {
   if (view === 'upcoming') return UPCOMING_VISITOR_STATUSES;
+  if (view === 'live') return LIVE_VISITOR_STATUSES;
   if (view === 'history') return HISTORY_VISITOR_STATUSES;
   return undefined;
 }

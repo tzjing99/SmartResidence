@@ -3,20 +3,21 @@
 import { type HTMLMotionProps, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { cn } from '../lib/cn';
-import { iosSpring, tapScale, tapTransition } from '../motion';
+import { tapTransition } from '../motion';
 
-export const Card = React.forwardRef<HTMLDivElement, HTMLMotionProps<'div'>>(
-  ({ className, ...props }, ref) => {
+export type CardProps = HTMLMotionProps<'div'> & {
+  /** Subtle press feedback for clickable cards (list rows, links). Default is static. */
+  interactive?: boolean;
+};
+
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, interactive = false, ...props }, ref) => {
     const reduceMotion = useReducedMotion();
     return (
       <motion.div
         ref={ref}
-        whileHover={reduceMotion ? undefined : { y: -2 }}
-        whileTap={reduceMotion ? undefined : { scale: tapScale }}
-        transition={{
-          scale: tapTransition,
-          y: reduceMotion ? tapTransition : iosSpring.snappy,
-        }}
+        whileTap={interactive && !reduceMotion ? { opacity: 0.92 } : undefined}
+        transition={interactive ? { opacity: tapTransition } : undefined}
         className={cn('sr-card p-6', className)}
         {...props}
       />

@@ -1,11 +1,11 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { useFaqArticles, useMarkFaqHelpful, useMyCondos } from '@smartresidence/api-client';
 import { Badge, Button, Card, EmptyState, Input, Skeleton } from '@smartresidence/ui-web';
 import { ChevronDown, Search, ThumbsUp } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
 
 export default function FaqPage() {
   const condos = useMyCondos(api);

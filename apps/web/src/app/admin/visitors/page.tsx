@@ -3,6 +3,7 @@
 import { PillTabs } from '@/components/pill-tabs';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import {
   queryKeys,
   useApproveOvernightVisitor,
@@ -22,7 +23,6 @@ import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartr
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 type AdminVisitorRow = Visitor & {
   unit?: { identifier: string } | null;

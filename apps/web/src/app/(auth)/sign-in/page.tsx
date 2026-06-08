@@ -2,13 +2,15 @@
 
 import { api, writeSession } from '@/lib/api';
 import { type MeResponse, roleToHome } from '@/lib/roles';
+import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { queryKeys } from '@smartresidence/api-client';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -35,6 +37,7 @@ function useSignInQueryParams(form: ReturnType<typeof useForm<z.infer<typeof sch
 
 export default function SignInPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
   const [needsTotp, setNeedsTotp] = React.useState(false);
   useSignInQueryParams(form);
@@ -49,6 +52,8 @@ export default function SignInPage() {
         expiresAt: Date.now() + res.expiresIn * 1000,
         activeCondoId: null,
       });
+      queryClient.removeQueries({ queryKey: queryKeys.me });
+      queryClient.removeQueries({ queryKey: queryKeys.myCondos });
       toast.success('Signed in');
       // Route the user to the home that matches their role (management → /admin,
       // guard → /guard, residents → /dashboard) instead of assuming resident.

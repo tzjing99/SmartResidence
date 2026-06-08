@@ -4,6 +4,7 @@ import { SlaChip } from '@/components/sla-chip';
 import { ThreadMessageList } from '@/components/thread-message-list';
 import { api } from '@/lib/api';
 import { STATUS_TONE, categoryLabel, priorityLabel, statusLabel } from '@/lib/thread-ui';
+import { toast } from '@/lib/toast';
 import {
   useCloseAbusiveThread,
   useMe,
@@ -32,7 +33,6 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as React from 'react';
-import { toast } from 'sonner';
 
 const PRIORITIES: ThreadPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
 const CATEGORIES: ThreadCategory[] = [

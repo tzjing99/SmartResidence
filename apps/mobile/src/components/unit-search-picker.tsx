@@ -1,25 +1,16 @@
+import {
+  formatUnitLabel,
+  normalizeUnitSearchTerm,
+  type UnitSearchItem,
+} from '@smartresidence/shared-types';
 import { palette, radius } from '@smartresidence/ui-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { api } from '../lib/api';
 
-export type UnitSearchItem = {
-  id: string;
-  identifier: string;
-  block?: { name?: string | null } | null;
-  ownerships?: Array<{ user?: { name?: string | null } | null }>;
-};
-
-export function formatUnitLabel(unit: UnitSearchItem): string {
-  const block = unit.block?.name?.trim();
-  const owners = (unit.ownerships ?? [])
-    .map((o) => o.user?.name?.trim())
-    .filter(Boolean)
-    .join(', ');
-  const base = block ? `${block} · ${unit.identifier}` : unit.identifier;
-  return owners ? `${base} — ${owners}` : base;
-}
+export type { UnitSearchItem };
+export { formatUnitLabel };
 
 type UnitSearchPickerProps = {
   condoId: string | null | undefined;
@@ -47,7 +38,10 @@ export function UnitSearchPicker({
     queryKey: ['units', 'search', condoId, query],
     queryFn: () =>
       condoId
-        ? api.listUnits(condoId, { search: query.trim() || undefined, limit: 20 })
+        ? api.listUnits(condoId, {
+            search: normalizeUnitSearchTerm(query) || undefined,
+            limit: 20,
+          })
         : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId) && focused && query.trim().length >= 1,
   });

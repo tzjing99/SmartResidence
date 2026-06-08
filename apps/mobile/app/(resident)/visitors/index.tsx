@@ -1,6 +1,7 @@
 import {
   useApproveVisitor,
   useCreateFavouriteVisitor,
+  useCreateVisitor,
   useDeleteFavouriteVisitor,
   useFavouriteVisitors,
   useMyUnits,
@@ -8,7 +9,13 @@ import {
   useUnitVisitors,
 } from '@smartresidence/api-client';
 import type { FavouriteVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
-import { favouriteToPreRegParams } from '@smartresidence/shared-types';
+import {
+  canOneClickPreRegFromVisitor,
+  defaultExpectedArrival,
+  favouriteToPreRegParams,
+  visitorToPreRegParams,
+  VisitorPurpose,
+} from '@smartresidence/shared-types';
 import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -19,11 +26,9 @@ import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
 
 type VisitorTab = VisitorListView | 'favourites';
 
-const TABS: { id: VisitorTab; label: string }[] = [
-  { id: 'upcoming', label: 'Upcoming' },
-  { id: 'history', label: 'History' },
-  { id: 'favourites', label: 'Favourites' },
-];
+function liveTabLabel(count: number): string {
+  return count > 0 ? `On site now (${count})` : 'On site now';
+}
 
 export default function VisitorsScreen() {
   const router = useRouter();
@@ -31,8 +36,16 @@ export default function VisitorsScreen() {
   const [tab, setTab] = useState<VisitorTab>('upcoming');
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
+  const liveVisitors = useUnitVisitors(api, unit?.id ?? null, 'live');
+  const liveCount = liveVisitors.data?.total ?? 0;
+  const TABS: { id: VisitorTab; label: string }[] = [
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'live', label: liveTabLabel(liveCount) },
+    { id: 'history', label: 'History' },
+    { id: 'favourites', label: 'Favourites' },
+  ];
   const listView: VisitorListView | undefined =
-    tab === 'upcoming' || tab === 'history' ? tab : undefined;
+    tab === 'upcoming' || tab === 'history' || tab === 'live' ? tab : undefined;
   const visitors = useUnitVisitors(api, unit?.id ?? null, listView);
   const favourites = useFavouriteVisitors(api, tab === 'favourites' ? (unit?.id ?? null) : null);
   const listLoading = units.isPending || visitors.isLoading;
@@ -115,6 +128,7 @@ export default function VisitorsScreen() {
         ) : (
           <VisitorsTab
             tab={tab}
+            unitId={unit?.id}
             items={(visitors.data?.items ?? []) as Visitor[]}
             isLoading={listLoading}
           />
@@ -126,16 +140,19 @@ export default function VisitorsScreen() {
 
 function VisitorsTab({
   tab,
+  unitId,
   items,
   isLoading,
 }: {
   tab: VisitorListView;
+  unitId?: string;
   items: Visitor[];
   isLoading: boolean;
 }) {
   const router = useRouter();
   const approve = useApproveVisitor(api);
   const reject = useRejectVisitor(api);
+  const create = useCreateVisitor(api);
 
   async function onApprove(id: string) {
     try {
@@ -155,6 +172,35 @@ function VisitorsTab({
     }
   }
 
+  async function onInviteAgain(v: Visitor) {
+    if (!unitId) return;
+    if (!canOneClickPreRegFromVisitor(v)) {
+      const qs = new URLSearchParams(visitorToPreRegParams(v)).toString();
+      router.push(`/(resident)/visitors/new?${qs}` as Href);
+      return;
+    }
+    const entryMode = v.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
+    const purposeParsed = VisitorPurpose.safeParse(v.purpose);
+    try {
+      const created = await create.mutateAsync({
+        unitId,
+        name: v.name,
+        phone: v.phone!.trim(),
+        phoneCountryCode: v.phoneCountryCode ?? '+60',
+        purpose: purposeParsed.success ? purposeParsed.data : 'VISITOR',
+        entryMode,
+        vehiclePlate: v.vehiclePlate?.trim() || undefined,
+        expectedAt: defaultExpectedArrival(),
+        overnight: false,
+      });
+      router.push(`/(resident)/visitors/${created.id}` as Href);
+    } catch (err) {
+      Alert.alert('Could not invite again', (err as Error).message);
+      const qs = new URLSearchParams(visitorToPreRegParams(v)).toString();
+      router.push(`/(resident)/visitors/new?${qs}` as Href);
+    }
+  }
+
   if (isLoading) {
     return <Text style={{ color: palette.mutedLight, fontSize: 14 }}>Loading visitors…</Text>;
   }
@@ -162,11 +208,19 @@ function VisitorsTab({
   if (items.length === 0) {
     return (
       <EmptyState
-        title={tab === 'upcoming' ? 'No upcoming visitors' : 'No visit history yet'}
+        title={
+          tab === 'upcoming'
+            ? 'No upcoming visitors'
+            : tab === 'live'
+              ? 'No one on site'
+              : 'No visit history yet'
+        }
         description={
           tab === 'upcoming'
             ? 'Pre-registered visitors and pending walk-ins show up here.'
-            : 'Past check-ins and expired passes appear here.'
+            : tab === 'live'
+              ? 'When a guest checks in at the gate, they appear here until they leave.'
+              : 'Past check-ins and expired passes appear here.'
         }
       />
     );
@@ -195,7 +249,11 @@ function VisitorsTab({
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={{ fontWeight: '600' }}>{v.name}</Text>
                 <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                  {new Date(v.expectedAt).toLocaleString()}
+                  {tab === 'live'
+                    ? 'On site now'
+                    : tab === 'history' && v.status === 'CHECKED_OUT'
+                      ? 'Visited'
+                      : new Date(v.expectedAt).toLocaleString()}
                 </Text>
                 {v.accessCode && tab === 'upcoming' ? (
                   <Text style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}>
@@ -240,6 +298,16 @@ function VisitorsTab({
                       size="sm"
                       variant="secondary"
                       onPress={() => onReject(v.id)}
+                    />
+                  </View>
+                ) : tab === 'history' &&
+                  (v.status === 'CHECKED_OUT' || v.visitType === 'PRE_REG') ? (
+                  <View style={{ marginTop: 10 }}>
+                    <Button
+                      title="Invite again"
+                      size="sm"
+                      variant="secondary"
+                      onPress={() => void onInviteAgain(v)}
                     />
                   </View>
                 ) : null}

@@ -1,16 +1,46 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
-import { Button, Card, Label, Skeleton } from '@smartresidence/ui-web';
-import { Bell, Moon, Save } from 'lucide-react';
+import { MalaysiaPhoneSchema } from '@smartresidence/shared-types';
+import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Bell, Moon, Save, User } from 'lucide-react';
 import * as React from 'react';
-import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
-/** E1 email opt-in + E5 quiet hours for residents. */
+const profileSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  phone: MalaysiaPhoneSchema,
+});
+
+/** E1 email opt-in + E5 quiet hours + profile phone for residents. */
 export default function ProfileSettingsPage() {
+  const qc = useQueryClient();
   const prefs = usePreferences(api);
   const save = useUpdatePreferences(api);
+
+  const profile = useQuery({
+    queryKey: ['auth', 'profile'],
+    queryFn: () => api.getProfile(),
+  });
+
+  const saveProfile = useMutation({
+    mutationFn: (input: { name: string; phone: string }) => api.updateProfile(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth', 'profile'] });
+      toast.success('Profile saved');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const profileForm = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { name: '', phone: '' },
+  });
 
   const [emailNotifications, setEmailNotifications] = React.useState(false);
   const [quietEnabled, setQuietEnabled] = React.useState(false);
@@ -25,7 +55,15 @@ export default function ProfileSettingsPage() {
     setQuietEnd(prefs.data.quietHours.end);
   }, [prefs.data]);
 
-  async function onSave() {
+  React.useEffect(() => {
+    if (!profile.data) return;
+    profileForm.reset({
+      name: profile.data.name,
+      phone: profile.data.phone ?? '',
+    });
+  }, [profile.data, profileForm]);
+
+  async function onSavePrefs() {
     try {
       await save.mutateAsync({
         emailNotifications,
@@ -37,10 +75,65 @@ export default function ProfileSettingsPage() {
     }
   }
 
-  if (prefs.isLoading) return <Skeleton className="h-64" />;
+  async function onSaveProfile(values: z.infer<typeof profileSchema>) {
+    await saveProfile.mutateAsync(values);
+  }
+
+  if (prefs.isLoading || profile.isLoading) return <Skeleton className="h-64" />;
 
   return (
     <div className="max-w-lg flex flex-col gap-6">
+      <div>
+        <h2 className="sr-section-title">Profile</h2>
+        <p className="sr-muted text-sm mt-1">
+          Your phone number lets guards reach you when a walk-in visitor is waiting for approval.
+        </p>
+      </div>
+
+      <Card className="p-5 flex flex-col gap-4">
+        <div className="align-row items-start min-h-0">
+          <User className="size-5 shrink-0 mt-0.5" />
+          <form
+            className="flex-1 flex flex-col gap-3"
+            onSubmit={profileForm.handleSubmit(onSaveProfile)}
+          >
+            <div>
+              <Label htmlFor="profile-name">Full name</Label>
+              <Input id="profile-name" className="mt-1" {...profileForm.register('name')} />
+            </div>
+            <div>
+              <Label htmlFor="profile-email">Email</Label>
+              <Input
+                id="profile-email"
+                className="mt-1"
+                value={profile.data?.email ?? ''}
+                disabled
+                readOnly
+              />
+            </div>
+            <div>
+              <Label htmlFor="profile-phone">Mobile phone</Label>
+              <Input
+                id="profile-phone"
+                type="tel"
+                className="mt-1"
+                placeholder="+60123456789"
+                {...profileForm.register('phone')}
+              />
+              {profileForm.formState.errors.phone ? (
+                <p className="text-xs text-red-500 mt-1">
+                  {profileForm.formState.errors.phone.message}
+                </p>
+              ) : null}
+            </div>
+            <Button type="submit" disabled={saveProfile.isPending} className="self-start">
+              <Save className="size-4" />
+              Save profile
+            </Button>
+          </form>
+        </div>
+      </Card>
+
       <div>
         <h2 className="sr-section-title">Notifications</h2>
         <p className="sr-muted text-sm mt-1">
@@ -119,9 +212,9 @@ export default function ProfileSettingsPage() {
         </div>
       </Card>
 
-      <Button onClick={onSave} disabled={save.isPending}>
+      <Button onClick={onSavePrefs} disabled={save.isPending}>
         <Save className="size-4" />
-        Save preferences
+        Save notification preferences
       </Button>
     </div>
   );

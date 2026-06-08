@@ -41,7 +41,7 @@ export function PillTabs<T extends string>({
               onClick={() => onChange(item.id)}
               className={cn(
                 'relative inline-flex items-center px-4 h-9 text-sm font-medium leading-none touch-manipulation',
-                'transition-[color,background-color,transform] duration-100 outline-none rounded-full active:scale-[0.98]',
+                'transition-[color,background-color] duration-100 outline-none rounded-full',
                 'focus-visible:ring-2 focus-visible:ring-coral-500/50',
                 active
                   ? 'text-coral-600 dark:text-coral-400'

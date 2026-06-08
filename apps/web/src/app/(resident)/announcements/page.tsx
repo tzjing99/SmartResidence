@@ -2,9 +2,9 @@
 
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { useAckAnnouncement, useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { toast } from 'sonner';
 
 const TONE: Record<string, 'info' | 'warning' | 'danger'> = {
   INFO: 'info',

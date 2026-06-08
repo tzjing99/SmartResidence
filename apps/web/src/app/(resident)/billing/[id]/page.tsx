@@ -1,12 +1,12 @@
 'use client';
 
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { queryKeys, usePayInvoice } from '@smartresidence/api-client';
 import { formatMoney } from '@smartresidence/shared-types';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { use } from 'react';
-import { toast } from 'sonner';
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

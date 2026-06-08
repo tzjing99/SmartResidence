@@ -2,8 +2,9 @@
 
 import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { NavLinks, PageFade } from '@/components/shell-nav';
-import { api, writeSession } from '@/lib/api';
+import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
+import { useSignOut } from '@/lib/use-sign-out';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useMyCondos } from '@smartresidence/api-client';
 import { ROLE_LABEL } from '@smartresidence/shared-types';
@@ -21,7 +22,6 @@ import {
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 /**
@@ -77,26 +77,16 @@ const NAV: Array<{
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const { role, abilities, ready } = useRoleGuard('admin');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
+  const signOut = useSignOut();
 
   const navItems = React.useMemo(
     () =>
       NAV.filter((item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject)),
     [abilities],
   );
-
-  async function signOut() {
-    try {
-      await api.signOut();
-    } catch {
-      /* ignore */
-    }
-    writeSession(null);
-    router.push('/sign-in');
-  }
 
   if (!ready) {
     return (
@@ -136,7 +126,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           onClick={signOut}
-          className="flex items-center gap-2 px-3 py-2 mt-4 rounded-xl touch-manipulation transition-[background-color,transform] duration-100 active:scale-[0.98] hover:bg-[rgb(var(--sr-border))]/40 text-sm"
+          className="flex items-center gap-2 px-3 py-2 mt-4 rounded-xl touch-manipulation transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/40 text-sm"
         >
           <LogOut className="size-4" />
           Sign out

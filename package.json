@@ -32,7 +32,7 @@
     "db:migrate": "pnpm --filter @smartresidence/api db:migrate",
     "db:seed": "pnpm --filter @smartresidence/api db:seed",
     "db:studio": "pnpm --filter @smartresidence/api db:studio",
-    "api:dev": "pnpm --filter @smartresidence/api dev",
+    "api:dev": "corepack pnpm --filter @smartresidence/api dev",
     "web:dev": "pnpm --filter @smartresidence/web dev",
     "mobile:dev": "pnpm --filter @smartresidence/mobile dev",
     "docs:dev": "pnpm --filter @smartresidence/docs dev",
@@ -49,6 +49,8 @@
     "typescript": "^5.6.3"
   },
   "pnpm": {
-    "neverBuiltDependencies": ["postman-code-generators"]
+    "neverBuiltDependencies": [
+      "postman-code-generators"
+    ]
   }
 }

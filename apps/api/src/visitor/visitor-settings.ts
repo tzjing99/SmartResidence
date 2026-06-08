@@ -31,6 +31,8 @@ export type CondoVisitorSettings = {
   maxOvernightVisitsPerUnitPerMonth: number;
   overnightSlotsPerNight: number;
   walkInApprovalMinutes: number;
+  /** When true, unit walk-ins wait for owner/tenant approval before check-in. */
+  walkInRequireOwnerApproval: boolean;
   preRegExpiryBufferMins: number;
   urgentOvernightMinHours: number;
   workingDays: { weekdays: number[] };
@@ -66,6 +68,7 @@ export const DEFAULT_CONDO_VISITOR_SETTINGS: CondoVisitorSettings = {
   maxOvernightVisitsPerUnitPerMonth: 4,
   overnightSlotsPerNight: 10,
   walkInApprovalMinutes: WALK_IN_APPROVAL_MINUTES,
+  walkInRequireOwnerApproval: true,
   preRegExpiryBufferMins: PRE_REG_EXPIRY_BUFFER_MINS,
   urgentOvernightMinHours: 24,
   workingDays: { weekdays: [1, 2, 3, 4, 5] },
@@ -189,6 +192,10 @@ export function parseCondoVisitorSettings(settings: unknown): CondoVisitorSettin
       visitor.walkInApprovalMinutes,
       DEFAULT_CONDO_VISITOR_SETTINGS.walkInApprovalMinutes,
     ),
+    walkInRequireOwnerApproval: parseBoolean(
+      visitor.walkInRequireOwnerApproval,
+      DEFAULT_CONDO_VISITOR_SETTINGS.walkInRequireOwnerApproval,
+    ),
     preRegExpiryBufferMins: parsePositiveInt(
       visitor.preRegExpiryBufferMins,
       DEFAULT_CONDO_VISITOR_SETTINGS.preRegExpiryBufferMins,
@@ -248,6 +255,8 @@ export function mergeVisitorSettings(
       patch.maxOvernightVisitsPerUnitPerMonth ?? current.maxOvernightVisitsPerUnitPerMonth,
     overnightSlotsPerNight: patch.overnightSlotsPerNight ?? current.overnightSlotsPerNight,
     walkInApprovalMinutes: patch.walkInApprovalMinutes ?? current.walkInApprovalMinutes,
+    walkInRequireOwnerApproval:
+      patch.walkInRequireOwnerApproval ?? current.walkInRequireOwnerApproval,
     preRegExpiryBufferMins: patch.preRegExpiryBufferMins ?? current.preRegExpiryBufferMins,
     urgentOvernightMinHours: patch.urgentOvernightMinHours ?? current.urgentOvernightMinHours,
     workingDays: patch.workingDays ?? current.workingDays,

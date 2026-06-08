@@ -42,6 +42,7 @@ export function setActiveCondo(condoId: string | null) {
 export const api = createApiClient({
   baseUrl,
   getAccessToken: () => readSession()?.accessToken ?? null,
+  getSessionId: () => readSession()?.sessionId ?? null,
   getActiveCondoId: () => readSession()?.activeCondoId ?? null,
   onUnauthorized: async () => {
     const session = readSession();

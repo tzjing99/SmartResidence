@@ -30,10 +30,38 @@ export class SignUpDto {
   @Matches(/\d/, { message: 'password must contain a digit' })
   password!: string;
 
+  @ApiProperty({
+    description: 'Malaysia mobile number (e.g. +60123456789 or 012-345 6789)',
+    example: '+60123456789',
+  })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(20)
+  phone!: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   invitationCode?: string;
+}
+
+export class UpdateProfileDto {
+  @ApiPropertyOptional({ minLength: 2, maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  name?: string;
+
+  @ApiPropertyOptional({
+    description: 'Malaysia mobile number (e.g. +60123456789 or 012-345 6789)',
+    example: '+60123456789',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(20)
+  phone?: string;
 }
 
 export class SignInDto {

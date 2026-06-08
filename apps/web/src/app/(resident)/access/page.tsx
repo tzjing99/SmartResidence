@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from '@/lib/toast';
 import { ROLE_LABEL, type RoleId } from '@smartresidence/shared-types';
 import {
   Badge,
@@ -12,7 +13,6 @@ import {
   EmptyState,
 } from '@smartresidence/ui-web';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 
 interface DelegatedGrant {

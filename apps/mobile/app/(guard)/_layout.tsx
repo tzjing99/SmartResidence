@@ -22,6 +22,15 @@ export default function GuardLayout() {
         }}
       />
       <Tabs.Screen
+        name="live"
+        options={{
+          title: 'On site',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="radio-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="expected"
         options={{
           title: 'Expected',

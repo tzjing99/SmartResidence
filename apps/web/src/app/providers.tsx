@@ -1,12 +1,12 @@
 'use client';
 
+import { AppToaster } from '@/components/app-toaster';
 import { WebRealtimeProvider } from '@/components/realtime-provider';
 import { LocaleProvider } from '@/i18n/locale-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from 'next-themes';
 import * as React from 'react';
-import { Toaster } from 'sonner';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = React.useState(
@@ -28,7 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <LocaleProvider>
           <WebRealtimeProvider>{children}</WebRealtimeProvider>
         </LocaleProvider>
-        <Toaster position="top-right" />
+        <AppToaster />
         {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </ThemeProvider>

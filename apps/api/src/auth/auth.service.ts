@@ -12,7 +12,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Prisma, RoleId, UserStatus, VerificationPurpose } from '@prisma/client';
 import * as argon2 from 'argon2';
-import type { RequestOtpDto, SignInDto, SignUpDto, VerifyOtpDto } from './dto/auth.dto';
+import { isValidMalaysiaPhone, normalizeMalaysiaPhone } from '@smartresidence/shared-types';
+import type { RequestOtpDto, SignInDto, SignUpDto, UpdateProfileDto, VerifyOtpDto } from './dto/auth.dto';
 import type { UpdateUserPreferencesDto } from './dto/preferences.dto';
 import { type DeviceInfo, SessionService } from './session.service';
 import { TotpService } from './totp.service';
@@ -36,16 +37,27 @@ export class AuthService {
   ) {}
 
   async signUp(dto: SignUpDto, info: DeviceInfo) {
+    const phone = normalizeMalaysiaPhone(dto.phone);
+    if (!isValidMalaysiaPhone(phone)) {
+      throw new BadRequestException(
+        'Enter a valid Malaysia mobile number (e.g. +60123456789 or 012-345 6789)',
+      );
+    }
     const passwordHash = await argon2.hash(dto.password);
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email.toLowerCase(),
-        name: dto.name,
-        passwordHash,
-        locale: this.config.get('DEFAULT_CONDO_LOCALE', { infer: true }),
-      },
-    });
-    return this.sessions.create(user.id, info);
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: dto.email.toLowerCase(),
+          phone,
+          name: dto.name,
+          passwordHash,
+          locale: this.config.get('DEFAULT_CONDO_LOCALE', { infer: true }),
+        },
+      });
+      return this.sessions.create(user.id, info);
+    } catch (err) {
+      AuthService.handlePrismaError(err);
+    }
   }
 
   async signIn(dto: SignInDto, info: DeviceInfo) {
@@ -271,6 +283,38 @@ export class AuthService {
     ]);
   }
 
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, phone: true, name: true, locale: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const data: Prisma.UserUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.phone !== undefined) {
+      const phone = normalizeMalaysiaPhone(dto.phone);
+      if (!isValidMalaysiaPhone(phone)) {
+        throw new BadRequestException(
+          'Enter a valid Malaysia mobile number (e.g. +60123456789 or 012-345 6789)',
+        );
+      }
+      data.phone = phone;
+    }
+    if (Object.keys(data).length === 0) {
+      return this.getProfile(userId);
+    }
+    try {
+      await this.prisma.user.update({ where: { id: userId }, data });
+    } catch (err) {
+      AuthService.handlePrismaError(err);
+    }
+    return this.getProfile(userId);
+  }
+
   async getPreferences(userId: string): Promise<UserPreferences> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -309,6 +353,10 @@ export class AuthService {
 
   static handlePrismaError(err: unknown): never {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      const target = Array.isArray(err.meta?.target) ? err.meta.target : [];
+      if (target.includes('phone')) {
+        throw new BadRequestException('Phone number already in use');
+      }
       throw new BadRequestException('Email already in use');
     }
     throw err as Error;

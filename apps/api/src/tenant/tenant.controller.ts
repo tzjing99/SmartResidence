@@ -1,9 +1,9 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ListUnitsQueryDto } from './dto/tenant.dto';
 import { TenantService } from './tenant.service';
 
 @ApiTags('Tenancy')
@@ -26,12 +26,8 @@ export class TenantController {
 
   @Get(':id/units')
   @CheckAbility({ action: 'read', subject: 'Unit' })
-  listUnits(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Query() pagination: PaginationDto,
-    @Query('search') search?: string,
-  ) {
-    return this.tenant.listUnits(id, { ...pagination, search });
+  listUnits(@Param('id', new ParseUUIDPipe()) id: string, @Query() query: ListUnitsQueryDto) {
+    return this.tenant.listUnits(id, query);
   }
 }
 

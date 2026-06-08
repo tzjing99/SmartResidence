@@ -3,9 +3,11 @@
 import { PillTabs } from '@/components/pill-tabs';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import {
   useApproveVisitor,
   useCreateFavouriteVisitor,
+  useCreateVisitor,
   useDeleteFavouriteVisitor,
   useFavouriteVisitors,
   useMyUnits,
@@ -13,31 +15,54 @@ import {
   useUnitVisitors,
 } from '@smartresidence/api-client';
 import type { FavouriteVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
-import { favouriteToPreRegParams } from '@smartresidence/shared-types';
+import type { VisitorPurpose } from '@smartresidence/shared-types';
+import {
+  canOneClickPreRegFromVisitor,
+  defaultExpectedArrival,
+  favouriteToPreRegParams,
+  visitorToPreRegParams,
+  VisitorPurpose as VisitorPurposeSchema,
+} from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { Heart, Plus, Star, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useMemo, useState } from 'react';
 
 type VisitorTab = VisitorListView | 'favourites';
 
 const SKELETON_KEYS = ['s1', 's2', 's3'];
 
+function resolvePurposeForPreReg(purpose: string | null | undefined): VisitorPurpose {
+  const parsed = VisitorPurposeSchema.safeParse(purpose);
+  return parsed.success ? parsed.data : 'VISITOR';
+}
+
 export default function VisitorsPage() {
   const t = useT();
   const [tab, setTab] = useState<VisitorTab>('upcoming');
-  const TAB_ITEMS: { id: VisitorTab; label: string }[] = [
-    { id: 'upcoming', label: t('visitors.tabs.upcoming') },
-    { id: 'history', label: t('visitors.tabs.history') },
-    { id: 'favourites', label: t('visitors.tabs.favourites') },
-  ];
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; identifier: string } | undefined;
 
+  const liveVisitors = useUnitVisitors(api, unit?.id ?? null, 'live');
+  const liveCount = liveVisitors.data?.total ?? 0;
+
+  const TAB_ITEMS: { id: VisitorTab; label: string }[] = useMemo(
+    () => [
+      { id: 'upcoming', label: t('visitors.tabs.upcoming') },
+      {
+        id: 'live',
+        label:
+          liveCount > 0 ? `${t('visitors.tabs.live')} (${liveCount})` : t('visitors.tabs.live'),
+      },
+      { id: 'history', label: t('visitors.tabs.history') },
+      { id: 'favourites', label: t('visitors.tabs.favourites') },
+    ],
+    [t, liveCount],
+  );
+
   const listView: VisitorListView | undefined =
-    tab === 'upcoming' || tab === 'history' ? tab : undefined;
+    tab === 'upcoming' || tab === 'history' || tab === 'live' ? tab : undefined;
   const visitors = useUnitVisitors(api, unit?.id ?? null, listView);
   const favourites = useFavouriteVisitors(api, tab === 'favourites' ? (unit?.id ?? null) : null);
   const listLoading = units.isPending || visitors.isLoading;
@@ -68,6 +93,7 @@ export default function VisitorsPage() {
       ) : (
         <VisitorListPanel
           tab={tab}
+          unitId={unit?.id}
           items={(visitors.data?.items ?? []) as Visitor[]}
           isLoading={listLoading}
         />
@@ -78,15 +104,20 @@ export default function VisitorsPage() {
 
 function VisitorListPanel({
   tab,
+  unitId,
   items,
   isLoading,
 }: {
   tab: VisitorListView;
+  unitId?: string;
   items: Visitor[];
   isLoading: boolean;
 }) {
+  const t = useT();
+  const router = useRouter();
   const approve = useApproveVisitor(api);
   const reject = useRejectVisitor(api);
+  const create = useCreateVisitor(api);
 
   async function onApprove(id: string) {
     try {
@@ -106,6 +137,41 @@ function VisitorListPanel({
     }
   }
 
+  async function onInviteAgain(v: Visitor) {
+    if (!unitId) return;
+    if (!v.phone?.trim()) {
+      toast.error(t('visitors.inviteAgainNeedPhone'));
+      const params = new URLSearchParams(visitorToPreRegParams(v));
+      router.push(`/visitors/new?${params.toString()}`);
+      return;
+    }
+    if (!canOneClickPreRegFromVisitor(v)) {
+      const params = new URLSearchParams(visitorToPreRegParams(v));
+      router.push(`/visitors/new?${params.toString()}`);
+      return;
+    }
+    const entryMode = v.vehiclePlate?.trim() ? 'DRIVE_IN' : 'WALK_IN';
+    try {
+      const created = await create.mutateAsync({
+        unitId,
+        name: v.name,
+        phone: v.phone.trim(),
+        phoneCountryCode: v.phoneCountryCode ?? '+60',
+        purpose: resolvePurposeForPreReg(v.purpose),
+        entryMode,
+        vehiclePlate: v.vehiclePlate?.trim() || undefined,
+        expectedAt: defaultExpectedArrival(),
+        overnight: false,
+      });
+      toast.success(t('visitors.inviteAgainSuccess'));
+      router.push(`/visitors/${created.id}`);
+    } catch (err) {
+      toast.error((err as Error).message);
+      const params = new URLSearchParams(visitorToPreRegParams(v));
+      router.push(`/visitors/new?${params.toString()}`);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-3">
@@ -117,21 +183,32 @@ function VisitorListPanel({
   }
 
   if (items.length === 0) {
+    const empty =
+      tab === 'upcoming'
+        ? {
+            title: t('visitors.emptyUpcoming'),
+            description: 'Pre-register a guest or approve a walk-in request.',
+            action: (
+              <Link href="/visitors/new">
+                <Button>{t('visitors.preRegister')}</Button>
+              </Link>
+            ),
+          }
+        : tab === 'live'
+          ? {
+              title: t('visitors.emptyLive'),
+              description: t('visitors.emptyLiveHint'),
+            }
+          : {
+              title: t('visitors.emptyHistory'),
+              description:
+                'Past check-ins, expired passes, and declined walk-ins appear here.',
+            };
     return (
       <EmptyState
-        title={tab === 'upcoming' ? 'No upcoming visitors' : 'No visit history yet'}
-        description={
-          tab === 'upcoming'
-            ? 'Pre-register a guest or approve a walk-in request.'
-            : 'Past check-ins, expired passes, and declined walk-ins appear here.'
-        }
-        action={
-          tab === 'upcoming' ? (
-            <Link href="/visitors/new">
-              <Button>Pre-register a visitor</Button>
-            </Link>
-          ) : undefined
-        }
+        title={empty.title}
+        description={empty.description}
+        action={'action' in empty ? empty.action : undefined}
       />
     );
   }
@@ -145,9 +222,11 @@ function VisitorListPanel({
               <div className="font-medium">{v.name}</div>
               <div className="text-xs sr-muted mt-0.5">
                 {v.visitType === 'WALKIN_UNIT' ? 'Walk-in · ' : ''}
-                {tab === 'history' && v.status === 'CHECKED_OUT'
-                  ? 'Visited'
-                  : `Expected ${new Date(v.expectedAt).toLocaleString()}`}
+                {tab === 'live'
+                  ? t('visitors.onSiteNow')
+                  : tab === 'history' && v.status === 'CHECKED_OUT'
+                    ? 'Visited'
+                    : `Expected ${new Date(v.expectedAt).toLocaleString()}`}
                 {v.vehiclePlate ? ` · ${v.vehiclePlate}` : ''}
                 {v.purpose ? ` · ${v.purpose}` : ''}
               </div>
@@ -179,6 +258,17 @@ function VisitorListPanel({
                 >
                   View pass →
                 </Link>
+              ) : tab === 'history' &&
+                (v.status === 'CHECKED_OUT' || v.visitType === 'PRE_REG') ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3"
+                  onClick={() => onInviteAgain(v)}
+                  disabled={create.isPending}
+                >
+                  {t('visitors.inviteAgain')}
+                </Button>
               ) : null}
             </div>
             <Badge tone={statusTone(v.status)}>{v.status.toLowerCase().replace(/_/g, ' ')}</Badge>

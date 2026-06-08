@@ -36,6 +36,6 @@ test('sign out clears session so the next user gets their own role', async ({ pa
 
   await signIn(page, 'guard@acacia.demo');
   await expect(page).toHaveURL(/\/guard/, { timeout: 15_000 });
-  await expect(page.getByText(/visitor verification/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /on site now/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /manage access/i })).toHaveCount(0);
 });

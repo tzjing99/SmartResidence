@@ -58,7 +58,7 @@ test('admin nav highlights the active route and not the dashboard index', async 
 test('security guard lands on the minimal /guard view', async ({ page }) => {
   await signIn(page, 'guard@acacia.demo');
   await expect(page).toHaveURL(/\/guard/, { timeout: 15_000 });
-  await expect(page.getByText(/visitor verification/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /on site now/i })).toBeVisible();
   // No resident or admin navigation for guards.
   await expect(page.getByRole('link', { name: /manage access/i })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /audit log/i })).toHaveCount(0);

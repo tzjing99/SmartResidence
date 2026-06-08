@@ -1,6 +1,7 @@
 'use client';
 
 import { PillTabs } from '@/components/pill-tabs';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import {
   queryKeys,
@@ -33,20 +34,19 @@ type AdminVisitorRow = Visitor & {
 type AdminTab = 'live' | 'history' | 'overnight';
 type LiveFilter = 'all' | VisitorAdminFilter;
 
-const TAB_ITEMS: { id: AdminTab; label: string }[] = [
-  { id: 'live', label: 'Live' },
-  { id: 'history', label: 'Logs' },
-  { id: 'overnight', label: 'Overnight policy' },
-];
-
-const LIVE_FILTERS: { id: LiveFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'overnight_pending', label: 'Overnight pending' },
-  { id: 'urgent_overnight', label: 'Urgent overnight' },
-  { id: 'holiday_review', label: 'Holiday review' },
-];
-
 export default function AdminVisitorsPage() {
+  const t = useT();
+  const TAB_ITEMS: { id: AdminTab; label: string }[] = [
+    { id: 'live', label: t('visitors.admin.tabs.live') },
+    { id: 'history', label: t('visitors.admin.tabs.history') },
+    { id: 'overnight', label: t('visitors.admin.tabs.overnight') },
+  ];
+  const LIVE_FILTERS: { id: LiveFilter; label: string }[] = [
+    { id: 'all', label: t('visitors.admin.filters.all') },
+    { id: 'overnight_pending', label: t('visitors.admin.filters.overnightPending') },
+    { id: 'urgent_overnight', label: t('visitors.admin.filters.urgentOvernight') },
+    { id: 'holiday_review', label: t('visitors.admin.filters.holidayReview') },
+  ];
   const [tab, setTab] = useState<AdminTab>('live');
   const [liveFilter, setLiveFilter] = useState<LiveFilter>('all');
   const [suspendUnit, setSuspendUnit] = useState<OvernightUnitSummary | null>(null);
@@ -129,8 +129,8 @@ export default function AdminVisitorsPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Visitors</h1>
-          <p className="sr-muted">Live visitor log and overnight abuse prevention.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t('visitors.admin.title')}</h1>
+          <p className="sr-muted">{t('visitors.admin.subtitle')}</p>
         </div>
         <Button variant="secondary" size="sm" asChild>
           <Link href="/admin/settings/visitors">Visitor settings</Link>
@@ -156,20 +156,23 @@ export default function AdminVisitorsPage() {
         ) : (
           <Card className="overflow-x-auto">
             <table className="w-full text-sm min-w-[720px]">
-              <thead className="text-left text-xs uppercase sr-muted">
+              <thead className="text-left text-xs uppercase sr-muted sticky top-0 bg-[rgb(var(--sr-card))]">
                 <tr>
-                  <th className="py-2 px-3">Unit</th>
-                  <th className="px-3">Owners</th>
-                  <th className="px-3">This month</th>
-                  <th className="px-3">Status</th>
-                  <th className="px-3 text-right">Actions</th>
+                  <th className="py-3 px-3">{t('visitors.admin.overnightTable.unit')}</th>
+                  <th className="px-3 py-3">{t('visitors.admin.overnightTable.owners')}</th>
+                  <th className="px-3 py-3">{t('visitors.admin.overnightTable.thisMonth')}</th>
+                  <th className="px-3 py-3">{t('visitors.admin.overnightTable.status')}</th>
+                  <th className="px-3 py-3 text-right">{t('visitors.admin.overnightTable.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[rgb(var(--sr-border))]">
-                {overnightSummary.data?.items.map((row) => (
-                  <tr key={row.unitId}>
-                    <td className="py-3 px-3 font-medium">{row.unitIdentifier}</td>
-                    <td className="px-3 sr-muted">
+                {overnightSummary.data?.items.map((row, idx) => (
+                  <tr
+                    key={row.unitId}
+                    className={idx % 2 === 1 ? 'bg-[rgb(var(--sr-bg))]/40' : undefined}
+                  >
+                    <td className="py-3 px-3 font-medium whitespace-nowrap">{row.unitIdentifier}</td>
+                    <td className="px-3 sr-muted text-sm leading-relaxed min-w-[10rem]">
                       {row.owners.map((o) => (
                         <span key={o.id} className="block">
                           {o.name}

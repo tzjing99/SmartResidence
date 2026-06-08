@@ -118,5 +118,92 @@
     "amount": "Amount",
     "payCard": "Pay with card",
     "payFpx": "Pay with FPX"
+  },
+  "visitors": {
+    "title": "Visitors",
+    "subtitle": "Pre-register guests so they walk straight through.",
+    "tabs": {
+      "upcoming": "Upcoming",
+      "history": "History",
+      "favourites": "Favourites"
+    },
+    "preRegister": "Pre-register",
+    "emptyUpcoming": "No upcoming visitors",
+    "emptyHistory": "No past visits",
+    "new": {
+      "title": "Pre-register a visitor",
+      "subtitle": "Most guests drive in — set plate, arrival time, and optional overnight stay.",
+      "guestDetails": "Guest details",
+      "guestDetailsDesc": "Name and contact for the gate pass.",
+      "visitDetails": "Visit details",
+      "vehicle": "Vehicle",
+      "arrival": "Arrival",
+      "name": "Full name",
+      "phone": "Phone number",
+      "purpose": "Purpose of visit",
+      "expectedArrival": "Expected arrival",
+      "entryMode": "How are they arriving?",
+      "driveIn": "Drive in",
+      "walkIn": "Walk in",
+      "overnight": "Overnight stay",
+      "overnightDesc": "Optional — visitor stays past midnight."
+    },
+    "guard": {
+      "walkInTitle": "Walk-in visitor",
+      "walkInBlurb": "One visit — validated once at the gate. Overnight stays are not available for walk-ins; use pre-registration instead.",
+      "tabUnit": "Unit",
+      "tabOffice": "Management office",
+      "visitorName": "Visitor name",
+      "fullName": "Full name",
+      "phoneOptional": "Phone (optional)",
+      "unitLabel": "Unit",
+      "unitSearch": "Search block, unit number, or resident name…",
+      "purposeOptional": "Purpose (optional)",
+      "purposePlaceholder": "Visiting reason",
+      "purposeRequiredLabel": "Purpose (required)",
+      "officePurposePlaceholder": "e.g. Parcel collection, AGM enquiry",
+      "requestApproval": "Request owner approval",
+      "sending": "Sending…",
+      "logAndCheckIn": "Log & check in",
+      "logging": "Logging…",
+      "unitRequired": "Search and select a unit first",
+      "purposeRequired": "Enter why the visitor is seeing management",
+      "sentForApproval": "Sent for approval — owner has 15 minutes to respond",
+      "officeLogged": "{name} checked in at management office"
+    },
+    "settings": {
+      "title": "Visitor settings",
+      "subtitle": "Control how overnight stays, walk-ins, and pre-registrations work for {condo}.",
+      "sections": {
+        "overnight": "Overnight visitors",
+        "overnightDesc": "Limits and rules for guests staying past midnight.",
+        "walkIn": "Walk-in & pre-registration",
+        "walkInDesc": "Timeouts and defaults for guests at the gate and pre-registered passes.",
+        "holidays": "Holidays & working days",
+        "holidaysDesc": "Which days count as holidays and how overnight rules apply."
+      }
+    },
+    "admin": {
+      "title": "Visitors",
+      "subtitle": "Live visitor log and overnight abuse prevention.",
+      "tabs": {
+        "live": "Live",
+        "history": "Logs",
+        "overnight": "Overnight policy"
+      },
+      "filters": {
+        "all": "All",
+        "overnightPending": "Overnight pending",
+        "urgentOvernight": "Urgent overnight",
+        "holidayReview": "Holiday review"
+      },
+      "overnightTable": {
+        "unit": "Unit",
+        "owners": "Owners",
+        "thisMonth": "This month",
+        "status": "Status",
+        "actions": "Actions"
+      }
+    }
   }
 }

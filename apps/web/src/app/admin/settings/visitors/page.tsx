@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import {
   useCondoVisitorSettings,
@@ -224,6 +225,7 @@ function Toggle({
 }
 
 export default function VisitorSettingsPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const settingsQuery = useCondoVisitorSettings(api, condo?.id ?? null);
@@ -363,16 +365,16 @@ export default function VisitorSettingsPage() {
   return (
     <div className="max-w-2xl flex flex-col gap-5 pb-28">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Visitor settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('visitors.settings.title')}</h1>
         <p className="sr-muted text-sm mt-1">
-          Control how overnight stays, walk-ins, and pre-registrations work for {condo?.name}.
+          {t('visitors.settings.subtitle', { condo: condo?.name ?? 'your condo' })}
         </p>
       </header>
 
       <SectionCard
         icon={<Moon className="size-5" />}
-        title="Overnight visitors"
-        description="Limits and rules for guests staying past midnight."
+        title={t('visitors.settings.sections.overnight')}
+        description={t('visitors.settings.sections.overnightDesc')}
       >
         <Row
           label="Monthly overnight limit per unit"
@@ -428,8 +430,8 @@ export default function VisitorSettingsPage() {
 
       <SectionCard
         icon={<UserPlus className="size-5" />}
-        title="Walk-in & pre-registration"
-        description="Timeouts and defaults for guests at the gate and pre-registered passes."
+        title={t('visitors.settings.sections.walkIn')}
+        description={t('visitors.settings.sections.walkInDesc')}
       >
         <Row
           label="Walk-in approval timeout"

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -65,6 +66,7 @@ function FormSection({
 }
 
 export default function NewVisitorPage() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const platePhotoInputId = useId();
@@ -176,18 +178,15 @@ export default function NewVisitorPage() {
 
   return (
     <div className="max-w-xl -mx-4 rounded-2xl bg-stone-50 px-4 py-6 sm:mx-0 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0">
-      <h2 className="sr-section-title mb-1">Pre-register a visitor</h2>
-      <p className="sr-muted mb-6">
-        Most guests drive in — set plate, arrival time, and optional overnight stay. Walk-in is
-        still available if they arrive on foot.
-      </p>
+      <h2 className="sr-section-title mb-1">{t('visitors.new.title')}</h2>
+      <p className="sr-muted mb-6">{t('visitors.new.subtitle')}</p>
       <form className="flex flex-col gap-4 overflow-visible" onSubmit={form.handleSubmit(onSubmit)}>
-        <FormSection title="How are they arriving?">
+        <FormSection title={t('visitors.new.entryMode')}>
           <div className="grid grid-cols-2 gap-3">
             {(
               [
-                { id: 'DRIVE_IN' as const, label: 'Drive in', icon: Car },
-                { id: 'WALK_IN' as const, label: 'Walk in', icon: Footprints },
+                { id: 'DRIVE_IN' as const, label: t('visitors.new.driveIn'), icon: Car },
+                { id: 'WALK_IN' as const, label: t('visitors.new.walkIn'), icon: Footprints },
               ] as const
             ).map((mode) => {
               const active = entryMode === mode.id;
@@ -214,7 +213,10 @@ export default function NewVisitorPage() {
           </div>
         </FormSection>
 
-        <FormSection title="Guest details" description="Name and contact for the gate pass.">
+        <FormSection
+          title={t('visitors.new.guestDetails')}
+          description={t('visitors.new.guestDetailsDesc')}
+        >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Visitor name</Label>
             <Input
@@ -265,7 +267,7 @@ export default function NewVisitorPage() {
         </FormSection>
 
         {entryMode === 'DRIVE_IN' || overnight ? (
-          <FormSection title="Vehicle">
+          <FormSection title={t('visitors.new.vehicle')}>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="vehiclePlate">Plate number</Label>
               <Input
@@ -285,7 +287,7 @@ export default function NewVisitorPage() {
           </FormSection>
         ) : null}
 
-        <FormSection title="Arrival">
+        <FormSection title={t('visitors.new.arrival')}>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="expectedAt">Expected arrival</Label>
             <Input
@@ -303,7 +305,7 @@ export default function NewVisitorPage() {
           </div>
         </FormSection>
 
-        <FormSection title="Overnight stay" description="Optional — visitor stays past midnight.">
+        <FormSection title={t('visitors.new.overnight')} description={t('visitors.new.overnightDesc')}>
           <label
             className={cn(
               'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors',

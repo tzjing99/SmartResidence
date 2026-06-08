@@ -50,6 +50,42 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex items-center gap-1">
           <Link
+            href="/guard"
+            aria-current={pathname === '/guard' ? 'page' : undefined}
+            className={cn(
+              'hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors',
+              pathname === '/guard'
+                ? 'text-coral-500 bg-coral-500/10'
+                : 'hover:bg-[rgb(var(--sr-border))]/40',
+            )}
+          >
+            Expected
+          </Link>
+          <Link
+            href="/guard/check-in"
+            aria-current={pathname.startsWith('/guard/check-in') ? 'page' : undefined}
+            className={cn(
+              'hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors',
+              pathname.startsWith('/guard/check-in')
+                ? 'text-coral-500 bg-coral-500/10'
+                : 'hover:bg-[rgb(var(--sr-border))]/40',
+            )}
+          >
+            Check-in
+          </Link>
+          <Link
+            href="/guard/walk-in"
+            aria-current={pathname.startsWith('/guard/walk-in') ? 'page' : undefined}
+            className={cn(
+              'hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors',
+              pathname.startsWith('/guard/walk-in')
+                ? 'text-coral-500 bg-coral-500/10'
+                : 'hover:bg-[rgb(var(--sr-border))]/40',
+            )}
+          >
+            Walk-in
+          </Link>
+          <Link
             href="/guard/settings"
             aria-current={pathname.startsWith('/guard/settings') ? 'page' : undefined}
             className={cn(

@@ -81,6 +81,20 @@ pnpm db:seed         # load a demo condo (Acacia Heights, 3 blocks, 120 units)
 pnpm dev             # runs api + web + mobile in parallel
 ```
 
+### Mobile app (LAN only)
+
+Testing on a physical phone uses your **local Wi‑Fi**, not tunneling. Do **not**
+run `expo start --tunnel` or install ngrok — this project does not include
+`@expo/ngrok`.
+
+1. Copy `apps/mobile/.env.example` → `apps/mobile/.env`.
+2. Set `EXPO_PUBLIC_API_URL` to your PC's LAN IP (e.g. `http://192.168.1.42:4000`).
+3. Run `corepack pnpm mobile:dev` (or `pnpm dev` for the full stack).
+4. Scan the Expo QR code with Expo Go; phone and PC must be on the same network.
+5. Allow firewall access to ports **4000** (API) and **8081** (Metro) if needed.
+
+See [`apps/mobile/README.md`](./apps/mobile/README.md) for details.
+
 Default seeded credentials are printed by the seed script. You can log in to:
 
 - **Resident**: `owner@acacia.demo` / `Demo!2026`

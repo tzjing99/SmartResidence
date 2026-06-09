@@ -38,6 +38,21 @@ After `make dev` you should have:
 - Mailpit on http://localhost:8025
 - MinIO console on http://localhost:9001
 
+## Mobile app (LAN only)
+
+Physical-device testing uses your **local network**. SmartResidence does **not**
+ship `@expo/ngrok` or support `expo start --tunnel` — do not use tunneling or
+ngrok (many corporate networks block it).
+
+1. Copy `apps/mobile/.env.example` to `apps/mobile/.env`.
+2. Set `EXPO_PUBLIC_API_URL` to your dev machine's LAN IP, e.g.
+   `http://192.168.1.42:4000` (use `ipconfig` / `ifconfig` to find it).
+3. From the repo root: `corepack pnpm mobile:dev` (or `make dev` for everything).
+4. Connect phone and PC to the **same Wi‑Fi** and scan the QR code in the terminal.
+5. Open firewall ports **4000** (API) and **8081** (Metro) if the device cannot connect.
+
+More detail: [`apps/mobile/README.md`](https://github.com/tzjing99/SmartResidence/blob/main/apps/mobile/README.md).
+
 ## Demo accounts
 
 The seed script creates an `Acacia Heights` condo with the following users

@@ -3,11 +3,11 @@ const QRCode = require('qrcode');
 
 const url = process.argv[2];
 if (!url) {
-  console.error('usage: node scripts/gen-qr.js <exp-url>');
+  console.error('usage: node scripts/gen-qr.js <exp://lan-url>');
   process.exit(1);
 }
 
-const out = path.resolve(__dirname, '..', 'tunnel-qr.png');
+const out = path.resolve(__dirname, '..', 'dev-qr.png');
 
 QRCode.toFile(
   out,
@@ -18,6 +18,6 @@ QRCode.toFile(
       console.error('QR generation failed:', err);
       process.exit(1);
     }
-    console.log(`QR written to ${out} for ${url}`);
+    console.log(`LAN dev QR written to ${out} for ${url}`);
   },
 );

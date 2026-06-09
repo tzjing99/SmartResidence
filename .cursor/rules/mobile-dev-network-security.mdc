@@ -1,0 +1,37 @@
+---
+description: Ban Expo/ngrok tunneling; mobile dev is LAN-only (corporate policy)
+alwaysApply: true
+---
+
+# Mobile dev network security (no tunneling)
+
+Corporate cybersecurity policy **bans outbound tunneling**. Public tunnels expose dev servers to the internet and trigger security alerts (e.g. ngrok.exe on developer hosts).
+
+## Never use
+
+- `expo start --tunnel`
+- `@expo/ngrok`, `ngrok`, or any third-party tunnel service for this project
+- Do not add ngrok as a dependency or document tunnel mode as an option
+
+## LAN-only workflow
+
+Physical devices reach the dev machine over the **local network** only:
+
+1. Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to the PC's **LAN IP** (e.g. `http://192.168.1.42:4000`), not `localhost`.
+2. Phone and PC on the **same Wi‑Fi**.
+3. Start with `corepack pnpm mobile:dev` from repo root, or `expo start` / `pnpm dev` from `apps/mobile` — **without** `--tunnel`.
+4. Allow firewall inbound on **4000** (API) and **8081** (Metro) if the device cannot connect.
+
+Canonical guide: [`apps/mobile/README.md`](../../apps/mobile/README.md).
+
+## When LAN fails
+
+Do **not** suggest tunneling as a workaround. Instead:
+
+- Troubleshoot Wi‑Fi, LAN IP, and Windows/macOS firewall rules for ports 4000 and 8081
+- Use an Android/iOS **simulator on the same machine** as the dev server
+- Use **EAS dev client** builds if needed — still no ngrok/tunnel for local Metro/API exposure
+
+## Why
+
+LAN dev listens on the private network only. Tunneling routes traffic through the public internet and violates corporate policy.

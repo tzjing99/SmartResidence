@@ -93,7 +93,7 @@ run `expo start --tunnel` or install ngrok — this project does not include
 4. Scan the Expo QR code with Expo Go; phone and PC must be on the same network.
 5. Allow firewall access to ports **4000** (API) and **8081** (Metro) if needed.
 
-See [`apps/mobile/README.md`](./apps/mobile/README.md) for details.
+See [`apps/mobile/README.md`](./apps/mobile/README.md) for details. Cursor agents must follow [`.cursor/rules/mobile-dev-network-security.mdc`](./.cursor/rules/mobile-dev-network-security.mdc).
 
 Default seeded credentials are printed by the seed script. You can log in to:
 

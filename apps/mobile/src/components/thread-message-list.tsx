@@ -9,7 +9,14 @@ import {
 } from '@smartresidence/ui-mobile';
 import { MotiView } from 'moti';
 import * as React from 'react';
-import { View } from 'react-native';
+import {
+  FlatList,
+  StyleSheet,
+  View,
+  type ListRenderItemInfo,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import {
   type MessageRole,
   authorInitials,
@@ -60,7 +67,10 @@ function MessageEnter({
 
 function avatarStyle(role: MessageRole, variant: 'admin' | 'resident') {
   if (role === 'resident') {
-    return { bg: '#E7E5E4', fg: '#57534E' };
+    if (variant === 'resident') {
+      return { bg: '#FFE2DF', fg: palette.coralPrimaryDark };
+    }
+    return { bg: '#F5F5F4', fg: '#57534E' };
   }
   if (variant === 'admin') {
     return { bg: '#FFE2DF', fg: palette.coralPrimary };
@@ -84,9 +94,18 @@ function bubbleStyle(
     };
   }
   if (role === 'resident') {
+    if (variant === 'resident' && align === 'right') {
+      return {
+        bg: '#FFF1F0',
+        border: '#FFD1CB',
+        borderWidth: 1,
+        text: palette.textLight,
+        tail: 'right',
+      };
+    }
     return {
-      bg: palette.messageResidentBg,
-      border: palette.messageResidentBorder,
+      bg: '#FFFFFF',
+      border: '#E7E5E4',
       borderWidth: 1,
       text: palette.textLight,
       tail: align === 'left' ? 'left' : 'right',
@@ -102,15 +121,15 @@ function bubbleStyle(
     };
   }
   return {
-    bg: palette.messageMgmtSkyBg,
-    border: palette.messageMgmtSkyBorder,
+    bg: '#F0F9FF',
+    border: '#BAE6FD',
     borderWidth: 1,
-    text: palette.messageMgmtSkyText,
+    text: '#0C4A6E',
     tail: 'left',
   };
 }
 
-function MessageBubble({
+const MessageBubble = React.memo(function MessageBubble({
   message,
   align,
   authorName,
@@ -132,21 +151,13 @@ function MessageBubble({
 
   return (
     <View
-      style={{
-        flexDirection: isRight ? 'row-reverse' : 'row',
-        alignItems: 'flex-start',
-        gap: 10,
-      }}
+      style={[
+        styles.messageRow,
+        { flexDirection: isRight ? 'row-reverse' : 'row' },
+      ]}
     >
       <View
-        style={{
-          width: AVATAR,
-          height: AVATAR,
-          borderRadius: AVATAR / 2,
-          backgroundColor: avatar.bg,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        style={[styles.avatar, { backgroundColor: avatar.bg }]}
       >
         <AppText variant="caption" style={{ color: avatar.fg, fontWeight: '700' }}>
           {initials}
@@ -154,10 +165,10 @@ function MessageBubble({
       </View>
       <View
         style={{
-          flex: 1,
-          maxWidth: '85%',
+          flexShrink: 1,
+          maxWidth: '82%',
           alignItems: isRight ? 'flex-end' : 'flex-start',
-          gap: 4,
+          gap: 5,
         }}
       >
         <MetaLine
@@ -168,16 +179,20 @@ function MessageBubble({
           style={{
             alignSelf: isRight ? 'flex-end' : 'flex-start',
             backgroundColor: bubble.bg,
-            borderRadius: radius.lg,
+            borderRadius: radius.xl,
             borderBottomRightRadius:
-              bubble.tail === 'right' || (isRight && !bubble.tail) ? 4 : radius.lg,
+              bubble.tail === 'right' || (isRight && !bubble.tail) ? 6 : radius.xl,
             borderBottomLeftRadius:
-              bubble.tail === 'left' || (!isRight && !bubble.tail) ? 4 : radius.lg,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
+              bubble.tail === 'left' || (!isRight && !bubble.tail) ? 6 : radius.xl,
+            paddingHorizontal: 15,
+            paddingVertical: 11,
             borderWidth: bubble.borderWidth,
             borderColor: bubble.border,
-            width: '100%',
+            shadowColor: '#1F2937',
+            shadowOpacity: isProposed ? 0.06 : 0.03,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 3 },
+            elevation: 1,
           }}
         >
           {isProposed ? (
@@ -212,9 +227,15 @@ function MessageBubble({
       </View>
     </View>
   );
-}
+});
 
-function SystemEventPill({ label, createdAt }: { label: string; createdAt: string }) {
+const SystemEventPill = React.memo(function SystemEventPill({
+  label,
+  createdAt,
+}: {
+  label: string;
+  createdAt: string;
+}) {
   return (
     <View style={{ alignItems: 'center', paddingVertical: 8 }}>
       <View
@@ -225,13 +246,91 @@ function SystemEventPill({ label, createdAt }: { label: string; createdAt: strin
           paddingHorizontal: 12,
           minHeight: 24,
           borderRadius: radius.full,
-          backgroundColor: '#F5F5F4',
+          backgroundColor: '#FFFFFFAA',
+          borderWidth: 1,
+          borderColor: '#F1E8E4',
           justifyContent: 'center',
         }}
       >
         <MetaLine parts={[label.toUpperCase(), formatMessageTime(createdAt)]} />
       </View>
     </View>
+  );
+});
+
+function ThreadMessageRow({
+  message,
+  index,
+  knownIds,
+  variant,
+  viewerId,
+  residentId,
+  resolutionProposedMessageId,
+}: {
+  message: ThreadMessageItem;
+  index: number;
+  knownIds: React.MutableRefObject<Set<string>>;
+  variant: 'admin' | 'resident';
+  viewerId?: string;
+  residentId?: string;
+  resolutionProposedMessageId?: string | null;
+}) {
+  if (message.kind === 'SYSTEM') {
+    return (
+      <MessageEnter key={message.id} id={message.id} index={index} knownIds={knownIds}>
+        <SystemEventPill
+          label={message.body.split(';')[0]?.trim() || 'Update'}
+          createdAt={message.createdAt}
+        />
+      </MessageEnter>
+    );
+  }
+
+  if (message.kind === 'INTERNAL_NOTE') {
+    return (
+      <MessageEnter key={message.id} id={message.id} index={index} knownIds={knownIds}>
+        <View
+          style={{
+            borderRadius: radius.xl,
+            borderWidth: 1,
+            borderLeftWidth: 4,
+            borderColor: '#FDE68A',
+            backgroundColor: '#FFFBEB',
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+          }}
+        >
+          <MetaLine
+            parts={[
+              'Internal note',
+              message.author?.name ?? 'Staff',
+              formatMessageTime(message.createdAt),
+            ]}
+          />
+          <AppText variant="bodySm" style={{ marginTop: 6 }}>
+            {message.body}
+          </AppText>
+        </View>
+      </MessageEnter>
+    );
+  }
+
+  const align = messageAlignment(message, { variant, viewerId, residentId });
+  const role = messageRole(message, { residentId });
+  const authorName = displayAuthorName(message, { variant, viewerId, residentId });
+  const isProposed = resolutionProposedMessageId === message.id;
+
+  return (
+    <MessageEnter key={message.id} id={message.id} index={index} knownIds={knownIds}>
+      <MessageBubble
+        message={message}
+        align={align}
+        authorName={authorName}
+        role={role}
+        variant={variant}
+        isProposed={isProposed}
+      />
+    </MessageEnter>
   );
 }
 
@@ -241,6 +340,10 @@ export interface ThreadMessageListProps {
   viewerId?: string;
   residentId?: string;
   resolutionProposedMessageId?: string | null;
+  style?: StyleProp<ViewStyle>;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  ListHeaderComponent?: React.ReactElement | null;
+  ListFooterComponent?: React.ReactElement | null;
 }
 
 export function ThreadMessageList({
@@ -249,70 +352,63 @@ export function ThreadMessageList({
   viewerId,
   residentId,
   resolutionProposedMessageId,
+  style,
+  contentContainerStyle,
+  ListHeaderComponent,
+  ListFooterComponent,
 }: ThreadMessageListProps) {
   const knownIds = React.useRef<Set<string>>(new Set());
+  const keyExtractor = React.useCallback((message: ThreadMessageItem) => message.id, []);
+  const renderItem = React.useCallback(
+    ({ item, index }: ListRenderItemInfo<ThreadMessageItem>) => (
+      <ThreadMessageRow
+        message={item}
+        index={index}
+        knownIds={knownIds}
+        variant={variant}
+        viewerId={viewerId}
+        residentId={residentId}
+        resolutionProposedMessageId={resolutionProposedMessageId}
+      />
+    ),
+    [residentId, resolutionProposedMessageId, variant, viewerId],
+  );
 
   return (
-    <View style={{ gap: 20 }}>
-      {messages.map((m, index) => {
-        if (m.kind === 'SYSTEM') {
-          return (
-            <MessageEnter key={m.id} id={m.id} index={index} knownIds={knownIds}>
-              <SystemEventPill
-                label={m.body.split(';')[0]?.trim() || 'Update'}
-                createdAt={m.createdAt}
-              />
-            </MessageEnter>
-          );
-        }
-
-        if (m.kind === 'INTERNAL_NOTE') {
-          return (
-            <MessageEnter key={m.id} id={m.id} index={index} knownIds={knownIds}>
-              <View
-                style={{
-                  borderRadius: radius.lg,
-                  borderWidth: 1,
-                  borderLeftWidth: 4,
-                  borderColor: '#FCD34D66',
-                  backgroundColor: '#FEF3C733',
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                }}
-              >
-                <MetaLine
-                  parts={[
-                    'Internal note',
-                    m.author?.name ?? 'Staff',
-                    formatMessageTime(m.createdAt),
-                  ]}
-                />
-                <AppText variant="bodySm" style={{ marginTop: 6 }}>
-                  {m.body}
-                </AppText>
-              </View>
-            </MessageEnter>
-          );
-        }
-
-        const align = messageAlignment(m, { variant, viewerId, residentId });
-        const role = messageRole(m, { residentId });
-        const authorName = displayAuthorName(m, { variant, viewerId, residentId });
-        const isProposed = resolutionProposedMessageId === m.id;
-
-        return (
-          <MessageEnter key={m.id} id={m.id} index={index} knownIds={knownIds}>
-            <MessageBubble
-              message={m}
-              align={align}
-              authorName={authorName}
-              role={role}
-              variant={variant}
-              isProposed={isProposed}
-            />
-          </MessageEnter>
-        );
-      })}
-    </View>
+    <FlatList
+      data={messages}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      style={style}
+      contentContainerStyle={[styles.listContent, contentContainerStyle]}
+      ListHeaderComponent={ListHeaderComponent}
+      ListFooterComponent={ListFooterComponent}
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
+      initialNumToRender={14}
+      maxToRenderPerBatch={8}
+      updateCellsBatchingPeriod={24}
+      windowSize={7}
+      removeClippedSubviews={false}
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  listContent: {
+    gap: 20,
+  },
+  messageRow: {
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  avatar: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+});

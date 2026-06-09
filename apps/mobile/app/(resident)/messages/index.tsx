@@ -5,13 +5,20 @@ import {
   AppText,
   Button,
   Card,
+  EmptyState,
   FadeInView,
   MetaLine,
   Pill,
   palette,
+  spacing,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
+import {
+  ResidentScreen,
+  prettyLabel,
+  residentStyles,
+} from '../../../src/components/resident-screen';
 import { api } from '../../../src/lib/api';
 
 const PRIORITY_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
@@ -38,42 +45,59 @@ export default function MessagesScreen() {
   const items = threads.data?.items ?? [];
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 16, gap: 12 }}
+    <ResidentScreen
+      eyebrow="Messages"
+      title="Ask management"
+      subtitle="Keep every request, reply, and resolution in one conversation."
+      headerAction={
+        <Button title="New message" onPress={() => router.push('/(resident)/messages/new' as Href)} />
+      }
     >
-      <AppText variant="title">Messages</AppText>
-      <Button title="New message" onPress={() => router.push('/(resident)/messages/new' as Href)} />
       {items.length === 0 ? (
-        <AppText variant="meta">No conversations yet.</AppText>
+        <EmptyState title="No conversations yet" description="Start a message when you need help from management." />
       ) : (
         items.map((t, index) => (
           <FadeInView key={t.id} index={index}>
             <AnimatedPressable onPress={() => router.push(`/(resident)/messages/${t.id}` as Href)}>
-              <Card style={{ padding: 16 }}>
-                <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }} gap={12}>
+              <Card style={[residentStyles.card, { padding: 16 }]}>
+                <AlignRow style={{ alignItems: 'flex-start', minHeight: 0, flexWrap: 'wrap' }} gap={12}>
                   <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                    <AppText variant="label" numberOfLines={1}>
+                    <AppText variant="label" numberOfLines={2}>
                       {t.subject}
                     </AppText>
                     <MetaLine
                       parts={[
-                        t.category,
+                        prettyLabel(t.category),
                         `${t._count?.messages ?? 0} messages`,
                         `updated ${new Date(t.lastMessageAt).toLocaleDateString()}`,
                       ]}
                     />
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Pill tone={PRIORITY_TONE[t.priority] ?? 'neutral'} label={t.priority} />
-                    <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={t.status} />
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center',
+                      gap: 6,
+                      maxWidth: '100%',
+                    }}
+                  >
+                    <Pill tone={PRIORITY_TONE[t.priority] ?? 'neutral'} label={prettyLabel(t.priority)} />
+                    <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={prettyLabel(t.status)} />
                   </View>
                 </AlignRow>
+                <AppText
+                  variant="meta"
+                  style={{ color: palette.mutedLight, marginTop: spacing.sm }}
+                >
+                  Tap to view the full thread.
+                </AppText>
               </Card>
             </AnimatedPressable>
           </FadeInView>
         ))
       )}
-    </ScrollView>
+    </ResidentScreen>
   );
 }

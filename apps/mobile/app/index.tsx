@@ -1,11 +1,15 @@
-import { type Href, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { queryKeys } from '@smartresidence/api-client';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../src/lib/api';
+import { getActiveRole, roleToHomePath } from '../src/lib/roles';
 import { getCachedSession } from '../src/lib/session';
 
 export default function Bootstrap() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let mounted = true;
@@ -18,19 +22,17 @@ export default function Bootstrap() {
       }
       try {
         const me = await api.me();
-        const role = (me as { user?: { activeRole?: string } }).user?.activeRole;
-        if (role === 'SECURITY_GUARD') router.replace('/(guard)/scan');
-        else if (role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') {
-          router.replace('/(management)/settings' as Href);
-        } else router.replace('/(resident)/home');
+        queryClient.setQueryData(queryKeys.me, me);
+        router.replace(roleToHomePath(getActiveRole(me)));
       } catch {
+        queryClient.removeQueries({ queryKey: queryKeys.me });
         router.replace('/sign-in');
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, [queryClient, router]);
 
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

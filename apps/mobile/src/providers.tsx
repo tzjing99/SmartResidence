@@ -11,7 +11,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: { staleTime: 30_000, retry: 1 },
+          queries: {
+            staleTime: 30_000,
+            retry: 1,
+            // React Native treats AppState focus like window focus; background refetches
+            // surfaced unwanted pull-to-refresh UI on screens using RefreshControl.
+            refetchOnWindowFocus: false,
+          },
         },
       }),
   );

@@ -2,8 +2,8 @@ import { useMyCondos } from '@smartresidence/api-client';
 import type { GuardExpectedVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
 import { EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
 import { useQueries } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, Pressable, Text, View, type ListRenderItemInfo } from 'react-native';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
@@ -167,94 +167,104 @@ export default function ExpectedScreen() {
 
   const tabIndex = tab === 'expected' ? 0 : tab === 'no_show' ? 1 : 2;
   const activeQuery = visitors[tabIndex];
-  const items = (
-    (activeQuery?.data?.items ?? []) as Array<
-      GuardExpectedVisitor | (Visitor & { unit?: { identifier?: string } })
-    >
-  ).map(toCardVisitor);
+  const items = useMemo(
+    () =>
+      (
+        (activeQuery?.data?.items ?? []) as Array<
+          GuardExpectedVisitor | (Visitor & { unit?: { identifier?: string } })
+        >
+      ).map(toCardVisitor),
+    [activeQuery?.data?.items],
+  );
 
   const counts = visitors.map((q) => q.data?.total ?? 0);
+  const renderItem = useCallback(
+    ({ item }: ListRenderItemInfo<GuardExpectedVisitor>) => (
+      <View style={{ flex: 1, minWidth: twoColumn ? 280 : undefined }}>
+        <ExpectedVisitorCard visitor={item} variant={tab} />
+      </View>
+    ),
+    [tab, twoColumn],
+  );
+
+  const listHeader = (
+    <View style={{ gap: 12 }}>
+      <Text style={{ fontSize: 22, fontWeight: '700' }}>Expected visitors</Text>
+      <Text style={{ color: palette.mutedLight, fontSize: 14, marginBottom: 4 }}>
+        Who&apos;s arriving today — acknowledge anticipated visitors and review no-shows.
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {(['expected', 'no_show', 'history'] as ExpectedTab[]).map((id, i) => {
+          const active = tab === id;
+          const count = counts[i] ?? 0;
+          const label = count > 0 ? `${TAB_LABELS[id]} (${count})` : TAB_LABELS[id];
+          return (
+            <Pressable
+              key={id}
+              onPress={() => setTab(id)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: active ? 'rgba(255,90,60,0.12)' : 'transparent',
+                borderWidth: 1,
+                borderColor: active ? 'rgba(255,90,60,0.35)' : palette.borderLight,
+              }}
+            >
+              <Text
+                style={{
+                  fontWeight: '600',
+                  color: active ? palette.coralPrimary : palette.mutedLight,
+                }}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {activeQuery?.isLoading ? <Text style={{ color: palette.mutedLight }}>Loading…</Text> : null}
+    </View>
+  );
+
+  const emptyState = activeQuery?.isLoading ? null : (
+    <EmptyState
+      title={
+        tab === 'history'
+          ? 'No visitor history'
+          : tab === 'no_show'
+            ? 'No expired passes today'
+            : 'No visitors expected today'
+      }
+    />
+  );
 
   return (
-    <ScrollView
+    <FlatList
+      key={twoColumn ? 'tablet-grid' : 'phone-list'}
+      data={activeQuery?.isLoading ? [] : items}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      numColumns={twoColumn ? 2 : 1}
       style={{ flex: 1, backgroundColor: palette.bgLight }}
       contentContainerStyle={{
+        width: '100%',
+        maxWidth: contentMaxWidth,
+        alignSelf: 'center',
+        paddingHorizontal: horizontalPadding,
         paddingVertical: 20,
         paddingBottom: 40,
-        alignItems: 'center',
+        gap: 12,
       }}
-    >
-      <View
-        style={{
-          width: '100%',
-          maxWidth: contentMaxWidth,
-          paddingHorizontal: horizontalPadding,
-          gap: 12,
-        }}
-      >
-        <Text style={{ fontSize: 22, fontWeight: '700' }}>Expected visitors</Text>
-        <Text style={{ color: palette.mutedLight, fontSize: 14, marginBottom: 4 }}>
-          Who&apos;s arriving today — acknowledge anticipated visitors and review no-shows.
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {(['expected', 'no_show', 'history'] as ExpectedTab[]).map((id, i) => {
-            const active = tab === id;
-            const count = counts[i] ?? 0;
-            const label = count > 0 ? `${TAB_LABELS[id]} (${count})` : TAB_LABELS[id];
-            return (
-              <Pressable
-                key={id}
-                onPress={() => setTab(id)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 999,
-                  backgroundColor: active ? 'rgba(255,90,60,0.12)' : 'transparent',
-                  borderWidth: 1,
-                  borderColor: active ? 'rgba(255,90,60,0.35)' : palette.borderLight,
-                }}
-              >
-                <Text
-                  style={{
-                    fontWeight: '600',
-                    color: active ? palette.coralPrimary : palette.mutedLight,
-                  }}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        {activeQuery?.isLoading ? (
-          <Text style={{ color: palette.mutedLight }}>Loading…</Text>
-        ) : items.length === 0 ? (
-          <EmptyState
-            title={
-              tab === 'history'
-                ? 'No visitor history'
-                : tab === 'no_show'
-                  ? 'No expired passes today'
-                  : 'No visitors expected today'
-            }
-          />
-        ) : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            {items.map((v) => (
-              <View
-                key={v.id}
-                style={{
-                  width: twoColumn ? '48%' : '100%',
-                  flexGrow: 1,
-                  minWidth: twoColumn ? 280 : undefined,
-                }}
-              >
-                <ExpectedVisitorCard visitor={v} variant={tab} />
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-    </ScrollView>
+      columnWrapperStyle={twoColumn ? { gap: 12 } : undefined}
+      ListHeaderComponent={listHeader}
+      ListEmptyComponent={emptyState}
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
+      initialNumToRender={12}
+      maxToRenderPerBatch={8}
+      windowSize={7}
+      removeClippedSubviews={false}
+    />
   );
 }

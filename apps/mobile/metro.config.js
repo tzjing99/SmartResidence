@@ -27,7 +27,14 @@ const nativeWindConfig = withNativeWind(config, { input: './global.css' });
 // guarantees a single React / renderer / Query context in the iOS/Android
 // bundle. This is scoped to the mobile Metro build, so it does not affect the
 // web or docs apps (which legitimately run React 18).
-const forceSingletons = ['react', 'react-dom', 'react-native', '@tanstack/react-query'];
+const forceSingletons = [
+  'react',
+  'react-dom',
+  'react-native',
+  '@tanstack/react-query',
+  'react-native-reanimated',
+  'react-native-worklets',
+];
 const singletonPrefixes = forceSingletons.map((name) => `${name}/`);
 const singletonOriginModulePath = path.join(projectRoot, 'index.js');
 const upstreamResolveRequest = nativeWindConfig.resolver.resolveRequest;

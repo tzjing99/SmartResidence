@@ -1,20 +1,28 @@
+import { queryKeys } from '@smartresidence/api-client';
 import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
+import { useQueryClient } from '@tanstack/react-query';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { type Href, useRouter } from 'expo-router';
+import { useRef, useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { api } from '../src/lib/api';
 import { registerForPush } from '../src/lib/push';
+import { getActiveRole, roleToHomePath } from '../src/lib/roles';
 import { setCached, writeSession } from '../src/lib/session';
 
 export default function SignInScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const signingInRef = useRef(false);
   const [email, setEmail] = useState('owner@acacia.demo');
   const [password, setPassword] = useState('Demo!2026');
   const [loading, setLoading] = useState(false);
 
   async function signIn() {
+    if (signingInRef.current) return;
+    signingInRef.current = true;
     setLoading(true);
+
     try {
       const res = await api.signIn({ email, password });
       const session = {
@@ -28,19 +36,27 @@ export default function SignInScreen() {
       setCached(session);
       void registerForPush();
 
-      const supported = await LocalAuthentication.hasHardwareAsync();
-      if (supported) {
-        // Best-effort biometric prompt to lock subsequent app opens
-        await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Confirm to enable Face ID for SmartResidence',
-        }).catch(() => undefined);
+      let home: Href = '/(resident)/home';
+      try {
+        const me = await api.me();
+        queryClient.setQueryData(queryKeys.me, me);
+        home = roleToHomePath(getActiveRole(me));
+      } catch {
+        queryClient.removeQueries({ queryKey: queryKeys.me });
       }
 
-      router.replace('/(resident)/home');
+      router.replace(home);
+
+      void LocalAuthentication.hasHardwareAsync().then((supported) => {
+        if (!supported) return;
+        void LocalAuthentication.authenticateAsync({
+          promptMessage: 'Confirm to enable Face ID for SmartResidence',
+        }).catch(() => undefined);
+      });
     } catch (err) {
-      Alert.alert('Sign in failed', (err as Error).message);
-    } finally {
+      signingInRef.current = false;
       setLoading(false);
+      Alert.alert('Sign in failed', (err as Error).message);
     }
   }
 
@@ -66,6 +82,7 @@ export default function SignInScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          editable={!loading}
           style={{
             height: 48,
             borderRadius: radius.lg,
@@ -80,6 +97,7 @@ export default function SignInScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          editable={!loading}
           style={{
             height: 48,
             borderRadius: radius.lg,
@@ -94,7 +112,8 @@ export default function SignInScreen() {
         </View>
       </Card>
       <Text style={{ marginTop: 24, color: palette.mutedLight, fontSize: 12, textAlign: 'center' }}>
-        Demo: owner@acacia.demo · Demo!2026
+        Demo accounts · password Demo!2026{'\n'}
+        Resident owner@acacia.demo · Gate guard@acacia.demo
       </Text>
     </View>
   );

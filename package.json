@@ -49,6 +49,9 @@
     "typescript": "^5.6.3"
   },
   "pnpm": {
-    "neverBuiltDependencies": ["postman-code-generators"]
+    "neverBuiltDependencies": ["postman-code-generators"],
+    "overrides": {
+      "react-native-worklets": "0.5.1"
+    }
   }
 }

@@ -18,7 +18,17 @@ import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { Alert, Image, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  Pressable,
+  Switch,
+  Text,
+  TextInput,
+  View,
+  type ViewStyle,
+} from 'react-native';
+import type { FieldErrors } from 'react-hook-form';
 import { api } from '../lib/api';
 import { useTabletLayout } from '../lib/use-tablet-layout';
 
@@ -43,6 +53,8 @@ export type PreRegPrefill = {
   phoneCountryCode?: string;
   vehiclePlate?: string;
   entryMode?: VisitorEntryMode;
+  purpose?: VisitorPurpose;
+  expectedAt?: string;
 };
 
 type PreRegFormProps = {
@@ -103,8 +115,31 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   }, [unit?.id, form]);
 
   useEffect(() => {
+    if (prefill?.name) form.setValue('name', prefill.name);
+    if (prefill?.phone) form.setValue('phone', prefill.phone);
+    if (prefill?.phoneCountryCode) form.setValue('phoneCountryCode', prefill.phoneCountryCode);
+    if (prefill?.vehiclePlate) form.setValue('vehiclePlate', prefill.vehiclePlate);
+    if (prefill?.entryMode === 'WALK_IN' || prefill?.entryMode === 'DRIVE_IN') {
+      form.setValue('entryMode', prefill.entryMode);
+    }
+    if (prefill?.purpose) form.setValue('purpose', prefill.purpose);
+    if (prefill?.expectedAt) {
+      const parsed = new Date(prefill.expectedAt);
+      if (!Number.isNaN(parsed.getTime())) form.setValue('expectedAt', parsed);
+    }
+  }, [prefill, form]);
+
+  useEffect(() => {
     if (overnight) form.setValue('entryMode', 'DRIVE_IN');
   }, [overnight, form]);
+
+  function onInvalid(errors: FieldErrors<CreateVisitorInput>) {
+    const first = Object.values(errors).find((e) => e?.message);
+    Alert.alert(
+      'Missing information',
+      first?.message ? String(first.message) : 'Please check the form and try again.',
+    );
+  }
 
   async function capturePlatePhoto() {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -135,7 +170,15 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   const showUrgentReason = Boolean(overnight && preview.data?.isUrgent);
 
   async function onSubmit(values: CreateVisitorInput) {
-    if (!unit) return;
+    if (!unit) {
+      Alert.alert(
+        'Unit not ready',
+        units.isPending
+          ? 'Still loading your unit — try again in a moment.'
+          : 'No unit is linked to your account. Contact management.',
+      );
+      return;
+    }
     if (slotsBlocked) {
       Alert.alert('No slots', 'No overnight slots left tonight — contact management.');
       return;
@@ -163,6 +206,25 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   }
 
   const fieldGap = twoColumn ? { flex: 1, minWidth: '45%' as const } : undefined;
+
+  if (units.isPending) {
+    return (
+      <View style={containerStyle(contentMaxWidth, horizontalPadding)}>
+        <Text style={{ color: palette.mutedLight, fontSize: 14 }}>Loading your unit…</Text>
+      </View>
+    );
+  }
+
+  if (!unit) {
+    return (
+      <View style={containerStyle(contentMaxWidth, horizontalPadding)}>
+        <Text style={{ fontSize: 16, fontWeight: '600' }}>No unit linked</Text>
+        <Text style={{ color: palette.mutedLight, fontSize: 14, marginTop: 4 }}>
+          Contact management to link your unit before pre-registering visitors.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -223,10 +285,13 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
             <Text style={fieldLabelStyle}>Visitor name</Text>
             <TextInput
               value={form.watch('name')}
-              onChangeText={(v) => form.setValue('name', v)}
+              onChangeText={(v) => form.setValue('name', v, { shouldValidate: true })}
               style={inputStyle}
               placeholder="Full name"
             />
+            {form.formState.errors.name ? (
+              <Text style={errorTextStyle}>{form.formState.errors.name.message}</Text>
+            ) : null}
           </View>
 
           <View style={[{ gap: 8 }, fieldGap]}>
@@ -268,9 +333,7 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
               placeholder="Local number"
             />
             {form.formState.errors.phone ? (
-              <Text style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>
-                {form.formState.errors.phone.message}
-              </Text>
+              <Text style={errorTextStyle}>{form.formState.errors.phone.message}</Text>
             ) : null}
           </View>
         </View>
@@ -316,10 +379,14 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
             <Text style={fieldLabelStyle}>Plate number</Text>
             <TextInput
               value={form.watch('vehiclePlate') ?? ''}
-              onChangeText={(v) => form.setValue('vehiclePlate', v)}
+              onChangeText={(v) => form.setValue('vehiclePlate', v, { shouldValidate: true })}
               style={inputStyle}
               autoCapitalize="characters"
+              placeholder="e.g. ABC 1234"
             />
+            {form.formState.errors.vehiclePlate ? (
+              <Text style={errorTextStyle}>{form.formState.errors.vehiclePlate.message}</Text>
+            ) : null}
             {overnight ? (
               <Text style={{ fontSize: 12, color: palette.mutedLight, marginTop: 4 }}>
                 Must match your plate photo — mismatches may suspend overnight registration
@@ -453,11 +520,22 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
 
       <Button
         title={create.isPending ? 'Submitting…' : 'Create pass'}
-        onPress={form.handleSubmit(onSubmit)}
+        size="lg"
+        onPress={form.handleSubmit(onSubmit, onInvalid)}
         disabled={create.isPending || slotsBlocked || uploadingPhoto}
       />
     </View>
   );
+}
+
+function containerStyle(maxWidth: number, horizontalPadding: number): ViewStyle {
+  return {
+    width: '100%',
+    maxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: horizontalPadding,
+    gap: 8,
+  };
 }
 
 const fieldLabelStyle = {
@@ -465,6 +543,12 @@ const fieldLabelStyle = {
   fontSize: 13,
   color: palette.textLight,
   marginBottom: 6,
+};
+
+const errorTextStyle = {
+  color: '#dc2626',
+  fontSize: 12,
+  marginTop: 4,
 };
 
 const inputStyle = {

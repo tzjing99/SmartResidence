@@ -6,24 +6,33 @@ import {
   useThread,
 } from '@smartresidence/api-client';
 import { useThreadRoom } from '@smartresidence/api-client/realtime';
+import { Ionicons } from '@expo/vector-icons';
 import {
-  AlignRow,
   AppText,
   Button,
   Card,
   Field,
   Input,
+  MetaLine,
   Pill,
   Stack,
   palette,
   radius,
+  spacing,
 } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  RESIDENT_CARD_BORDER,
+  prettyLabel,
+  residentStyles,
+} from '../../../src/components/resident-screen';
 import { ThreadMessageList } from '../../../src/components/thread-message-list';
 import { api } from '../../../src/lib/api';
 import { hapticLight } from '../../../src/lib/haptics';
+import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
 
 const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = {
   OPEN: 'info',
@@ -35,8 +44,17 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = 
   REOPENED: 'warning',
 };
 
+const PRIORITY_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
+  URGENT: 'danger',
+  HIGH: 'warning',
+  NORMAL: 'info',
+  LOW: 'success',
+};
+
 export default function MessageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
+  const { contentMaxWidth, horizontalPadding } = useTabletLayout();
   const me = useMe(api);
   const myId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
   const thread = useThread(api, id ?? null);
@@ -54,9 +72,29 @@ export default function MessageDetailScreen() {
 
   const t = thread.data;
   const threadId = id ?? '';
+  const contentContainerStyle = useMemo(
+    () => [
+      styles.listContent,
+      {
+        maxWidth: contentMaxWidth,
+        paddingHorizontal: horizontalPadding,
+        paddingTop: Math.max(insets.top + 24, 36),
+        paddingBottom: Math.max(insets.bottom, 16) + 84,
+      },
+    ],
+    [contentMaxWidth, horizontalPadding, insets.bottom, insets.top],
+  );
+  const sendReply = useCallback(() => {
+    void hapticLight();
+    const text = body.trim();
+    if (!text) return;
+    setBody('');
+    post.mutate({ id: threadId, body: text }, { onError: () => setBody(text) });
+  }, [body, post, threadId]);
+
   if (!t || !threadId) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF8F6' }}>
         <AppText variant="meta">Loading…</AppText>
       </View>
     );
@@ -65,20 +103,51 @@ export default function MessageDetailScreen() {
   const pending = t.status === 'PENDING_RESIDENT_CONFIRMATION';
   const finished = t.status === 'RESOLVED' || t.status === 'CLOSED';
   const proposed = t.messages.find((m) => m.id === t.resolutionProposedMessageId);
+  const createdLabel = new Date(t.createdAt).toLocaleDateString();
+  const canSendReply = Boolean(body.trim()) && !post.isPending;
 
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
-    >
-      <AppText variant="heading">{t.subject}</AppText>
-      <AlignRow gap={8}>
-        <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={t.status} />
-        <Pill tone="neutral" label={t.priority} />
-      </AlignRow>
+  const header = (
+    <>
+      <View style={residentStyles.header}>
+        <View style={residentStyles.headerCopy}>
+          <AppText variant="caption" style={residentStyles.eyebrow}>
+            Message
+          </AppText>
+          <AppText numberOfLines={2} style={residentStyles.title}>
+            Thread details
+          </AppText>
+          <AppText numberOfLines={3} style={residentStyles.subtitle}>
+            Follow the conversation with management.
+          </AppText>
+        </View>
+      </View>
+
+      <Card style={[residentStyles.card, styles.threadHeaderCard]}>
+        <View style={styles.threadHeaderTop}>
+          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+            <AppText variant="caption" style={styles.threadEyebrow}>
+              Conversation
+            </AppText>
+            <AppText variant="subheading" numberOfLines={3} style={styles.threadSubject}>
+              {t.subject}
+            </AppText>
+          </View>
+          <View style={styles.pillStack}>
+            <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={prettyLabel(t.status)} />
+            <Pill tone={PRIORITY_TONE[t.priority] ?? 'neutral'} label={prettyLabel(t.priority)} />
+          </View>
+        </View>
+        <MetaLine
+          parts={[
+            prettyLabel(t.category),
+            `${t.messages.length} messages`,
+            `opened ${createdLabel}`,
+          ]}
+        />
+      </Card>
 
       {pending && !rejectMode ? (
-        <Card>
+        <Card style={[residentStyles.card, styles.actionCard]}>
           <AppText variant="label" style={{ marginBottom: 8 }}>
             Confirm resolution?
           </AppText>
@@ -118,7 +187,7 @@ export default function MessageDetailScreen() {
       ) : null}
 
       {rejectMode ? (
-        <Card>
+        <Card style={[residentStyles.card, styles.actionCard]}>
           <AppText variant="label" style={{ marginBottom: 8 }}>
             Why not resolved?
           </AppText>
@@ -158,11 +227,11 @@ export default function MessageDetailScreen() {
       ) : null}
 
       {finished && !appealMode ? (
-        <Button title="Appeal / reopen" variant="secondary" onPress={() => setAppealMode(true)} />
+        <Button title="Appeal or reopen" variant="secondary" onPress={() => setAppealMode(true)} />
       ) : null}
 
       {appealMode ? (
-        <Card>
+        <Card style={[residentStyles.card, styles.actionCard]}>
           <AppText variant="label" style={{ marginBottom: 8 }}>
             Appeal reason (required)
           </AppText>
@@ -185,39 +254,197 @@ export default function MessageDetailScreen() {
         </Card>
       ) : null}
 
-      <ThreadMessageList
-        messages={t.messages}
-        variant="resident"
-        viewerId={myId}
-        residentId={t.createdBy?.id}
-        resolutionProposedMessageId={t.resolutionProposedMessageId}
-      />
+      <View style={styles.threadPanel}>
+        <View style={styles.threadSectionHeader}>
+          <AppText variant="label">Conversation</AppText>
+          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+            Replies appear here as they arrive.
+          </AppText>
+        </View>
+      </View>
+    </>
+  );
 
-      {!pending && !finished ? (
-        <Card>
-          <Field>
+  const footer = !pending && !finished ? (
+        <Card style={styles.composerCard}>
+          <View style={styles.composerHeader}>
+            <View>
+              <AppText variant="label">Write a reply</AppText>
+              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                {body.trim()
+                  ? post.isPending
+                    ? 'Sending your reply...'
+                    : 'Tap send when ready.'
+                  : 'Management will see your message here.'}
+              </AppText>
+            </View>
+          </View>
+          <View style={styles.composerBar}>
             <Input
               value={body}
               onChangeText={setBody}
               placeholder="Write a reply…"
               multiline
-              style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
+              blurOnSubmit={false}
+              returnKeyType="default"
+              enablesReturnKeyAutomatically
+              style={styles.replyInput}
             />
-          </Field>
-          <View style={{ marginTop: 8 }}>
-            <Button
-              title="Send"
-              onPress={() => {
-                void hapticLight();
-                const text = body.trim();
-                if (!text) return;
-                setBody('');
-                post.mutate({ id: threadId, body: text }, { onError: () => setBody(text) });
-              }}
-            />
+            <Pressable
+              onPress={sendReply}
+              disabled={!canSendReply}
+              accessibilityRole="button"
+              accessibilityLabel={post.isPending ? 'Sending reply' : 'Send reply'}
+              accessibilityState={{ disabled: !canSendReply, busy: post.isPending }}
+              style={({ pressed }) => [
+                styles.sendButton,
+                post.isPending
+                  ? styles.sendButtonBusy
+                  : !canSendReply
+                    ? styles.sendButtonDisabled
+                    : null,
+                pressed && canSendReply ? styles.sendButtonPressed : null,
+              ]}
+            >
+              {post.isPending ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Ionicons
+                  name="paper-plane"
+                  size={18}
+                  color={canSendReply ? '#FFFFFF' : palette.coralPrimaryDark}
+                />
+              )}
+            </Pressable>
           </View>
         </Card>
-      ) : null}
-    </ScrollView>
+  ) : null;
+
+  return (
+    <ThreadMessageList
+      messages={t.messages}
+      variant="resident"
+      viewerId={myId}
+      residentId={t.createdBy?.id}
+      resolutionProposedMessageId={t.resolutionProposedMessageId}
+      style={styles.screen}
+      contentContainerStyle={contentContainerStyle}
+      ListHeaderComponent={header}
+      ListFooterComponent={footer}
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#FFF8F6',
+  },
+  listContent: {
+    width: '100%',
+    alignSelf: 'center',
+  },
+  threadHeaderCard: {
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  threadHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  threadEyebrow: {
+    color: palette.coralPrimary,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  threadSubject: {
+    color: palette.textLight,
+    lineHeight: 26,
+  },
+  pillStack: {
+    alignItems: 'flex-end',
+    gap: 6,
+    maxWidth: 132,
+  },
+  actionCard: {
+    padding: spacing.md,
+  },
+  threadPanel: {
+    gap: spacing.sm,
+  },
+  threadSectionHeader: {
+    paddingHorizontal: 2,
+    gap: 2,
+  },
+  composerCard: {
+    borderWidth: 1,
+    borderColor: RESIDENT_CARD_BORDER,
+    padding: spacing.sm,
+    gap: 10,
+    borderRadius: radius['2xl'],
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1F2937',
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  composerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    paddingHorizontal: 4,
+  },
+  composerBar: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: '#F1E8E4',
+    borderRadius: radius['2xl'],
+    backgroundColor: '#FFFCFB',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+  },
+  replyInput: {
+    flex: 1,
+    minHeight: 42,
+    maxHeight: 112,
+    height: undefined,
+    borderWidth: 0,
+    borderRadius: radius.xl,
+    backgroundColor: 'transparent',
+    paddingTop: 10,
+    paddingBottom: 8,
+    paddingHorizontal: 8,
+    textAlignVertical: 'top',
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.coralPrimary,
+    shadowColor: palette.coralPrimaryDark,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#FFE2DF',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  sendButtonBusy: {
+    backgroundColor: palette.coralPrimary,
+  },
+  sendButtonPressed: {
+    transform: [{ scale: 0.96 }],
+  },
+});

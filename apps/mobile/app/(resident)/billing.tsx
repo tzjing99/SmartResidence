@@ -1,7 +1,13 @@
 import { useMyUnits, usePayInvoice, useUnitInvoices } from '@smartresidence/api-client';
 import { formatMoney } from '@smartresidence/shared-types';
-import { Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
-import { Alert, Linking, ScrollView, Text, View } from 'react-native';
+import { AppText, Button, Card, EmptyState, Pill, palette, spacing } from '@smartresidence/ui-mobile';
+import { Alert, Linking, View } from 'react-native';
+import {
+  ResidentScreen,
+  ResidentSectionHeader,
+  prettyLabel,
+  residentStyles,
+} from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
 
 export default function BillingScreen() {
@@ -25,16 +31,40 @@ export default function BillingScreen() {
   }
 
   const items = (invoices.data?.items as any[]) ?? [];
+  const openItems = items.filter((inv) => inv.status !== 'PAID' && inv.status !== 'VOID');
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
+    <ResidentScreen
+      eyebrow="Fees"
+      title="Maintenance fees"
+      subtitle="Review statements, formulas, and payment options without hidden surprises."
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Maintenance fees</Text>
-      <Text style={{ color: palette.mutedLight, marginTop: -10 }}>
-        Every line shows the formula. No hidden fees.
-      </Text>
+      <Card style={[residentStyles.card, { gap: 4 }]}>
+        <AppText variant="meta" style={{ color: palette.mutedLight, fontWeight: '600' }}>
+          Outstanding balance
+        </AppText>
+        <AppText
+          style={{
+            color: palette.textLight,
+            fontSize: 28,
+            lineHeight: 34,
+            fontWeight: '800',
+            letterSpacing: -0.3,
+          }}
+        >
+          {openItems.length === 0 ? 'All clear' : `${openItems.length} to review`}
+        </AppText>
+        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          {openItems.length === 0
+            ? 'No active invoices need payment right now.'
+            : 'Pay the invoice that is due soonest first.'}
+        </AppText>
+      </Card>
+
+      <ResidentSectionHeader
+        title="Statements"
+        subtitle="Each charge keeps its formula visible for easier checking."
+      />
 
       {items.length === 0 ? (
         <EmptyState
@@ -43,24 +73,28 @@ export default function BillingScreen() {
         />
       ) : (
         items.map((inv) => (
-          <Card key={inv.id}>
+          <Card key={inv.id} style={[residentStyles.card, { gap: spacing.sm }]}>
             <View
               style={{
                 flexDirection: 'row',
+                flexWrap: 'wrap',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
+                gap: 12,
               }}
             >
-              <View>
-                <Text style={{ fontWeight: '700' }}>{inv.number}</Text>
-                <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
+              <View style={{ flex: 1, minWidth: 180 }}>
+                <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+                  {inv.number}
+                </AppText>
+                <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
                   Due {new Date(inv.dueDate).toLocaleDateString()}
-                </Text>
+                </AppText>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 18, fontWeight: '700' }}>
+              <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                <AppText style={{ fontSize: 20, lineHeight: 26, fontWeight: '800' }}>
                   {formatMoney(inv.total, inv.currencyCode ?? 'MYR')}
-                </Text>
+                </AppText>
                 <Pill
                   tone={
                     inv.status === 'PAID'
@@ -69,7 +103,7 @@ export default function BillingScreen() {
                         ? 'danger'
                         : 'primary'
                   }
-                  label={inv.status.toLowerCase()}
+                  label={prettyLabel(inv.status)}
                 />
               </View>
             </View>
@@ -88,40 +122,48 @@ export default function BillingScreen() {
                   style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 12,
                     paddingVertical: 4,
                   }}
                 >
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={{ fontSize: 13 }}>{l.description}</Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <AppText variant="bodySm" numberOfLines={2}>
+                      {l.description}
+                    </AppText>
                     {l.formula ? (
-                      <Text style={{ color: palette.mutedLight, fontSize: 11 }}>{l.formula}</Text>
+                      <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                        {l.formula}
+                      </AppText>
                     ) : null}
                   </View>
-                  <Text style={{ fontSize: 13, fontWeight: '600' }}>
+                  <AppText variant="bodySm" style={{ fontWeight: '700' }}>
                     {formatMoney(l.amount, inv.currencyCode ?? 'MYR')}
-                  </Text>
+                  </AppText>
                 </View>
               ))}
             </View>
 
             {inv.status !== 'PAID' && inv.status !== 'VOID' ? (
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
                 <Button
                   title="Pay with card"
                   onPress={() => handlePay(inv.id, 'STRIPE')}
                   size="sm"
+                  style={{ flexGrow: 1 }}
                 />
                 <Button
                   title="FPX"
                   variant="secondary"
                   onPress={() => handlePay(inv.id, 'FPX')}
                   size="sm"
+                  style={{ flexGrow: 1 }}
                 />
               </View>
             ) : null}
           </Card>
         ))
       )}
-    </ScrollView>
+    </ResidentScreen>
   );
 }

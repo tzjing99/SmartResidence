@@ -1,6 +1,12 @@
 import { useMyActivity, useWhoViewedMe } from '@smartresidence/api-client';
-import { Card, EmptyState, palette } from '@smartresidence/ui-mobile';
-import { ScrollView, Text } from 'react-native';
+import { AppText, Card, EmptyState, palette } from '@smartresidence/ui-mobile';
+import { View } from 'react-native';
+import {
+  ResidentScreen,
+  ResidentSectionHeader,
+  prettyLabel,
+  residentStyles,
+} from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
 
 export default function ActivityScreen() {
@@ -11,48 +17,59 @@ export default function ActivityScreen() {
   const views = (whoViewed.data?.items as any[]) ?? [];
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
+    <ResidentScreen
+      eyebrow="Activity"
+      title="Activity on my unit"
+      subtitle="A clear audit trail of actions and record views connected to your home."
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Activity on my unit</Text>
-      <Text style={{ color: palette.mutedLight, marginTop: -10 }}>
-        Every action that touches your unit, in your hands.
-      </Text>
+      <ResidentSectionHeader
+        title="Recent actions"
+        subtitle="Every action that touches your unit, in your hands."
+      />
 
       {items.length === 0 ? (
         <EmptyState title="Nothing yet" description="Actions on your unit show up here." />
       ) : (
         items.map((row) => (
-          <Card key={row.id}>
-            <Text style={{ fontWeight: '600' }}>
-              {row.action} · {row.resourceType}
-            </Text>
-            <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-              {row.actor?.name ?? 'System'}
-              {row.actorRole ? ` · ${row.actorRole.replace('_', ' ')}` : ''}
-              {' · '}
-              {new Date(row.createdAt).toLocaleString()}
-            </Text>
+          <Card key={row.id} style={residentStyles.card}>
+            <View style={{ gap: 3 }}>
+              <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+                {prettyLabel(row.action)} · {prettyLabel(row.resourceType)}
+              </AppText>
+              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                {row.actor?.name ?? 'System'}
+                {row.actorRole ? ` · ${prettyLabel(row.actorRole)}` : ''}
+                {' · '}
+                {new Date(row.createdAt).toLocaleString()}
+              </AppText>
+            </View>
           </Card>
         ))
       )}
 
-      <Text style={{ fontSize: 18, fontWeight: '700', marginTop: 12 }}>Who viewed my data</Text>
+      <ResidentSectionHeader
+        title="Who viewed my data"
+        subtitle="If staff open your records, you will know."
+      />
       {views.length === 0 ? (
         <EmptyState title="No views yet" description="If staff open your records, you'll know." />
       ) : (
         views.map((row) => (
-          <Card key={row.id}>
-            <Text style={{ fontWeight: '600' }}>
-              {row.actor?.name ?? 'Unknown'} viewed {row.resourceType}
-            </Text>
-            <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-              {new Date(row.createdAt).toLocaleString()}
-            </Text>
+          <Card key={row.id} style={residentStyles.card}>
+            <View style={{ gap: 3 }}>
+              <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+                {row.actor?.name ?? 'Unknown'} viewed {prettyLabel(row.resourceType)}
+              </AppText>
+              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              {row.actor?.name ?? 'System'}
+                {row.actorRole ? ` · ${prettyLabel(row.actorRole)}` : ''}
+                {' · '}
+                {new Date(row.createdAt).toLocaleString()}
+              </AppText>
+            </View>
           </Card>
         ))
       )}
-    </ScrollView>
+    </ResidentScreen>
   );
 }

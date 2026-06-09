@@ -1,11 +1,29 @@
-import { usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
-import { AlignRow, AppText, Button, Card, Field, Input, palette } from '@smartresidence/ui-mobile';
+import { useMe, usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
+import { AlignRow, AppText, Button, Card, Field, Input, palette, spacing } from '@smartresidence/ui-mobile';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Switch, View } from 'react-native';
+import { Alert, Switch, View } from 'react-native';
+import {
+  RESIDENT_CORAL,
+  ResidentScreen,
+  ResidentSectionHeader,
+  residentStyles,
+} from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
 import { useSignOut } from '../../src/lib/use-sign-out';
+import type { MeResponse } from '../../src/lib/roles';
+
+const mapRoleLabel = (role: string | null | undefined): string => {
+  if (!role) return 'Resident';
+  if (role === 'SECURITY_GUARD') return 'Guard';
+  if (role === 'UNIT_OWNER' || role === 'OWNER') return 'Owner';
+  if (role === 'TENANT') return 'Tenant';
+  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') return 'Management';
+  return 'Resident';
+};
 
 export default function SettingsScreen() {
+  const me = useMe(api);
+  const user = (me.data as MeResponse | undefined)?.user;
   const prefs = usePreferences(api);
   const save = useUpdatePreferences(api);
   const { signOut, busy: signingOut } = useSignOut();
@@ -36,17 +54,79 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 16, gap: 12 }}
+    <ResidentScreen
+      eyebrow="Settings"
+      title="Account and home"
+      subtitle="Keep your profile, notifications, and sign-in access in one place."
     >
-      <AppText variant="title">Settings</AppText>
-      <AppText variant="subheading">Notifications</AppText>
-      <AppText variant="meta">
-        In-app and push stay on by default. Configure email opt-in and quiet hours below.
-      </AppText>
+      <Card
+        style={[
+          residentStyles.card,
+          {
+            padding: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.md,
+          },
+        ]}
+      >
+        <View
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            backgroundColor: RESIDENT_CORAL,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <AppText style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>
+            {user?.name ? user.name.charAt(0).toUpperCase() : '?'}
+          </AppText>
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <AppText
+            style={{ fontSize: 16, fontWeight: '700', color: palette.textLight }}
+            numberOfLines={2}
+          >
+            {user?.name ?? 'Loading...'}
+          </AppText>
+          {user?.email ? (
+            <AppText style={{ fontSize: 13, color: palette.mutedLight }} numberOfLines={1}>
+              {user.email}
+            </AppText>
+          ) : null}
+          <View style={{ flexDirection: 'row', marginTop: 2 }}>
+            <View
+              style={{
+                backgroundColor: palette.messageMgmtCoralBg,
+                borderColor: palette.messageMgmtCoralBorder,
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+              }}
+            >
+              <AppText
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: palette.coralPrimary,
+                }}
+              >
+                {mapRoleLabel(user?.activeRole)}
+              </AppText>
+            </View>
+          </View>
+        </View>
+      </Card>
 
-      <Card>
+      <ResidentSectionHeader
+        title="Notifications"
+        subtitle="In-app and push stay on by default. Configure email opt-in and quiet hours below."
+      />
+
+      <Card style={residentStyles.card}>
         <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }}>
           <View style={{ flex: 1, paddingRight: 12, gap: 4 }}>
             <AppText variant="label">Email for threads</AppText>
@@ -56,7 +136,7 @@ export default function SettingsScreen() {
         </AlignRow>
       </Card>
 
-      <Card>
+      <Card style={residentStyles.card}>
         <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }}>
           <View style={{ flex: 1, paddingRight: 12, gap: 4 }}>
             <AppText variant="label">Quiet hours</AppText>
@@ -67,29 +147,31 @@ export default function SettingsScreen() {
           <Switch value={quietEnabled} onValueChange={setQuietEnabled} />
         </AlignRow>
         {quietEnabled ? (
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-            <Field label="From" containerStyle={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
+            <Field label="From" containerStyle={{ flex: 1, minWidth: 120 }}>
               <Input value={quietStart} onChangeText={setQuietStart} placeholder="22:00" />
             </Field>
-            <Field label="Until" containerStyle={{ flex: 1 }}>
+            <Field label="Until" containerStyle={{ flex: 1, minWidth: 120 }}>
               <Input value={quietEnd} onChangeText={setQuietEnd} placeholder="07:00" />
             </Field>
           </View>
         ) : null}
       </Card>
 
-      <Button title={save.isPending ? 'Saving…' : 'Save preferences'} onPress={onSave} />
-      <Button
-        title="Sign out"
-        variant="secondary"
-        loading={signingOut}
-        onPress={() => {
-          Alert.alert('Sign out?', 'You will need to sign in again to continue.', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
-          ]);
-        }}
-      />
-    </ScrollView>
+      <View style={{ gap: spacing.sm }}>
+        <Button title={save.isPending ? 'Saving…' : 'Save preferences'} onPress={onSave} />
+        <Button
+          title="Sign out"
+          variant="secondary"
+          loading={signingOut}
+          onPress={() => {
+            Alert.alert('Sign out?', 'You will need to sign in again to continue.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+            ]);
+          }}
+        />
+      </View>
+    </ResidentScreen>
   );
 }

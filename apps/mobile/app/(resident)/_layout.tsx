@@ -1,80 +1,85 @@
 import { Ionicons } from '@expo/vector-icons';
-import { palette } from '@smartresidence/ui-mobile';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { RoleGuardGate } from '../../src/components/role-guard-gate';
+import { createModernTabBarOptions } from '../../src/lib/modern-tab-bar';
 
 export default function ResidentTabsLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBarOptions = createModernTabBarOptions(insets.bottom);
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: palette.coralPrimary,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarStyle: { paddingTop: 6, height: 60 },
-      }}
-    >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+    <RoleGuardGate area="resident">
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          ...tabBarOptions,
         }}
-      />
-      <Tabs.Screen
-        name="visitors"
-        options={{
-          title: 'Visitors',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="billing"
-        options={{
-          title: 'Fees',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="card-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="defects"
-        options={{
-          title: 'Defects',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="construct-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="activity"
-        options={{
-          title: 'Activity',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="home"
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="home-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="visitors"
+          options={{
+            title: 'Visitors',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="people-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="billing"
+          options={{
+            title: 'Fees',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="card-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="defects"
+          options={{
+            title: 'Defects',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="construct-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="messages"
+          options={{
+            title: 'Messages',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="chatbubbles-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="settings-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="activity"
+          options={{
+            title: 'Activity',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="time-outline" size={22} color={color} />
+            ),
+          }}
+        />
+      </Tabs>
+    </RoleGuardGate>
   );
 }

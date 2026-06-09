@@ -1,8 +1,14 @@
 import { useCreateDefect, useMyUnits, useUnitDefects } from '@smartresidence/api-client';
-import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
+import { AppText, Button, Card, EmptyState, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Image, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Image, TextInput, View } from 'react-native';
+import {
+  ResidentScreen,
+  ResidentSectionHeader,
+  prettyLabel,
+  residentStyles,
+} from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
 
 export default function DefectsScreen() {
@@ -53,14 +59,18 @@ export default function DefectsScreen() {
   const items = (defects.data?.items as any[]) ?? [];
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 16 }}
+    <ResidentScreen
+      eyebrow="Defects"
+      title="Report a repair"
+      subtitle="Send clear details to management and follow each defect until it is resolved."
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Defects</Text>
-
-      <Card>
-        <Text style={{ fontWeight: '600', marginBottom: 8 }}>Submit a defect</Text>
+      <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+        <View style={{ gap: 4 }}>
+          <AppText variant="subheading">Submit a defect</AppText>
+          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+            A short title and photo help the team route it faster.
+          </AppText>
+        </View>
         <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={inputStyle} />
         <TextInput
           placeholder="What's wrong?"
@@ -78,34 +88,50 @@ export default function DefectsScreen() {
             style={{ height: 140, borderRadius: radius.lg, marginTop: 10 }}
           />
         ) : null}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-          <Button title="Take photo" variant="secondary" size="sm" onPress={attach} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Button
+            title={photoUri ? 'Retake photo' : 'Take photo'}
+            variant="secondary"
+            size="sm"
+            style={{ flexGrow: 1 }}
+            onPress={attach}
+          />
           <Button
             title={create.isPending ? 'Submitting…' : 'Submit'}
             loading={create.isPending}
             onPress={submit}
             size="sm"
+            style={{ flexGrow: 1 }}
           />
         </View>
       </Card>
+
+      <ResidentSectionHeader
+        title="Repair history"
+        subtitle="Open and completed reports stay here for reference."
+      />
 
       {items.length === 0 ? (
         <EmptyState title="No defects yet" description="Repairs you submit will track here." />
       ) : (
         items.map((d) => (
-          <Card key={d.id}>
+          <Card key={d.id} style={residentStyles.card}>
             <View
               style={{
                 flexDirection: 'row',
+                flexWrap: 'wrap',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
+                gap: 10,
               }}
             >
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <Text style={{ fontWeight: '600' }}>{d.title}</Text>
-                <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+                  {d.title}
+                </AppText>
+                <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
                   {d.category} · {new Date(d.createdAt).toLocaleDateString()}
-                </Text>
+                </AppText>
               </View>
               <Pill
                 tone={
@@ -115,21 +141,22 @@ export default function DefectsScreen() {
                       ? 'primary'
                       : 'info'
                 }
-                label={d.status.toLowerCase().replace('_', ' ')}
+                label={prettyLabel(d.status)}
               />
             </View>
           </Card>
         ))
       )}
-    </ScrollView>
+    </ResidentScreen>
   );
 }
 
 const inputStyle = {
-  height: 44,
+  minHeight: 46,
   borderRadius: radius.lg,
   borderWidth: 1,
   borderColor: palette.borderLight,
+  backgroundColor: palette.surfaceLight,
   paddingHorizontal: 12,
   fontSize: 14,
 };

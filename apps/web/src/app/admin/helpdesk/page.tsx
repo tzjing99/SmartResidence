@@ -249,9 +249,7 @@ export default function HelpdeskPage() {
                             </Badge>
                           </div>
                           <div className="lg:col-span-2 flex min-w-0 flex-col items-start gap-1">
-                            <Badge tone={STATUS_TONE[t.status]}>
-                              {statusLabel(t.status)}
-                            </Badge>
+                            <Badge tone={STATUS_TONE[t.status]}>{statusLabel(t.status)}</Badge>
                             <span className="text-meta block min-w-0 max-w-full truncate leading-snug">
                               {t.assignedTo?.name ?? 'No one assigned yet'}
                             </span>

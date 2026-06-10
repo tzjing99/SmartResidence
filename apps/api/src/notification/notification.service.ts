@@ -225,7 +225,7 @@ export class NotificationService {
       userIds,
       kind: NotificationKind.VISITOR_REQUEST,
       title: `${v.name} approved`,
-      body: 'Owner approved the walk-in — you may check them in.',
+      body: 'Owner approved the walk-in — acknowledge their entry at the gate (no pass scan).',
       data: { visitorId: v.id },
     });
   }
@@ -265,9 +265,10 @@ export class NotificationService {
       where: { id: payload.defectId },
       include: { unit: true },
     });
-    if (!d) return;
+    if (!d?.unitId) return;
     const owners = await this.prisma.ownership.findMany({
-      where: { unitId: d.unitId ?? '', status: 'ACTIVE' },
+      where: { unitId: d.unitId, status: 'ACTIVE' },
+      select: { userId: true },
     });
     await this.dispatch({
       userIds: owners.map((o) => o.userId),

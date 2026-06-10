@@ -33,6 +33,7 @@ import {
   prettyLabel,
   residentStyles,
 } from '../../../src/components/resident-screen';
+import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
 
@@ -64,6 +65,17 @@ export default function VisitorsScreen() {
   const visitors = useUnitVisitors(api, unit?.id ?? null, listView);
   const favourites = useFavouriteVisitors(api, tab === 'favourites' ? (unit?.id ?? null) : null);
   const listLoading = units.isPending || visitors.isLoading;
+  const { refreshControl } = usePullToRefresh(
+    useCallback(
+      () =>
+        Promise.all([
+          units.refetch(),
+          liveVisitors.refetch(),
+          tab === 'favourites' ? favourites.refetch() : visitors.refetch(),
+        ]),
+      [favourites, liveVisitors, tab, units, visitors],
+    ),
+  );
   const handlePreRegisterFavourite = useCallback(
     (fav: FavouriteVisitor) => {
       if (!fav.phone?.trim()) {
@@ -84,6 +96,7 @@ export default function VisitorsScreen() {
       eyebrow="Visitors"
       title="Guest access"
       subtitle="Pre-register guests for a fast gate pass, or track walk-ins waiting for approval."
+      scrollProps={{ refreshControl }}
       headerAction={
         <Button
           title="Pre-register a visitor"

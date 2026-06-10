@@ -1,12 +1,24 @@
 import { useCheckOutVisitor, useGuardLiveVisitors, useMyCondos } from '@smartresidence/api-client';
 import {
   formatMalaysiaPhoneDisplay,
+  guardCanCheckOutVisitor,
   malaysiaPhoneTelHref,
   pickOwnerPhone,
 } from '@smartresidence/shared-types';
-import { Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import { Ionicons } from '@expo/vector-icons';
+import { AppText, Button, Card, EmptyState, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useCallback } from 'react';
-import { Alert, FlatList, Linking, Text, View, type ListRenderItemInfo } from 'react-native';
+import { Alert, FlatList, Linking, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  GUARD_CORAL,
+  GUARD_SOFT_CORAL,
+  GUARD_SOFT_SKY,
+  GUARD_WARM_BG,
+  GuardHeader,
+  guardStyles,
+} from '../../src/components/guard-screen';
+import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
@@ -33,12 +45,16 @@ function visitTypeLabel(visitType: string): string {
 }
 
 export default function LiveScreen() {
+  const insets = useSafeAreaInsets();
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const live = useGuardLiveVisitors(api, condo?.id);
   const checkOut = useCheckOutVisitor(api);
   const items = live.data?.items ?? [];
+  const { refreshControl } = usePullToRefresh(
+    useCallback(() => Promise.all([condos.refetch(), live.refetch()]), [condos, live]),
+  );
 
   const callPhone = useCallback((phone: string) => {
     const href = malaysiaPhoneTelHref(phone);
@@ -67,29 +83,35 @@ export default function LiveScreen() {
       const checkedInAt = new Date(v.checkedInAt);
       const visitorPhone = formatMalaysiaPhoneDisplay(v.phone);
       const ownerPhone = owner?.phone ? formatMalaysiaPhoneDisplay(owner.phone) : null;
+      const canCheckOut = guardCanCheckOutVisitor(v);
       return (
-        <View style={{ flex: 1, minWidth: twoColumn ? 280 : undefined }}>
-          <Card>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: '700', fontSize: 16 }}>{v.name}</Text>
-                <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2 }}>
-                  {v.unitLabel ?? '—'} · {formatTimeOnSite(checkedInAt)}
-                </Text>
-                <View
-                  style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}
-                >
+        <View style={twoColumn ? styles.gridItem : styles.listItem}>
+          <Card style={[guardStyles.card, styles.visitorCard]}>
+            <View style={styles.cardTopRow}>
+              <View style={styles.visitorIcon}>
+                <Ionicons name="person-outline" size={20} color={GUARD_CORAL} />
+              </View>
+              <View style={styles.cardTitleBlock}>
+                <AppText numberOfLines={2} style={styles.visitorName}>
+                  {v.name}
+                </AppText>
+                <AppText variant="meta" numberOfLines={2} style={styles.cardMeta}>
+                  {v.unitLabel ?? 'Unit not shown'} · on site {formatTimeOnSite(checkedInAt)}
+                </AppText>
+                <View style={styles.pillRow}>
                   <Pill tone="neutral" label={visitTypeLabel(v.visitType)} />
                   {v.overnight ? <Pill tone="warning" label="Overnight" /> : null}
                   {v.vehiclePlate ? <Pill tone="neutral" label={v.vehiclePlate} /> : null}
                 </View>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+            <View style={styles.actionRow}>
               {visitorPhone ? (
                 <Button
-                  title={`Call visitor · ${visitorPhone}`}
+                  title={`Call visitor ${visitorPhone}`}
                   size="sm"
+                  variant="soft-sky"
+                  style={styles.actionButton}
                   onPress={() => callPhone(v.phone!)}
                 />
               ) : null}
@@ -98,16 +120,22 @@ export default function LiveScreen() {
                   title={`Call ${owner!.name}`}
                   size="sm"
                   variant="secondary"
+                  style={styles.actionButton}
                   onPress={() => callPhone(owner!.phone!)}
                 />
               ) : null}
-              <Button
-                title="Check out"
-                size="sm"
-                variant="secondary"
-                loading={checkOut.isPending}
-                onPress={() => confirmCheckOut(v.id, v.name)}
-              />
+              {canCheckOut ? (
+                <Button
+                  title="Check out"
+                  size="sm"
+                  variant="soft-primary"
+                  loading={checkOut.isPending}
+                  style={styles.actionButton}
+                  onPress={() => confirmCheckOut(v.id, v.name)}
+                />
+              ) : (
+                <Pill tone="neutral" label="Record only" />
+              )}
             </View>
           </Card>
         </View>
@@ -123,28 +151,47 @@ export default function LiveScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       numColumns={twoColumn ? 2 : 1}
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
+      style={guardStyles.screen}
       contentContainerStyle={{
         width: '100%',
         maxWidth: contentMaxWidth,
         alignSelf: 'center',
         paddingHorizontal: horizontalPadding,
-        paddingVertical: 20,
-        paddingBottom: 40,
-        gap: 12,
+        paddingTop: Math.max(insets.top + 24, 36),
+        paddingBottom: Math.max(insets.bottom, 16) + 96,
+        gap: spacing.md,
       }}
-      columnWrapperStyle={twoColumn ? { gap: 12 } : undefined}
+      columnWrapperStyle={twoColumn ? styles.columnWrapper : undefined}
       ListHeaderComponent={
-        <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-          <Text style={{ fontSize: 48, fontWeight: '800', color: palette.coralPrimary }}>
-            {live.isLoading ? '—' : (live.data?.total ?? 0)}
-          </Text>
-          <Text style={{ color: palette.mutedLight, fontSize: 13, fontWeight: '600' }}>
-            on site now
-          </Text>
+        <View style={styles.headerStack}>
+          <GuardHeader
+            eyebrow="Guard live board"
+            title="On site now"
+            subtitle="Active visitors currently inside the property. Walk-ins are record-only and close automatically at end of day."
+          />
+          <Card style={[guardStyles.card, styles.summaryCard]}>
+            <View style={styles.summaryIcon}>
+              <Ionicons name="people-outline" size={20} color={GUARD_CORAL} />
+            </View>
+            <View style={styles.summaryCopy}>
+              <AppText style={styles.summaryValue}>{live.isLoading ? '—' : (live.data?.total ?? 0)}</AppText>
+              <AppText variant="meta" style={styles.cardMeta}>
+                {live.data?.total === 1 ? 'visitor on site' : 'visitors on site'}
+              </AppText>
+            </View>
+            <Pill tone={items.length > 0 ? 'success' : 'neutral'} label={items.length > 0 ? 'Live' : 'Clear'} />
+          </Card>
         </View>
       }
-      ListEmptyComponent={<EmptyState title="No visitors on site" />}
+      ListEmptyComponent={
+        live.isLoading ? null : (
+          <EmptyState
+            title="No visitors on site"
+            description="Checked-in pre-registered visitors appear here. Walk-ins are logged for the record and close automatically."
+          />
+        )
+      }
+      refreshControl={refreshControl}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
       initialNumToRender={12}
@@ -154,3 +201,90 @@ export default function LiveScreen() {
     />
   );
 }
+
+const styles = StyleSheet.create({
+  headerStack: {
+    gap: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+  },
+  summaryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
+    backgroundColor: GUARD_SOFT_CORAL,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  summaryValue: {
+    color: palette.textLight,
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: 280,
+  },
+  listItem: {
+    flex: 1,
+  },
+  columnWrapper: {
+    gap: spacing.md,
+  },
+  visitorCard: {
+    gap: spacing.md,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  visitorIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.full,
+    backgroundColor: GUARD_SOFT_SKY,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  visitorName: {
+    color: palette.textLight,
+    fontSize: 17,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  cardMeta: {
+    color: palette.mutedLight,
+    lineHeight: 19,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: spacing.xs,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  actionButton: {
+    flexGrow: 1,
+    minWidth: 132,
+  },
+});

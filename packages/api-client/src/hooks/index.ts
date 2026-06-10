@@ -208,6 +208,15 @@ export function useGuardApproveWalkIn(api: ApiClient) {
   });
 }
 
+export function useGuardAcknowledgeWalkIn(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (visitorId: string) =>
+      api.acknowledgeWalkIn(visitorId, { gateLocation: 'Main gate' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
+  });
+}
+
 export function useRejectVisitor(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({

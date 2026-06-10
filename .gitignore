@@ -56,6 +56,8 @@ prisma/*.db-journal
 *.orig.*
 web-build/
 .metro-health-check*
+apps/mobile/.expo-test-bundle*/
+apps/mobile/android/
 
 # Storybook
 storybook-static/

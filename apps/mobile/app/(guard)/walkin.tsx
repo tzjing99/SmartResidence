@@ -11,10 +11,19 @@ import {
   malaysiaPhoneTelHref,
   pickOwnerPhone,
 } from '@smartresidence/shared-types';
-import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
+import { Ionicons } from '@expo/vector-icons';
+import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Alert, Linking, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, StyleSheet, TextInput, View } from 'react-native';
+import {
+  GUARD_CORAL,
+  GUARD_SOFT_CORAL,
+  GUARD_SOFT_SKY,
+  GuardScreen,
+  GuardSectionHeader,
+  guardStyles,
+} from '../../src/components/guard-screen';
 import { type UnitSearchItem, UnitSearchPicker } from '../../src/components/unit-search-picker';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
@@ -42,7 +51,7 @@ function callOwner(contacts: Visitor['ownerContacts']) {
 }
 
 export default function WalkInScreen() {
-  const { contentMaxWidth, horizontalPadding } = useTabletLayout();
+  const { twoColumn } = useTabletLayout();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const walkInPolicy = useGuardWalkInPolicy(api);
@@ -169,145 +178,184 @@ export default function WalkInScreen() {
   const pendingItems = (pendingWalkIns.data?.items ?? []) as Visitor[];
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{
-        paddingVertical: 20,
-        paddingBottom: 40,
-        alignItems: 'center',
-      }}
+    <GuardScreen
+      eyebrow="Guard walk-in"
+      title="Register walk-in visitor"
+      subtitle="Use this for guests already at the guardhouse. Owner approval is requested when the condo policy requires it."
     >
-      <View
-        style={{
-          width: '100%',
-          maxWidth: contentMaxWidth,
-          paddingHorizontal: horizontalPadding,
-          gap: 16,
-        }}
-      >
-        <Text style={{ fontSize: 22, fontWeight: '700' }}>Walk-in visitor</Text>
-        {condo ? (
-          <Text style={{ color: palette.mutedLight, fontSize: 12 }}>{condo.name}</Text>
-        ) : null}
-        <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
-          One visit — validated once at the gate. Security opens the gate; the owner meets the
-          visitor. Overnight stays are not available for walk-ins — use pre-registration instead.
-        </Text>
-
-        {pendingVisitor?.status === 'PENDING_OWNER_APPROVAL' ? (
-          <PendingCard
-            visitor={pendingVisitor}
-            approvalMinutes={approvalMinutes}
-            onCall={() => callOwner(pendingVisitor.ownerContacts)}
-            onApprove={(method) => handleGuardApprove(pendingVisitor, method)}
-            approving={approveWalkIn.isPending}
-          />
-        ) : null}
-
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button
-            title="Unit"
-            variant={tab === 'unit' ? 'primary' : 'secondary'}
-            size="sm"
-            onPress={() => setTab('unit')}
-          />
-          <Button
-            title="Management office"
-            variant={tab === 'office' ? 'primary' : 'secondary'}
-            size="sm"
-            onPress={() => setTab('office')}
-          />
+      <Card style={[guardStyles.card, styles.policyCard]}>
+        <View style={styles.policyIcon}>
+          <Ionicons name="shield-checkmark-outline" size={20} color={GUARD_CORAL} />
         </View>
+        <View style={styles.policyCopy}>
+          <AppText style={styles.cardTitle}>{condo?.name ?? 'SmartResidence guardhouse'}</AppText>
+          <AppText variant="meta" style={styles.cardMeta}>
+            Walk-ins are one-time visits checked at the gate. Overnight visits should be pre-registered by the resident.
+          </AppText>
+        </View>
+        <Pill
+          tone={requireOwnerApproval ? 'warning' : 'success'}
+          label={requireOwnerApproval ? `${approvalMinutes} min approval` : 'Direct check-in'}
+        />
+      </Card>
 
-        <Card>
-          <Text style={{ fontWeight: '600', marginBottom: 6 }}>Visitor name</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Full name"
-            style={inputStyle}
-          />
-          <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 6 }}>Phone number</Text>
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="+60…"
-            keyboardType="phone-pad"
-            style={inputStyle}
-          />
-          {tab === 'unit' ? (
-            <>
-              <View style={{ marginTop: 12 }}>
+      <View style={[styles.layout, twoColumn ? styles.twoColumnLayout : null]}>
+        <View style={styles.formColumn}>
+          {pendingVisitor?.status === 'PENDING_OWNER_APPROVAL' ? (
+            <PendingCard
+              visitor={pendingVisitor}
+              approvalMinutes={approvalMinutes}
+              onCall={() => callOwner(pendingVisitor.ownerContacts)}
+              onApprove={(method) => handleGuardApprove(pendingVisitor, method)}
+              approving={approveWalkIn.isPending}
+            />
+          ) : null}
+
+          <View style={styles.tabRail}>
+            <Button
+              title="To a unit"
+              variant={tab === 'unit' ? 'primary' : 'secondary'}
+              size="sm"
+              style={styles.tabButton}
+              onPress={() => setTab('unit')}
+            />
+            <Button
+              title="Management office"
+              variant={tab === 'office' ? 'primary' : 'secondary'}
+              size="sm"
+              style={styles.tabButton}
+              onPress={() => setTab('office')}
+            />
+          </View>
+
+          <Card style={[guardStyles.card, styles.formCard]}>
+            <View style={styles.cardIntro}>
+              <View style={styles.cardIcon}>
+                <Ionicons
+                  name={tab === 'unit' ? 'home-outline' : 'business-outline'}
+                  size={20}
+                  color={GUARD_CORAL}
+                />
+              </View>
+              <View style={styles.introCopy}>
+                <AppText style={styles.cardTitle}>
+                  {tab === 'unit' ? 'Unit visitor details' : 'Office visitor details'}
+                </AppText>
+                <AppText variant="meta" style={styles.cardMeta}>
+                  {tab === 'unit'
+                    ? 'Search the destination unit and record visitor contact details.'
+                    : 'Record the visitor purpose before checking in to management.'}
+                </AppText>
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <AppText style={styles.fieldLabel}>Visitor name</AppText>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Full name"
+                placeholderTextColor={palette.mutedLight}
+                returnKeyType="next"
+                style={inputStyle}
+              />
+            </View>
+            <View style={styles.fieldGroup}>
+              <AppText style={styles.fieldLabel}>Phone number</AppText>
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="+60..."
+                placeholderTextColor={palette.mutedLight}
+                keyboardType="phone-pad"
+                style={inputStyle}
+              />
+            </View>
+            {tab === 'unit' ? (
+              <>
                 <UnitSearchPicker
                   condoId={condo?.id}
                   value={unit}
                   onChange={setUnit}
-                  label="Unit"
-                  placeholder="Search block, unit, or resident…"
+                  label="Destination unit"
+                  placeholder="Search block, unit, or resident..."
                 />
-              </View>
-              <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 6 }}>
-                Purpose (optional)
-              </Text>
-              <TextInput
-                value={purpose}
-                onChangeText={setPurpose}
-                placeholder="Visiting reason"
-                style={inputStyle}
-              />
-              <View style={{ marginTop: 16 }}>
+                <View style={styles.fieldGroup}>
+                  <AppText style={styles.fieldLabel}>Purpose</AppText>
+                  <TextInput
+                    value={purpose}
+                    onChangeText={setPurpose}
+                    placeholder="Optional visiting reason"
+                    placeholderTextColor={palette.mutedLight}
+                    style={inputStyle}
+                  />
+                </View>
                 <Button
                   title={
                     busy
-                      ? 'Sending…'
+                      ? 'Sending...'
                       : requireOwnerApproval
                         ? 'Request owner approval'
-                        : 'Log & check in'
+                        : 'Log and check in'
                   }
                   onPress={submitUnit}
                   loading={busy}
                 />
-              </View>
-            </>
-          ) : (
-            <>
-              <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 6 }}>
-                Purpose (required)
-              </Text>
-              <TextInput
-                value={purpose}
-                onChangeText={setPurpose}
-                placeholder="e.g. Parcel collection, AGM enquiry"
-                style={inputStyle}
-              />
-              <View style={{ marginTop: 16 }}>
+              </>
+            ) : (
+              <>
+                <View style={styles.fieldGroup}>
+                  <AppText style={styles.fieldLabel}>Purpose</AppText>
+                  <TextInput
+                    value={purpose}
+                    onChangeText={setPurpose}
+                    placeholder="e.g. Parcel collection, AGM enquiry"
+                    placeholderTextColor={palette.mutedLight}
+                    style={inputStyle}
+                  />
+                </View>
                 <Button
-                  title={busy ? 'Logging…' : 'Log & check in'}
+                  title={busy ? 'Logging...' : 'Log and check in'}
                   onPress={submitOffice}
                   loading={busy}
                 />
-              </View>
-            </>
-          )}
-        </Card>
+              </>
+            )}
+          </Card>
+        </View>
 
-        {requireOwnerApproval && pendingItems.length > 0 ? (
-          <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700' }}>Awaiting owner approval</Text>
-            {pendingItems.map((v) => (
-              <PendingCard
-                key={v.id}
-                visitor={v}
-                approvalMinutes={approvalMinutes}
-                onCall={() => callOwner(v.ownerContacts)}
-                onApprove={(method) => handleGuardApprove(v, method)}
-                approving={approveWalkIn.isPending}
+        <View style={styles.pendingColumn}>
+          {requireOwnerApproval && pendingItems.length > 0 ? (
+            <View style={styles.pendingList}>
+              <GuardSectionHeader
+                title="Awaiting owner approval"
+                subtitle="Call the owner or approve once you have verified the visitor."
               />
-            ))}
-          </View>
-        ) : null}
+              {pendingItems.map((v) => (
+                <PendingCard
+                  key={v.id}
+                  visitor={v}
+                  approvalMinutes={approvalMinutes}
+                  onCall={() => callOwner(v.ownerContacts)}
+                  onApprove={(method) => handleGuardApprove(v, method)}
+                  approving={approveWalkIn.isPending}
+                />
+              ))}
+            </View>
+          ) : (
+            <Card style={[guardStyles.card, styles.emptyCard]}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="checkmark-done-outline" size={22} color={GUARD_CORAL} />
+              </View>
+              <AppText style={styles.cardTitle}>No pending walk-ins</AppText>
+              <AppText variant="meta" style={styles.cardMeta}>
+                Visitors waiting for owner approval will appear here automatically.
+              </AppText>
+            </Card>
+          )}
+        </View>
       </View>
-    </ScrollView>
+    </GuardScreen>
   );
 }
 
@@ -329,82 +377,235 @@ function PendingCard({
   const visitorPhone = formatMalaysiaPhoneDisplay(visitor.phone, visitor.phoneCountryCode);
 
   return (
-    <Card>
-      <Text style={{ fontWeight: '700' }}>{visitor.name}</Text>
-      <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 4 }}>
-        {visitor.unit?.identifier ?? 'Unit'} · waiting for owner ({approvalMinutes} min window)
-      </Text>
-
-      <View style={{ marginTop: 12, gap: 10 }}>
-        <Text
-          style={{ fontSize: 11, fontWeight: '600', color: palette.mutedLight, letterSpacing: 0.5 }}
-        >
-          CONTACTS
-        </Text>
-
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 12, color: palette.mutedLight }}>Visitor phone</Text>
-          {visitorPhone ? (
-            <Text
-              style={{ fontSize: 14, color: palette.coralPrimary, fontWeight: '600' }}
-              onPress={() => callPhone(visitor.phone ?? '', visitor.name, visitor.phoneCountryCode)}
-            >
-              {visitorPhone}
-            </Text>
-          ) : (
-            <Text style={{ fontSize: 14, color: palette.mutedLight }}>Not provided</Text>
-          )}
+    <Card style={[guardStyles.card, styles.pendingCard]}>
+      <View style={styles.pendingHeader}>
+        <View style={styles.pendingIcon}>
+          <Ionicons name="person-outline" size={18} color={GUARD_CORAL} />
         </View>
-
-        <View style={{ gap: 4 }}>
-          <Text style={{ fontSize: 12, color: palette.mutedLight }}>Owner phone</Text>
-          {ownersWithPhone.length > 0 ? (
-            ownersWithPhone.map((owner) => (
-              <Text
-                key={owner.id}
-                style={{ fontSize: 14, color: palette.coralPrimary, fontWeight: '600' }}
-                onPress={() => callPhone(owner.phone ?? '', owner.name)}
-              >
-                {owner.name} · {formatMalaysiaPhoneDisplay(owner.phone) ?? owner.phone}
-              </Text>
-            ))
-          ) : (
-            <Text style={{ fontSize: 14, color: palette.mutedLight }}>
-              No owner phone on file — contact management
-            </Text>
-          )}
+        <View style={styles.introCopy}>
+          <AppText numberOfLines={2} style={styles.cardTitle}>
+            {visitor.name}
+          </AppText>
+          <AppText variant="meta" style={styles.cardMeta}>
+            {visitor.unit?.identifier ?? 'Unit'} · waiting for owner ({approvalMinutes} min)
+          </AppText>
         </View>
-
-        {contact?.phone ? (
-          <Button title={`Call owner (${contact.name})`} variant="secondary" onPress={onCall} />
-        ) : null}
       </View>
 
-      <View style={{ marginTop: 14, gap: 8 }}>
+      <View style={styles.contactPanel}>
+        <ContactLine
+          label="Visitor phone"
+          value={visitorPhone ?? 'Not provided'}
+          onPress={visitorPhone ? () => callPhone(visitor.phone ?? '', visitor.name, visitor.phoneCountryCode) : undefined}
+        />
+        {ownersWithPhone.length > 0 ? (
+          ownersWithPhone.map((owner) => (
+            <ContactLine
+              key={owner.id}
+              label={owner.name}
+              value={formatMalaysiaPhoneDisplay(owner.phone) ?? owner.phone ?? ''}
+              onPress={() => callPhone(owner.phone ?? '', owner.name)}
+            />
+          ))
+        ) : (
+          <ContactLine label="Owner phone" value="No owner phone on file - contact management" />
+        )}
+      </View>
+
+      <View style={styles.actionStack}>
+        {contact?.phone ? (
+          <Button title={`Call owner (${contact.name})`} variant="soft-sky" onPress={onCall} />
+        ) : null}
         <Button
           title="Owner approved by phone"
           onPress={() => onApprove('OWNER_BY_PHONE')}
           loading={approving}
         />
         <Button
-          title="Approve (verified visitor)"
+          title="Approve verified visitor"
           variant="secondary"
           onPress={() => onApprove('GUARD_MANUAL')}
           loading={approving}
         />
-        <Text style={{ fontSize: 12, color: palette.mutedLight }}>
-          Both open the gate now and add the visitor to the live board — no waiting on the app.
-        </Text>
+        <AppText variant="meta" style={styles.cardMeta}>
+          Both actions check the visitor in immediately and add them to the live board.
+        </AppText>
       </View>
     </Card>
   );
 }
 
+function ContactLine({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  onPress?: () => void;
+}) {
+  return (
+    <View style={styles.contactLine}>
+      <AppText variant="meta" style={styles.contactLabel}>
+        {label}
+      </AppText>
+      <AppText
+        style={[styles.contactValue, onPress ? styles.contactLink : null]}
+        onPress={onPress}
+      >
+        {value}
+      </AppText>
+    </View>
+  );
+}
+
 const inputStyle = {
-  height: 44,
+  minHeight: 48,
   borderRadius: radius.lg,
   borderWidth: 1,
   borderColor: palette.borderLight,
-  paddingHorizontal: 12,
-  fontSize: 14,
+  backgroundColor: palette.surfaceLight,
+  paddingHorizontal: 14,
+  fontSize: 15,
+  color: palette.textLight,
 };
+
+const styles = StyleSheet.create({
+  policyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  policyIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.full,
+    backgroundColor: GUARD_SOFT_CORAL,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  policyCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  layout: {
+    gap: spacing.md,
+  },
+  twoColumnLayout: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  formColumn: {
+    flex: 1.05,
+    minWidth: 0,
+    gap: spacing.md,
+  },
+  pendingColumn: {
+    flex: 0.95,
+    minWidth: 0,
+  },
+  tabRail: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  tabButton: {
+    flexGrow: 1,
+    minWidth: 128,
+  },
+  formCard: {
+    gap: spacing.md,
+  },
+  cardIntro: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  cardIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.full,
+    backgroundColor: GUARD_SOFT_SKY,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  introCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardTitle: {
+    color: palette.textLight,
+    fontSize: 17,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  cardMeta: {
+    color: palette.mutedLight,
+    lineHeight: 20,
+  },
+  fieldGroup: {
+    gap: 7,
+  },
+  fieldLabel: {
+    color: palette.textLight,
+    fontWeight: '700',
+  },
+  pendingList: {
+    gap: spacing.md,
+  },
+  pendingCard: {
+    gap: spacing.md,
+  },
+  pendingHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  pendingIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.full,
+    backgroundColor: GUARD_SOFT_CORAL,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactPanel: {
+    borderRadius: radius.xl,
+    backgroundColor: palette.bgLight,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  contactLine: {
+    gap: 2,
+  },
+  contactLabel: {
+    color: palette.mutedLight,
+    fontWeight: '700',
+  },
+  contactValue: {
+    color: palette.textLight,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  contactLink: {
+    color: GUARD_CORAL,
+  },
+  actionStack: {
+    gap: spacing.xs,
+  },
+  emptyCard: {
+    minHeight: 220,
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  emptyIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
+    backgroundColor: GUARD_SOFT_SKY,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+});

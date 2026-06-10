@@ -17,29 +17,16 @@ export default function AdminHome() {
     enabled: Boolean(condo),
   });
 
-  const invoices = useQuery({
-    queryKey: condo ? ['invoices', 'condo', condo.id] : ['invoices', 'condo', null],
-    queryFn: () =>
-      condo
-        ? api['request' as keyof typeof api]
-          ? // @ts-expect-error optional helper
-            (api.invoicesForCondo?.(condo.id) ?? { items: [], total: 0 })
-          : { items: [], total: 0 }
-        : { items: [], total: 0 },
-    enabled: Boolean(condo),
-  });
-
   const openDefects =
-    (defects.data?.items as any[] | undefined)?.filter(
+    (defects.data?.items as Array<{ status: string }> | undefined)?.filter(
       (d) => d.status !== 'CLOSED' && d.status !== 'RESOLVED',
     ).length ?? 0;
   const totalDefects = defects.data?.total ?? 0;
+  const todayString = new Date().toDateString();
   const visitorsToday =
-    (visitors.data?.items as any[] | undefined)?.filter((v) => {
-      const d = new Date(v.expectedAt);
-      const today = new Date();
-      return d.toDateString() === today.toDateString();
-    }).length ?? 0;
+    (visitors.data?.items as Array<{ expectedAt: string }> | undefined)?.filter(
+      (v) => new Date(v.expectedAt).toDateString() === todayString,
+    ).length ?? 0;
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl">

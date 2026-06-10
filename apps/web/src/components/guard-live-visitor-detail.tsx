@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { formatTimeOnSite } from '@/lib/format-time-on-site';
 import { toast } from '@/lib/toast';
 import { useCheckOutVisitor } from '@smartresidence/api-client';
-import type { GuardLiveVisitor } from '@smartresidence/shared-types';
+import { type GuardLiveVisitor, guardCanCheckOutVisitor } from '@smartresidence/shared-types';
 import { Badge, Button, Card, iosSpring } from '@smartresidence/ui-web';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LogOut, X } from 'lucide-react';
@@ -80,6 +80,7 @@ export function GuardLiveVisitorDetail({
   const panelTransition = reduceMotion ? { duration: 0 } : iosSpring.snappy;
 
   const duration = formatTimeOnSite(new Date(visitor.checkedInAt));
+  const canCheckOut = visitor.canCheckOut ?? guardCanCheckOutVisitor(visitor);
 
   async function onConfirmCheckOut() {
     try {
@@ -179,15 +180,21 @@ export function GuardLiveVisitorDetail({
             </div>
 
             <footer className="shrink-0 border-t border-[rgb(var(--sr-border))] p-5">
-              <Button
-                variant="secondary"
-                className="w-full"
-                onClick={() => setConfirmOpen(true)}
-                disabled={checkOut.isPending}
-              >
-                <LogOut className="size-4" />
-                {t('visitors.guard.checkOut')}
-              </Button>
+              {canCheckOut ? (
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={checkOut.isPending}
+                >
+                  <LogOut className="size-4" />
+                  {t('visitors.guard.checkOut')}
+                </Button>
+              ) : (
+                <p className="text-sm sr-muted text-center leading-relaxed">
+                  Walk-in visit — record only. Closes automatically at end of day; no manual checkout.
+                </p>
+              )}
             </footer>
           </Card>
         </MotionDialog>

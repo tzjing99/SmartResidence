@@ -11,7 +11,8 @@ import type {
   VisitorStatus,
   VisitorVisitType,
 } from '@smartresidence/shared-types';
-import { Badge, cn } from '@smartresidence/ui-web';
+import { guardCanAcknowledgeWalkIn } from '@smartresidence/shared-types';
+import { Badge, Button, cn } from '@smartresidence/ui-web';
 import * as React from 'react';
 
 function visitTypeLabel(visitType: VisitorVisitType, t: ReturnType<typeof useT>): string {
@@ -78,14 +79,20 @@ export type GuardExpectedCardVariant = 'expected' | 'no_show' | 'history';
 export function GuardExpectedVisitorCard({
   visitor,
   variant,
+  onAcknowledgeWalkIn,
+  acknowledging,
 }: {
   visitor: Pick<
     GuardExpectedVisitor,
-    'name' | 'expectedAt' | 'unitLabel' | 'visitType' | 'vehiclePlate' | 'overnight' | 'status'
+    'id' | 'name' | 'expectedAt' | 'unitLabel' | 'visitType' | 'vehiclePlate' | 'overnight' | 'status'
   >;
   variant: GuardExpectedCardVariant;
+  onAcknowledgeWalkIn?: (visitorId: string) => void;
+  acknowledging?: boolean;
 }) {
   const t = useT();
+  const canAcknowledge =
+    variant === 'expected' && guardCanAcknowledgeWalkIn(visitor) && onAcknowledgeWalkIn;
   const [, tick] = React.useReducer((n: number) => n + 1, 0);
   const expectedAt = new Date(visitor.expectedAt);
 
@@ -170,6 +177,21 @@ export function GuardExpectedVisitorCard({
           ) : null}
         </div>
       </div>
+      {canAcknowledge ? (
+        <div className="mt-3 pt-3 border-t border-[rgb(var(--sr-border))]">
+          <Button
+            className="w-full"
+            size="sm"
+            disabled={acknowledging}
+            onClick={() => onAcknowledgeWalkIn!(visitor.id)}
+          >
+            {t('visitors.guard.acknowledgeWalkIn')}
+          </Button>
+          <p className="text-xs sr-muted mt-2 leading-relaxed">
+            {t('visitors.guard.acknowledgeWalkInHint')}
+          </p>
+        </div>
+      ) : null}
     </article>
   );
 }

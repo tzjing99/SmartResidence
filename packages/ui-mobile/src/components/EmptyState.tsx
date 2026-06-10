@@ -24,16 +24,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon
       alignItems: 'center',
       gap: 12,
     }}
-  >
-    {icon ? <View>{icon}</View> : null}
-    <Text style={{ fontSize: 17, fontWeight: '600', color: palette.textLight }}>{title}</Text>
-    {description ? (
-      <Text
-        style={{ textAlign: 'center', color: palette.mutedLight, fontSize: 14, lineHeight: 20 }}
-      >
-        {description}
-      </Text>
-    ) : null}
-    {action}
-  </MotiView>
+    children={
+      <>
+        {icon ? <View>{icon}</View> : null}
+        <Text style={{ fontSize: 17, fontWeight: '600', color: palette.textLight }}>{title}</Text>
+        {description ? (
+          <Text
+            style={{ textAlign: 'center', color: palette.mutedLight, fontSize: 14, lineHeight: 20 }}
+          >
+            {description}
+          </Text>
+        ) : null}
+        {action}
+      </> as never
+    }
+  />
 );

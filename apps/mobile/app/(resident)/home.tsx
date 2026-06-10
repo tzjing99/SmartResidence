@@ -21,11 +21,13 @@ import {
   spacing,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import type { ComponentProps } from 'react';
+import { useCallback, type ComponentProps } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions, type DimensionValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import type { MeResponse } from '../../src/lib/roles';
+import { RESIDENT_THREAD_INBOX_PARAMS, countOpenThreads } from '../../src/lib/resident-threads';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -34,7 +36,6 @@ const SOFT_CORAL = '#FFF1F0';
 const WARM_BG = '#FFF8F6';
 const CARD_BORDER = '#F1E8E4';
 
-const CLOSED_STATUSES = new Set(['CLOSED', 'RESOLVED']);
 const INACTIVE_INVOICE_STATUSES = new Set(['PAID', 'VOID']);
 
 export default function HomeScreen() {
@@ -50,19 +51,33 @@ export default function HomeScreen() {
   const invoices = useUnitInvoices(api, unit?.id ?? null);
   const visitors = useUnitVisitors(api, unit?.id ?? null, 'upcoming');
   const defects = useUnitDefects(api, unit?.id ?? null);
-  const threads = useThreads(api, { limit: 20 });
+  const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
   const announcements = useCondoAnnouncements(api, condo?.id ?? null);
+  const { refreshControl } = usePullToRefresh(
+    useCallback(
+      () =>
+        Promise.all([
+          me.refetch(),
+          condos.refetch(),
+          units.refetch(),
+          invoices.refetch(),
+          visitors.refetch(),
+          defects.refetch(),
+          threads.refetch(),
+          announcements.refetch(),
+        ]),
+      [announcements, condos, defects, invoices, me, threads, units, visitors],
+    ),
+  );
 
   const openInvoice = (invoices.data?.items as any[] | undefined)?.find(
     (i) => !INACTIVE_INVOICE_STATUSES.has(i.status),
   );
   const upcomingVisitors = ((visitors.data?.items as any[]) ?? []).slice(0, 3);
   const openDefects = ((defects.data?.items as any[]) ?? []).filter(
-    (d) => !CLOSED_STATUSES.has(d.status),
+    (d) => d.status !== 'CLOSED' && d.status !== 'RESOLVED',
   ).length;
-  const openThreads = ((threads.data?.items as any[]) ?? []).filter(
-    (t) => !CLOSED_STATUSES.has(t.status),
-  ).length;
+  const openThreads = countOpenThreads(threads.data?.items);
   const announcement = (announcements.data?.items as any[] | undefined)?.[0];
   const hasRoomForColumns = width >= 380;
   const actionWidth: DimensionValue = hasRoomForColumns ? '48%' : '100%';
@@ -83,6 +98,7 @@ export default function HomeScreen() {
         },
       ]}
       contentInsetAdjustmentBehavior="never"
+      refreshControl={refreshControl}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>

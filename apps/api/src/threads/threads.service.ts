@@ -110,21 +110,29 @@ export class ThreadsService {
       condoId = residentRole?.condoId ?? user.roles.find((r) => r.condoId)?.condoId ?? null;
     }
     if (!condoId) throw new BadRequestException('No condo context for this thread');
+    const resolvedCondoId = condoId;
 
-    const suggestion = await this.ai.suggestPriority({
-      subject: dto.subject,
-      body: dto.body,
-      category: dto.category,
-      condoId,
-    });
-    const due = await this.sla.computeDueDates(condoId, suggestion.priority);
-    const assign = await this.assignment.assignOnCreate({
-      condoId,
-      unitId,
-      createdByUserId: user.id,
-      category: dto.category,
-      subject: dto.subject,
-    });
+    // Auto-assignment is independent of the AI priority + SLA due-date chain, so
+    // run them concurrently to shave a round-trip off thread creation.
+    const [{ suggestion, due }, assign] = await Promise.all([
+      (async () => {
+        const suggestion = await this.ai.suggestPriority({
+          subject: dto.subject,
+          body: dto.body,
+          category: dto.category,
+          condoId: resolvedCondoId,
+        });
+        const due = await this.sla.computeDueDates(resolvedCondoId, suggestion.priority);
+        return { suggestion, due };
+      })(),
+      this.assignment.assignOnCreate({
+        condoId: resolvedCondoId,
+        unitId,
+        createdByUserId: user.id,
+        category: dto.category,
+        subject: dto.subject,
+      }),
+    ]);
 
     const thread = await this.prisma.$transaction(async (tx) => {
       const created = await tx.thread.create({

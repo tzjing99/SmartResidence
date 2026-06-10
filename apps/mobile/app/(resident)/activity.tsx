@@ -1,5 +1,6 @@
 import { useMyActivity, useWhoViewedMe } from '@smartresidence/api-client';
 import { AppText, Card, EmptyState, palette } from '@smartresidence/ui-mobile';
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import {
   ResidentScreen,
@@ -7,11 +8,15 @@ import {
   prettyLabel,
   residentStyles,
 } from '../../src/components/resident-screen';
+import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 
 export default function ActivityScreen() {
   const activity = useMyActivity(api);
   const whoViewed = useWhoViewedMe(api);
+  const { refreshControl } = usePullToRefresh(
+    useCallback(() => Promise.all([activity.refetch(), whoViewed.refetch()]), [activity, whoViewed]),
+  );
 
   const items = (activity.data?.items as any[]) ?? [];
   const views = (whoViewed.data?.items as any[]) ?? [];
@@ -21,6 +26,7 @@ export default function ActivityScreen() {
       eyebrow="Activity"
       title="Activity on my unit"
       subtitle="A clear audit trail of actions and record views connected to your home."
+      scrollProps={{ refreshControl }}
     >
       <ResidentSectionHeader
         title="Recent actions"

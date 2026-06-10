@@ -6,10 +6,10 @@ import { queryKeys, usePayInvoice } from '@smartresidence/api-client';
 import { formatMoney } from '@smartresidence/shared-types';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 
-export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function InvoiceDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const invoice = useQuery({
     queryKey: queryKeys.invoice(id),
     queryFn: () => api.invoice(id),

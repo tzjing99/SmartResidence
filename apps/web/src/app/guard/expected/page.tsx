@@ -4,7 +4,8 @@ import { GuardExpectedVisitorCard } from '@/components/guard-expected-visitor-ca
 import { PillTabs } from '@/components/pill-tabs';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
-import { queryKeys, useMyCondos } from '@smartresidence/api-client';
+import { toast } from '@/lib/toast';
+import { queryKeys, useGuardAcknowledgeWalkIn, useMyCondos } from '@smartresidence/api-client';
 import type { GuardExpectedVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
 import { EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -75,6 +76,19 @@ export default function GuardExpectedPage() {
     staleTime: 30_000,
     refetchInterval: tab === 'expected' ? 30_000 : false,
   });
+  const acknowledgeWalkIn = useGuardAcknowledgeWalkIn(api);
+
+  async function onAcknowledgeWalkIn(visitorId: string, name: string) {
+    try {
+      await acknowledgeWalkIn.mutateAsync(visitorId);
+      toast.success(t('visitors.guard.acknowledgeWalkInSuccess', { name }));
+      if (condo) {
+        await qc.invalidateQueries({ queryKey: ['visitors'] });
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
 
   const prefetchTab = useCallback(
     (nextTab: ExpectedTab) => {
@@ -161,6 +175,8 @@ export default function GuardExpectedPage() {
               key={v.id}
               visitor={toCardVisitor(v)}
               variant={tab === 'history' ? 'history' : tab}
+              onAcknowledgeWalkIn={(id) => void onAcknowledgeWalkIn(id, v.name)}
+              acknowledging={acknowledgeWalkIn.isPending}
             />
           ))}
         </div>

@@ -175,6 +175,25 @@ export class VisitorController {
     return this.visitors.approveWalkInByGuard(id, guard, dto.method);
   }
 
+  @Post(':id/acknowledge-walk-in')
+  @CheckAbility({ action: 'create-walk-in', subject: 'Visitor' })
+  @Audit({
+    action: AuditAction.CREATE,
+    resourceType: 'VisitorCheckIn',
+    resourceIdFrom: 'response.id',
+  })
+  @ApiOperation({
+    summary:
+      'Guard records on-site entry for an owner-approved unit walk-in (no access pass / QR scan)',
+  })
+  acknowledgeWalkIn(
+    @CurrentUser() guard: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CheckInVisitorDto,
+  ) {
+    return this.visitors.acknowledgeWalkIn(id, guard, dto);
+  }
+
   @Post(':id/approve-overnight')
   @CheckAbility({ action: 'approve-overnight', subject: 'Visitor' })
   @Audit({ action: AuditAction.UPDATE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })

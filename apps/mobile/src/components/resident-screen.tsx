@@ -1,14 +1,14 @@
+import { AppText, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { type ReactNode } from 'react';
 import {
   ScrollView,
-  StyleSheet,
-  View,
   type ScrollViewProps,
   type StyleProp,
+  StyleSheet,
+  View,
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useTabletLayout } from '../lib/use-tablet-layout';
 
 export const RESIDENT_CORAL = '#FF385C';

@@ -49,10 +49,10 @@ import type {
 import {
   INDEFINITE_SUSPEND_UNTIL,
   checkUnitOvernightEligibility,
-  countMonthlyOvernightForUnit,
+  countMonthlyOvernightByUnit,
   getPrimaryUnitOwner,
   getUnitOwnerContacts,
-  getUnitSuspendPolicy,
+  getUnitSuspendPolicyByUnit,
   isIndefiniteSuspend,
   isOvernightSuspended,
   parseMonthParam,
@@ -166,20 +166,6 @@ export class VisitorService {
     return { accessCode, qrPayload, qrCode: qrPayload };
   }
 
-  private async getUnitResidentIds(unitId: string): Promise<string[]> {
-    const [owners, tenants] = await Promise.all([
-      this.prisma.ownership.findMany({
-        where: { unitId, status: OwnershipStatus.ACTIVE },
-        select: { userId: true },
-      }),
-      this.prisma.tenancy.findMany({
-        where: { unitId, status: TenancyStatus.ACTIVE },
-        select: { userId: true },
-      }),
-    ]);
-    return [...new Set([...owners.map((o) => o.userId), ...tenants.map((t) => t.userId)])];
-  }
-
   private userCanApproveUnit(user: AuthenticatedUser, unitId: string): boolean {
     return user.roles.some(
       (r) => r.unitId === unitId && (r.roleId === 'UNIT_OWNER' || r.roleId === 'TENANT'),
@@ -205,24 +191,59 @@ export class VisitorService {
     const now = new Date();
     const scope = condoId ? { condoId } : {};
 
-    await this.prisma.visitor.updateMany({
-      where: {
-        ...scope,
-        status: VisitorStatus.PENDING_OWNER_APPROVAL,
-        approvalDeadline: { lt: now },
-      },
-      data: { status: VisitorStatus.EXPIRED },
-    });
+    await Promise.all([
+      this.prisma.visitor.updateMany({
+        where: {
+          ...scope,
+          status: VisitorStatus.PENDING_OWNER_APPROVAL,
+          approvalDeadline: { lt: now },
+        },
+        data: { status: VisitorStatus.EXPIRED },
+      }),
+      this.prisma.visitor.updateMany({
+        where: {
+          ...scope,
+          status: VisitorStatus.APPROVED,
+          expiresAt: { lt: now },
+          visitType: { in: [VisitorVisitType.PRE_REG, VisitorVisitType.WALKIN_UNIT] },
+        },
+        data: { status: VisitorStatus.EXPIRED },
+      }),
+    ]);
+  }
 
-    await this.prisma.visitor.updateMany({
+  /** Walk-ins are record-only — auto check-out at end of condo calendar day (no guard action). */
+  private async autoCloseStaleWalkIns(condoId: string, now = new Date()) {
+    const tz = await this.condoTimezone(condoId);
+    const { start } = condoDayBounds(tz, now);
+    const stale = await this.prisma.visitor.findMany({
       where: {
-        ...scope,
-        status: VisitorStatus.APPROVED,
-        expiresAt: { lt: now },
-        visitType: { in: [VisitorVisitType.PRE_REG, VisitorVisitType.WALKIN_UNIT] },
+        condoId,
+        visitType: { in: [VisitorVisitType.WALKIN_UNIT, VisitorVisitType.WALKIN_OFFICE] },
+        status: VisitorStatus.CHECKED_IN,
+        checkIns: { some: { checkOutAt: null, checkInAt: { lt: start } } },
       },
-      data: { status: VisitorStatus.EXPIRED },
+      include: {
+        checkIns: {
+          where: { checkOutAt: null },
+          orderBy: { checkInAt: 'desc' },
+          take: 1,
+        },
+      },
     });
+    for (const visitor of stale ?? []) {
+      const active = visitor.checkIns[0];
+      if (!active) continue;
+      await this.prisma.visitorCheckIn.update({
+        where: { id: active.id },
+        data: { checkOutAt: start },
+      });
+      await this.prisma.visitor.update({
+        where: { id: visitor.id },
+        data: { status: VisitorStatus.CHECKED_OUT },
+      });
+      this.events.emit('visitor.checked_out', { visitorId: visitor.id, condoId });
+    }
   }
 
   private async countOvernightSlots(condoId: string, expectedAt: Date): Promise<number> {
@@ -267,11 +288,18 @@ export class VisitorService {
     unit: { id: string; condoId: string; condo: { settings: unknown } },
   ) {
     const overnight = dto.overnight ?? false;
+
+    this.normalizeMalaysiaPhoneField(dto.phone, true);
+
+    if (overnight && dto.entryMode === VisitorEntryMode.WALK_IN) {
+      throw new BadRequestException(
+        'Overnight stays are only for drive-in pre-registrations — vehicle park overnight',
+      );
+    }
+
     const entryMode = overnight
       ? VisitorEntryMode.DRIVE_IN
       : (dto.entryMode ?? VisitorEntryMode.DRIVE_IN);
-
-    this.normalizeMalaysiaPhoneField(dto.phone, true);
 
     if (entryMode === VisitorEntryMode.DRIVE_IN && !dto.vehiclePlate?.trim()) {
       throw new BadRequestException('Plate number is required for drive-in visitors');
@@ -623,6 +651,29 @@ export class VisitorService {
     return { ...visitor, ownerContacts };
   }
 
+  /**
+   * Batched owner-contact lookup: one query for many units instead of one per
+   * visitor (avoids N+1 on guard list / live board endpoints).
+   */
+  private async getUnitOwnerContactsMap(
+    unitIds: Array<string | null | undefined>,
+  ): Promise<Map<string, Awaited<ReturnType<typeof getUnitOwnerContacts>>>> {
+    const map = new Map<string, Awaited<ReturnType<typeof getUnitOwnerContacts>>>();
+    const ids = [...new Set(unitIds.filter((id): id is string => Boolean(id)))];
+    if (ids.length === 0) return map;
+    const ownerships = await this.prisma.ownership.findMany({
+      where: { unitId: { in: ids }, status: OwnershipStatus.ACTIVE },
+      include: { user: { select: { id: true, name: true, phone: true } } },
+      orderBy: [{ isPrimary: 'desc' }, { startDate: 'asc' }],
+    });
+    for (const o of ownerships) {
+      const list = map.get(o.unitId) ?? [];
+      list.push({ id: o.user.id, name: o.user.name, phone: o.user.phone, isPrimary: o.isPrimary });
+      map.set(o.unitId, list);
+    }
+    return map;
+  }
+
   private async enrichGuardVisitorList(
     items: VisitorWithRelations[],
     viewer?: AuthenticatedUser,
@@ -632,16 +683,17 @@ export class VisitorService {
     >
   > {
     if (!viewer || !this.isGuard(viewer)) return items;
-    return Promise.all(
-      items.map(async (v) => {
-        const phone = this.resolveVisitorPhoneForGuard(v.phone, v.phoneCountryCode);
-        if (v.status !== VisitorStatus.PENDING_OWNER_APPROVAL || !v.unitId) {
-          return phone === v.phone ? v : { ...v, phone };
-        }
-        const ownerContacts = await getUnitOwnerContacts(this.prisma, v.unitId);
-        return { ...v, phone, ownerContacts };
-      }),
+    const contactsMap = await this.getUnitOwnerContactsMap(
+      items.filter((v) => v.status === VisitorStatus.PENDING_OWNER_APPROVAL).map((v) => v.unitId),
     );
+    return items.map((v) => {
+      const phone = this.resolveVisitorPhoneForGuard(v.phone, v.phoneCountryCode);
+      if (v.status !== VisitorStatus.PENDING_OWNER_APPROVAL || !v.unitId) {
+        return phone === v.phone ? v : { ...v, phone };
+      }
+      const ownerContacts = contactsMap.get(v.unitId) ?? [];
+      return { ...v, phone, ownerContacts };
+    });
   }
 
   async getWalkInOwnerContacts(visitorId: string, guard: AuthenticatedUser) {
@@ -943,6 +995,68 @@ export class VisitorService {
     return updated;
   }
 
+  /**
+   * Guard records entry for an owner-approved unit walk-in — no QR/access pass.
+   * Used when the owner responded in-app while the visitor waits at the gate.
+   */
+  async acknowledgeWalkIn(visitorId: string, guard: AuthenticatedUser, dto: CheckInVisitorDto) {
+    const condoId = this.guardCondoId(guard);
+    const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
+    if (!visitor || visitor.condoId !== condoId) {
+      throw new NotFoundException('Visitor not found');
+    }
+    if (visitor.visitType !== VisitorVisitType.WALKIN_UNIT) {
+      throw new BadRequestException('Only unit walk-in visitors can be acknowledged at the gate');
+    }
+    if (visitor.status !== VisitorStatus.APPROVED) {
+      throw new BadRequestException(
+        visitor.status === VisitorStatus.CHECKED_IN
+          ? 'Visitor already acknowledged on site'
+          : `Visitor is ${visitor.status}, not awaiting gate acknowledgment`,
+      );
+    }
+    if (visitor.expiresAt && visitor.expiresAt < new Date()) {
+      await this.prisma.visitor.update({
+        where: { id: visitorId },
+        data: { status: VisitorStatus.EXPIRED },
+      });
+      throw new BadRequestException(
+        'Owner approval window expired — ask the resident to re-register the visitor',
+      );
+    }
+
+    const checkIn = await this.prisma.$transaction(async (tx) => {
+      await tx.visitor.update({
+        where: { id: visitorId },
+        data: { status: VisitorStatus.CHECKED_IN },
+      });
+      const row = await tx.visitorCheckIn.create({
+        data: {
+          visitorId,
+          checkInGuardId: guard.id,
+          gateLocation: dto.gateLocation ?? 'Main gate',
+          notes: dto.notes ?? 'Walk-in acknowledged at gate (owner approved in app)',
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          condoId: visitor.condoId,
+          unitId: visitor.unitId,
+          actorUserId: guard.id,
+          actorRole: guard.activeRole,
+          action: AuditAction.CREATE,
+          resourceType: 'VisitorCheckIn',
+          resourceId: row.id,
+          metadata: { visitType: 'WALKIN_UNIT', acknowledgment: true },
+        },
+      });
+      return row;
+    });
+
+    this.events.emit('visitor.checked_in', { visitorId, condoId: visitor.condoId });
+    return checkIn;
+  }
+
   async reject(visitorId: string, user: AuthenticatedUser, reason?: string) {
     await this.expireStale();
     const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
@@ -1177,11 +1291,15 @@ export class VisitorService {
   async listLiveForGuard(guard: AuthenticatedUser) {
     const condoId = this.guardCondoId(guard);
     await this.expireStale(condoId);
+    await this.autoCloseStaleWalkIns(condoId);
     const rawItems = await this.prisma.visitor.findMany({
       where: { condoId, status: VisitorStatus.CHECKED_IN },
       include: visitorInclude,
     });
-    const items = await Promise.all(rawItems.map((v) => this.toGuardLiveVisitor(v)));
+    const contactsMap = await this.getUnitOwnerContactsMap(
+      rawItems.filter((v) => v.visitType !== VisitorVisitType.WALKIN_OFFICE).map((v) => v.unitId),
+    );
+    const items = rawItems.map((v) => this.toGuardLiveVisitor(v, contactsMap));
     items.sort((a, b) => b.checkedInAt.getTime() - a.checkedInAt.getTime());
     return { items, total: items.length };
   }
@@ -1230,10 +1348,13 @@ export class VisitorService {
   }
 
   /** Strip PII beyond gate-duty minimum (no email, ID, QR, host records). */
-  private async toGuardLiveVisitor(visitor: VisitorWithRelations) {
+  private toGuardLiveVisitor(
+    visitor: VisitorWithRelations,
+    contactsMap: Map<string, Awaited<ReturnType<typeof getUnitOwnerContacts>>>,
+  ) {
     const rawOwnerContacts =
       visitor.unitId && visitor.visitType !== VisitorVisitType.WALKIN_OFFICE
-        ? await getUnitOwnerContacts(this.prisma, visitor.unitId)
+        ? contactsMap.get(visitor.unitId)
         : undefined;
     const ownerContacts = rawOwnerContacts?.length
       ? this.normalizeOwnerContactsForGuard(rawOwnerContacts)
@@ -1248,6 +1369,9 @@ export class VisitorService {
       unitLabel: this.formatVisitorUnitLabel(visitor),
       visitType: visitor.visitType,
       overnight: visitor.overnight ?? false,
+      canCheckOut:
+        visitor.visitType !== VisitorVisitType.WALKIN_UNIT &&
+        visitor.visitType !== VisitorVisitType.WALKIN_OFFICE,
       ...(ownerContacts?.length ? { ownerContacts } : {}),
     };
   }
@@ -1351,6 +1475,12 @@ export class VisitorService {
     if (visitor.status === VisitorStatus.CHECKED_IN) {
       throw new BadRequestException('Visitor already checked in');
     }
+    if (
+      visitor.visitType === VisitorVisitType.PRE_REG &&
+      visitor.status === VisitorStatus.PENDING_MANAGEMENT_APPROVAL
+    ) {
+      throw new BadRequestException('Pre-registered visitor is awaiting management approval');
+    }
     if (!CHECK_IN_ALLOWED.includes(visitor.status)) {
       throw new BadRequestException(`Cannot check in visitor with status ${visitor.status}`);
     }
@@ -1394,7 +1524,29 @@ export class VisitorService {
 
   async checkOut(pass: string, guard: AuthenticatedUser) {
     const condoId = this.guardCondoId(guard);
+    const normalized = normalizePassInput(pass);
+    if (isVisitorId(normalized)) {
+      const byId = await this.prisma.visitor.findUnique({ where: { id: normalized } });
+      if (
+        byId &&
+        byId.condoId === condoId &&
+        (byId.visitType === VisitorVisitType.WALKIN_UNIT ||
+          byId.visitType === VisitorVisitType.WALKIN_OFFICE)
+      ) {
+        throw new BadRequestException(
+          'Walk-in visits close automatically — manual checkout is not used',
+        );
+      }
+    }
     const visitor = await this.verifyByPass(pass, condoId);
+    if (
+      visitor.visitType === VisitorVisitType.WALKIN_UNIT ||
+      visitor.visitType === VisitorVisitType.WALKIN_OFFICE
+    ) {
+      throw new BadRequestException(
+        'Walk-in visits close automatically — manual checkout is not used',
+      );
+    }
     const lastCheckIn = await this.prisma.visitorCheckIn.findFirst({
       where: { visitorId: visitor.id, checkOutAt: null },
       orderBy: { checkInAt: 'desc' },
@@ -1559,30 +1711,34 @@ export class VisitorService {
       orderBy: { identifier: 'asc' },
     });
 
-    const rows = await Promise.all(
-      units.map(async (unit) => {
-        const count = await countMonthlyOvernightForUnit(this.prisma, unit.id, range, settings);
-        const policy = await getUnitSuspendPolicy(this.prisma, unit.id);
-        const suspended = isOvernightSuspended(policy);
-        const owners = unit.ownerships.map((o) => ({
-          id: o.userId,
-          name: o.user.name,
-          email: o.user.email,
-          isPrimary: o.isPrimary,
-        }));
-        return {
-          unitId: unit.id,
-          unitIdentifier: unit.identifier,
-          owners,
-          overnightCountThisMonth: count,
-          monthlyLimit: settings.maxOvernightVisitsPerUnitPerMonth,
-          status: suspended ? ('suspended' as const) : ('active' as const),
-          overnightSuspendedUntil: policy?.overnightSuspendedUntil ?? null,
-          suspendedIndefinite: isIndefiniteSuspend(policy?.overnightSuspendedUntil),
-          suspendReason: policy?.suspendReason ?? null,
-        };
-      }),
-    );
+    const unitIds = units.map((u) => u.id);
+    const [countMap, policyMap] = await Promise.all([
+      countMonthlyOvernightByUnit(this.prisma, unitIds, range, settings),
+      getUnitSuspendPolicyByUnit(this.prisma, unitIds),
+    ]);
+
+    const rows = units.map((unit) => {
+      const count = countMap.get(unit.id) ?? 0;
+      const policy = policyMap.get(unit.id) ?? null;
+      const suspended = isOvernightSuspended(policy);
+      const owners = unit.ownerships.map((o) => ({
+        id: o.userId,
+        name: o.user.name,
+        email: o.user.email,
+        isPrimary: o.isPrimary,
+      }));
+      return {
+        unitId: unit.id,
+        unitIdentifier: unit.identifier,
+        owners,
+        overnightCountThisMonth: count,
+        monthlyLimit: settings.maxOvernightVisitsPerUnitPerMonth,
+        status: suspended ? ('suspended' as const) : ('active' as const),
+        overnightSuspendedUntil: policy?.overnightSuspendedUntil ?? null,
+        suspendedIndefinite: isIndefiniteSuspend(policy?.overnightSuspendedUntil),
+        suspendReason: policy?.suspendReason ?? null,
+      };
+    });
 
     return { month: range.key, items: rows, settings };
   }

@@ -17,7 +17,7 @@ export function FadeInView({ children, index = 0, style }: FadeInViewProps) {
   const delay = Math.min(index, 6) * 35;
 
   if (reduceMotion) {
-    return <MotiView style={style}>{children}</MotiView>;
+    return <MotiView style={style} children={children as never} />;
   }
 
   return (
@@ -26,8 +26,7 @@ export function FadeInView({ children, index = 0, style }: FadeInViewProps) {
       animate={{ opacity: 1, translateY: 0 }}
       transition={{ ...spring.snappy, delay }}
       style={style}
-    >
-      {children}
-    </MotiView>
+      children={children as never}
+    />
   );
 }

@@ -1,20 +1,32 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+
+let handlerConfigured = false;
+
+async function ensureNotificationHandler() {
+  if (isExpoGo || handlerConfigured) return;
+  const Notifications = await import('expo-notifications');
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+  handlerConfigured = true;
+}
 
 /** Register for Expo push notifications and ship the token to the API. */
 export async function registerForPush(): Promise<string | null> {
-  if (!Device.isDevice) return null;
+  if (isExpoGo || !Device.isDevice) return null;
+
+  await ensureNotificationHandler();
+  const Notifications = await import('expo-notifications');
+
   const { status: existing } = await Notifications.getPermissionsAsync();
   let final = existing;
   if (existing !== 'granted') {

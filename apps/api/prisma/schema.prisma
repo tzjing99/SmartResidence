@@ -441,6 +441,8 @@ model Visitor {
   @@index([expectedAt])
   @@index([expiresAt])
   @@index([approvalDeadline])
+  // Condo-scoped, date-bounded lists & stats (guard boards, admin dashboards).
+  @@index([condoId, expectedAt])
   @@map("visitors")
 }
 
@@ -804,6 +806,8 @@ model Notification {
   createdAt     DateTime         @default(now())
 
   @@index([userId, readAt])
+  // List feed is ordered by createdAt desc per user.
+  @@index([userId, createdAt])
   @@map("notifications")
 }
 
@@ -967,7 +971,8 @@ model ThreadMessage {
   attachments Attachment[]
   proposedSolutionForThreads Thread[] @relation("ProposedSolution")
 
-  @@index([threadId])
+  // Per-thread transcript reads are ordered by createdAt asc.
+  @@index([threadId, createdAt])
   @@map("thread_messages")
 }
 

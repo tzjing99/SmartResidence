@@ -1,11 +1,16 @@
-import type { VisitorEntryMode } from '@smartresidence/shared-types';
+import type {
+  VisitorEntryMode,
+  VisitorStatus,
+  VisitorVisitType,
+} from '@smartresidence/shared-types';
 import { Button, Card, Pill, palette, radius } from '@smartresidence/ui-mobile';
 import { Text, View } from 'react-native';
 
 export type GuardVerifiedVisitor = {
   name: string;
   accessCode?: string | null;
-  status?: string;
+  status?: VisitorStatus | string;
+  visitType?: VisitorVisitType | string;
   entryMode?: VisitorEntryMode;
   vehiclePlate?: string | null;
   unit?: { identifier?: string; block?: { name?: string } };
@@ -24,12 +29,19 @@ export function entryModeLabel(mode?: VisitorEntryMode) {
 
 export function guardPassSummary(visitor: GuardVerifiedVisitor) {
   const lines = [visitor.name, `Unit: ${unitLabel(visitor)}`, `Code: ${visitor.accessCode ?? '—'}`];
+  if (isOwnerPreRegistered(visitor)) {
+    lines.push('Pre-registered by resident');
+  }
   const mode = entryModeLabel(visitor.entryMode);
   if (mode) lines.push(`Entry: ${mode}`);
   if (visitor.entryMode === 'DRIVE_IN' && visitor.vehiclePlate) {
     lines.push(`Plate: ${visitor.vehiclePlate}`);
   }
   return lines.join('\n');
+}
+
+export function isOwnerPreRegistered(visitor: GuardVerifiedVisitor) {
+  return visitor.visitType === 'PRE_REG' && visitor.status === 'APPROVED';
 }
 
 type VisitorGuardPassCardProps = {
@@ -43,9 +55,10 @@ export function VisitorGuardPassCard({
   visitor,
   onCheckIn,
   checkInDisabled,
-  checkInLabel = 'Allow entry',
+  checkInLabel = 'Check in',
 }: VisitorGuardPassCardProps) {
   const mode = entryModeLabel(visitor.entryMode);
+  const ownerPreRegistered = isOwnerPreRegistered(visitor);
 
   return (
     <Card>
@@ -53,6 +66,11 @@ export function VisitorGuardPassCard({
       <Text style={{ color: palette.mutedLight, fontSize: 14, marginTop: 4 }}>
         Unit: {unitLabel(visitor)}
       </Text>
+      {ownerPreRegistered ? (
+        <Text style={{ color: '#047857', fontSize: 13, fontWeight: '700', marginTop: 8 }}>
+          Pre-registered by resident — verify and check in.
+        </Text>
+      ) : null}
       {visitor.accessCode ? (
         <Text
           style={{
@@ -85,8 +103,16 @@ export function VisitorGuardPassCard({
             {visitor.vehiclePlate}
           </Text>
         ) : null}
+        {ownerPreRegistered ? <Pill tone="success" label="Resident pre-registered" /> : null}
         {visitor.status ? (
-          <Pill tone="primary" label={visitor.status.toLowerCase().replace(/_/g, ' ')} />
+          <Pill
+            tone={ownerPreRegistered ? 'success' : 'primary'}
+            label={
+              ownerPreRegistered
+                ? 'Ready for check-in'
+                : visitor.status.toLowerCase().replace(/_/g, ' ')
+            }
+          />
         ) : null}
       </View>
       {onCheckIn ? (

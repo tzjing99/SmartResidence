@@ -1,9 +1,22 @@
-import { useMyCondos } from '@smartresidence/api-client';
+import { useGuardAcknowledgeWalkIn, useMyCondos } from '@smartresidence/api-client';
 import type { GuardExpectedVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
-import { EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import { guardCanAcknowledgeWalkIn } from '@smartresidence/shared-types';
+import { Ionicons } from '@expo/vector-icons';
+import { AppText, Button, Card, EmptyState, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, Text, View, type ListRenderItemInfo } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  GUARD_CARD_BORDER,
+  GUARD_CORAL,
+  GUARD_SOFT_CORAL,
+  GUARD_SOFT_SKY,
+  GuardHeader,
+  guardStyles,
+  plainLabel,
+} from '../../src/components/guard-screen';
+import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
@@ -21,6 +34,44 @@ const TAB_LABELS: Record<ExpectedTab, string> = {
   history: 'History',
 };
 
+const TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+
+const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+});
+
+function isToday(date: Date, now = new Date()): boolean {
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+}
+
+function formatVisitTime(date: Date): string {
+  return TIME_FORMATTER.format(date).replace(/\s/g, '\u00A0');
+}
+
+function visitDateLabel(date: Date): string {
+  return isToday(date) ? 'Today' : SHORT_DATE_FORMATTER.format(date);
+}
+
+function visitMetaPrefix(variant: ExpectedTab): string {
+  switch (variant) {
+    case 'expected':
+      return 'Due';
+    case 'no_show':
+      return 'Missed';
+    case 'history':
+      return 'Visited';
+  }
+}
+
 function visitTypeLabel(visitType: string): string {
   switch (visitType) {
     case 'PRE_REG':
@@ -30,7 +81,7 @@ function visitTypeLabel(visitType: string): string {
     case 'WALKIN_OFFICE':
       return 'Management office';
     default:
-      return visitType;
+      return plainLabel(visitType);
   }
 }
 
@@ -86,72 +137,90 @@ function toCardVisitor(
 function ExpectedVisitorCard({
   visitor,
   variant,
+  onAcknowledgeWalkIn,
+  acknowledging,
 }: {
   visitor: GuardExpectedVisitor;
   variant: ExpectedTab;
+  onAcknowledgeWalkIn?: (visitorId: string, name: string) => void;
+  acknowledging?: boolean;
 }) {
   const expectedAt = new Date(visitor.expectedAt);
   const highlight = variant === 'expected' ? getVisitorArrivalHighlight(visitor) : null;
   const chip = variant === 'expected' ? arrivalLabel(highlight, expectedAt) : null;
-  const timeLabel = expectedAt.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const timeLabel = formatVisitTime(expectedAt);
+  const dateLabel = visitDateLabel(expectedAt);
+  const metaPrefix = visitMetaPrefix(variant);
+  const canAcknowledge =
+    variant === 'expected' && guardCanAcknowledgeWalkIn(visitor) && onAcknowledgeWalkIn;
 
   return (
-    <View
-      style={{
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor:
-          highlight === 'soon'
-            ? 'rgba(255,90,60,0.35)'
-            : highlight === 'overdue'
-              ? 'rgba(245,158,11,0.4)'
-              : palette.borderLight,
-        backgroundColor:
-          variant === 'no_show'
-            ? 'rgba(255,255,255,0.6)'
-            : highlight === 'soon'
-              ? 'rgba(255,90,60,0.04)'
-              : highlight === 'overdue'
-                ? 'rgba(245,158,11,0.05)'
-                : '#fff',
-        padding: 16,
-        opacity: variant === 'no_show' ? 0.92 : 1,
-      }}
+    <Card
+      style={[
+        guardStyles.card,
+        styles.visitorCard,
+        highlight === 'soon' ? styles.soonCard : null,
+        highlight === 'overdue' ? styles.overdueCard : null,
+        variant === 'no_show' ? styles.mutedCard : null,
+      ]}
     >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '700', fontSize: 16 }}>{visitor.name}</Text>
-          <Text style={{ color: palette.mutedLight, fontSize: 13, marginTop: 4 }}>
-            {visitor.unitLabel ?? '—'}
-          </Text>
-          <Text style={{ color: palette.mutedLight, fontSize: 12, marginTop: 6 }}>
-            {timeLabel} · {visitTypeLabel(visitor.visitType)}
-            {visitor.vehiclePlate ? ` · ${visitor.vehiclePlate}` : ''}
-          </Text>
-          {visitor.overnight ? (
-            <View style={{ marginTop: 8 }}>
-              <Pill tone="neutral" label="Overnight" />
-            </View>
-          ) : null}
+      <View style={styles.cardTopRow}>
+        <View style={styles.cardTitleBlock}>
+          <AppText numberOfLines={2} style={styles.visitorName}>
+            {visitor.name}
+          </AppText>
+          <AppText variant="meta" numberOfLines={2} style={styles.cardMeta}>
+            {visitor.unitLabel ?? 'Unit not shown'}
+          </AppText>
+          <View style={styles.pillRow}>
+            <Pill tone="neutral" label={visitTypeLabel(visitor.visitType)} />
+            {visitor.vehiclePlate ? <Pill tone="info" label={visitor.vehiclePlate} /> : null}
+            {visitor.overnight ? <Pill tone="warning" label="Overnight" /> : null}
+            {chip ? (
+              <Pill tone={highlight === 'overdue' ? 'warning' : 'primary'} label={chip} />
+            ) : variant === 'no_show' ? (
+              <Pill tone="neutral" label="No-show" />
+            ) : variant === 'history' ? (
+              <Pill tone="neutral" label={plainLabel(visitor.status)} />
+            ) : null}
+          </View>
         </View>
-        {chip ? (
-          <Pill tone={highlight === 'overdue' ? 'warning' : 'primary'} label={chip} />
-        ) : variant === 'no_show' ? (
-          <Pill tone="neutral" label="No-show" />
-        ) : null}
+        <View style={styles.visitMetaBadge}>
+          <AppText variant="caption" numberOfLines={1} style={styles.visitMetaPrefix}>
+            {metaPrefix}
+          </AppText>
+          <AppText variant="meta" numberOfLines={1} style={styles.visitMetaDate}>
+            {dateLabel}
+          </AppText>
+          <AppText numberOfLines={1} style={styles.timeValue}>
+            {timeLabel}
+          </AppText>
+        </View>
       </View>
-    </View>
+      {canAcknowledge ? (
+        <View style={styles.ackRow}>
+          <Button
+            title="Acknowledge entry"
+            size="sm"
+            loading={acknowledging}
+            onPress={() => onAcknowledgeWalkIn!(visitor.id, visitor.name)}
+          />
+          <AppText variant="meta" style={styles.cardMeta}>
+            Owner approved in the app — record entry without a pass scan.
+          </AppText>
+        </View>
+      ) : null}
+    </Card>
   );
 }
 
 export default function ExpectedScreen() {
+  const insets = useSafeAreaInsets();
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
   const [tab, setTab] = useState<ExpectedTab>('expected');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
+  const acknowledgeWalkIn = useGuardAcknowledgeWalkIn(api);
 
   const visitors = useQueries({
     queries: (['expected', 'no_show', 'history'] as ExpectedTab[]).map((id) => ({
@@ -164,6 +233,12 @@ export default function ExpectedScreen() {
       enabled: Boolean(condo),
     })),
   });
+  const { refreshControl } = usePullToRefresh(
+    useCallback(
+      () => Promise.all([condos.refetch(), ...visitors.map((query) => query.refetch())]),
+      [condos, visitors],
+    ),
+  );
 
   const tabIndex = tab === 'expected' ? 0 : tab === 'no_show' ? 1 : 2;
   const activeQuery = visitors[tabIndex];
@@ -178,22 +253,42 @@ export default function ExpectedScreen() {
   );
 
   const counts = visitors.map((q) => q.data?.total ?? 0);
+
+  const handleAcknowledgeWalkIn = useCallback(
+    async (visitorId: string, name: string) => {
+      try {
+        await acknowledgeWalkIn.mutateAsync(visitorId);
+        Alert.alert('Acknowledged', `${name} recorded on site.`);
+        await Promise.all(visitors.map((q) => q.refetch()));
+      } catch (err) {
+        Alert.alert('Could not acknowledge', (err as Error).message);
+      }
+    },
+    [acknowledgeWalkIn, visitors],
+  );
+
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<GuardExpectedVisitor>) => (
-      <View style={{ flex: 1, minWidth: twoColumn ? 280 : undefined }}>
-        <ExpectedVisitorCard visitor={item} variant={tab} />
+      <View style={twoColumn ? styles.gridItem : styles.listItem}>
+        <ExpectedVisitorCard
+          visitor={item}
+          variant={tab}
+          onAcknowledgeWalkIn={handleAcknowledgeWalkIn}
+          acknowledging={acknowledgeWalkIn.isPending}
+        />
       </View>
     ),
-    [tab, twoColumn],
+    [tab, twoColumn, handleAcknowledgeWalkIn, acknowledgeWalkIn.isPending],
   );
 
   const listHeader = (
-    <View style={{ gap: 12 }}>
-      <Text style={{ fontSize: 22, fontWeight: '700' }}>Expected visitors</Text>
-      <Text style={{ color: palette.mutedLight, fontSize: 14, marginBottom: 4 }}>
-        Who&apos;s arriving today — acknowledge anticipated visitors and review no-shows.
-      </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+    <View style={styles.headerStack}>
+      <GuardHeader
+        eyebrow="Guard arrivals"
+        title="Expected visitors"
+        subtitle="Review approved visitors, missed arrivals, and recent guardhouse history."
+      />
+      <View style={styles.tabRail}>
         {(['expected', 'no_show', 'history'] as ExpectedTab[]).map((id, i) => {
           const active = tab === id;
           const count = counts[i] ?? 0;
@@ -202,28 +297,40 @@ export default function ExpectedScreen() {
             <Pressable
               key={id}
               onPress={() => setTab(id)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: active ? 'rgba(255,90,60,0.12)' : 'transparent',
-                borderWidth: 1,
-                borderColor: active ? 'rgba(255,90,60,0.35)' : palette.borderLight,
-              }}
+              style={[styles.tabButton, active ? styles.tabButtonActive : null]}
             >
-              <Text
-                style={{
-                  fontWeight: '600',
-                  color: active ? palette.coralPrimary : palette.mutedLight,
-                }}
-              >
+              <AppText style={[styles.tabText, active ? styles.tabTextActive : null]}>
                 {label}
-              </Text>
+              </AppText>
             </Pressable>
           );
         })}
       </View>
-      {activeQuery?.isLoading ? <Text style={{ color: palette.mutedLight }}>Loading…</Text> : null}
+      <Card style={[guardStyles.card, styles.contextCard]}>
+        <View style={styles.contextIcon}>
+          <Ionicons
+            name={tab === 'expected' ? 'calendar-outline' : tab === 'no_show' ? 'time-outline' : 'archive-outline'}
+            size={19}
+            color={GUARD_CORAL}
+          />
+        </View>
+        <View style={styles.contextCopy}>
+          <AppText style={styles.contextTitle}>{TAB_LABELS[tab]}</AppText>
+          <AppText variant="meta" style={styles.cardMeta}>
+            {tab === 'expected'
+              ? 'Visitors due soon stay easy to spot.'
+              : tab === 'no_show'
+                ? 'Expired passes that did not check in.'
+                : 'Recent visitors and completed gate activity.'}
+          </AppText>
+        </View>
+        <Pill tone="primary" label={`${counts[tabIndex] ?? 0}`} />
+      </Card>
+      {activeQuery?.isLoading ? (
+        <AppText variant="meta" style={styles.cardMeta}>
+          Loading visitors...
+        </AppText>
+      ) : null}
     </View>
   );
 
@@ -252,13 +359,14 @@ export default function ExpectedScreen() {
         maxWidth: contentMaxWidth,
         alignSelf: 'center',
         paddingHorizontal: horizontalPadding,
-        paddingVertical: 20,
-        paddingBottom: 40,
-        gap: 12,
+        paddingTop: Math.max(insets.top + 24, 36),
+        paddingBottom: Math.max(insets.bottom, 16) + 96,
+        gap: spacing.md,
       }}
-      columnWrapperStyle={twoColumn ? { gap: 12 } : undefined}
+      columnWrapperStyle={twoColumn ? styles.columnWrapper : undefined}
       ListHeaderComponent={listHeader}
       ListEmptyComponent={emptyState}
+      refreshControl={refreshControl}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
       initialNumToRender={12}
@@ -268,3 +376,148 @@ export default function ExpectedScreen() {
     />
   );
 }
+
+const styles = StyleSheet.create({
+  headerStack: {
+    gap: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  tabRail: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  tabButton: {
+    minHeight: 38,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: palette.surfaceLight,
+    borderWidth: 1,
+    borderColor: GUARD_CARD_BORDER,
+  },
+  tabButtonActive: {
+    backgroundColor: GUARD_SOFT_CORAL,
+    borderColor: 'rgba(255,90,95,0.32)',
+  },
+  tabText: {
+    color: palette.mutedLight,
+    fontWeight: '700',
+  },
+  tabTextActive: {
+    color: GUARD_CORAL,
+  },
+  contextCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+  },
+  contextIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: GUARD_SOFT_SKY,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contextCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  contextTitle: {
+    color: palette.textLight,
+    fontWeight: '800',
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: 280,
+  },
+  listItem: {
+    flex: 1,
+  },
+  columnWrapper: {
+    gap: spacing.md,
+  },
+  visitorCard: {
+    padding: spacing.md,
+  },
+  soonCard: {
+    borderColor: 'rgba(255,90,95,0.32)',
+    backgroundColor: 'rgba(255,241,240,0.82)',
+  },
+  overdueCard: {
+    borderColor: 'rgba(245,158,11,0.35)',
+    backgroundColor: 'rgba(254,243,199,0.38)',
+  },
+  mutedCard: {
+    opacity: 0.94,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  visitMetaBadge: {
+    minWidth: 88,
+    maxWidth: 108,
+    borderRadius: radius.xl,
+    backgroundColor: palette.bgLight,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    flexShrink: 0,
+  },
+  visitMetaPrefix: {
+    color: palette.mutedLight,
+    fontWeight: '700',
+    textAlign: 'center',
+    width: '100%',
+  },
+  visitMetaDate: {
+    color: palette.mutedLight,
+    fontWeight: '600',
+    textAlign: 'center',
+    width: '100%',
+    marginTop: 1,
+  },
+  timeValue: {
+    color: palette.textLight,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    textAlign: 'center',
+    width: '100%',
+    marginTop: 2,
+  },
+  cardTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  visitorName: {
+    color: palette.textLight,
+    fontSize: 17,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  cardMeta: {
+    color: palette.mutedLight,
+    lineHeight: 19,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: spacing.xs,
+  },
+  ackRow: {
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: GUARD_CARD_BORDER,
+  },
+});

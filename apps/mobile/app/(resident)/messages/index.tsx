@@ -13,13 +13,16 @@ import {
   spacing,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { View } from 'react-native';
 import {
   ResidentScreen,
   prettyLabel,
   residentStyles,
 } from '../../../src/components/resident-screen';
+import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
+import { RESIDENT_THREAD_INBOX_PARAMS } from '../../../src/lib/resident-threads';
 
 const PRIORITY_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
   URGENT: 'danger',
@@ -40,7 +43,10 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = 
 
 export default function MessagesScreen() {
   const router = useRouter();
-  const threads = useThreads(api, { limit: 50 });
+  const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
+  const { refreshControl } = usePullToRefresh(
+    useCallback(() => threads.refetch(), [threads]),
+  );
 
   const items = threads.data?.items ?? [];
 
@@ -49,11 +55,16 @@ export default function MessagesScreen() {
       eyebrow="Messages"
       title="Ask management"
       subtitle="Keep every request, reply, and resolution in one conversation."
+      scrollProps={{ refreshControl }}
       headerAction={
         <Button title="New message" onPress={() => router.push('/(resident)/messages/new' as Href)} />
       }
     >
-      {items.length === 0 ? (
+      {threads.isLoading && !threads.data ? (
+        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          Loading conversations...
+        </AppText>
+      ) : items.length === 0 ? (
         <EmptyState title="No conversations yet" description="Start a message when you need help from management." />
       ) : (
         items.map((t, index) => (

@@ -3,13 +3,8 @@ import type { RoleId } from '@smartresidence/shared-types';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { api } from './api';
+import { type MeResponse, type MobileArea, areaAllows, roleToHomePath } from './roles';
 import { getCachedSession, setCached, writeSession } from './session';
-import {
-  type MeResponse,
-  type MobileArea,
-  areaAllows,
-  roleToHomePath,
-} from './roles';
 
 interface RoleGuardResult {
   role: RoleId | null;

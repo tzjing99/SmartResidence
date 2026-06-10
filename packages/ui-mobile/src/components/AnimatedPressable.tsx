@@ -33,9 +33,8 @@ export function AnimatedPressable({
         animate={{ scale: !reduceMotion && pressed && !disabled ? 0.97 : 1 }}
         transition={spring.snappy}
         style={contentStyle}
-      >
-        {children}
-      </MotiView>
+        children={children as never}
+      />
     </Pressable>
   );
 }

@@ -109,6 +109,12 @@ export default function NewVisitorPage() {
   }, [overnight, form]);
 
   useEffect(() => {
+    if (entryMode === 'WALK_IN' && overnight) {
+      form.setValue('overnight', false);
+    }
+  }, [entryMode, overnight, form]);
+
+  useEffect(() => {
     if (unit?.id) form.setValue('unitId', unit.id);
     const name = searchParams.get('name');
     const phone = searchParams.get('phone');
@@ -318,118 +324,120 @@ export default function NewVisitorPage() {
           </div>
         </FormSection>
 
-        <FormSection
-          title={t('visitors.new.overnight')}
-          description={t('visitors.new.overnightDesc')}
-        >
-          <label
-            className={cn(
-              'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors',
-              overnight
-                ? 'border-[rgb(var(--sr-coral)/0.35)] bg-[rgb(var(--sr-coral)/0.04)]'
-                : 'border-[rgb(var(--sr-border))] bg-stone-50/50 dark:bg-stone-900/20',
-            )}
+        {entryMode !== 'WALK_IN' ? (
+          <FormSection
+            title={t('visitors.new.overnight')}
+            description={t('visitors.new.overnightDesc')}
           >
-            <div>
-              <p className="text-sm font-semibold">Enable overnight</p>
-              <p className="text-xs sr-muted">Drive-in only · plate photo required</p>
-            </div>
-            <input
-              type="checkbox"
-              className="size-5 accent-[rgb(var(--sr-coral))]"
-              checked={Boolean(overnight)}
-              onChange={(e) => form.setValue('overnight', e.target.checked)}
-            />
-          </label>
-
-          {overnight ? (
-            <div className="flex flex-col gap-4 rounded-xl border border-[rgb(var(--sr-border))] bg-stone-50/60 p-4 dark:bg-stone-900/25">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor={platePhotoInputId}>Plate photo (required)</Label>
-                <div className="flex h-11 items-center gap-2 rounded-xl border border-[rgb(var(--sr-border))] bg-white px-2 dark:bg-[rgb(var(--sr-card))]">
-                  <input
-                    ref={platePhotoRef}
-                    id={platePhotoInputId}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    disabled={uploadingPhoto}
-                    className="sr-only"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      await onPlatePhotoChange(file);
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="h-9 shrink-0 rounded-lg"
-                    disabled={uploadingPhoto}
-                    onClick={() => platePhotoRef.current?.click()}
-                  >
-                    <Upload className="size-4" />
-                    {uploadingPhoto ? 'Uploading…' : 'Choose file'}
-                  </Button>
-                  {platePhotoName ? (
-                    <span className="inline-flex min-w-0 max-w-[55%] items-center truncate rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-[rgb(var(--sr-fg))] dark:bg-stone-800">
-                      {platePhotoName}
-                    </span>
-                  ) : (
-                    <span className="min-w-0 flex-1 truncate text-sm sr-muted">No file chosen</span>
-                  )}
-                </div>
-                {platePhotoKey ? (
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                    Photo ready — verify plate matches
-                  </p>
-                ) : null}
+            <label
+              className={cn(
+                'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors',
+                overnight
+                  ? 'border-[rgb(var(--sr-coral)/0.35)] bg-[rgb(var(--sr-coral)/0.04)]'
+                  : 'border-[rgb(var(--sr-border))] bg-stone-50/50 dark:bg-stone-900/20',
+              )}
+            >
+              <div>
+                <p className="text-sm font-semibold">Enable overnight</p>
+                <p className="text-xs sr-muted">Drive-in only · plate photo required</p>
               </div>
+              <input
+                type="checkbox"
+                className="size-5 accent-[rgb(var(--sr-coral))]"
+                checked={Boolean(overnight)}
+                onChange={(e) => form.setValue('overnight', e.target.checked)}
+              />
+            </label>
 
-              {showUrgentReason ? (
+            {overnight ? (
+              <div className="flex flex-col gap-4 rounded-xl border border-[rgb(var(--sr-border))] bg-stone-50/60 p-4 dark:bg-stone-900/25">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="urgentReason">Why is this urgent? (required)</Label>
-                  <Input
-                    id="urgentReason"
-                    placeholder="e.g. Family emergency travel"
-                    {...form.register('urgentReason')}
-                  />
-                  {form.formState.errors.urgentReason ? (
-                    <p className="text-xs text-red-600 dark:text-red-400">
-                      {form.formState.errors.urgentReason.message}
+                  <Label htmlFor={platePhotoInputId}>Plate photo (required)</Label>
+                  <div className="flex h-11 items-center gap-2 rounded-xl border border-[rgb(var(--sr-border))] bg-white px-2 dark:bg-[rgb(var(--sr-card))]">
+                    <input
+                      ref={platePhotoRef}
+                      id={platePhotoInputId}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      disabled={uploadingPhoto}
+                      className="sr-only"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        await onPlatePhotoChange(file);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-9 shrink-0 rounded-lg"
+                      disabled={uploadingPhoto}
+                      onClick={() => platePhotoRef.current?.click()}
+                    >
+                      <Upload className="size-4" />
+                      {uploadingPhoto ? 'Uploading…' : 'Choose file'}
+                    </Button>
+                    {platePhotoName ? (
+                      <span className="inline-flex min-w-0 max-w-[55%] items-center truncate rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-[rgb(var(--sr-fg))] dark:bg-stone-800">
+                        {platePhotoName}
+                      </span>
+                    ) : (
+                      <span className="min-w-0 flex-1 truncate text-sm sr-muted">No file chosen</span>
+                    )}
+                  </div>
+                  {platePhotoKey ? (
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                      Photo ready — verify plate matches
                     </p>
                   ) : null}
                 </div>
-              ) : null}
 
-              {preview.data ? (
-                <div className="relative overflow-hidden rounded-xl border border-sky-200/70 bg-sky-50/60 pl-4 pr-4 py-3 text-sm dark:border-sky-700/40 dark:bg-sky-950/20">
-                  <div
-                    className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-sky-500"
-                    aria-hidden
-                  />
-                  <div className="flex gap-3">
-                    <Info className="size-5 shrink-0 text-sky-600 dark:text-sky-400" />
-                    <div className="flex flex-col gap-2">
-                      <p>{preview.data.helperMessage}</p>
-                      {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
-                        <p className="font-medium">
-                          {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots
-                          left tonight
-                        </p>
-                      ) : null}
-                      {preview.data.slotsFull ? (
-                        <p className="font-medium text-red-600 dark:text-red-400">
-                          No slots — contact management or register urgent and visit the office
-                        </p>
-                      ) : null}
+                {showUrgentReason ? (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="urgentReason">Why is this urgent? (required)</Label>
+                    <Input
+                      id="urgentReason"
+                      placeholder="e.g. Family emergency travel"
+                      {...form.register('urgentReason')}
+                    />
+                    {form.formState.errors.urgentReason ? (
+                      <p className="text-xs text-red-600 dark:text-red-400">
+                        {form.formState.errors.urgentReason.message}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {preview.data ? (
+                  <div className="relative overflow-hidden rounded-xl border border-sky-200/70 bg-sky-50/60 pl-4 pr-4 py-3 text-sm dark:border-sky-700/40 dark:bg-sky-950/20">
+                    <div
+                      className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-sky-500"
+                      aria-hidden
+                    />
+                    <div className="flex gap-3">
+                      <Info className="size-5 shrink-0 text-sky-600 dark:text-sky-400" />
+                      <div className="flex flex-col gap-2">
+                        <p>{preview.data.helperMessage}</p>
+                        {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
+                          <p className="font-medium">
+                            {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots
+                            left tonight
+                          </p>
+                        ) : null}
+                        {preview.data.slotsFull ? (
+                          <p className="font-medium text-red-600 dark:text-red-400">
+                            No slots — contact management or register urgent and visit the office
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </FormSection>
+                ) : null}
+              </div>
+            ) : null}
+          </FormSection>
+        ) : null}
 
         <div className="flex justify-end gap-3 rounded-xl border border-[rgb(var(--sr-border))]/80 bg-white p-4 shadow-sm dark:bg-[rgb(var(--sr-card))]">
           <Button

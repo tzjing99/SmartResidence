@@ -358,7 +358,9 @@ export default function HelpdeskSettingsPage() {
               <input
                 type="checkbox"
                 checked={mlPriority.enabled}
-                disabled={!canEdit || saveMlPriority.isPending || (!mlPriority.ready && !mlPriority.enabled)}
+                disabled={
+                  !canEdit || saveMlPriority.isPending || (!mlPriority.ready && !mlPriority.enabled)
+                }
                 onChange={(e) => void toggleMlPriority(e.target.checked)}
               />
               Enable smart priority suggestions

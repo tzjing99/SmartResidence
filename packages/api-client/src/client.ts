@@ -399,6 +399,13 @@ export class ApiClient {
   ) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/guard-approve`, { method });
   }
+  acknowledgeWalkIn(visitorId: string, input?: { gateLocation?: string; notes?: string }) {
+    return this.request<{ id: string; visitorId: string; checkInAt: string }>(
+      'POST',
+      `/api/visitors/${visitorId}/acknowledge-walk-in`,
+      input ?? {},
+    );
+  }
   approveOvernightVisitor(visitorId: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve-overnight`);
   }

@@ -13,13 +13,12 @@ import {
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
-  RefreshControl,
   View,
   Pressable,
   type ListRenderItemInfo,
 } from 'react-native';
+import { SmartRefreshControl } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
 
@@ -190,9 +189,62 @@ export default function HelpdeskInboxScreen() {
 
   if (threads.isLoading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.bgLight }}>
-        <ActivityIndicator size="large" color={palette.coralPrimary} />
-        <AppText variant="meta" style={{ marginTop: 8 }}>Loading tickets...</AppText>
+      <View style={{ flex: 1, backgroundColor: palette.bgLight }}>
+        <View
+          style={{
+            width: '100%',
+            maxWidth: contentMaxWidth,
+            alignSelf: 'center',
+            paddingHorizontal: horizontalPadding,
+            paddingTop: 16,
+            gap: 12,
+          }}
+        >
+          <View style={{ gap: 6 }}>
+            <AppText variant="title">Helpdesk Inbox</AppText>
+            <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              Loading latest tickets...
+            </AppText>
+          </View>
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} style={{ padding: 16, gap: 12 }}>
+              <View
+                style={{
+                  height: 16,
+                  width: '72%',
+                  borderRadius: radius.full,
+                  backgroundColor: '#E5E7EB',
+                }}
+              />
+              <View
+                style={{
+                  height: 12,
+                  width: '46%',
+                  borderRadius: radius.full,
+                  backgroundColor: '#EEF0F3',
+                }}
+              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View
+                  style={{
+                    height: 22,
+                    width: 72,
+                    borderRadius: radius.full,
+                    backgroundColor: '#F1F5F9',
+                  }}
+                />
+                <View
+                  style={{
+                    height: 22,
+                    width: 96,
+                    borderRadius: radius.full,
+                    backgroundColor: '#F1F5F9',
+                  }}
+                />
+              </View>
+            </Card>
+          ))}
+        </View>
       </View>
     );
   }
@@ -216,7 +268,7 @@ export default function HelpdeskInboxScreen() {
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
         refreshControl={
-          <RefreshControl refreshing={pullRefreshing} onRefresh={onRefresh} colors={[palette.coralPrimary]} />
+          <SmartRefreshControl refreshing={pullRefreshing} onRefresh={onRefresh} />
         }
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"

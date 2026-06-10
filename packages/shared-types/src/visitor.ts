@@ -154,6 +154,13 @@ export const CreateVisitorSchema = z
         path: ['vehiclePlate'],
       });
     }
+    if (data.overnight && data.entryMode === 'WALK_IN') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Overnight stays are only for drive-in pre-registrations',
+        path: ['overnight'],
+      });
+    }
     if (data.overnight) {
       if (!data.vehiclePlate?.trim()) {
         ctx.addIssue({
@@ -233,6 +240,27 @@ export function visitorStatusLabel(status: VisitorStatus | string): string {
   );
 }
 
+export function isWalkInVisitType(visitType: VisitorVisitType | string): boolean {
+  return visitType === 'WALKIN_UNIT' || visitType === 'WALKIN_OFFICE';
+}
+
+/** Guards manually check out pre-reg / overnight visitors only — walk-ins auto-close. */
+export function guardCanCheckOutVisitor(visitor: Pick<Visitor, 'visitType'>): boolean {
+  return !isWalkInVisitType(visitor.visitType);
+}
+
+/** Overnight toggle applies to drive-in pre-reg only (vehicle park overnight). */
+export function showOvernightPreRegOption(entryMode: VisitorEntryMode | undefined): boolean {
+  return entryMode !== 'WALK_IN';
+}
+
+/** Owner-approved unit walk-in awaiting guard record at the gate (no access pass). */
+export function guardCanAcknowledgeWalkIn(
+  visitor: Pick<Visitor, 'visitType' | 'status'>,
+): boolean {
+  return visitor.visitType === 'WALKIN_UNIT' && visitor.status === 'APPROVED';
+}
+
 export const VisitorSchema = z.object({
   id: z.string().uuid(),
   condoId: z.string().uuid(),
@@ -300,6 +328,8 @@ export const GuardLiveVisitorSchema = z.object({
   unitLabel: z.string().nullable(),
   visitType: VisitorVisitType,
   overnight: z.boolean().optional(),
+  /** False for walk-ins — they auto-close; guards must not manually check out. */
+  canCheckOut: z.boolean().optional(),
   /** Unit owners — name + phone only, for tel: links during gate duty. */
   ownerContacts: z.array(WalkInOwnerContactSchema).optional(),
 });

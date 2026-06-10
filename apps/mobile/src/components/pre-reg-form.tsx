@@ -18,6 +18,7 @@ import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import type { FieldErrors } from 'react-hook-form';
 import {
   Alert,
   Image,
@@ -28,7 +29,6 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import type { FieldErrors } from 'react-hook-form';
 import { api } from '../lib/api';
 import { useTabletLayout } from '../lib/use-tablet-layout';
 
@@ -132,6 +132,12 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   useEffect(() => {
     if (overnight) form.setValue('entryMode', 'DRIVE_IN');
   }, [overnight, form]);
+
+  useEffect(() => {
+    if (entryMode === 'WALK_IN' && overnight) {
+      form.setValue('overnight', false);
+    }
+  }, [entryMode, overnight, form]);
 
   function onInvalid(errors: FieldErrors<CreateVisitorInput>) {
     const first = Object.values(errors).find((e) => e?.message);
@@ -413,110 +419,112 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
         />
       </View>
 
-      <View style={{ gap: 12 }}>
-        <SectionTitle
-          title="Overnight stay"
-          description="Optional — visitor stays past midnight."
-        />
-        <Card
-          style={{
-            borderColor: overnight ? 'rgba(255, 90, 95, 0.35)' : palette.borderLight,
-            backgroundColor: overnight ? 'rgba(255, 90, 95, 0.04)' : 'rgba(120, 113, 108, 0.06)',
-          }}
-        >
-          <View
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ fontWeight: '700' }}>Enable overnight</Text>
-              <Text style={{ fontSize: 12, color: palette.mutedLight, marginTop: 2 }}>
-                Drive-in only · plate photo required
-              </Text>
-            </View>
-            <Switch
-              value={Boolean(overnight)}
-              onValueChange={(v) => form.setValue('overnight', v)}
-              trackColor={{ true: palette.coralPrimary, false: palette.borderLight }}
-            />
-          </View>
-        </Card>
-
-        {overnight ? (
+      {entryMode !== 'WALK_IN' ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle
+            title="Overnight stay"
+            description="Optional — visitor stays past midnight."
+          />
           <Card
             style={{
-              backgroundColor: 'rgba(120, 113, 108, 0.06)',
-              borderWidth: 1,
-              borderColor: palette.borderLight,
+              borderColor: overnight ? 'rgba(255, 90, 95, 0.35)' : palette.borderLight,
+              backgroundColor: overnight ? 'rgba(255, 90, 95, 0.04)' : 'rgba(120, 113, 108, 0.06)',
             }}
           >
-            <View style={{ gap: 12 }}>
-              <Text style={fieldLabelStyle}>Plate photo (required)</Text>
-              {platePhotoUri ? (
-                <Image
-                  source={{ uri: platePhotoUri }}
-                  style={{ height: 140, borderRadius: radius.lg }}
-                />
-              ) : null}
-              <Button
-                title={
-                  uploadingPhoto
-                    ? 'Uploading…'
-                    : platePhotoKey
-                      ? 'Retake photo'
-                      : 'Capture plate photo'
-                }
-                variant="secondary"
-                size="md"
-                onPress={capturePlatePhoto}
-                disabled={uploadingPhoto}
+            <View
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontWeight: '700' }}>Enable overnight</Text>
+                <Text style={{ fontSize: 12, color: palette.mutedLight, marginTop: 2 }}>
+                  Drive-in only · plate photo required
+                </Text>
+              </View>
+              <Switch
+                value={Boolean(overnight)}
+                onValueChange={(v) => form.setValue('overnight', v)}
+                trackColor={{ true: palette.coralPrimary, false: palette.borderLight }}
               />
-
-              {showUrgentReason ? (
-                <View>
-                  <Text style={[fieldLabelStyle, { marginBottom: 6 }]}>
-                    Why is this urgent? (required)
-                  </Text>
-                  <TextInput
-                    value={form.watch('urgentReason') ?? ''}
-                    onChangeText={(v) => form.setValue('urgentReason', v)}
-                    style={inputStyle}
-                    placeholder="e.g. Family emergency travel"
-                  />
-                </View>
-              ) : null}
-
-              {preview.data ? (
-                <View
-                  style={{
-                    borderRadius: radius.lg,
-                    borderWidth: 1,
-                    borderColor: 'rgba(14, 165, 233, 0.35)',
-                    backgroundColor: 'rgba(240, 249, 255, 0.9)',
-                    padding: 12,
-                    borderLeftWidth: 4,
-                    borderLeftColor: '#0ea5e9',
-                  }}
-                >
-                  <Text style={{ fontSize: 14, color: palette.textLight }}>
-                    {preview.data.helperMessage}
-                  </Text>
-                  {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
-                    <Text style={{ fontWeight: '700', marginTop: 8, color: palette.textLight }}>
-                      {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left
-                      tonight
-                    </Text>
-                  ) : null}
-                  {preview.data.slotsFull ? (
-                    <Text style={{ color: '#b91c1c', fontWeight: '700', marginTop: 8 }}>
-                      No slots — contact management or register urgent and visit the office
-                    </Text>
-                  ) : null}
-                </View>
-              ) : null}
             </View>
           </Card>
-        ) : null}
-      </View>
+
+          {overnight ? (
+            <Card
+              style={{
+                backgroundColor: 'rgba(120, 113, 108, 0.06)',
+                borderWidth: 1,
+                borderColor: palette.borderLight,
+              }}
+            >
+              <View style={{ gap: 12 }}>
+                <Text style={fieldLabelStyle}>Plate photo (required)</Text>
+                {platePhotoUri ? (
+                  <Image
+                    source={{ uri: platePhotoUri }}
+                    style={{ height: 140, borderRadius: radius.lg }}
+                  />
+                ) : null}
+                <Button
+                  title={
+                    uploadingPhoto
+                      ? 'Uploading…'
+                      : platePhotoKey
+                        ? 'Retake photo'
+                        : 'Capture plate photo'
+                  }
+                  variant="secondary"
+                  size="md"
+                  onPress={capturePlatePhoto}
+                  disabled={uploadingPhoto}
+                />
+
+                {showUrgentReason ? (
+                  <View>
+                    <Text style={[fieldLabelStyle, { marginBottom: 6 }]}>
+                      Why is this urgent? (required)
+                    </Text>
+                    <TextInput
+                      value={form.watch('urgentReason') ?? ''}
+                      onChangeText={(v) => form.setValue('urgentReason', v)}
+                      style={inputStyle}
+                      placeholder="e.g. Family emergency travel"
+                    />
+                  </View>
+                ) : null}
+
+                {preview.data ? (
+                  <View
+                    style={{
+                      borderRadius: radius.lg,
+                      borderWidth: 1,
+                      borderColor: 'rgba(14, 165, 233, 0.35)',
+                      backgroundColor: 'rgba(240, 249, 255, 0.9)',
+                      padding: 12,
+                      borderLeftWidth: 4,
+                      borderLeftColor: '#0ea5e9',
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, color: palette.textLight }}>
+                      {preview.data.helperMessage}
+                    </Text>
+                    {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
+                      <Text style={{ fontWeight: '700', marginTop: 8, color: palette.textLight }}>
+                        {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left
+                        tonight
+                      </Text>
+                    ) : null}
+                    {preview.data.slotsFull ? (
+                      <Text style={{ color: '#b91c1c', fontWeight: '700', marginTop: 8 }}>
+                        No slots — contact management or register urgent and visit the office
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            </Card>
+          ) : null}
+        </View>
+      ) : null}
 
       <Button
         title={create.isPending ? 'Submitting…' : 'Create pass'}

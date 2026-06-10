@@ -69,6 +69,34 @@ export async function countMonthlyOvernightForUnit(
   });
 }
 
+/**
+ * Batched variant of {@link countMonthlyOvernightForUnit}: one grouped query for
+ * many units instead of one COUNT per unit (avoids N+1 on the overnight summary).
+ */
+export async function countMonthlyOvernightByUnit(
+  prisma: PrismaService,
+  unitIds: string[],
+  range: { start: Date; end: Date },
+  settings: CondoVisitorSettings,
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (unitIds.length === 0) return map;
+  const grouped = await prisma.visitor.groupBy({
+    by: ['unitId'],
+    where: {
+      unitId: { in: unitIds },
+      overnight: true,
+      status: { in: countedOvernightStatuses(settings) },
+      createdAt: { gte: range.start, lt: range.end },
+    },
+    _count: { _all: true },
+  });
+  for (const row of grouped) {
+    if (row.unitId) map.set(row.unitId, row._count._all);
+  }
+  return map;
+}
+
 export async function getPrimaryUnitOwner(
   prisma: PrismaService,
   unitId: string,
@@ -119,6 +147,31 @@ export async function getUnitSuspendPolicy(
 ) {
   const policies = await prisma.unitVisitorPolicy.findMany({ where: { unitId } });
   return policies.find((p) => isOvernightSuspended(p, now)) ?? null;
+}
+
+/**
+ * Batched variant of {@link getUnitSuspendPolicy}: one query for many units,
+ * mapping each unit to its first active suspend policy (avoids N+1).
+ */
+export async function getUnitSuspendPolicyByUnit(
+  prisma: PrismaService,
+  unitIds: string[],
+  now = new Date(),
+): Promise<Map<string, { overnightSuspendedUntil: Date | null; suspendReason: string | null }>> {
+  const map = new Map<
+    string,
+    { overnightSuspendedUntil: Date | null; suspendReason: string | null }
+  >();
+  if (unitIds.length === 0) return map;
+  const policies = await prisma.unitVisitorPolicy.findMany({
+    where: { unitId: { in: unitIds } },
+  });
+  for (const policy of policies) {
+    if (isOvernightSuspended(policy, now) && !map.has(policy.unitId)) {
+      map.set(policy.unitId, policy);
+    }
+  }
+  return map;
 }
 
 export type OvernightEligibility = {

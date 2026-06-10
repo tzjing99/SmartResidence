@@ -11,10 +11,10 @@ import { MotiView } from 'moti';
 import * as React from 'react';
 import {
   FlatList,
-  StyleSheet,
-  View,
   type ListRenderItemInfo,
   type StyleProp,
+  StyleSheet,
+  View,
   type ViewStyle,
 } from 'react-native';
 import {
@@ -59,9 +59,8 @@ function MessageEnter({
         ...spring.snappy,
         delay: isKnown ? 0 : Math.min(index, 6) * 35,
       }}
-    >
-      {children}
-    </MotiView>
+      children={children as never}
+    />
   );
 }
 
@@ -150,15 +149,8 @@ const MessageBubble = React.memo(function MessageBubble({
   const bubble = bubbleStyle(role, align, variant, isProposed);
 
   return (
-    <View
-      style={[
-        styles.messageRow,
-        { flexDirection: isRight ? 'row-reverse' : 'row' },
-      ]}
-    >
-      <View
-        style={[styles.avatar, { backgroundColor: avatar.bg }]}
-      >
+    <View style={[styles.messageRow, { flexDirection: isRight ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.avatar, { backgroundColor: avatar.bg }]}>
         <AppText variant="caption" style={{ color: avatar.fg, fontWeight: '700' }}>
           {initials}
         </AppText>

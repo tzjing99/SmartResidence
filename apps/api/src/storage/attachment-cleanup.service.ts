@@ -45,12 +45,23 @@ export class AttachmentCleanupService implements OnModuleInit, OnModuleDestroy {
     const cutoff = new Date(Date.now() - ORPHAN_ATTACHMENT_TTL_HOURS * 60 * 60_000);
     const orphans = await this.prisma.attachment.findMany({
       where: { status: AttachmentStatus.PENDING, createdAt: { lt: cutoff } },
-      select: { id: true, key: true, thumbnailKey: true },
+      select: {
+        id: true,
+        key: true,
+        thumbnailKey: true,
+        fallbackKey: true,
+        fallbackThumbnailKey: true,
+      },
       take: AttachmentCleanupService.BATCH,
     });
     if (orphans.length === 0) return 0;
 
-    const keys = orphans.flatMap((a) => [a.key, a.thumbnailKey].filter((k): k is string => !!k));
+    // Delete EVERY variant key (AVIF + WebP, display + thumb) or storage leaks.
+    const keys = orphans.flatMap((a) =>
+      [a.key, a.thumbnailKey, a.fallbackKey, a.fallbackThumbnailKey].filter(
+        (k): k is string => !!k,
+      ),
+    );
     await this.storage.removeMany(keys);
     await this.prisma.attachment.deleteMany({ where: { id: { in: orphans.map((a) => a.id) } } });
 

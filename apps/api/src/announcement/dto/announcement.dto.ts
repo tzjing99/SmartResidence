@@ -1,17 +1,25 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AnnouncementImportance } from '@prisma/client';
+import { AnnouncementAudienceScope, AnnouncementCategory, AnnouncementImportance } from '@prisma/client';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDate,
   IsEnum,
-  IsObject,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
+
+export class ListAnnouncementsDto extends PaginationDto {
+  @ApiPropertyOptional({ enum: AnnouncementCategory })
+  @IsOptional()
+  @IsEnum(AnnouncementCategory)
+  category?: AnnouncementCategory;
+}
 
 export class CreateAnnouncementDto {
   @ApiProperty()
@@ -26,29 +34,47 @@ export class CreateAnnouncementDto {
 
   @ApiProperty({ description: 'Markdown body' })
   @IsString()
+  @MinLength(1)
   body!: string;
+
+  @ApiPropertyOptional({ enum: AnnouncementCategory })
+  @IsOptional()
+  @IsEnum(AnnouncementCategory)
+  category?: AnnouncementCategory;
 
   @ApiPropertyOptional({ enum: AnnouncementImportance })
   @IsOptional()
   @IsEnum(AnnouncementImportance)
   importance?: AnnouncementImportance;
 
-  @ApiPropertyOptional({ description: 'Audience filter (e.g. { blocks: ["A"] })' })
+  @ApiPropertyOptional({ enum: AnnouncementAudienceScope })
   @IsOptional()
-  @IsObject()
-  audience?: Record<string, unknown>;
+  @IsEnum(AnnouncementAudienceScope)
+  audienceScope?: AnnouncementAudienceScope;
+
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  blockIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  unitIds?: string[];
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  publishedAt?: Date;
+  publishedAt?: Date | null;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  expiresAt?: Date;
+  expiresAt?: Date | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -59,4 +85,85 @@ export class CreateAnnouncementDto {
   @IsOptional()
   @IsBoolean()
   pinned?: boolean;
+
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  attachmentIds?: string[];
+}
+
+export class UpdateAnnouncementDto {
+  @ApiPropertyOptional({ minLength: 4, maxLength: 200 })
+  @IsOptional()
+  @IsString()
+  @MinLength(4)
+  @MaxLength(200)
+  title?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  body?: string;
+
+  @ApiPropertyOptional({ enum: AnnouncementCategory })
+  @IsOptional()
+  @IsEnum(AnnouncementCategory)
+  category?: AnnouncementCategory;
+
+  @ApiPropertyOptional({ enum: AnnouncementImportance })
+  @IsOptional()
+  @IsEnum(AnnouncementImportance)
+  importance?: AnnouncementImportance;
+
+  @ApiPropertyOptional({ enum: AnnouncementAudienceScope })
+  @IsOptional()
+  @IsEnum(AnnouncementAudienceScope)
+  audienceScope?: AnnouncementAudienceScope;
+
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  blockIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  unitIds?: string[];
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  publishedAt?: Date | null;
+
+  @ApiPropertyOptional({ type: String, format: 'date-time' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  expiresAt?: Date | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  requiresAck?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  pinned?: boolean;
+
+  @ApiPropertyOptional({ type: [String], format: 'uuid' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  attachmentIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Re-send notifications after editing a published announcement' })
+  @IsOptional()
+  @IsBoolean()
+  republish?: boolean;
 }

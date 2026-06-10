@@ -281,14 +281,56 @@ export class NotificationService {
 
   @OnEvent('announcement.published')
   async onAnnouncement(payload: { announcementId: string; condoId: string }) {
-    const a = await this.prisma.announcement.findUnique({ where: { id: payload.announcementId } });
-    if (!a) return;
-    const audience = await this.prisma.roleAssignment.findMany({
-      where: { condoId: payload.condoId, revokedAt: null },
-      select: { userId: true },
+    const a = await this.prisma.announcement.findUnique({
+      where: { id: payload.announcementId },
+      include: {
+        audienceBlocks: { select: { blockId: true } },
+        audienceUnits: { select: { unitId: true } },
+      },
     });
+    if (!a || a.deletedAt) return;
+
+    let unitIds: string[] = [];
+    if (a.audienceScope === 'CONDO') {
+      const units = await this.prisma.unit.findMany({
+        where: { condoId: a.condoId },
+        select: { id: true },
+      });
+      unitIds = units.map((u) => u.id);
+    } else if (a.audienceScope === 'BLOCKS') {
+      const blockIds = a.audienceBlocks.map((b) => b.blockId);
+      if (blockIds.length === 0) return;
+      const units = await this.prisma.unit.findMany({
+        where: { blockId: { in: blockIds } },
+        select: { id: true },
+      });
+      unitIds = units.map((u) => u.id);
+    } else {
+      unitIds = a.audienceUnits.map((u) => u.unitId);
+    }
+    if (unitIds.length === 0) return;
+
+    const [owners, tenants, household] = await Promise.all([
+      this.prisma.ownership.findMany({
+        where: { unitId: { in: unitIds }, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+      this.prisma.tenancy.findMany({
+        where: { unitId: { in: unitIds }, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+      this.prisma.householdMember.findMany({
+        where: { unitId: { in: unitIds } },
+        select: { userId: true },
+      }),
+    ]);
+    const userIds = [
+      ...new Set([...owners, ...tenants, ...household].map((r) => r.userId)),
+    ];
+    if (userIds.length === 0) return;
+
     await this.dispatch({
-      userIds: Array.from(new Set(audience.map((r) => r.userId))),
+      userIds,
       kind: NotificationKind.ANNOUNCEMENT,
       title: a.title,
       body: a.body.slice(0, 140),

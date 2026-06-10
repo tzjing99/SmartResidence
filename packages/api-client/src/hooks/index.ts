@@ -7,12 +7,18 @@ import type {
 } from '@smartresidence/shared-types';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  AnnouncementDetail,
+  AnnouncementSummary,
   ApiClient,
+  CreateAnnouncementBody,
   CreateThreadBody,
+  ListAnnouncementsParams,
   ListThreadsParams,
   ThreadDetail,
   ThreadMessageItem,
+  UpdateAnnouncementBody,
 } from '../client';
+import { patchAnnouncementReadInListCaches } from '../realtime/announcement-cache';
 import { patchThreadInListCaches } from '../realtime/thread-cache';
 
 /** Identity / tenancy — stable for the logged-in session. */
@@ -24,6 +30,10 @@ export const queryKeys = {
   me: ['me'] as const,
   myCondos: ['condos', 'mine'] as const,
   myUnits: ['units', 'mine'] as const,
+  condoUnits: (
+    condoId: string,
+    params: { limit?: number; offset?: number; search?: string } = {},
+  ) => ['units', 'condo', condoId, params] as const,
   unitVisitors: (unitId: string, view?: string) =>
     ['visitors', 'unit', unitId, view ?? 'all'] as const,
   condoVisitors: (
@@ -48,7 +58,11 @@ export const queryKeys = {
   unitDefects: (unitId: string) => ['defects', 'unit', unitId] as const,
   condoDefects: (condoId: string) => ['defects', 'condo', condoId] as const,
   defect: (id: string) => ['defects', id] as const,
-  condoAnnouncements: (condoId: string) => ['announcements', 'condo', condoId] as const,
+  condoAnnouncements: (condoId: string, params: ListAnnouncementsParams = {}) =>
+    ['announcements', 'condo', condoId, params] as const,
+  announcement: (id: string) => ['announcements', id] as const,
+  manageAnnouncements: (condoId: string, params: ListAnnouncementsParams = {}) =>
+    ['announcements', 'manage', condoId, params] as const,
   myActivity: ['audit', 'me', 'activity'] as const,
   whoViewedMe: ['audit', 'me', 'who-viewed'] as const,
   threads: (params: ListThreadsParams) => ['threads', params] as const,
@@ -109,6 +123,20 @@ export function useMyUnits(api: ApiClient) {
   return useQuery({
     queryKey: queryKeys.myUnits,
     queryFn: () => api.myUnits(),
+    staleTime: STABLE_SESSION_MS,
+  });
+}
+
+export function useListUnits(
+  api: ApiClient,
+  condoId: string | null,
+  params: { limit?: number; offset?: number; search?: string } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoUnits(condoId, params) : ['units', 'condo', null],
+    queryFn: () =>
+      condoId ? api.listUnits(condoId, params) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
     staleTime: STABLE_SESSION_MS,
   });
 }
@@ -331,12 +359,132 @@ export function useTransitionDefect(api: ApiClient) {
   });
 }
 
-export function useCondoAnnouncements(api: ApiClient, condoId: string | null) {
+export function useCondoAnnouncements(
+  api: ApiClient,
+  condoId: string | null,
+  params: ListAnnouncementsParams = {},
+) {
   return useQuery({
-    queryKey: condoId ? queryKeys.condoAnnouncements(condoId) : ['announcements', 'condo', null],
+    queryKey: condoId
+      ? queryKeys.condoAnnouncements(condoId, params)
+      : ['announcements', 'condo', null],
     queryFn: () =>
-      condoId ? api.announcementsForCondo(condoId) : Promise.resolve({ items: [], total: 0 }),
+      condoId
+        ? api.listAnnouncements(condoId, params)
+        : Promise.resolve({ items: [], total: 0, unreadCount: 0 }),
     enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAnnouncement(api: ApiClient, id: string | null) {
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: id ? queryKeys.announcement(id) : ['announcements', null],
+    queryFn: async () => {
+      if (!id) throw new Error('Announcement id is required');
+      const data = await api.announcement(id);
+      patchAnnouncementReadInListCaches(qc, data.id, data.readAt ?? new Date().toISOString());
+      return data;
+    },
+    enabled: Boolean(id),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useManageAnnouncements(
+  api: ApiClient,
+  condoId: string | null,
+  params: ListAnnouncementsParams = {},
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.manageAnnouncements(condoId, params)
+      : ['announcements', 'manage', null],
+    queryFn: () =>
+      condoId ? api.manageAnnouncements(condoId, params) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCreateAnnouncement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateAnnouncementBody) => api.createAnnouncement(body),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['announcements', 'manage', data.condoId] });
+      qc.invalidateQueries({ queryKey: ['announcements', 'condo', data.condoId] });
+    },
+  });
+}
+
+export function useUpdateAnnouncement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; body: UpdateAnnouncementBody }) =>
+      api.updateAnnouncement(vars.id, vars.body),
+    onSuccess: (data) => {
+      qc.setQueryData<AnnouncementDetail>(queryKeys.announcement(data.id), data);
+      qc.invalidateQueries({ queryKey: ['announcements', 'manage', data.condoId] });
+      qc.invalidateQueries({ queryKey: ['announcements', 'condo', data.condoId] });
+    },
+  });
+}
+
+type AnnouncementListCache = {
+  items: Array<AnnouncementDetail | AnnouncementSummary>;
+  total?: number;
+  unreadCount?: number;
+  limit?: number;
+  offset?: number;
+};
+
+function removeAnnouncementFromListCaches(
+  qc: ReturnType<typeof useQueryClient>,
+  announcementId: string,
+) {
+  qc.setQueriesData<AnnouncementListCache>({ queryKey: ['announcements'] }, (old) => {
+    if (!old || !Array.isArray(old.items)) return old;
+    const removed = old.items.find((a) => a.id === announcementId);
+    if (!removed) return old;
+    return {
+      ...old,
+      total: Math.max(0, (old.total ?? old.items.length) - 1),
+      unreadCount:
+        old.unreadCount !== undefined && !removed.readAt
+          ? Math.max(0, old.unreadCount - 1)
+          : old.unreadCount,
+      items: old.items.filter((a) => a.id !== announcementId),
+    };
+  });
+}
+
+export function useDeleteAnnouncement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; condoId: string }) => api.deleteAnnouncement(vars.id),
+    onSuccess: (_data, vars) => {
+      removeAnnouncementFromListCaches(qc, vars.id);
+      qc.removeQueries({ queryKey: queryKeys.announcement(vars.id) });
+      qc.invalidateQueries({ queryKey: ['announcements', 'manage', vars.condoId] });
+      qc.invalidateQueries({ queryKey: ['announcements', 'condo', vars.condoId] });
+    },
+  });
+}
+
+export function useMarkAnnouncementRead(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.markAnnouncementRead(id),
+    onSuccess: (_data, id) => {
+      patchAnnouncementReadInListCaches(qc, id);
+      qc.setQueryData<AnnouncementDetail>(queryKeys.announcement(id), (old) =>
+        old ? { ...old, readAt: new Date().toISOString() } : old,
+      );
+    },
   });
 }
 
@@ -344,7 +492,9 @@ export function useAckAnnouncement(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.ackAnnouncement(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: queryKeys.announcement(id) });
+    },
   });
 }
 

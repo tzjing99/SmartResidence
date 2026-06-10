@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { formatMoney } from '@smartresidence/shared-types';
 import {
+  AlignRow,
   AnimatedPressable,
   AppText,
   Card,
@@ -28,6 +29,10 @@ import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import type { MeResponse } from '../../src/lib/roles';
 import { RESIDENT_THREAD_INBOX_PARAMS, countOpenThreads } from '../../src/lib/resident-threads';
+import {
+  RESIDENT_ANNOUNCEMENT_INBOX_PARAMS,
+  countUnreadAnnouncements,
+} from '../../src/lib/resident-announcements';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -52,7 +57,7 @@ export default function HomeScreen() {
   const visitors = useUnitVisitors(api, unit?.id ?? null, 'upcoming');
   const defects = useUnitDefects(api, unit?.id ?? null);
   const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
-  const announcements = useCondoAnnouncements(api, condo?.id ?? null);
+  const announcements = useCondoAnnouncements(api, condo?.id ?? null, RESIDENT_ANNOUNCEMENT_INBOX_PARAMS);
   const { refreshControl } = usePullToRefresh(
     useCallback(
       () =>
@@ -78,7 +83,11 @@ export default function HomeScreen() {
     (d) => d.status !== 'CLOSED' && d.status !== 'RESOLVED',
   ).length;
   const openThreads = countOpenThreads(threads.data?.items);
-  const announcement = (announcements.data?.items as any[] | undefined)?.[0];
+  const announcement = announcements.data?.items?.[0];
+  const unreadAnnouncements = countUnreadAnnouncements(
+    announcements.data?.items,
+    announcements.data?.unreadCount,
+  );
   const hasRoomForColumns = width >= 380;
   const actionWidth: DimensionValue = hasRoomForColumns ? '48%' : '100%';
   const bottomPadding = Math.max(insets.bottom, 16) + 84;
@@ -248,27 +257,44 @@ export default function HomeScreen() {
         )}
       </Card>
 
-      <Card style={styles.noticeCard}>
-        <View style={styles.noticeIcon}>
-          <Ionicons name="megaphone-outline" size={18} color={CORAL} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText variant="meta" style={styles.cardMeta}>
-            Latest announcement
-          </AppText>
-          <AppText numberOfLines={2} style={styles.noticeTitle}>
-            {announcement?.title ?? 'No announcements yet.'}
-          </AppText>
-          {announcement?.importance && announcement.importance !== 'INFO' ? (
-            <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-              <Pill
-                tone={announcement.importance === 'URGENT' ? 'danger' : 'warning'}
-                label={announcement.importance.toLowerCase()}
-              />
-            </View>
-          ) : null}
-        </View>
-      </Card>
+      <AnimatedPressable
+        onPress={() => router.push('/(resident)/announcements' as Href)}
+        style={styles.noticeCardWrap}
+      >
+        <Card style={styles.noticeCard}>
+          <View style={styles.noticeIcon}>
+            <Ionicons name="megaphone-outline" size={18} color={CORAL} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AlignRow gap={8} style={{ alignItems: 'center' }}>
+              <AppText variant="meta" style={styles.cardMeta}>
+                Latest announcement
+              </AppText>
+              {unreadAnnouncements > 0 ? (
+                <View style={styles.unreadBadge}>
+                  <AppText variant="meta" style={styles.unreadBadgeText}>
+                    {unreadAnnouncements}
+                  </AppText>
+                </View>
+              ) : null}
+            </AlignRow>
+            <AppText numberOfLines={2} style={styles.noticeTitle}>
+              {announcement?.title ?? 'No announcements yet.'}
+            </AppText>
+            {announcement?.importance && announcement.importance !== 'INFO' ? (
+              <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                <Pill
+                  tone={announcement.importance === 'URGENT' ? 'danger' : 'warning'}
+                  label={announcement.importance.toLowerCase()}
+                />
+              </View>
+            ) : null}
+            <AppText variant="meta" style={[styles.cardSubcopy, { marginTop: 8, color: CORAL }]}>
+              See all announcements
+            </AppText>
+          </View>
+        </Card>
+      </AnimatedPressable>
     </ScrollView>
   );
 }
@@ -543,6 +569,9 @@ const styles = StyleSheet.create({
     color: palette.textLight,
     fontWeight: '700',
   },
+  noticeCardWrap: {
+    marginTop: spacing.sm,
+  },
   noticeCard: {
     borderWidth: 1,
     borderColor: CARD_BORDER,
@@ -564,5 +593,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '700',
     marginTop: 3,
+  },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: radius.full,
+    backgroundColor: CORAL,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

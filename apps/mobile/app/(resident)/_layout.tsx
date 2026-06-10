@@ -79,6 +79,12 @@ export default function ResidentTabsLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="announcements"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </RoleGuardGate>
   );

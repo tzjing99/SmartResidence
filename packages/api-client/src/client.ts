@@ -11,6 +11,12 @@
  * `@smartresidence/shared-types`.
  */
 import type {
+  AnnouncementAudienceScope,
+  AnnouncementCategory,
+  AnnouncementImportance,
+  CreateAnnouncementInput,
+  ListAnnouncementsParams,
+  UpdateAnnouncementInput,
   CreateDefectInput,
   CreateFavouriteVisitorInput,
   CreateVisitorInput,
@@ -100,6 +106,52 @@ export interface FaqDeflectMatch {
     category: string | null;
   } | null;
 }
+
+export type { ListAnnouncementsParams };
+
+export type AnnouncementAttachment = {
+  id: string;
+  mimeType: string;
+  size: number;
+  fileName?: string;
+};
+
+export interface AnnouncementSummary {
+  id: string;
+  condoId: string;
+  title: string;
+  category: AnnouncementCategory;
+  importance: AnnouncementImportance;
+  audienceScope: AnnouncementAudienceScope;
+  publishedAt: string | null;
+  expiresAt?: string | null;
+  requiresAck: boolean;
+  pinned: boolean;
+  readAt: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  author?: { id: string; name: string };
+  attachments?: AnnouncementAttachment[];
+  attachmentCount?: number;
+  audienceBlocks?: Array<{ id: string; name: string }>;
+  audienceUnits?: Array<{ id: string; identifier: string }>;
+  _count?: { acks: number; reads: number };
+}
+
+export interface AnnouncementDetail extends AnnouncementSummary {
+  body: string;
+}
+
+export interface AnnouncementListResult {
+  items: AnnouncementSummary[];
+  total: number;
+  unreadCount: number;
+  limit?: number;
+  offset?: number;
+}
+
+export type CreateAnnouncementBody = CreateAnnouncementInput;
+export type UpdateAnnouncementBody = UpdateAnnouncementInput;
 
 export interface ThreadSummary {
   id: string;
@@ -550,11 +602,49 @@ export class ApiClient {
   }
 
   // Announcements ----------------------------------------------------
-  announcementsForCondo(condoId: string, params: { limit?: number; offset?: number } = {}) {
-    return this.request<{ items: unknown[]; total: number }>(
+  listAnnouncements(
+    condoId: string,
+    params: ListAnnouncementsParams = {},
+  ) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    const query = qs.toString();
+    return this.request<AnnouncementListResult>(
       'GET',
-      `/api/announcements/condo/${condoId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
+      `/api/announcements/condo/${condoId}${query ? `?${query}` : ''}`,
     );
+  }
+  manageAnnouncements(condoId: string, params: ListAnnouncementsParams = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    const query = qs.toString();
+    return this.request<{ items: AnnouncementDetail[]; total: number; limit?: number; offset?: number }>(
+      'GET',
+      `/api/announcements/condo/${condoId}/manage${query ? `?${query}` : ''}`,
+    );
+  }
+  announcement(id: string) {
+    return this.request<AnnouncementDetail>('GET', `/api/announcements/${id}`);
+  }
+  createAnnouncement(body: CreateAnnouncementBody) {
+    return this.request<AnnouncementDetail>('POST', '/api/announcements', body);
+  }
+  updateAnnouncement(id: string, body: UpdateAnnouncementBody) {
+    return this.request<AnnouncementDetail>('PATCH', `/api/announcements/${id}`, body);
+  }
+  deleteAnnouncement(id: string) {
+    return this.request<{ id: string; deleted: boolean }>('DELETE', `/api/announcements/${id}`);
+  }
+  markAnnouncementRead(id: string) {
+    return this.request('POST', `/api/announcements/${id}/read`);
+  }
+  /** @deprecated use listAnnouncements */
+  announcementsForCondo(condoId: string, params: ListAnnouncementsParams = {}) {
+    return this.listAnnouncements(condoId, params);
   }
   ackAnnouncement(id: string) {
     return this.request('POST', `/api/announcements/${id}/ack`);
@@ -883,43 +973,112 @@ export class ApiClient {
     });
   }
 
-  /** Absolute URL for the full optimized image (auth header required). */
-  attachmentRawUrl(id: string): string {
-    return `${this.cfg.baseUrl}/api/attachments/${id}/raw`;
+  /** Absolute URL for the full image, optionally selecting an output format. */
+  attachmentRawUrl(id: string, format?: AttachmentFormat): string {
+    const qs = format ? `?format=${format}` : '';
+    return `${this.cfg.baseUrl}/api/attachments/${id}/raw${qs}`;
   }
-  /** Absolute URL for the thumbnail derivative (auth header required). */
-  attachmentThumbUrl(id: string): string {
-    return `${this.cfg.baseUrl}/api/attachments/${id}/thumb`;
+  /** Absolute URL for the thumbnail, optionally selecting an output format. */
+  attachmentThumbUrl(id: string, format?: AttachmentFormat): string {
+    const qs = format ? `?format=${format}` : '';
+    return `${this.cfg.baseUrl}/api/attachments/${id}/thumb${qs}`;
   }
   /**
    * Image source descriptor for native image components (expo-image), with the
    * auth header pre-resolved so the component can stream + cache it lazily.
+   * Defaults to AVIF (`expo-image` bundles AVIF decoders on iOS + Android).
    */
   async attachmentImageSource(
     id: string,
     variant: 'raw' | 'thumb' = 'thumb',
+    format: AttachmentFormat = 'avif',
   ): Promise<{ uri: string; headers: Record<string, string> }> {
-    const token = await this.cfg.getAccessToken?.();
-    const condoId = await this.cfg.getActiveCondoId?.();
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (condoId) headers['x-condo-id'] = condoId;
-    const uri = variant === 'raw' ? this.attachmentRawUrl(id) : this.attachmentThumbUrl(id);
+    const headers = await this.attachmentHeaders();
+    const uri =
+      variant === 'raw' ? this.attachmentRawUrl(id, format) : this.attachmentThumbUrl(id, format);
     return { uri, headers };
   }
+  /**
+   * AVIF source + a WebP fallback URI for the same variant. Point the image at
+   * `source` and swap to `fallbackUri` in `onError` (defense-in-depth for the
+   * rare decoder gap).
+   */
+  async attachmentImageSourceBest(
+    id: string,
+    variant: 'raw' | 'thumb' = 'thumb',
+  ): Promise<{ source: { uri: string; headers: Record<string, string> }; fallbackUri: string }> {
+    const headers = await this.attachmentHeaders();
+    const avifUri =
+      variant === 'raw' ? this.attachmentRawUrl(id, 'avif') : this.attachmentThumbUrl(id, 'avif');
+    const webpUri =
+      variant === 'raw' ? this.attachmentRawUrl(id, 'webp') : this.attachmentThumbUrl(id, 'webp');
+    return { source: { uri: avifUri, headers }, fallbackUri: webpUri };
+  }
   /** Fetch attachment bytes as a Blob (web: wrap in an object URL for <img>). */
-  async fetchAttachmentBlob(id: string, variant: 'raw' | 'thumb' = 'thumb'): Promise<Blob> {
-    const token = await this.cfg.getAccessToken?.();
-    const condoId = await this.cfg.getActiveCondoId?.();
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (condoId) headers['x-condo-id'] = condoId;
+  async fetchAttachmentBlob(
+    id: string,
+    variant: 'raw' | 'thumb' = 'thumb',
+    format?: AttachmentFormat,
+  ): Promise<Blob> {
+    const headers = await this.attachmentHeaders();
     const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
-    const url = variant === 'raw' ? this.attachmentRawUrl(id) : this.attachmentThumbUrl(id);
+    const url =
+      variant === 'raw' ? this.attachmentRawUrl(id, format) : this.attachmentThumbUrl(id, format);
     const res = await fetchImpl(url, { headers, credentials: 'include' });
     if (!res.ok) throw new ApiError(res.status, null, `Failed to load attachment (${res.status})`);
     return res.blob();
   }
+
+  private async attachmentHeaders(): Promise<Record<string, string>> {
+    const token = await this.cfg.getAccessToken?.();
+    const condoId = await this.cfg.getActiveCondoId?.();
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (condoId) headers['x-condo-id'] = condoId;
+    return headers;
+  }
+}
+
+/** Output format selector for the attachment serving endpoints. */
+export type AttachmentFormat = 'avif' | 'webp';
+
+// 1x1 AVIF pixel used for browser feature detection.
+const AVIF_TEST_DATA_URL =
+  'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAEAAAABAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEDQgMgkQAAAAB8dSLfI=';
+
+let avifSupportPromise: Promise<boolean> | null = null;
+
+/**
+ * Feature-detect AVIF decoding in a browser (memoized). Returns `false` in
+ * non-DOM environments (server / React Native), where callers should rely on
+ * `expo-image`'s bundled decoders or the WebP fallback instead.
+ */
+export function supportsAvif(): Promise<boolean> {
+  if (avifSupportPromise) return avifSupportPromise;
+  avifSupportPromise = new Promise<boolean>((resolve) => {
+    // Access DOM globals via globalThis so this file still type-checks under the
+    // React Native lib (no DOM). On RN this branch resolves false and callers
+    // rely on expo-image's bundled AVIF decoders / the WebP fallback.
+    const g = globalThis as {
+      document?: unknown;
+      Image?: new () => {
+        onload: (() => void) | null;
+        onerror: (() => void) | null;
+        width: number;
+        height: number;
+        src: string;
+      };
+    };
+    if (typeof g.document === 'undefined' || typeof g.Image === 'undefined') {
+      resolve(false);
+      return;
+    }
+    const img = new g.Image();
+    img.onload = () => resolve(img.width > 0 && img.height > 0);
+    img.onerror = () => resolve(false);
+    img.src = AVIF_TEST_DATA_URL;
+  });
+  return avifSupportPromise;
 }
 
 export function createApiClient(cfg: ApiClientConfig): ApiClient {

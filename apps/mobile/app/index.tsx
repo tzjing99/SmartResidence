@@ -1,8 +1,8 @@
+import { queryKeys } from '@smartresidence/api-client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { queryKeys } from '@smartresidence/api-client';
-import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../src/lib/api';
 import { getActiveRole, roleToHomePath } from '../src/lib/roles';
 import { getCachedSession } from '../src/lib/session';

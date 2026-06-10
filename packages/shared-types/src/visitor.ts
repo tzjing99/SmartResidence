@@ -255,9 +255,7 @@ export function showOvernightPreRegOption(entryMode: VisitorEntryMode | undefine
 }
 
 /** Owner-approved unit walk-in awaiting guard record at the gate (no access pass). */
-export function guardCanAcknowledgeWalkIn(
-  visitor: Pick<Visitor, 'visitType' | 'status'>,
-): boolean {
+export function guardCanAcknowledgeWalkIn(visitor: Pick<Visitor, 'visitType' | 'status'>): boolean {
   return visitor.visitType === 'WALKIN_UNIT' && visitor.status === 'APPROVED';
 }
 

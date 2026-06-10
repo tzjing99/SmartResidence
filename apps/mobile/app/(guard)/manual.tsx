@@ -7,8 +7,8 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
-  View,
   type TextInput as TextInputType,
+  View,
 } from 'react-native';
 import {
   GUARD_CORAL,
@@ -185,8 +185,12 @@ export default function ManualScreen() {
                     </AppText>
                   </>
                 ) : (
-                  <AppText variant="meta" style={[styles.statusText, error ? styles.errorText : null]}>
-                    {error ?? 'Auto-submits after the sixth character. Enter notes before the final character if needed.'}
+                  <AppText
+                    variant="meta"
+                    style={[styles.statusText, error ? styles.errorText : null]}
+                  >
+                    {error ??
+                      'Auto-submits after the sixth character. Enter notes before the final character if needed.'}
                   </AppText>
                 )}
               </View>

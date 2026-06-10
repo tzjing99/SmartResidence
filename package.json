@@ -51,7 +51,9 @@
   "pnpm": {
     "neverBuiltDependencies": ["postman-code-generators"],
     "overrides": {
-      "react-native-worklets": "0.5.1"
+      "react-native-worklets": "0.5.1",
+      "@types/react": "~19.1.10",
+      "@types/react-dom": "~19.1.10"
     }
   }
 }

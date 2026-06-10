@@ -84,7 +84,14 @@ export function GuardExpectedVisitorCard({
 }: {
   visitor: Pick<
     GuardExpectedVisitor,
-    'id' | 'name' | 'expectedAt' | 'unitLabel' | 'visitType' | 'vehiclePlate' | 'overnight' | 'status'
+    | 'id'
+    | 'name'
+    | 'expectedAt'
+    | 'unitLabel'
+    | 'visitType'
+    | 'vehiclePlate'
+    | 'overnight'
+    | 'status'
   >;
   variant: GuardExpectedCardVariant;
   onAcknowledgeWalkIn?: (visitorId: string) => void;

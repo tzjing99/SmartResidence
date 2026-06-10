@@ -1,4 +1,4 @@
-import { VisitorPurpose, type VisitorEntryMode } from '@smartresidence/shared-types';
+import { type VisitorEntryMode, VisitorPurpose } from '@smartresidence/shared-types';
 import { palette } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
@@ -46,7 +46,8 @@ export default function NewVisitorScreen() {
       params.phoneCountryCode,
       params.vehiclePlate,
       entryModeRaw,
-      purposeRaw,
+      parsedPurpose?.success,
+      parsedPurpose?.data,
       params.expectedAt,
     ],
   );

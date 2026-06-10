@@ -1,11 +1,27 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useGuardAcknowledgeWalkIn, useMyCondos } from '@smartresidence/api-client';
 import type { GuardExpectedVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
 import { guardCanAcknowledgeWalkIn } from '@smartresidence/shared-types';
-import { Ionicons } from '@expo/vector-icons';
-import { AppText, Button, Card, EmptyState, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  Pill,
+  palette,
+  radius,
+  spacing,
+} from '@smartresidence/ui-mobile';
 import { useQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  type ListRenderItemInfo,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   GUARD_CARD_BORDER,
@@ -309,7 +325,13 @@ export default function ExpectedScreen() {
       <Card style={[guardStyles.card, styles.contextCard]}>
         <View style={styles.contextIcon}>
           <Ionicons
-            name={tab === 'expected' ? 'calendar-outline' : tab === 'no_show' ? 'time-outline' : 'archive-outline'}
+            name={
+              tab === 'expected'
+                ? 'calendar-outline'
+                : tab === 'no_show'
+                  ? 'time-outline'
+                  : 'archive-outline'
+            }
             size={19}
             color={GUARD_CORAL}
           />

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
   useGuardApproveWalkIn,
   useGuardWalkInPolicy,
@@ -11,7 +12,6 @@ import {
   malaysiaPhoneTelHref,
   pickOwnerPhone,
 } from '@smartresidence/shared-types';
-import { Ionicons } from '@expo/vector-icons';
 import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -190,7 +190,8 @@ export default function WalkInScreen() {
         <View style={styles.policyCopy}>
           <AppText style={styles.cardTitle}>{condo?.name ?? 'SmartResidence guardhouse'}</AppText>
           <AppText variant="meta" style={styles.cardMeta}>
-            Walk-ins are one-time visits checked at the gate. Overnight visits should be pre-registered by the resident.
+            Walk-ins are one-time visits checked at the gate. Overnight visits should be
+            pre-registered by the resident.
           </AppText>
         </View>
         <Pill
@@ -396,7 +397,11 @@ function PendingCard({
         <ContactLine
           label="Visitor phone"
           value={visitorPhone ?? 'Not provided'}
-          onPress={visitorPhone ? () => callPhone(visitor.phone ?? '', visitor.name, visitor.phoneCountryCode) : undefined}
+          onPress={
+            visitorPhone
+              ? () => callPhone(visitor.phone ?? '', visitor.name, visitor.phoneCountryCode)
+              : undefined
+          }
         />
         {ownersWithPhone.length > 0 ? (
           ownersWithPhone.map((owner) => (
@@ -449,10 +454,7 @@ function ContactLine({
       <AppText variant="meta" style={styles.contactLabel}>
         {label}
       </AppText>
-      <AppText
-        style={[styles.contactValue, onPress ? styles.contactLink : null]}
-        onPress={onPress}
-      >
+      <AppText style={[styles.contactValue, onPress ? styles.contactLink : null]} onPress={onPress}>
         {value}
       </AppText>
     </View>

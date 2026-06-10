@@ -18,7 +18,11 @@ import {
   ThreadPriority,
   ThreadStatus,
 } from '@prisma/client';
-import type { UpdateAutoAssignmentDto, UpdateMlPriorityDto, UpdateSlaPoliciesDto } from './dto/sla.dto';
+import type {
+  UpdateAutoAssignmentDto,
+  UpdateMlPriorityDto,
+  UpdateSlaPoliciesDto,
+} from './dto/sla.dto';
 import {
   type AutoAssignmentSettings,
   DEFAULT_RESOLUTION_CONFIRMATION_GRACE_DAYS,
@@ -132,11 +136,7 @@ export class SlaPolicyService {
     };
   }
 
-  async updateMlPriority(
-    user: AuthenticatedUser,
-    condoId: string,
-    dto: UpdateMlPriorityDto,
-  ) {
+  async updateMlPriority(user: AuthenticatedUser, condoId: string, dto: UpdateMlPriorityDto) {
     if (!this.isAdmin(user, condoId)) {
       throw new ForbiddenException('Only management admins can edit ML priority settings');
     }

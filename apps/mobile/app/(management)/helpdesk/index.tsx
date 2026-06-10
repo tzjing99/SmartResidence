@@ -12,12 +12,7 @@ import {
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  FlatList,
-  View,
-  Pressable,
-  type ListRenderItemInfo,
-} from 'react-native';
+import { FlatList, type ListRenderItemInfo, Pressable, View } from 'react-native';
 import { SmartRefreshControl } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
@@ -84,33 +79,36 @@ export default function HelpdeskInboxScreen() {
     }
   }, [me, threads]);
 
-  const renderFilterButton = useCallback((type: FilterType, label: string) => {
-    const isActive = activeFilter === type;
-    return (
-      <Pressable
-        onPress={() => setActiveFilter(type)}
-        style={{
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-          borderRadius: radius.md,
-          backgroundColor: isActive ? palette.coralPrimary : '#E5E7EB',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minWidth: 80,
-        }}
-      >
-        <AppText
+  const renderFilterButton = useCallback(
+    (type: FilterType, label: string) => {
+      const isActive = activeFilter === type;
+      return (
+        <Pressable
+          onPress={() => setActiveFilter(type)}
           style={{
-            fontSize: 13,
-            fontWeight: '600',
-            color: isActive ? '#FFFFFF' : palette.textLight,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: radius.md,
+            backgroundColor: isActive ? palette.coralPrimary : '#E5E7EB',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 80,
           }}
         >
-          {label}
-        </AppText>
-      </Pressable>
-    );
-  }, [activeFilter]);
+          <AppText
+            style={{
+              fontSize: 13,
+              fontWeight: '600',
+              color: isActive ? '#FFFFFF' : palette.textLight,
+            }}
+          >
+            {label}
+          </AppText>
+        </Pressable>
+      );
+    },
+    [activeFilter],
+  );
 
   const keyExtractor = useCallback((item: (typeof filteredItems)[number]) => item.id, []);
 
@@ -120,13 +118,21 @@ export default function HelpdeskInboxScreen() {
         <AnimatedPressable onPress={() => router.push(`/(management)/helpdesk/${t.id}` as Href)}>
           <Card style={{ padding: 16 }}>
             <View style={{ gap: 8 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}
+              >
                 <View style={{ flex: 1, marginRight: 8 }}>
                   <AppText variant="label" numberOfLines={1}>
                     {t.subject}
                   </AppText>
                   <AppText variant="caption" style={{ color: palette.mutedLight, marginTop: 2 }}>
-                    {t.createdBy ? `${t.createdBy.name} (${t.unit?.identifier ?? 'No unit'})` : 'Anonymous'}
+                    {t.createdBy
+                      ? `${t.createdBy.name} (${t.unit?.identifier ?? 'No unit'})`
+                      : 'Anonymous'}
                   </AppText>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
@@ -149,14 +155,34 @@ export default function HelpdeskInboxScreen() {
               </AlignRow>
 
               {t.assignedTo ? (
-                <View style={{ borderTopWidth: 1, borderTopColor: palette.borderLight, paddingTop: 8, marginTop: 4 }}>
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: palette.borderLight,
+                    paddingTop: 8,
+                    marginTop: 4,
+                  }}
+                >
                   <AppText variant="caption" style={{ color: palette.mutedLight }}>
-                    Assigned to: <AppText variant="caption" style={{ fontWeight: '600' }}>{t.assignedTo.name}</AppText>
+                    Assigned to:{' '}
+                    <AppText variant="caption" style={{ fontWeight: '600' }}>
+                      {t.assignedTo.name}
+                    </AppText>
                   </AppText>
                 </View>
               ) : (
-                <View style={{ borderTopWidth: 1, borderTopColor: palette.borderLight, paddingTop: 8, marginTop: 4 }}>
-                  <AppText variant="caption" style={{ color: palette.mutedLight, fontStyle: 'italic' }}>
+                <View
+                  style={{
+                    borderTopWidth: 1,
+                    borderTopColor: palette.borderLight,
+                    paddingTop: 8,
+                    marginTop: 4,
+                  }}
+                >
+                  <AppText
+                    variant="caption"
+                    style={{ color: palette.mutedLight, fontStyle: 'italic' }}
+                  >
                     Unassigned - Tap to view & claim
                   </AppText>
                 </View>
@@ -206,8 +232,8 @@ export default function HelpdeskInboxScreen() {
               Loading latest tickets...
             </AppText>
           </View>
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} style={{ padding: 16, gap: 12 }}>
+          {(['a', 'b', 'c', 'd'] as const).map((id) => (
+            <Card key={`helpdesk-skeleton-${id}`} style={{ padding: 16, gap: 12 }}>
               <View
                 style={{
                   height: 16,
@@ -267,9 +293,7 @@ export default function HelpdeskInboxScreen() {
         }}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={listEmpty}
-        refreshControl={
-          <SmartRefreshControl refreshing={pullRefreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<SmartRefreshControl refreshing={pullRefreshing} onRefresh={onRefresh} />}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         initialNumToRender={12}

@@ -15,7 +15,10 @@ export default function ActivityScreen() {
   const activity = useMyActivity(api);
   const whoViewed = useWhoViewedMe(api);
   const { refreshControl } = usePullToRefresh(
-    useCallback(() => Promise.all([activity.refetch(), whoViewed.refetch()]), [activity, whoViewed]),
+    useCallback(
+      () => Promise.all([activity.refetch(), whoViewed.refetch()]),
+      [activity, whoViewed],
+    ),
   );
 
   const items = (activity.data?.items as any[]) ?? [];
@@ -67,7 +70,7 @@ export default function ActivityScreen() {
                 {row.actor?.name ?? 'Unknown'} viewed {prettyLabel(row.resourceType)}
               </AppText>
               <AppText variant="meta" style={{ color: palette.mutedLight }}>
-              {row.actor?.name ?? 'System'}
+                {row.actor?.name ?? 'System'}
                 {row.actorRole ? ` · ${prettyLabel(row.actorRole)}` : ''}
                 {' · '}
                 {new Date(row.createdAt).toLocaleString()}

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useCheckOutVisitor, useGuardLiveVisitors, useMyCondos } from '@smartresidence/api-client';
 import {
   formatMalaysiaPhoneDisplay,
@@ -5,16 +6,23 @@ import {
   malaysiaPhoneTelHref,
   pickOwnerPhone,
 } from '@smartresidence/shared-types';
-import { Ionicons } from '@expo/vector-icons';
-import { AppText, Button, Card, EmptyState, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  Pill,
+  palette,
+  radius,
+  spacing,
+} from '@smartresidence/ui-mobile';
 import { useCallback } from 'react';
-import { Alert, FlatList, Linking, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { Alert, FlatList, Linking, type ListRenderItemInfo, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   GUARD_CORAL,
   GUARD_SOFT_CORAL,
   GUARD_SOFT_SKY,
-  GUARD_WARM_BG,
   GuardHeader,
   guardStyles,
 } from '../../src/components/guard-screen';
@@ -61,21 +69,24 @@ export default function LiveScreen() {
     if (href) void Linking.openURL(href);
   }, []);
 
-  const confirmCheckOut = useCallback((visitorId: string, name: string) => {
-    Alert.alert('Check out visitor?', 'Are you sure? They will leave the live board.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Yes, check out',
-        style: 'destructive',
-        onPress: () => {
-          void checkOut.mutateAsync(visitorId).then(
-            () => Alert.alert('Checked out', `${name} has left the premises.`),
-            (err: Error) => Alert.alert('Could not check out', err.message),
-          );
+  const confirmCheckOut = useCallback(
+    (visitorId: string, name: string) => {
+      Alert.alert('Check out visitor?', 'Are you sure? They will leave the live board.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, check out',
+          style: 'destructive',
+          onPress: () => {
+            void checkOut.mutateAsync(visitorId).then(
+              () => Alert.alert('Checked out', `${name} has left the premises.`),
+              (err: Error) => Alert.alert('Could not check out', err.message),
+            );
+          },
         },
-      },
-    ]);
-  }, [checkOut]);
+      ]);
+    },
+    [checkOut],
+  );
 
   const renderItem = useCallback(
     ({ item: v }: ListRenderItemInfo<(typeof items)[number]>) => {
@@ -174,12 +185,17 @@ export default function LiveScreen() {
               <Ionicons name="people-outline" size={20} color={GUARD_CORAL} />
             </View>
             <View style={styles.summaryCopy}>
-              <AppText style={styles.summaryValue}>{live.isLoading ? '—' : (live.data?.total ?? 0)}</AppText>
+              <AppText style={styles.summaryValue}>
+                {live.isLoading ? '—' : (live.data?.total ?? 0)}
+              </AppText>
               <AppText variant="meta" style={styles.cardMeta}>
                 {live.data?.total === 1 ? 'visitor on site' : 'visitors on site'}
               </AppText>
             </View>
-            <Pill tone={items.length > 0 ? 'success' : 'neutral'} label={items.length > 0 ? 'Live' : 'Clear'} />
+            <Pill
+              tone={items.length > 0 ? 'success' : 'neutral'}
+              label={items.length > 0 ? 'Live' : 'Clear'}
+            />
           </Card>
         </View>
       }

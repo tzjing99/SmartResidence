@@ -383,7 +383,9 @@ export default function NewVisitorPage() {
                         {platePhotoName}
                       </span>
                     ) : (
-                      <span className="min-w-0 flex-1 truncate text-sm sr-muted">No file chosen</span>
+                      <span className="min-w-0 flex-1 truncate text-sm sr-muted">
+                        No file chosen
+                      </span>
                     )}
                   </div>
                   {platePhotoKey ? (

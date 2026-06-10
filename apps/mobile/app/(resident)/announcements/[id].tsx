@@ -9,13 +9,13 @@ import {
   palette,
 } from '@smartresidence/ui-mobile';
 import * as FileSystem from 'expo-file-system/legacy';
-import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import { Markdown } from '../../../src/components/markdown';
 import {
-  ResidentScreen,
   RESIDENT_CORAL,
+  ResidentScreen,
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { api } from '../../../src/lib/api';
@@ -71,7 +71,10 @@ export default function AnnouncementDetailScreen() {
         <View style={{ gap: 16 }}>
           <AlignRow gap={8} style={{ flexWrap: 'wrap' }}>
             <Pill tone="neutral" label={a.category.toLowerCase()} />
-            <Pill tone={IMPORTANCE_TONE[a.importance] ?? 'info'} label={a.importance.toLowerCase()} />
+            <Pill
+              tone={IMPORTANCE_TONE[a.importance] ?? 'info'}
+              label={a.importance.toLowerCase()}
+            />
             {!a.readAt ? <Pill tone="warning" label="Unread" /> : null}
           </AlignRow>
           <Card style={[residentStyles.card, { padding: 16 }]}>

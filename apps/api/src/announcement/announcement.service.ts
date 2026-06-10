@@ -14,7 +14,11 @@ import {
   type Prisma,
   RoleId,
 } from '@prisma/client';
-import type { CreateAnnouncementDto, ListAnnouncementsDto, UpdateAnnouncementDto } from './dto/announcement.dto';
+import type {
+  CreateAnnouncementDto,
+  ListAnnouncementsDto,
+  UpdateAnnouncementDto,
+} from './dto/announcement.dto';
 
 const MANAGEMENT_ROLES: RoleId[] = [
   RoleId.SUPER_ADMIN,
@@ -108,10 +112,13 @@ export class AnnouncementService {
     };
   }
 
-  private audienceWhere(
-    ctx: { unitIds: string[]; blockIds: string[] },
-  ): Prisma.AnnouncementWhereInput {
-    const parts: Prisma.AnnouncementWhereInput[] = [{ audienceScope: AnnouncementAudienceScope.CONDO }];
+  private audienceWhere(ctx: {
+    unitIds: string[];
+    blockIds: string[];
+  }): Prisma.AnnouncementWhereInput {
+    const parts: Prisma.AnnouncementWhereInput[] = [
+      { audienceScope: AnnouncementAudienceScope.CONDO },
+    ];
     if (ctx.blockIds.length > 0) {
       parts.push({
         audienceScope: AnnouncementAudienceScope.BLOCKS,
@@ -357,10 +364,7 @@ export class AnnouncementService {
       return created;
     });
 
-    if (
-      announcement.publishedAt &&
-      announcement.publishedAt <= new Date()
-    ) {
+    if (announcement.publishedAt && announcement.publishedAt <= new Date()) {
       this.events.emit('announcement.published', {
         announcementId: announcement.id,
         condoId: announcement.condoId,
@@ -379,24 +383,17 @@ export class AnnouncementService {
     const wasPublished = existing.publishedAt != null;
     if (
       wasPublished &&
-      (dto.audienceScope !== undefined ||
-        dto.blockIds !== undefined ||
-        dto.unitIds !== undefined)
+      (dto.audienceScope !== undefined || dto.blockIds !== undefined || dto.unitIds !== undefined)
     ) {
       throw new BadRequestException('Audience cannot be changed after publish');
     }
 
     const scope = dto.audienceScope ?? existing.audienceScope;
     if (!wasPublished) {
-      this.validateAudience(
-        scope,
-        dto.blockIds ?? undefined,
-        dto.unitIds ?? undefined,
-      );
+      this.validateAudience(scope, dto.blockIds ?? undefined, dto.unitIds ?? undefined);
     }
 
-    const nextPublishedAt =
-      dto.publishedAt !== undefined ? dto.publishedAt : existing.publishedAt;
+    const nextPublishedAt = dto.publishedAt !== undefined ? dto.publishedAt : existing.publishedAt;
     const becomingPublished =
       !wasPublished && nextPublishedAt != null && nextPublishedAt <= new Date();
 

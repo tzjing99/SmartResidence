@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
   useCondoAnnouncements,
   useMe,
@@ -8,7 +9,6 @@ import {
   useUnitInvoices,
   useUnitVisitors,
 } from '@smartresidence/api-client';
-import { Ionicons } from '@expo/vector-icons';
 import { formatMoney } from '@smartresidence/shared-types';
 import {
   AlignRow,
@@ -22,17 +22,23 @@ import {
   spacing,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, type ComponentProps } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions, type DimensionValue } from 'react-native';
+import { type ComponentProps, useCallback } from 'react';
+import {
+  type DimensionValue,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
-import type { MeResponse } from '../../src/lib/roles';
-import { RESIDENT_THREAD_INBOX_PARAMS, countOpenThreads } from '../../src/lib/resident-threads';
 import {
   RESIDENT_ANNOUNCEMENT_INBOX_PARAMS,
   countUnreadAnnouncements,
 } from '../../src/lib/resident-announcements';
+import { RESIDENT_THREAD_INBOX_PARAMS, countOpenThreads } from '../../src/lib/resident-threads';
+import type { MeResponse } from '../../src/lib/roles';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -57,7 +63,11 @@ export default function HomeScreen() {
   const visitors = useUnitVisitors(api, unit?.id ?? null, 'upcoming');
   const defects = useUnitDefects(api, unit?.id ?? null);
   const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
-  const announcements = useCondoAnnouncements(api, condo?.id ?? null, RESIDENT_ANNOUNCEMENT_INBOX_PARAMS);
+  const announcements = useCondoAnnouncements(
+    api,
+    condo?.id ?? null,
+    RESIDENT_ANNOUNCEMENT_INBOX_PARAMS,
+  );
   const { refreshControl } = usePullToRefresh(
     useCallback(
       () =>
@@ -128,7 +138,9 @@ export default function HomeScreen() {
             <Ionicons name="card-outline" size={20} color={CORAL} />
           </View>
           <Pill
-            tone={openInvoice ? (openInvoice.status === 'OVERDUE' ? 'danger' : 'warning') : 'success'}
+            tone={
+              openInvoice ? (openInvoice.status === 'OVERDUE' ? 'danger' : 'warning') : 'success'
+            }
             label={openInvoice ? openInvoice.status.toLowerCase() : 'clear'}
           />
         </View>
@@ -156,7 +168,9 @@ export default function HomeScreen() {
           onPress={() => router.push('/(resident)/billing' as Href)}
           contentStyle={styles.heroButton}
         >
-          <AppText style={styles.heroButtonText}>{openInvoice ? 'Review and pay' : 'View fees'}</AppText>
+          <AppText style={styles.heroButtonText}>
+            {openInvoice ? 'Review and pay' : 'View fees'}
+          </AppText>
         </AnimatedPressable>
       </Card>
 

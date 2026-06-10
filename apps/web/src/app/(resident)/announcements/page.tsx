@@ -4,10 +4,10 @@ import { api } from '@/lib/api';
 import { RESIDENT_ANNOUNCEMENT_INBOX_PARAMS } from '@/lib/resident-announcements';
 import { toast } from '@/lib/toast';
 import {
+  type AnnouncementSummary,
   useAckAnnouncement,
   useCondoAnnouncements,
   useMyCondos,
-  type AnnouncementSummary,
 } from '@smartresidence/api-client';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import Link from 'next/link';
@@ -94,7 +94,9 @@ function AnnouncementRow({
           </div>
           <div className="flex flex-wrap gap-1 justify-end shrink-0">
             <Badge tone="neutral">{CATEGORY_LABEL[a.category] ?? a.category}</Badge>
-            <Badge tone={IMPORTANCE_TONE[a.importance] ?? 'info'}>{a.importance.toLowerCase()}</Badge>
+            <Badge tone={IMPORTANCE_TONE[a.importance] ?? 'info'}>
+              {a.importance.toLowerCase()}
+            </Badge>
           </div>
         </div>
       </Link>

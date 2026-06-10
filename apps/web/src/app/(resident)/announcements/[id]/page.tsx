@@ -3,10 +3,7 @@
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import {
-  useAckAnnouncement,
-  useAnnouncement,
-} from '@smartresidence/api-client';
+import { useAckAnnouncement, useAnnouncement } from '@smartresidence/api-client';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -25,18 +22,15 @@ export default function AnnouncementDetailPage() {
   const detail = useAnnouncement(api, id);
   const ack = useAckAnnouncement(api);
 
-  const openPdf = useCallback(
-    async (attachmentId: string) => {
-      try {
-        const blob = await api.fetchAttachmentBlob(attachmentId, 'raw');
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener,noreferrer');
-      } catch (err) {
-        toast.error((err as Error).message);
-      }
-    },
-    [],
-  );
+  const openPdf = useCallback(async (attachmentId: string) => {
+    try {
+      const blob = await api.fetchAttachmentBlob(attachmentId, 'raw');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }, []);
 
   if (detail.isLoading || !detail.data) {
     return <Skeleton className="h-64 rounded-xl" />;

@@ -15,13 +15,13 @@ import type {
   AnnouncementCategory,
   AnnouncementImportance,
   CreateAnnouncementInput,
-  ListAnnouncementsParams,
-  UpdateAnnouncementInput,
   CreateDefectInput,
   CreateFavouriteVisitorInput,
   CreateVisitorInput,
   FavouriteVisitor,
   Invoice,
+  ListAnnouncementsParams,
+  UpdateAnnouncementInput,
   UpdateFavouriteVisitorInput,
   UploadResponse,
   UploadedAttachment,
@@ -602,10 +602,7 @@ export class ApiClient {
   }
 
   // Announcements ----------------------------------------------------
-  listAnnouncements(
-    condoId: string,
-    params: ListAnnouncementsParams = {},
-  ) {
+  listAnnouncements(condoId: string, params: ListAnnouncementsParams = {}) {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null) qs.set(k, String(v));
@@ -622,10 +619,12 @@ export class ApiClient {
       if (v !== undefined && v !== null) qs.set(k, String(v));
     }
     const query = qs.toString();
-    return this.request<{ items: AnnouncementDetail[]; total: number; limit?: number; offset?: number }>(
-      'GET',
-      `/api/announcements/condo/${condoId}/manage${query ? `?${query}` : ''}`,
-    );
+    return this.request<{
+      items: AnnouncementDetail[];
+      total: number;
+      limit?: number;
+      offset?: number;
+    }>('GET', `/api/announcements/condo/${condoId}/manage${query ? `?${query}` : ''}`);
   }
   announcement(id: string) {
     return this.request<AnnouncementDetail>('GET', `/api/announcements/${id}`);

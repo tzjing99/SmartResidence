@@ -324,9 +324,7 @@ export class NotificationService {
         select: { userId: true },
       }),
     ]);
-    const userIds = [
-      ...new Set([...owners, ...tenants, ...household].map((r) => r.userId)),
-    ];
+    const userIds = [...new Set([...owners, ...tenants, ...household].map((r) => r.userId))];
     if (userIds.length === 0) return;
 
     await this.dispatch({

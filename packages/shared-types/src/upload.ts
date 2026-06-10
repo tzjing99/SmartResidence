@@ -157,12 +157,7 @@ export function sniffMimeType(bytes: Uint8Array): string | null {
 
   // ISO-BMFF "ftyp" box (HEIC/HEIF) — brand at bytes 8..12.
   if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
-    const brand = String.fromCharCode(
-      b[8] ?? 0,
-      b[9] ?? 0,
-      b[10] ?? 0,
-      b[11] ?? 0,
-    ).toLowerCase();
+    const brand = String.fromCharCode(b[8] ?? 0, b[9] ?? 0, b[10] ?? 0, b[11] ?? 0).toLowerCase();
     const heicBrands = new Set([
       'heic',
       'heix',

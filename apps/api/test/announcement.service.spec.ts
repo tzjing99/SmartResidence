@@ -24,9 +24,7 @@ function service() {
     ownership: { findMany: vi.fn() },
     tenancy: { findMany: vi.fn() },
     householdMember: { findMany: vi.fn() },
-    $transaction: vi.fn((ops: unknown) =>
-      Array.isArray(ops) ? Promise.all(ops) : ops(prisma),
-    ),
+    $transaction: vi.fn((ops: unknown) => (Array.isArray(ops) ? Promise.all(ops) : ops(prisma))),
   };
   return { svc: new AnnouncementService(prisma, events), prisma, events };
 }
@@ -122,7 +120,10 @@ describe('AnnouncementService', () => {
     });
 
     await expect(
-      svc.update(manager, 'a1', { audienceScope: AnnouncementAudienceScope.UNITS, unitIds: ['unit1'] }),
+      svc.update(manager, 'a1', {
+        audienceScope: AnnouncementAudienceScope.UNITS,
+        unitIds: ['unit1'],
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 

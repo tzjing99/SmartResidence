@@ -1,7 +1,7 @@
 import {
+  type AnnouncementSummary,
   useCondoAnnouncements,
   useMyCondos,
-  type AnnouncementSummary,
 } from '@smartresidence/api-client';
 import {
   AlignRow,
@@ -18,8 +18,8 @@ import { type Href, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import {
-  ResidentScreen,
   RESIDENT_CORAL,
+  ResidentScreen,
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
@@ -55,7 +55,9 @@ export default function AnnouncementsScreen() {
       eyebrow="Announcements"
       title="Building news"
       subtitle={
-        unread > 0 ? `${unread} unread announcement${unread === 1 ? '' : 's'}` : 'Updates from management'
+        unread > 0
+          ? `${unread} unread announcement${unread === 1 ? '' : 's'}`
+          : 'Updates from management'
       }
       scrollProps={{ refreshControl }}
     >
@@ -109,10 +111,12 @@ function AnnouncementRow({
                 {item.title}
               </AppText>
               <MetaLine
-                parts={[
-                  item.publishedAt ? new Date(item.publishedAt).toLocaleString() : 'Recently',
-                  item.pinned ? 'Pinned' : null,
-                ].filter(Boolean) as string[]}
+                parts={
+                  [
+                    item.publishedAt ? new Date(item.publishedAt).toLocaleString() : 'Recently',
+                    item.pinned ? 'Pinned' : null,
+                  ].filter(Boolean) as string[]
+                }
               />
               <AlignRow gap={8} style={{ flexWrap: 'wrap', marginTop: 4 }}>
                 <Pill tone="neutral" label={CATEGORY_LABEL[item.category] ?? item.category} />

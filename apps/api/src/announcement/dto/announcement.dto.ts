@@ -1,6 +1,10 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AnnouncementAudienceScope, AnnouncementCategory, AnnouncementImportance } from '@prisma/client';
 import { PaginationDto } from '@/common/dto/pagination.dto';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  AnnouncementAudienceScope,
+  AnnouncementCategory,
+  AnnouncementImportance,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -162,7 +166,9 @@ export class UpdateAnnouncementDto {
   @IsUUID('4', { each: true })
   attachmentIds?: string[];
 
-  @ApiPropertyOptional({ description: 'Re-send notifications after editing a published announcement' })
+  @ApiPropertyOptional({
+    description: 'Re-send notifications after editing a published announcement',
+  })
   @IsOptional()
   @IsBoolean()
   republish?: boolean;

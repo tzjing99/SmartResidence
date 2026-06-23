@@ -1,16 +1,22 @@
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AnnouncementImportance } from '@prisma/client';
-import { Type } from 'class-transformer';
 import {
+  AnnouncementAudienceScope,
+  AnnouncementCategory,
+  AnnouncementImportance,
+} from '@prisma/client';
+import { Type, Transform } from 'class-transformer';
+import {
+  IsArray,
   IsBoolean,
   IsDate,
   IsEnum,
-  IsObject,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateAnnouncementDto {
@@ -24,8 +30,9 @@ export class CreateAnnouncementDto {
   @MaxLength(200)
   title!: string;
 
-  @ApiProperty({ description: 'Markdown body' })
+  @ApiProperty({ description: 'Markdown summary — what residents need to know' })
   @IsString()
+  @MinLength(1)
   body!: string;
 
   @ApiPropertyOptional({ enum: AnnouncementImportance })
@@ -33,10 +40,27 @@ export class CreateAnnouncementDto {
   @IsEnum(AnnouncementImportance)
   importance?: AnnouncementImportance;
 
-  @ApiPropertyOptional({ description: 'Audience filter (e.g. { blocks: ["A"] })' })
+  @ApiPropertyOptional({ enum: AnnouncementCategory })
   @IsOptional()
-  @IsObject()
-  audience?: Record<string, unknown>;
+  @IsEnum(AnnouncementCategory)
+  category?: AnnouncementCategory;
+
+  @ApiPropertyOptional({ enum: AnnouncementAudienceScope, default: AnnouncementAudienceScope.CONDO })
+  @IsOptional()
+  @IsEnum(AnnouncementAudienceScope)
+  audienceScope?: AnnouncementAudienceScope;
+
+  @ApiPropertyOptional({ type: [String], description: 'Required when audienceScope is BLOCKS' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  blockIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], description: 'Required when audienceScope is UNITS' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  unitIds?: string[];
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
@@ -54,6 +78,39 @@ export class CreateAnnouncementDto {
   @IsOptional()
   @IsBoolean()
   requiresAck?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  pinned?: boolean;
+
+  @ApiPropertyOptional({ description: 'Pre-uploaded attachment ids (PDF memo and/or images)', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  attachmentIds?: string[];
+}
+
+export class ListAnnouncementsQueryDto extends PaginationDto {
+  @ApiPropertyOptional({ description: 'Include drafts and unpublished (management only)' })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  manage?: boolean;
+}
+
+export class UpdateAnnouncementDto {
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'Set to null to unpublish (revert to draft); a date to publish/schedule',
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @Type(() => Date)
+  @IsDate()
+  publishedAt?: Date | null;
 
   @ApiPropertyOptional()
   @IsOptional()

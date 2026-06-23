@@ -62,6 +62,12 @@ export default function ResidentTabsLayout() {
           }}
         />
         <Tabs.Screen
+          name="announcements"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="settings"
           options={{
             title: 'Settings',

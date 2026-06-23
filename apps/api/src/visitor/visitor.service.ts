@@ -212,16 +212,15 @@ export class VisitorService {
     ]);
   }
 
-  /** Walk-ins are record-only — auto check-out at end of condo calendar day (no guard action). */
-  private async autoCloseStaleWalkIns(condoId: string, now = new Date()) {
+  /** Walk-ins and day visits auto check-out at end of condo calendar day (no guard action). */
+  async autoCloseStaleVisitors(condoId: string, now = new Date()): Promise<number> {
     const tz = await this.condoTimezone(condoId);
-    const { start } = condoDayBounds(tz, now);
-    const stale = await this.prisma.visitor.findMany({
+    const { start: dayStart } = condoDayBounds(tz, now);
+    const open = await this.prisma.visitor.findMany({
       where: {
         condoId,
-        visitType: { in: [VisitorVisitType.WALKIN_UNIT, VisitorVisitType.WALKIN_OFFICE] },
         status: VisitorStatus.CHECKED_IN,
-        checkIns: { some: { checkOutAt: null, checkInAt: { lt: start } } },
+        checkIns: { some: { checkOutAt: null } },
       },
       include: {
         checkIns: {
@@ -231,19 +230,65 @@ export class VisitorService {
         },
       },
     });
-    for (const visitor of stale ?? []) {
+
+    let closed = 0;
+    for (const visitor of open) {
       const active = visitor.checkIns[0];
       if (!active) continue;
+      const closeAt = this.resolveAutoCloseAt(visitor, active.checkInAt, dayStart, now);
+      if (!closeAt) continue;
+
       await this.prisma.visitorCheckIn.update({
         where: { id: active.id },
-        data: { checkOutAt: start },
+        data: { checkOutAt: closeAt, checkOutGuardId: null },
       });
       await this.prisma.visitor.update({
         where: { id: visitor.id },
         data: { status: VisitorStatus.CHECKED_OUT },
       });
-      this.events.emit('visitor.checked_out', { visitorId: visitor.id, condoId });
+      this.events.emit('visitor.checked_out', {
+        visitorId: visitor.id,
+        condoId,
+        auto: true,
+      });
+      closed++;
     }
+    return closed;
+  }
+
+  /** @deprecated Use autoCloseStaleVisitors — kept as alias for internal callers. */
+  private async autoCloseStaleWalkIns(condoId: string, now = new Date()) {
+    await this.autoCloseStaleVisitors(condoId, now);
+  }
+
+  /**
+   * When to system-close an open check-in. Returns null if the visit should stay open.
+   * Overnight pre-reg may span midnight until expiresAt; walk-ins always close at day boundary.
+   */
+  private resolveAutoCloseAt(
+    visitor: {
+      visitType: VisitorVisitType;
+      overnight: boolean;
+      expiresAt: Date | null;
+    },
+    checkInAt: Date,
+    dayStart: Date,
+    now: Date,
+  ): Date | null {
+    const isWalkIn =
+      visitor.visitType === VisitorVisitType.WALKIN_UNIT ||
+      visitor.visitType === VisitorVisitType.WALKIN_OFFICE;
+
+    if (isWalkIn) {
+      return checkInAt < dayStart ? dayStart : null;
+    }
+
+    if (visitor.overnight) {
+      if (visitor.expiresAt && visitor.expiresAt > now) return null;
+      if (visitor.expiresAt && visitor.expiresAt <= now) return visitor.expiresAt;
+    }
+
+    return checkInAt < dayStart ? dayStart : null;
   }
 
   private async countOvernightSlots(condoId: string, expectedAt: Date): Promise<number> {
@@ -523,6 +568,14 @@ export class VisitorService {
     if (!unit) throw new NotFoundException('Unit not found in this condo');
 
     const settings = parseCondoVisitorSettings(unit.condo.settings);
+    // Guard on-site discretion: admit the walk-in immediately, bypassing the
+    // owner pre-registration/approval step regardless of condo policy. The guard
+    // takes accountability — recorded against their user id + an owner heads-up.
+    if (dto.admitNow) {
+      return this.createWalkInUnitImmediateCheckIn(guard, condoId, unit.id, dto, {
+        guardAdmitted: true,
+      });
+    }
     if (!settings.walkInRequireOwnerApproval) {
       return this.createWalkInUnitImmediateCheckIn(guard, condoId, unit.id, dto);
     }
@@ -713,13 +766,33 @@ export class VisitorService {
     return { visitorId, ownerContacts };
   }
 
+  /**
+   * Record an immediate unit walk-in check-in (no QR pass, no owner wait).
+   * Two callers:
+   * - condo policy has owner approval disabled (`walkInRequireOwnerApproval=false`)
+   * - guard on-site discretion (`opts.guardAdmitted`) — the guard admits a
+   *   visitor (e.g. a contractor) on the spot regardless of policy, takes
+   *   accountability (`admittedByGuardUserId`), and the unit owner gets a
+   *   transparency heads-up notification.
+   */
   private async createWalkInUnitImmediateCheckIn(
     guard: AuthenticatedUser,
     condoId: string,
     unitId: string,
     dto: CreateWalkInUnitDto,
+    opts: { guardAdmitted?: boolean } = {},
   ) {
+    const guardAdmitted = opts.guardAdmitted === true;
+    const photoUrl = dto.photoUrl?.trim() || undefined;
     const phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
+    const now = new Date();
+    const purposeNote = dto.purpose?.trim() ? `Purpose: ${dto.purpose.trim()}` : null;
+    const checkInNote = guardAdmitted
+      ? ['Walk-in admitted at gate by guard (on-site discretion)', purposeNote]
+          .filter(Boolean)
+          .join(' · ')
+      : purposeNote;
+
     const visitor = await this.prisma.$transaction(async (tx) => {
       const v = await tx.visitor.create({
         data: {
@@ -732,12 +805,23 @@ export class VisitorService {
           vehiclePlate: dto.vehiclePlate,
           purpose: this.mapWalkInPurpose(dto.purpose),
           overnight: false,
-          expectedAt: new Date(),
+          expectedAt: now,
           status: VisitorStatus.CHECKED_IN,
+          ...(guardAdmitted
+            ? { admittedByGuardUserId: guard.id, approvedByUserId: guard.id, approvedAt: now }
+            : {}),
           metadata: {
             createdByGuardId: guard.id,
             singleVisit: true,
             ownerApprovalSkipped: true,
+            ...(guardAdmitted
+              ? {
+                  admissionSource: 'GUARD_WALK_IN',
+                  admittedByGuardId: guard.id,
+                  guardAdmittedAt: now.toISOString(),
+                  ...(photoUrl ? { admitPhotoUrl: photoUrl } : {}),
+                }
+              : {}),
           },
         },
       });
@@ -746,7 +830,7 @@ export class VisitorService {
           visitorId: v.id,
           checkInGuardId: guard.id,
           gateLocation: 'Main gate',
-          notes: dto.purpose?.trim() ? `Purpose: ${dto.purpose.trim()}` : null,
+          notes: checkInNote,
         },
       });
       await tx.auditLog.create({
@@ -762,6 +846,9 @@ export class VisitorService {
             visitType: 'WALKIN_UNIT',
             status: 'CHECKED_IN',
             ownerApprovalSkipped: true,
+            ...(guardAdmitted
+              ? { admittedByGuard: true, admissionSource: 'GUARD_WALK_IN' }
+              : {}),
           },
         },
       });
@@ -774,13 +861,22 @@ export class VisitorService {
           action: AuditAction.CREATE,
           resourceType: 'VisitorCheckIn',
           resourceId: checkIn.id,
-          metadata: { visitType: 'WALKIN_UNIT', ownerApprovalSkipped: true },
+          metadata: {
+            visitType: 'WALKIN_UNIT',
+            ownerApprovalSkipped: true,
+            ...(guardAdmitted ? { admittedByGuard: true } : {}),
+          },
         },
       });
       return v;
     });
 
-    this.events.emit('visitor.checked_in', { visitorId: visitor.id, condoId });
+    // Guard-admitted walk-ins notify the unit owner (transparency); the
+    // policy-driven path keeps its existing checked-in event behaviour.
+    this.events.emit(guardAdmitted ? 'visitor.walk_in_admitted' : 'visitor.checked_in', {
+      visitorId: visitor.id,
+      condoId,
+    });
     return visitor;
   }
 
@@ -1291,7 +1387,7 @@ export class VisitorService {
   async listLiveForGuard(guard: AuthenticatedUser) {
     const condoId = this.guardCondoId(guard);
     await this.expireStale(condoId);
-    await this.autoCloseStaleWalkIns(condoId);
+    await this.autoCloseStaleVisitors(condoId);
     const rawItems = await this.prisma.visitor.findMany({
       where: { condoId, status: VisitorStatus.CHECKED_IN },
       include: visitorInclude,

@@ -2,6 +2,7 @@ import { isInQuietHours, parseUserPreferences } from '@/auth/user-preferences';
 import type { AppEnv } from '@/config/env.schema';
 import { PrismaService } from '@/prisma/prisma.service';
 import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
+import { resolveAnnouncementRecipientUserIds } from '@/announcement/announcement-audience';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -214,6 +215,36 @@ export class NotificationService {
     });
   }
 
+  /** Guard admitted a walk-in on the spot → notify unit owners/tenants (transparency). */
+  @OnEvent('visitor.walk_in_admitted')
+  async onWalkInAdmitted(payload: { visitorId: string }) {
+    const v = await this.prisma.visitor.findUnique({
+      where: { id: payload.visitorId },
+      include: { unit: true },
+    });
+    if (!v?.unitId) return;
+    const [owners, tenants] = await Promise.all([
+      this.prisma.ownership.findMany({
+        where: { unitId: v.unitId, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+      this.prisma.tenancy.findMany({
+        where: { unitId: v.unitId, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+    ]);
+    const userIds = [...new Set([...owners.map((o) => o.userId), ...tenants.map((t) => t.userId)])];
+    if (userIds.length === 0) return;
+    const at = v.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.VISITOR_CHECKED_IN,
+      title: `Walk-in admitted: ${v.name}`,
+      body: `The guard admitted ${v.name} to ${v.unit?.identifier ?? 'your unit'} at ${at}. No action needed — this is for your awareness.`,
+      data: { visitorId: v.id, deeplink: `smartresidence://visitors/${v.id}` },
+    });
+  }
+
   @OnEvent('visitor.approved')
   async onVisitorApproved(payload: { visitorId: string }) {
     const v = await this.prisma.visitor.findUnique({ where: { id: payload.visitorId } });
@@ -245,17 +276,55 @@ export class NotificationService {
     });
   }
 
-  /** Visitor checked in → notify host. */
+  /** Resident user ids for a unit (active owners + tenants). */
+  private async unitResidentUserIds(unitId: string): Promise<string[]> {
+    const [owners, tenants] = await Promise.all([
+      this.prisma.ownership.findMany({
+        where: { unitId, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+      this.prisma.tenancy.findMany({
+        where: { unitId, status: 'ACTIVE' },
+        select: { userId: true },
+      }),
+    ]);
+    return [...new Set([...owners.map((o) => o.userId), ...tenants.map((t) => t.userId)])];
+  }
+
+  /** Visitor checked in at gate → push notify unit residents (and host if set). */
   @OnEvent('visitor.checked_in')
   async onVisitorCheckedIn(payload: { visitorId: string }) {
-    const v = await this.prisma.visitor.findUnique({ where: { id: payload.visitorId } });
-    if (!v?.hostUserId) return;
+    const v = await this.prisma.visitor.findUnique({
+      where: { id: payload.visitorId },
+      include: {
+        unit: { select: { identifier: true } },
+        condo: { select: { timezone: true } },
+        checkIns: { orderBy: { checkInAt: 'desc' }, take: 1 },
+      },
+    });
+    if (!v) return;
+
+    const userIds = new Set<string>();
+    if (v.hostUserId) userIds.add(v.hostUserId);
+    if (v.unitId) {
+      for (const id of await this.unitResidentUserIds(v.unitId)) {
+        userIds.add(id);
+      }
+    }
+    if (userIds.size === 0) return;
+
+    const tz = v.condo?.timezone ?? 'Asia/Kuala_Lumpur';
+    const checkedInAt = v.checkIns[0]?.checkInAt ?? new Date();
+    const timeLabel = checkedInAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const unitPart = v.unit?.identifier ? ` · ${v.unit.identifier}` : '';
+
     await this.dispatch({
-      userIds: [v.hostUserId],
+      userIds: [...userIds],
       kind: NotificationKind.VISITOR_CHECKED_IN,
-      title: `${v.name} arrived`,
-      body: 'Your visitor was checked in by the guard.',
-      data: { visitorId: v.id },
+      title: `${v.name} arrived at the gate`,
+      body: `Checked in at ${timeLabel}${unitPart}.`,
+      data: { visitorId: v.id, deeplink: `smartresidence://visitors/${v.id}` },
+      timeZone: tz,
     });
   }
 
@@ -281,14 +350,18 @@ export class NotificationService {
 
   @OnEvent('announcement.published')
   async onAnnouncement(payload: { announcementId: string; condoId: string }) {
-    const a = await this.prisma.announcement.findUnique({ where: { id: payload.announcementId } });
-    if (!a) return;
-    const audience = await this.prisma.roleAssignment.findMany({
-      where: { condoId: payload.condoId, revokedAt: null },
-      select: { userId: true },
+    const a = await this.prisma.announcement.findUnique({
+      where: { id: payload.announcementId },
+      include: {
+        blocks: { select: { blockId: true } },
+        units: { select: { unitId: true } },
+      },
     });
+    if (!a) return;
+    const userIds = await resolveAnnouncementRecipientUserIds(this.prisma, a, payload.condoId);
+    if (userIds.length === 0) return;
     await this.dispatch({
-      userIds: Array.from(new Set(audience.map((r) => r.userId))),
+      userIds,
       kind: NotificationKind.ANNOUNCEMENT,
       title: a.title,
       body: a.body.slice(0, 140),

@@ -21,6 +21,12 @@ export type AllowedImageMimeType = (typeof ALLOWED_IMAGE_MIME_TYPES)[number];
 /** Maximum size for a single uploaded file (15 MB). */
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
+/** Maximum size for a PDF memo upload (25 MB). */
+export const MAX_DOCUMENT_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+export const ALLOWED_DOCUMENT_MIME_TYPES = ['application/pdf'] as const;
+export type AllowedDocumentMimeType = (typeof ALLOWED_DOCUMENT_MIME_TYPES)[number];
+
 /** How many attachments a single message / form may carry. */
 export const MAX_ATTACHMENTS_PER_MESSAGE = 6;
 
@@ -42,9 +48,23 @@ export type AttachmentStatus = 'PENDING' | 'COMMITTED';
 /** HTML `accept` value for native file inputs (web). */
 export const IMAGE_ACCEPT_ATTR = 'image/*,.heic,.heif';
 
+/** HTML `accept` value for PDF memo uploads. */
+export const DOCUMENT_ACCEPT_ATTR = 'application/pdf,.pdf';
+
 export function isAllowedImageMime(mime: string | null | undefined): mime is AllowedImageMimeType {
   if (!mime) return false;
   return (ALLOWED_IMAGE_MIME_TYPES as readonly string[]).includes(mime.toLowerCase());
+}
+
+export function isAllowedDocumentMime(
+  mime: string | null | undefined,
+): mime is AllowedDocumentMimeType {
+  if (!mime) return false;
+  return (ALLOWED_DOCUMENT_MIME_TYPES as readonly string[]).includes(mime.toLowerCase());
+}
+
+export function isPdfMime(mime: string | null | undefined): boolean {
+  return isAllowedDocumentMime(mime);
 }
 
 export function isHeic(mime: string | null | undefined): boolean {

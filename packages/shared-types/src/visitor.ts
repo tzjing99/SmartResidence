@@ -204,6 +204,14 @@ export const CreateWalkInUnitSchema = z.object({
   phone: MalaysiaPhoneSchema,
   vehiclePlate: z.string().max(20).optional(),
   purpose: z.string().max(200).optional(),
+  /**
+   * Guard on-site discretion: admit the walk-in immediately (checked-in) without
+   * owner pre-registration/approval, regardless of condo walk-in policy. The
+   * admission is recorded against the guard and the unit owner is notified.
+   */
+  admitNow: z.boolean().optional(),
+  /** Optional S3 object key (from attachments presign) of a visitor photo. */
+  photoUrl: z.string().max(500).optional(),
 });
 export type CreateWalkInUnitInput = z.infer<typeof CreateWalkInUnitSchema>;
 
@@ -287,6 +295,8 @@ export const VisitorSchema = z.object({
   approvalDeadline: z.coerce.date().nullable().optional(),
   status: VisitorStatus,
   approvedAt: z.coerce.date().nullable().optional(),
+  /** Guard who admitted a walk-in on the spot at the gate (on-site discretion). */
+  admittedByGuardUserId: z.string().uuid().nullable().optional(),
   cancelledAt: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),

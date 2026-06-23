@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,8 +16,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { AttachmentOwner, AttachmentStatus } from '@prisma/client';
 import {
+  MAX_DOCUMENT_UPLOAD_BYTES,
   MAX_UPLOAD_BYTES,
   type UploadResponse,
+  isAllowedDocumentMime,
   isAllowedImageMime,
   sanitizeFileName,
 } from '@smartresidence/shared-types';
@@ -53,7 +56,7 @@ export class UploadsController {
         destination: tmpdir(),
         filename: (_req, _file, cb) => cb(null, `sr-upload-${Date.now()}-${nanoid(10)}`),
       }),
-      limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
+      limits: { fileSize: MAX_DOCUMENT_UPLOAD_BYTES, files: 1 },
     }),
   )
   async upload(
@@ -64,6 +67,46 @@ export class UploadsController {
 
     const tempPath = file.path ?? join(tmpdir(), file.filename);
     try {
+      if (isAllowedDocumentMime(file.mimetype)) {
+        if (file.size > MAX_DOCUMENT_UPLOAD_BYTES) {
+          throw new BadRequestException('PDF is too large (max 25 MB).');
+        }
+        const buffer = await readFile(tempPath);
+        const safeName = sanitizeFileName(file.originalname);
+        const prefix = `uploads/${user.id}/${Date.now()}-${nanoid(8)}`;
+        const fullKey = `${prefix}-${safeName.replace(/\.pdf$/i, '')}.pdf`;
+
+        await this.storage.putObject({
+          key: fullKey,
+          body: buffer,
+          contentType: 'application/pdf',
+        });
+
+        const attachment = await this.prisma.attachment.create({
+          data: {
+            bucket: this.storage.bucketName(),
+            key: fullKey,
+            mimeType: 'application/pdf',
+            size: buffer.length,
+            status: AttachmentStatus.PENDING,
+            ownerKind: AttachmentOwner.GENERIC,
+            uploadedByUserId: user.id,
+            metadata: { fileName: file.originalname },
+          },
+        });
+
+        return {
+          attachmentId: attachment.id,
+          key: attachment.key,
+          thumbnailKey: null,
+          mimeType: attachment.mimeType,
+          size: attachment.size,
+          width: null,
+          height: null,
+          status: 'PENDING',
+        };
+      }
+
       if (!isAllowedImageMime(file.mimetype)) {
         throw new BadRequestException(`Unsupported file type: ${file.mimetype}`);
       }

@@ -1,9 +1,11 @@
 'use client';
 
 import type {
+  CreateAnnouncementInput,
   CreateDefectInput,
   CreateFavouriteVisitorInput,
   CreateVisitorInput,
+  UpdateAnnouncementInput,
 } from '@smartresidence/shared-types';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
@@ -208,6 +210,16 @@ export function useGuardApproveWalkIn(api: ApiClient) {
   });
 }
 
+export function useAdmitWalkInUnit(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      input: Omit<import('@smartresidence/shared-types').CreateWalkInUnitInput, 'admitNow'>,
+    ) => api.admitWalkInUnit(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
+  });
+}
+
 export function useGuardAcknowledgeWalkIn(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
@@ -331,12 +343,70 @@ export function useTransitionDefect(api: ApiClient) {
   });
 }
 
-export function useCondoAnnouncements(api: ApiClient, condoId: string | null) {
+export function useCondoAnnouncements(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { manage?: boolean } = {},
+) {
   return useQuery({
-    queryKey: condoId ? queryKeys.condoAnnouncements(condoId) : ['announcements', 'condo', null],
+    queryKey: condoId
+      ? [...queryKeys.condoAnnouncements(condoId), opts.manage ? 'manage' : 'resident']
+      : ['announcements', 'condo', null],
     queryFn: () =>
-      condoId ? api.announcementsForCondo(condoId) : Promise.resolve({ items: [], total: 0 }),
+      condoId
+        ? api.announcementsForCondo(condoId, { manage: opts.manage })
+        : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId),
+  });
+}
+
+export function useAnnouncement(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? ['announcements', id] : ['announcements', null],
+    queryFn: () => (id ? api.announcement(id) : Promise.reject(new Error('No id'))),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateAnnouncement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateAnnouncementInput) => api.createAnnouncement(input),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['announcements'] });
+      qc.setQueryData(['announcements', data.id], data);
+    },
+  });
+}
+
+export function useUpdateAnnouncement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateAnnouncementInput }) =>
+      api.updateAnnouncement(vars.id, vars.data),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['announcements'] });
+      if (data?.id) qc.setQueryData(['announcements', data.id], data);
+    },
+  });
+}
+
+export function useDeleteAnnouncement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteAnnouncement(id),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ['announcements'] });
+      qc.removeQueries({ queryKey: ['announcements', id] });
+    },
+  });
+}
+
+export function useMarkAnnouncementRead(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.markAnnouncementRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
   });
 }
 
@@ -345,6 +415,28 @@ export function useAckAnnouncement(api: ApiClient) {
   return useMutation({
     mutationFn: (id: string) => api.ackAnnouncement(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+  });
+}
+
+export function useCondoBlocks(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? ['blocks', condoId] : ['blocks', null],
+    queryFn: () => api.listBlocks(condoId!),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useCondoUnitsSearch(
+  api: ApiClient,
+  condoId: string | null,
+  search: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: condoId ? ['units', condoId, search] : ['units', null],
+    queryFn: () =>
+      api.listUnits(condoId!, { limit: 50, offset: 0, search: search.trim() || undefined }),
+    enabled: Boolean(condoId) && enabled,
   });
 }
 

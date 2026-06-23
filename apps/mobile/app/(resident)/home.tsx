@@ -78,7 +78,7 @@ export default function HomeScreen() {
     (d) => d.status !== 'CLOSED' && d.status !== 'RESOLVED',
   ).length;
   const openThreads = countOpenThreads(threads.data?.items);
-  const announcement = (announcements.data?.items as any[] | undefined)?.[0];
+  const announcement = announcements.data?.items?.[0];
   const hasRoomForColumns = width >= 380;
   const actionWidth: DimensionValue = hasRoomForColumns ? '48%' : '100%';
   const bottomPadding = Math.max(insets.bottom, 16) + 84;
@@ -248,27 +248,34 @@ export default function HomeScreen() {
         )}
       </Card>
 
-      <Card style={styles.noticeCard}>
-        <View style={styles.noticeIcon}>
-          <Ionicons name="megaphone-outline" size={18} color={CORAL} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText variant="meta" style={styles.cardMeta}>
-            Latest announcement
-          </AppText>
-          <AppText numberOfLines={2} style={styles.noticeTitle}>
-            {announcement?.title ?? 'No announcements yet.'}
-          </AppText>
-          {announcement?.importance && announcement.importance !== 'INFO' ? (
-            <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-              <Pill
-                tone={announcement.importance === 'URGENT' ? 'danger' : 'warning'}
-                label={announcement.importance.toLowerCase()}
-              />
-            </View>
-          ) : null}
-        </View>
-      </Card>
+      <AnimatedPressable onPress={() => router.push('/(resident)/announcements' as Href)}>
+        <Card style={styles.noticeCard}>
+          <View style={styles.noticeIcon}>
+            <Ionicons name="megaphone-outline" size={18} color={CORAL} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText variant="meta" style={styles.cardMeta}>
+              Latest announcement
+            </AppText>
+            <AppText numberOfLines={2} style={styles.noticeTitle}>
+              {announcement?.title ?? 'No announcements yet.'}
+            </AppText>
+            {announcement?.importance && announcement.importance !== 'INFO' ? (
+              <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                <Pill
+                  tone={announcement.importance === 'URGENT' ? 'danger' : 'warning'}
+                  label={announcement.importance.toLowerCase()}
+                />
+              </View>
+            ) : null}
+            {announcement && !announcement.readByMe ? (
+              <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
+                <Pill tone="primary" label="new" />
+              </View>
+            ) : null}
+          </View>
+        </Card>
+      </AnimatedPressable>
     </ScrollView>
   );
 }

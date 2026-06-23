@@ -640,6 +640,67 @@ describe('VisitorService', () => {
     expect(events.emit).not.toHaveBeenCalledWith('visitor.walk_in_requested', expect.any(Object));
   });
 
+  it('admits unit walk-in on the spot by guard discretion, overriding owner-approval policy', async () => {
+    const { svc, prisma, events } = service();
+    prisma.unit.findFirst.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      // Policy requires owner approval — guard discretion must override it.
+      condo: { settings: { visitor: { walkInRequireOwnerApproval: true } } },
+    });
+    prisma.visitor.create.mockResolvedValueOnce({
+      id: 'v-admit',
+      status: 'CHECKED_IN',
+      visitType: 'WALKIN_UNIT',
+      unitId: 'u1',
+    });
+    prisma.visitorCheckIn.create.mockResolvedValueOnce({ id: 'ci-admit' });
+    const v = await svc.createWalkInUnit(guard, {
+      unitId: 'u1',
+      name: 'Reno Contractor',
+      phone: '+60123456789',
+      purpose: 'Renovation',
+      admitNow: true,
+      photoUrl: 'uploads/walk-in.jpg',
+    } as any);
+    expect(v.status).toBe('CHECKED_IN');
+    // Attribution: recorded against the guard + admission source in metadata.
+    expect(prisma.visitor.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'CHECKED_IN',
+          admittedByGuardUserId: 'guard-user',
+          approvedByUserId: 'guard-user',
+          metadata: expect.objectContaining({
+            admissionSource: 'GUARD_WALK_IN',
+            admitPhotoUrl: 'uploads/walk-in.jpg',
+          }),
+        }),
+      }),
+    );
+    expect(prisma.visitorCheckIn.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ checkInGuardId: 'guard-user' }),
+      }),
+    );
+    // Owner gets a transparency notification (not the approval-request flow).
+    expect(events.emit).toHaveBeenCalledWith('visitor.walk_in_admitted', expect.any(Object));
+    expect(events.emit).not.toHaveBeenCalledWith('visitor.walk_in_requested', expect.any(Object));
+  });
+
+  it('rejects overnight on guard-admitted walk-in', async () => {
+    const { svc } = service();
+    await expect(
+      svc.createWalkInUnit(guard, {
+        unitId: 'u1',
+        name: 'Bob',
+        phone: '+60123456789',
+        admitNow: true,
+        overnight: true,
+      } as any),
+    ).rejects.toThrow(/walk-in/i);
+  });
+
   it('lets owner approve walk-in and sets expiry window', async () => {
     const { svc, prisma, events } = service();
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
@@ -1107,6 +1168,62 @@ describe('VisitorService', () => {
     });
     await expect(svc.checkOut('v-walk', guard)).rejects.toThrow(/close automatically/i);
     expect(prisma.visitorCheckIn.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('auto-closes stale day pre-reg visitors at condo day boundary', async () => {
+    const { svc, prisma, events } = service();
+    const yesterday = new Date('2026-06-07T14:00:00Z');
+    prisma.condo.findUnique.mockResolvedValue({ timezone: 'Asia/Kuala_Lumpur' });
+    prisma.visitor.findMany.mockResolvedValueOnce([
+      {
+        id: 'v-stale',
+        condoId: 'c1',
+        visitType: 'PRE_REG',
+        overnight: false,
+        expiresAt: null,
+        checkIns: [{ id: 'ci-1', checkInAt: yesterday, checkOutAt: null }],
+      },
+    ]);
+    prisma.visitorCheckIn.update.mockResolvedValue({});
+    prisma.visitor.update.mockResolvedValue({});
+
+    const closed = await svc.autoCloseStaleVisitors('c1', new Date('2026-06-08T10:00:00Z'));
+    expect(closed).toBe(1);
+    expect(prisma.visitor.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'v-stale' },
+        data: { status: 'CHECKED_OUT' },
+      }),
+    );
+    expect(events.emit).toHaveBeenCalledWith(
+      'visitor.checked_out',
+      expect.objectContaining({ visitorId: 'v-stale', condoId: 'c1', auto: true }),
+    );
+  });
+
+  it('keeps overnight pre-reg open until expiresAt', async () => {
+    const { svc, prisma, events } = service();
+    const yesterday = new Date('2026-06-07T20:00:00Z');
+    const tomorrow = new Date('2026-06-09T06:00:00Z');
+    prisma.condo.findUnique.mockResolvedValue({ timezone: 'Asia/Kuala_Lumpur' });
+    prisma.visitor.findMany.mockResolvedValueOnce([
+      {
+        id: 'v-overnight',
+        condoId: 'c1',
+        visitType: 'PRE_REG',
+        overnight: true,
+        expiresAt: tomorrow,
+        checkIns: [{ id: 'ci-2', checkInAt: yesterday, checkOutAt: null }],
+      },
+    ]);
+
+    const closed = await svc.autoCloseStaleVisitors('c1', new Date('2026-06-08T10:00:00Z'));
+    expect(closed).toBe(0);
+    expect(prisma.visitorCheckIn.update).not.toHaveBeenCalled();
+    expect(events.emit).not.toHaveBeenCalledWith(
+      'visitor.checked_out',
+      expect.objectContaining({ visitorId: 'v-overnight' }),
+    );
   });
 
   it('acknowledges owner-approved unit walk-in without a pass', async () => {

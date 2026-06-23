@@ -48,6 +48,14 @@ export class TenantService {
     return { items, total, limit: opts.limit, offset: opts.offset };
   }
 
+  async listBlocks(condoId: string) {
+    return this.prisma.block.findMany({
+      where: { condoId },
+      orderBy: { position: 'asc' },
+      select: { id: true, name: true, position: true },
+    });
+  }
+
   async getMyUnits(user: AuthenticatedUser) {
     const unitIds = Array.from(
       new Set(user.roles.map((r) => r.unitId).filter(Boolean) as string[]),

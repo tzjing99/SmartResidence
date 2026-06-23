@@ -313,6 +313,22 @@ export class CreateWalkInUnitDto {
   @IsString()
   @MaxLength(200)
   purpose?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Guard on-site discretion: admit the walk-in immediately (CHECKED_IN) without owner pre-registration or approval, regardless of condo walk-in policy. Recorded against the guard.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  admitNow?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Optional S3 object key (from attachments presign) of a visitor photo',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  photoUrl?: string;
 }
 
 export class CreateWalkInOfficeDto {

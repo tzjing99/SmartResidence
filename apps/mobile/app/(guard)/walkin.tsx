@@ -14,6 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Alert, Linking, StyleSheet, TextInput, View } from 'react-native';
 import {
@@ -29,6 +31,21 @@ import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
 type Tab = 'unit' | 'office';
+
+async function uploadVisitorPhoto(uri: string): Promise<string> {
+  const presign = await api.presignAttachment({
+    contentType: 'image/jpeg',
+    fileName: 'walk-in.jpg',
+  });
+  const blob = await fetch(uri).then((r) => r.blob());
+  const res = await fetch(presign.url, {
+    method: 'PUT',
+    body: blob,
+    headers: { 'Content-Type': 'image/jpeg' },
+  });
+  if (!res.ok) throw new Error('Failed to upload visitor photo');
+  return presign.key;
+}
 
 function callPhone(phone: string, label: string, phoneCountryCode?: string | null) {
   const href = malaysiaPhoneTelHref(phone, phoneCountryCode);
@@ -64,6 +81,9 @@ export default function WalkInScreen() {
   const [purpose, setPurpose] = useState('');
   const [busy, setBusy] = useState(false);
   const [pendingVisitor, setPendingVisitor] = useState<Visitor | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [photoKey, setPhotoKey] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const approveWalkIn = useGuardApproveWalkIn(api);
 
   const pendingWalkIns = useQuery({
@@ -137,16 +157,87 @@ export default function WalkInScreen() {
         );
         setPendingVisitor(visitor);
       }
-      setName('');
-      setPhone('');
-      setPurpose('');
-      setUnit(null);
+      resetForm();
       pendingWalkIns.refetch();
     } catch (err) {
       Alert.alert('Could not register', (err as Error).message);
     } finally {
       setBusy(false);
     }
+  }
+
+  function resetForm() {
+    setName('');
+    setPhone('');
+    setPurpose('');
+    setUnit(null);
+    setPhotoUri(null);
+    setPhotoKey(null);
+  }
+
+  async function capturePhoto() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (perm.status !== 'granted') {
+      Alert.alert('Camera permission needed', 'Allow camera access to capture a visitor photo.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    const uri = result.assets[0].uri;
+    setPhotoUri(uri);
+    setUploadingPhoto(true);
+    try {
+      const key = await uploadVisitorPhoto(uri);
+      setPhotoKey(key);
+    } catch (err) {
+      setPhotoUri(null);
+      Alert.alert('Upload failed', (err as Error).message);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function submitAdmitNow() {
+    if (!unit?.id || !name.trim()) {
+      Alert.alert('Unit required', 'Search and select the unit the visitor is going to.');
+      return;
+    }
+    if (!validatePhone()) return;
+    if (uploadingPhoto) {
+      Alert.alert('Photo uploading', 'Wait for the visitor photo to finish uploading.');
+      return;
+    }
+    const run = async () => {
+      setBusy(true);
+      try {
+        await api.admitWalkInUnit({
+          unitId: unit.id,
+          name: name.trim(),
+          phone: phone.trim(),
+          purpose: purpose || undefined,
+          photoUrl: photoKey ?? undefined,
+        });
+        Alert.alert('Admitted', `${name.trim()} admitted and checked in. The owner was notified.`);
+        setPendingVisitor(null);
+        resetForm();
+        pendingWalkIns.refetch();
+      } catch (err) {
+        Alert.alert('Could not admit', (err as Error).message);
+      } finally {
+        setBusy(false);
+      }
+    };
+    Alert.alert(
+      'Admit without owner approval?',
+      `You're admitting ${name.trim()} on your own authority — no owner approval. They'll be checked in immediately and recorded against your name. The owner will be notified.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Admit & check in', onPress: run },
+      ],
+    );
   }
 
   async function submitOffice() {
@@ -285,9 +376,28 @@ export default function WalkInScreen() {
                   <TextInput
                     value={purpose}
                     onChangeText={setPurpose}
-                    placeholder="Optional visiting reason"
+                    placeholder="e.g. Contractor / renovation"
                     placeholderTextColor={palette.mutedLight}
                     style={inputStyle}
+                  />
+                </View>
+                <View style={styles.fieldGroup}>
+                  <AppText style={styles.fieldLabel}>Visitor photo (optional)</AppText>
+                  {photoUri ? (
+                    <Image source={{ uri: photoUri }} style={styles.photoPreview} contentFit="cover" />
+                  ) : null}
+                  <Button
+                    title={
+                      uploadingPhoto
+                        ? 'Uploading...'
+                        : photoKey
+                          ? 'Retake photo'
+                          : 'Capture photo'
+                    }
+                    variant="soft-sky"
+                    size="sm"
+                    onPress={capturePhoto}
+                    disabled={uploadingPhoto}
                   />
                 </View>
                 <Button
@@ -301,6 +411,16 @@ export default function WalkInScreen() {
                   onPress={submitUnit}
                   loading={busy}
                 />
+                <Button
+                  title="Admit now — no owner approval"
+                  variant="secondary"
+                  onPress={submitAdmitNow}
+                  loading={busy}
+                />
+                <AppText variant="meta" style={styles.cardMeta}>
+                  Use “Admit now” for visitors you've verified (e.g. contractors) — checks them in
+                  immediately on your authority and notifies the owner. Recorded against your name.
+                </AppText>
               </>
             ) : (
               <>
@@ -546,6 +666,11 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     gap: 7,
+  },
+  photoPreview: {
+    height: 140,
+    borderRadius: radius.lg,
+    backgroundColor: palette.borderLight,
   },
   fieldLabel: {
     color: palette.textLight,

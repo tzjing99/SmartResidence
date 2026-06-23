@@ -11,11 +11,14 @@
  * `@smartresidence/shared-types`.
  */
 import type {
+  Announcement,
+  CreateAnnouncementInput,
   CreateDefectInput,
   CreateFavouriteVisitorInput,
   CreateVisitorInput,
   FavouriteVisitor,
   Invoice,
+  UpdateAnnouncementInput,
   UpdateFavouriteVisitorInput,
   UploadResponse,
   UploadedAttachment,
@@ -319,6 +322,12 @@ export class ApiClient {
       `/api/condos/${condoId}/units?${qs.toString()}`,
     );
   }
+  listBlocks(condoId: string) {
+    return this.request<Array<{ id: string; name: string; position: number }>>(
+      'GET',
+      `/api/condos/${condoId}/blocks`,
+    );
+  }
 
   // Visitors ---------------------------------------------------------
   createVisitor(input: CreateVisitorInput) {
@@ -473,6 +482,19 @@ export class ApiClient {
   createWalkInUnit(input: import('@smartresidence/shared-types').CreateWalkInUnitInput) {
     return this.request<Visitor>('POST', '/api/visitors/walk-in/unit', input);
   }
+  /**
+   * Guard admits a unit walk-in on the spot (on-site discretion): the visitor is
+   * checked in immediately without owner pre-registration/approval. Recorded
+   * against the guard; the unit owner is notified for transparency.
+   */
+  admitWalkInUnit(
+    input: Omit<import('@smartresidence/shared-types').CreateWalkInUnitInput, 'admitNow'>,
+  ) {
+    return this.request<Visitor>('POST', '/api/visitors/walk-in/unit', {
+      ...input,
+      admitNow: true,
+    });
+  }
   walkInOwnerContacts(visitorId: string) {
     return this.request<{
       visitorId: string;
@@ -550,14 +572,37 @@ export class ApiClient {
   }
 
   // Announcements ----------------------------------------------------
-  announcementsForCondo(condoId: string, params: { limit?: number; offset?: number } = {}) {
-    return this.request<{ items: unknown[]; total: number }>(
+  announcementsForCondo(
+    condoId: string,
+    params: { limit?: number; offset?: number; manage?: boolean } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    if (params.manage) qs.set('manage', 'true');
+    const query = qs.toString();
+    return this.request<{ items: Announcement[]; total: number }>(
       'GET',
-      `/api/announcements/condo/${condoId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
+      `/api/announcements/condo/${condoId}${query ? `?${query}` : ''}`,
     );
   }
+  announcement(id: string) {
+    return this.request<Announcement>('GET', `/api/announcements/${id}`);
+  }
+  createAnnouncement(input: CreateAnnouncementInput) {
+    return this.request<Announcement>('POST', '/api/announcements', input);
+  }
+  updateAnnouncement(id: string, body: UpdateAnnouncementInput) {
+    return this.request<Announcement>('PATCH', `/api/announcements/${id}`, body);
+  }
+  deleteAnnouncement(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/announcements/${id}`);
+  }
+  markAnnouncementRead(id: string) {
+    return this.request<{ ok: boolean }>('POST', `/api/announcements/${id}/read`);
+  }
   ackAnnouncement(id: string) {
-    return this.request('POST', `/api/announcements/${id}/ack`);
+    return this.request<{ ok: boolean }>('POST', `/api/announcements/${id}/ack`);
   }
 
   // Audit / transparency --------------------------------------------

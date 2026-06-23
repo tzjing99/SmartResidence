@@ -29,6 +29,12 @@ export class TenantController {
   listUnits(@Param('id', new ParseUUIDPipe()) id: string, @Query() query: ListUnitsQueryDto) {
     return this.tenant.listUnits(id, query);
   }
+
+  @Get(':id/blocks')
+  @CheckAbility({ action: 'read', subject: 'Block' })
+  listBlocks(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.tenant.listBlocks(id);
+  }
 }
 
 @ApiTags('Tenancy')

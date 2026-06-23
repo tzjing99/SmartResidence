@@ -52,6 +52,7 @@ model User {
   hostedVisitors     Visitor[]            @relation("hostUser")
   visitorPolicies    UnitVisitorPolicy[]
   approvedVisitors   Visitor[]            @relation("approverUser")
+  admittedWalkIns    Visitor[]            @relation("admittedByGuard")
   guardCheckIns      VisitorCheckIn[]     @relation("checkInGuard")
   guardCheckOuts     VisitorCheckIn[]     @relation("checkOutGuard")
   payments           Payment[]
@@ -61,6 +62,7 @@ model User {
   attachmentUploads  Attachment[]
   authoredAnnouncements Announcement[]    @relation("announcementAuthor")
   acknowledgments    AnnouncementAck[]
+  announcementReads  AnnouncementRead[]
   notifications      Notification[]
   pushSubscriptions  PushSubscription[]
   auditEvents        AuditLog[]           @relation("auditActor")
@@ -186,6 +188,7 @@ model Block {
   updatedAt DateTime @updatedAt
 
   units Unit[]
+  announcementBlocks AnnouncementBlock[]
 
   @@unique([condoId, name])
   @@index([condoId])
@@ -226,6 +229,7 @@ model Unit {
   roleAssignments  RoleAssignment[]
   auditLogs        AuditLog[]
   threads          Thread[]
+  announcementUnits AnnouncementUnit[]
 
   @@unique([condoId, identifier])
   @@index([blockId])
@@ -426,6 +430,10 @@ model Visitor {
   approvedByUserId String?       @db.Uuid
   approvedBy    User?            @relation("approverUser", fields: [approvedByUserId], references: [id])
   approvedAt    DateTime?
+  // Guard who admitted a walk-in on the spot at the gate (on-site discretion).
+  // Distinct from approvedBy (owner/management approval) for accountability.
+  admittedByGuardUserId String?  @db.Uuid
+  admittedByGuard User?          @relation("admittedByGuard", fields: [admittedByGuardUserId], references: [id])
   cancelledAt   DateTime?
   metadata      Json             @default("{}")
   createdAt     DateTime         @default(now())
@@ -693,6 +701,12 @@ enum AttachmentStatus {
   COMMITTED
 }
 
+enum TranscodeStatus {
+  PENDING
+  READY
+  FAILED
+}
+
 model Attachment {
   id             String           @id @default(uuid()) @db.Uuid
   bucket         String
@@ -712,6 +726,13 @@ model Attachment {
   defectUpdate   DefectUpdate?    @relation(fields: [defectUpdateId], references: [id], onDelete: Cascade)
   threadMessageId String?         @db.Uuid
   threadMessage  ThreadMessage?   @relation(fields: [threadMessageId], references: [id], onDelete: Cascade)
+  announcementId String?          @db.Uuid
+  announcement   Announcement?    @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  format               String?
+  fallbackKey          String?
+  fallbackMimeType     String?
+  fallbackThumbnailKey String?
+  transcodeStatus      TranscodeStatus @default(PENDING)
   metadata       Json             @default("{}")
   createdAt      DateTime         @default(now())
 
@@ -719,6 +740,7 @@ model Attachment {
   @@index([defectId])
   @@index([defectUpdateId])
   @@index([threadMessageId])
+  @@index([announcementId])
   @@index([status, createdAt])
   @@map("attachments")
 }
@@ -733,28 +755,85 @@ enum AnnouncementImportance {
   URGENT
 }
 
-model Announcement {
-  id           String                 @id @default(uuid()) @db.Uuid
-  condoId      String                 @db.Uuid
-  condo        Condo                  @relation(fields: [condoId], references: [id], onDelete: Cascade)
-  authorUserId String                 @db.Uuid
-  author       User                   @relation("announcementAuthor", fields: [authorUserId], references: [id])
-  title        String
-  body         String
-  importance   AnnouncementImportance @default(INFO)
-  audience     Json                   @default("{}")
-  publishedAt  DateTime?
-  expiresAt    DateTime?
-  requiresAck  Boolean                @default(false)
-  pinned       Boolean                @default(false)
-  metadata     Json                   @default("{}")
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+enum AnnouncementCategory {
+  NOTICE
+  DOCUMENT
+  MAINTENANCE
+}
 
-  acks AnnouncementAck[]
+enum AnnouncementAudienceScope {
+  CONDO
+  BLOCKS
+  UNITS
+}
+
+model Announcement {
+  id            String                    @id @default(uuid()) @db.Uuid
+  condoId       String                    @db.Uuid
+  condo         Condo                     @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  authorUserId  String                    @db.Uuid
+  author        User                      @relation("announcementAuthor", fields: [authorUserId], references: [id])
+  title         String
+  body          String
+  importance    AnnouncementImportance    @default(INFO)
+  category      AnnouncementCategory      @default(NOTICE)
+  audienceScope AnnouncementAudienceScope @default(CONDO)
+  audience      Json                      @default("{}")
+  publishedAt   DateTime?
+  expiresAt     DateTime?
+  requiresAck   Boolean                   @default(false)
+  pinned        Boolean                   @default(false)
+  metadata      Json                      @default("{}")
+  deletedAt     DateTime?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  acks        AnnouncementAck[]
+  reads       AnnouncementRead[]
+  blocks      AnnouncementBlock[]
+  units       AnnouncementUnit[]
+  attachments Attachment[]
 
   @@index([condoId, publishedAt])
+  @@index([condoId, category, publishedAt])
   @@map("announcements")
+}
+
+model AnnouncementRead {
+  id             String       @id @default(uuid()) @db.Uuid
+  announcementId String       @db.Uuid
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId         String       @db.Uuid
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt         DateTime     @default(now())
+
+  @@unique([announcementId, userId])
+  @@index([userId])
+  @@map("announcement_reads")
+}
+
+model AnnouncementBlock {
+  id             String       @id @default(uuid()) @db.Uuid
+  announcementId String       @db.Uuid
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  blockId        String       @db.Uuid
+  block          Block        @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, blockId])
+  @@index([blockId])
+  @@map("announcement_blocks")
+}
+
+model AnnouncementUnit {
+  id             String       @id @default(uuid()) @db.Uuid
+  announcementId String       @db.Uuid
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  unitId         String       @db.Uuid
+  unit           Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, unitId])
+  @@index([unitId])
+  @@map("announcement_units")
 }
 
 model AnnouncementAck {

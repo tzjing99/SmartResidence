@@ -19,7 +19,7 @@ import type {
   ThreadCategory,
   ThreadPriority,
 } from '@smartresidence/api-client';
-import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Input, Skeleton, Textarea } from '@smartresidence/ui-web';
 import { AlertTriangle, History, Save, Settings2, Sparkles, Users } from 'lucide-react';
 import * as React from 'react';
 
@@ -294,7 +294,7 @@ export default function HelpdeskSettingsPage() {
           <label className="text-sm font-medium" htmlFor="grace-days">
             Resolution confirmation grace period (days)
           </label>
-          <input
+          <Input
             id="grace-days"
             type="number"
             min={1}
@@ -302,7 +302,7 @@ export default function HelpdeskSettingsPage() {
             value={graceDays}
             disabled={!canEdit}
             onChange={(e) => setGraceDays(Number(e.target.value))}
-            className="h-10 w-32 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm"
+            className="h-10 w-32"
           />
           <p className="text-xs sr-muted">
             Days a resident has to confirm a proposed resolution before auto-confirm (default 7).

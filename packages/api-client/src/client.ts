@@ -12,6 +12,8 @@
  */
 import type {
   Announcement,
+  AnnouncementCategory,
+  AnnouncementReadStats,
   CreateAnnouncementInput,
   CreateDefectInput,
   CreateFavouriteVisitorInput,
@@ -574,12 +576,20 @@ export class ApiClient {
   // Announcements ----------------------------------------------------
   announcementsForCondo(
     condoId: string,
-    params: { limit?: number; offset?: number; manage?: boolean } = {},
+    params: {
+      limit?: number;
+      offset?: number;
+      manage?: boolean;
+      category?: AnnouncementCategory;
+      includeStats?: boolean;
+    } = {},
   ) {
     const qs = new URLSearchParams();
     if (params.limit !== undefined) qs.set('limit', String(params.limit));
     if (params.offset !== undefined) qs.set('offset', String(params.offset));
     if (params.manage) qs.set('manage', 'true');
+    if (params.category) qs.set('category', params.category);
+    if (params.includeStats) qs.set('includeStats', 'true');
     const query = qs.toString();
     return this.request<{ items: Announcement[]; total: number }>(
       'GET',
@@ -588,6 +598,9 @@ export class ApiClient {
   }
   announcement(id: string) {
     return this.request<Announcement>('GET', `/api/announcements/${id}`);
+  }
+  announcementReadStats(id: string) {
+    return this.request<AnnouncementReadStats>('GET', `/api/announcements/${id}/stats`);
   }
   createAnnouncement(input: CreateAnnouncementInput) {
     return this.request<Announcement>('POST', '/api/announcements', input);

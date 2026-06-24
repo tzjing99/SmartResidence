@@ -3,6 +3,7 @@
 import { AnnouncementAttachments } from '@/components/announcement-attachments';
 import {
   AnnouncementBodyProse,
+  AnnouncementCategoryFilter,
   AnnouncementDetailTitle,
   AnnouncementHero,
   AnnouncementListTitle,
@@ -23,6 +24,7 @@ import {
   useCondoUnitsSearch,
   useCreateAnnouncement,
   useDeleteAnnouncement,
+  useAnnouncementReadStats,
   useMyCondos,
   useUpdateAnnouncement,
 } from '@smartresidence/api-client';
@@ -51,7 +53,7 @@ import {
   Textarea,
 } from '@smartresidence/ui-web';
 import { PhotoUpload } from '@smartresidence/ui-web';
-import { ChevronRight, FileText, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { ChevronRight, FileText, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import * as React from 'react';
 
 const selectCls = 'sr-select';
@@ -78,7 +80,22 @@ type PendingPdf = {
   size: number;
 };
 
+type ListFilter = AnnouncementCategory | '' | 'insights';
+type InsightsSort = 'date' | 'readRate';
+
 type UnitRow = { id: string; identifier: string; block?: { name: string } | null };
+
+function toDatetimeLocal(d: Date | string) {
+  const date = new Date(d);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function readStatsLine(stats?: Announcement['readStats']) {
+  if (!stats) return null;
+  if (stats.recipientCount === 0) return 'No audience recipients yet';
+  return `${stats.readCount} read · ${stats.readPercent}% read`;
+}
 
 function formatNoticeDate(d: Date | string | null | undefined) {
   if (!d) return '';
@@ -133,10 +150,12 @@ function AdminNoticeRow({
   notice,
   selected,
   onSelect,
+  statsLine,
 }: {
   notice: Announcement;
   selected: boolean;
   onSelect: () => void;
+  statsLine?: string | null;
 }) {
   const status = notice.status ?? announcementStatus(notice);
   return (
@@ -151,6 +170,7 @@ function AdminNoticeRow({
         <div className="min-w-0 flex-1">
           <AnnouncementListTitle className="truncate">{notice.title}</AnnouncementListTitle>
           <AnnouncementMetaLine className="mt-1 truncate">{noticeMetaLine(notice)}</AnnouncementMetaLine>
+          {statsLine ? <p className="ann-stats-line mt-1.5">{statsLine}</p> : null}
         </div>
         <Badge tone={STATUS_TONE[status]} className="shrink-0 text-[11px]">
           {ANNOUNCEMENT_STATUS_LABELS[status]}
@@ -163,32 +183,52 @@ function AdminNoticeRow({
 
 function AdminNoticeDetail({
   notice,
+  onEdit,
   onTogglePublish,
   onRemove,
   updatePending,
   removePending,
 }: {
   notice: Announcement;
+  onEdit: () => void;
   onTogglePublish: () => void;
   onRemove: () => void;
   updatePending: boolean;
   removePending: boolean;
 }) {
+  const stats = useAnnouncementReadStats(api, notice.id);
   const status = notice.status ?? announcementStatus(notice);
   const isLive = status === 'PUBLISHED';
   const toggleLabel = isLive ? 'Unpublish' : status === 'SCHEDULED' ? 'Publish now' : 'Publish';
+  const s = stats.data;
+  const statsLine =
+    s && s.recipientCount > 0
+      ? `${s.readCount} read · ${s.readPercent}% read`
+      : s
+        ? 'No audience recipients yet'
+        : null;
   return (
     <AnnouncementSurface className="p-5 sm:p-6">
       <AnnouncementHero className="mb-5 sm:mb-6 !p-4 sm:!p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="mb-2">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
               <Badge tone={STATUS_TONE[status]}>{ANNOUNCEMENT_STATUS_LABELS[status]}</Badge>
+              <Badge tone="neutral">{ANNOUNCEMENT_CATEGORY_LABELS[notice.category]}</Badge>
             </div>
             <AnnouncementDetailTitle>{notice.title}</AnnouncementDetailTitle>
             <AnnouncementMetaLine className="mt-2">{noticeMetaLine(notice)}</AnnouncementMetaLine>
+            {stats.isLoading ? (
+              <Skeleton className="mt-3 h-4 w-48" />
+            ) : statsLine ? (
+              <p className="ann-stats-line mt-3">{statsLine}</p>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
+            <Button variant="secondary" size="sm" disabled={updatePending} onClick={onEdit}>
+              <Pencil className="size-3.5" />
+              Edit
+            </Button>
             <Button variant="secondary" size="sm" disabled={updatePending} onClick={onTogglePublish}>
               {toggleLabel}
             </Button>
@@ -223,13 +263,21 @@ export default function AdminAnnouncementsPage() {
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const condoId = condo?.id ?? null;
-  const list = useCondoAnnouncements(api, condoId, { manage: true });
+  const [categoryFilter, setCategoryFilter] = React.useState<ListFilter>('');
+  const [insightsSort, setInsightsSort] = React.useState<InsightsSort>('date');
+  const isInsights = categoryFilter === 'insights';
+  const list = useCondoAnnouncements(api, condoId, {
+    manage: true,
+    category: isInsights ? undefined : categoryFilter || undefined,
+    includeStats: isInsights,
+  });
   const blocks = useCondoBlocks(api, condoId);
   const create = useCreateAnnouncement(api);
   const update = useUpdateAnnouncement(api);
   const remove = useDeleteAnnouncement(api);
 
   const [composeOpen, setComposeOpen] = React.useState(false);
+  const [editingId, setEditingId] = React.useState<string | null>(null);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [title, setTitle] = React.useState('');
   const [body, setBody] = React.useState('');
@@ -259,6 +307,20 @@ export default function AdminAnnouncementsPage() {
   );
 
   const items = list.data?.items ?? [];
+  const visibleItems = React.useMemo(() => {
+    if (!isInsights) return items;
+    const live = items.filter((a) => (a.status ?? announcementStatus(a)) === 'PUBLISHED');
+    return [...live].sort((a, b) => {
+      if (insightsSort === 'readRate') {
+        const ar = a.readStats?.readPercent ?? 0;
+        const br = b.readStats?.readPercent ?? 0;
+        if (br !== ar) return br - ar;
+      }
+      const ad = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+      const bd = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+      return bd - ad;
+    });
+  }, [insightsSort, isInsights, items]);
   const selected = items.find((a) => a.id === selectedId) ?? null;
 
   React.useEffect(() => {
@@ -289,7 +351,9 @@ export default function AdminAnnouncementsPage() {
 
   function openCompose() {
     setComposeOpen(true);
+    setEditingId(null);
     setSelectedId(null);
+    resetForm();
     requestAnimationFrame(() => {
       composeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -298,6 +362,137 @@ export default function AdminAnnouncementsPage() {
   function closeCompose() {
     setComposeOpen(false);
     resetForm();
+  }
+
+  function loadNoticeIntoForm(notice: Announcement) {
+    setTitle(notice.title);
+    setBody(notice.body);
+    setImportance(notice.importance);
+    setCategory(notice.category);
+    setAudienceScope(notice.audienceScope ?? 'CONDO');
+    setSelectedBlockIds(notice.audienceBlocks?.map((b) => b.id) ?? []);
+    setSelectedUnitIds(notice.audienceUnits?.map((u) => u.id) ?? []);
+    setUnitSearch('');
+    setPinned(notice.pinned);
+    setRequiresAck(notice.requiresAck);
+    setImageIds([]);
+    setPdfMemo(null);
+    photoRef.current?.reset();
+
+    const status = notice.status ?? announcementStatus(notice);
+    if (!notice.publishedAt) {
+      setPublishMode('now');
+      setScheduledAt('');
+    } else if (status === 'SCHEDULED') {
+      setPublishMode('schedule');
+      setScheduledAt(toDatetimeLocal(notice.publishedAt));
+    } else {
+      setPublishMode('now');
+      setScheduledAt('');
+    }
+
+    if (notice.expiresAt) {
+      setHasExpiry(true);
+      setExpiresAt(toDatetimeLocal(notice.expiresAt));
+    } else {
+      setHasExpiry(false);
+      setExpiresAt('');
+    }
+  }
+
+  function openEdit(notice: Announcement) {
+    setComposeOpen(false);
+    setEditingId(notice.id);
+    setSelectedId(notice.id);
+    loadNoticeIntoForm(notice);
+    requestAnimationFrame(() => {
+      composeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function closeEdit() {
+    setEditingId(null);
+    resetForm();
+  }
+
+  async function onSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingId || !title.trim() || !body.trim()) {
+      toast.error('Title and summary are required');
+      return;
+    }
+    if (audienceScope === 'BLOCKS' && selectedBlockIds.length === 0) {
+      toast.error('Select at least one block');
+      return;
+    }
+    if (audienceScope === 'UNITS' && selectedUnitIds.length === 0) {
+      toast.error('Select at least one unit');
+      return;
+    }
+
+    const notice = items.find((a) => a.id === editingId);
+    const currentStatus = notice ? (notice.status ?? announcementStatus(notice)) : 'DRAFT';
+
+    let publishedAt: Date | null | undefined;
+    if (publishMode === 'schedule') {
+      if (!scheduledAt) {
+        toast.error('Pick a date and time to schedule');
+        return;
+      }
+      publishedAt = new Date(scheduledAt);
+      if (publishedAt.getTime() <= Date.now()) {
+        toast.error('Scheduled time must be in the future');
+        return;
+      }
+    } else if (currentStatus === 'PUBLISHED' || currentStatus === 'EXPIRED') {
+      publishedAt = notice?.publishedAt ? new Date(notice.publishedAt) : undefined;
+    } else {
+      publishedAt = new Date();
+    }
+
+    let expiry: Date | null | undefined;
+    if (hasExpiry) {
+      if (!expiresAt) {
+        toast.error('Pick an expiry date and time');
+        return;
+      }
+      expiry = new Date(expiresAt);
+      const base =
+        publishMode === 'schedule' && scheduledAt
+          ? new Date(scheduledAt)
+          : notice?.publishedAt
+            ? new Date(notice.publishedAt)
+            : new Date();
+      if (expiry.getTime() <= base.getTime()) {
+        toast.error('Expiry must be after the publish time');
+        return;
+      }
+    } else {
+      expiry = null;
+    }
+
+    try {
+      await update.mutateAsync({
+        id: editingId,
+        data: {
+          title: title.trim(),
+          body: body.trim(),
+          importance,
+          category,
+          audienceScope,
+          blockIds: audienceScope === 'BLOCKS' ? selectedBlockIds : [],
+          unitIds: audienceScope === 'UNITS' ? selectedUnitIds : [],
+          publishedAt,
+          expiresAt: expiry,
+          pinned,
+          requiresAck,
+        },
+      });
+      toast.success('Notice updated');
+      closeEdit();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   }
 
   function toggleBlock(blockId: string) {
@@ -441,7 +636,7 @@ export default function AdminAnnouncementsPage() {
         title="Announcements"
         description="Publish notices to the whole condo, selected blocks, or specific units. Residents only see what applies to them."
         action={
-          !composeOpen ? (
+          !composeOpen && !editingId ? (
             <Button className="w-full sm:w-auto" onClick={openCompose}>
               <Plus className="size-4" />
               New notice
@@ -450,26 +645,35 @@ export default function AdminAnnouncementsPage() {
         }
       />
 
-      {composeOpen ? (
+      {composeOpen || editingId ? (
         <Card
           ref={composeRef}
           className="ann-surface !rounded-2xl !p-5 sm:!p-7 shadow-card border-[rgb(var(--sr-border))]/75"
         >
           <div className="flex items-start justify-between gap-4 mb-6">
             <div>
-              <p className="ann-eyebrow mb-1">Compose</p>
-              <h3 className="ann-detail-title text-xl sm:text-2xl">New notice</h3>
+              <p className="ann-eyebrow mb-1">{editingId ? 'Edit' : 'Compose'}</p>
+              <h3 className="ann-detail-title text-xl sm:text-2xl">
+                {editingId ? 'Edit notice' : 'New notice'}
+              </h3>
               <p className="ann-page-subtitle mt-2 !max-w-none">
-                Choose who sees it, write a short summary, then attach the official memo if you
-                have one.
+                {editingId
+                  ? 'Update the notice content or audience. Live notices stay live — residents are not re-notified for text edits.'
+                  : 'Choose who sees it, write a short summary, then attach the official memo if you have one.'}
               </p>
             </div>
-            <Button type="button" variant="ghost" size="sm" aria-label="Close" onClick={closeCompose}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label="Close"
+              onClick={editingId ? closeEdit : closeCompose}
+            >
               <X className="size-4" />
             </Button>
           </div>
 
-          <form className="flex flex-col gap-6" onSubmit={onPublish}>
+          <form className="flex flex-col gap-6" onSubmit={editingId ? onSaveEdit : onPublish}>
             <section className="flex flex-col gap-3">
               <div>
                 <AnnouncementSectionLabel className="block text-sm normal-case tracking-normal font-medium text-[rgb(var(--sr-fg))]">
@@ -641,70 +845,74 @@ export default function AdminAnnouncementsPage() {
               />
             </section>
 
-            <section className="flex flex-col gap-2">
-              <Label>Official memo (PDF, optional)</Label>
-              {pdfMemo ? (
-                <div className="flex items-center gap-3 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-bg))]/50 px-4 py-3">
-                  <FileText className="size-5 shrink-0 text-[rgb(var(--sr-coral))]" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{pdfMemo.fileName}</div>
-                  </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPdfMemo(null)}>
-                    <X className="size-4" />
-                  </Button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={pdfUploading}
-                  onClick={() => pdfInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[rgb(var(--sr-border))] px-4 py-4 text-sm font-medium text-[rgb(var(--sr-coral))] hover:bg-[rgb(var(--sr-coral)/0.05)] disabled:opacity-60"
-                >
-                  {pdfUploading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Uploading…
-                    </>
+            {!editingId ? (
+              <>
+                <section className="flex flex-col gap-2">
+                  <Label>Official memo (PDF, optional)</Label>
+                  {pdfMemo ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-bg))]/50 px-4 py-3">
+                      <FileText className="size-5 shrink-0 text-[rgb(var(--sr-coral))]" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium truncate">{pdfMemo.fileName}</div>
+                      </div>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setPdfMemo(null)}>
+                        <X className="size-4" />
+                      </Button>
+                    </div>
                   ) : (
-                    <>
-                      <FileText className="size-4" />
-                      Upload PDF memo
-                    </>
+                    <button
+                      type="button"
+                      disabled={pdfUploading}
+                      onClick={() => pdfInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[rgb(var(--sr-border))] px-4 py-4 text-sm font-medium text-[rgb(var(--sr-coral))] hover:bg-[rgb(var(--sr-coral)/0.05)] disabled:opacity-60"
+                    >
+                      {pdfUploading ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Uploading…
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="size-4" />
+                          Upload PDF memo
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
-              )}
-              <input
-                ref={pdfInputRef}
-                type="file"
-                accept={DOCUMENT_ACCEPT_ATTR}
-                className="sr-only"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void onPdfSelected(file);
-                  e.target.value = '';
-                }}
-              />
-            </section>
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept={DOCUMENT_ACCEPT_ATTR}
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void onPdfSelected(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </section>
 
-            <section className="flex flex-col gap-2">
-              <Label>Photos (optional)</Label>
-              <PhotoUpload
-                ref={photoRef}
-                maxFiles={Math.max(0, MAX_ANNOUNCEMENT_ATTACHMENTS - (pdfMemo ? 1 : 0))}
-                onChange={setImageIds}
-                upload={(file, opts) =>
-                  uploadAttachment(
-                    api,
-                    {
-                      fileName: file.name,
-                      contentType: file.type || 'image/jpeg',
-                      file,
-                    },
-                    opts,
-                  ).then((r) => ({ attachmentId: r.attachmentId }))
-                }
-              />
-            </section>
+                <section className="flex flex-col gap-2">
+                  <Label>Photos (optional)</Label>
+                  <PhotoUpload
+                    ref={photoRef}
+                    maxFiles={Math.max(0, MAX_ANNOUNCEMENT_ATTACHMENTS - (pdfMemo ? 1 : 0))}
+                    onChange={setImageIds}
+                    upload={(file, opts) =>
+                      uploadAttachment(
+                        api,
+                        {
+                          fileName: file.name,
+                          contentType: file.type || 'image/jpeg',
+                          file,
+                        },
+                        opts,
+                      ).then((r) => ({ attachmentId: r.attachmentId }))
+                    }
+                  />
+                </section>
+              </>
+            ) : null}
 
             <section className="flex flex-col gap-3">
               <div>
@@ -797,19 +1005,28 @@ export default function AdminAnnouncementsPage() {
             </div>
 
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-4 border-t border-[rgb(var(--sr-border))]/70">
-              <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={closeCompose}>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full sm:w-auto"
+                onClick={editingId ? closeEdit : closeCompose}
+              >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 className="w-full sm:w-auto"
-                disabled={!title.trim() || !body.trim() || create.isPending}
+                disabled={!title.trim() || !body.trim() || create.isPending || update.isPending}
               >
-                {create.isPending
-                  ? 'Saving…'
-                  : publishMode === 'schedule'
-                    ? 'Schedule notice'
-                    : 'Publish notice'}
+                {editingId
+                  ? update.isPending
+                    ? 'Saving…'
+                    : 'Save changes'
+                  : create.isPending
+                    ? 'Saving…'
+                    : publishMode === 'schedule'
+                      ? 'Schedule notice'
+                      : 'Publish notice'}
               </Button>
             </div>
           </form>
@@ -818,11 +1035,12 @@ export default function AdminAnnouncementsPage() {
 
       <AnnouncementsAdminGrid
         detail={
-          selected && !composeOpen ? (
+          selected && !composeOpen && !editingId ? (
             <AdminNoticeDetail
               notice={selected}
               updatePending={update.isPending}
               removePending={remove.isPending}
+              onEdit={() => openEdit(selected)}
               onTogglePublish={() => void onTogglePublish(selected)}
               onRemove={() => void onRemove(selected.id, selected.title)}
             />
@@ -831,23 +1049,54 @@ export default function AdminAnnouncementsPage() {
         list={
           <div>
             <AnnouncementSectionLabel className="mb-3 sm:mb-4 block text-sm normal-case tracking-normal font-semibold text-[rgb(var(--sr-fg))]">
-              All notices
+              {isInsights ? 'Live notice metrics' : 'All notices'}
             </AnnouncementSectionLabel>
+            <AnnouncementCategoryFilter
+              className="mb-4"
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={CATEGORY_OPTIONS}
+              showInsights
+            />
+            {isInsights ? (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="text-xs sr-muted">Sort by</span>
+                <button
+                  type="button"
+                  className={`ann-filter-tab ${insightsSort === 'date' ? 'ann-filter-tab-active' : ''}`}
+                  onClick={() => setInsightsSort('date')}
+                >
+                  Newest first
+                </button>
+                <button
+                  type="button"
+                  className={`ann-filter-tab ${insightsSort === 'readRate' ? 'ann-filter-tab-active' : ''}`}
+                  onClick={() => setInsightsSort('readRate')}
+                >
+                  Read rate
+                </button>
+              </div>
+            ) : null}
             {list.isLoading ? (
               <Skeleton className="h-28 rounded-2xl" />
-            ) : items.length === 0 ? (
+            ) : visibleItems.length === 0 ? (
               <EmptyState
-                title="No notices yet"
-                description="Create your first notice — residents will only see published items that match their unit or block."
+                title={isInsights ? 'No live notices yet' : 'No notices yet'}
+                description={
+                  isInsights
+                    ? 'Published notices appear here with read counts scoped to their audience.'
+                    : 'Create your first notice — residents will only see published items that match their unit or block.'
+                }
               />
             ) : (
               <ul className="flex flex-col gap-2 sm:gap-2.5">
-                {items.map((a) => (
+                {visibleItems.map((a) => (
                   <li key={a.id}>
                     <AdminNoticeRow
                       notice={a}
                       selected={selectedId === a.id}
                       onSelect={() => setSelectedId((prev) => (prev === a.id ? null : a.id))}
+                      statsLine={isInsights ? readStatsLine(a.readStats) : null}
                     />
                   </li>
                 ))}

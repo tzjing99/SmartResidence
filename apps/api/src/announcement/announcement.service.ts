@@ -22,7 +22,9 @@ import {
   formatAudienceSummary,
   isManagementForCondo,
   residentAudienceFromRoles,
+  resolveAnnouncementRecipientUserIds,
 } from './announcement-audience';
+import type { AnnouncementCategory } from '@prisma/client';
 import type { CreateAnnouncementDto, UpdateAnnouncementDto } from './dto/announcement.dto';
 
 type AnnouncementRow = Announcement & {
@@ -30,7 +32,7 @@ type AnnouncementRow = Announcement & {
   attachments: Attachment[];
   blocks: Array<{ blockId: string; block: { id: string; name: string } }>;
   units: Array<{ unitId: string; unit: { id: string; identifier: string } }>;
-  _count: { acks: number };
+  _count: { acks: number; reads: number };
   acks?: { userId: string }[];
   reads?: { userId: string }[];
 };
@@ -43,7 +45,7 @@ const listInclude = {
   },
   blocks: { include: { block: { select: { id: true, name: true } } } },
   units: { include: { unit: { select: { id: true, identifier: true } } } },
-  _count: { select: { acks: true } },
+  _count: { select: { acks: true, reads: true } },
 } satisfies Prisma.AnnouncementInclude;
 
 @Injectable()
@@ -56,13 +58,23 @@ export class AnnouncementService {
   async list(
     user: AuthenticatedUser,
     condoId: string,
-    opts: { limit: number; offset: number; manage?: boolean },
+    opts: {
+      limit: number;
+      offset: number;
+      manage?: boolean;
+      category?: AnnouncementCategory;
+      includeStats?: boolean;
+    },
   ) {
     const now = new Date();
     const where: Prisma.AnnouncementWhereInput = {
       condoId,
       deletedAt: null,
     };
+
+    if (opts.category) {
+      where.category = opts.category;
+    }
 
     if (opts.manage) {
       where.OR = [{ publishedAt: { not: null } }, { publishedAt: null }];
@@ -90,8 +102,26 @@ export class AnnouncementService {
       this.prisma.announcement.count({ where }),
     ]);
 
+    const includeStats = opts.manage === true && opts.includeStats === true;
+    const statsById = includeStats
+      ? await this.batchReadStats(
+          items as Array<
+            AnnouncementRow & {
+              blocks: Array<{ blockId: string }>;
+              units: Array<{ unitId: string }>;
+            }
+          >,
+          condoId,
+        )
+      : null;
+
     return {
-      items: items.map((row) => this.serialize(row as AnnouncementRow, user.id)),
+      items: items.map((row) =>
+        this.serialize(row as AnnouncementRow, user.id, {
+          manage: opts.manage,
+          readStats: statsById?.get(row.id),
+        }),
+      ),
       total,
       limit: opts.limit,
       offset: opts.offset,
@@ -111,7 +141,6 @@ export class AnnouncementService {
 
     const manage = opts?.manage ?? isManagementForCondo(user, row.condoId);
     if (!manage) {
-      // Residents must never see drafts, future-scheduled, or expired notices.
       if (announcementStatus(row) !== 'PUBLISHED') {
         throw new NotFoundException();
       }
@@ -121,7 +150,108 @@ export class AnnouncementService {
       }
     }
 
-    return this.serialize(row as AnnouncementRow, user.id);
+    return this.serialize(row as AnnouncementRow, user.id, { manage });
+  }
+
+  async getReadStats(user: AuthenticatedUser, id: string) {
+    const row = await this.prisma.announcement.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        blocks: { select: { blockId: true } },
+        units: { select: { unitId: true } },
+      },
+    });
+    if (!row) throw new NotFoundException();
+    if (!isManagementForCondo(user, row.condoId)) {
+      throw new NotFoundException();
+    }
+
+    const recipientIds = await resolveAnnouncementRecipientUserIds(
+      this.prisma,
+      row,
+      row.condoId,
+    );
+    const recipientCount = recipientIds.length;
+
+    const [readCount, ackCount] =
+      recipientCount === 0
+        ? [0, 0]
+        : await this.prisma.$transaction([
+            this.prisma.announcementRead.count({
+              where: { announcementId: id, userId: { in: recipientIds } },
+            }),
+            this.prisma.announcementAck.count({
+              where: { announcementId: id, userId: { in: recipientIds } },
+            }),
+          ]);
+
+    const pct = (n: number) => (recipientCount > 0 ? Math.round((n / recipientCount) * 100) : 0);
+
+    return {
+      recipientCount,
+      readCount,
+      ackCount,
+      readPercent: pct(readCount),
+      ackPercent: pct(ackCount),
+    };
+  }
+
+  private async batchReadStats(
+    rows: Array<
+      AnnouncementRow & {
+        audienceScope: Announcement['audienceScope'];
+        blocks: Array<{ blockId: string }>;
+        units: Array<{ unitId: string }>;
+      }
+    >,
+    condoId: string,
+  ) {
+    const statsById = new Map<
+      string,
+      { recipientCount: number; readCount: number; readPercent: number }
+    >();
+    if (rows.length === 0) return statsById;
+
+    const recipientIdsByAnnouncement = new Map<string, string[]>();
+    await Promise.all(
+      rows.map(async (row) => {
+        const recipientIds = await resolveAnnouncementRecipientUserIds(
+          this.prisma,
+          row,
+          condoId,
+        );
+        recipientIdsByAnnouncement.set(row.id, recipientIds);
+      }),
+    );
+
+    const allRecipientIds = [...new Set([...recipientIdsByAnnouncement.values()].flat())];
+    const reads =
+      allRecipientIds.length === 0
+        ? []
+        : await this.prisma.announcementRead.findMany({
+            where: {
+              announcementId: { in: rows.map((r) => r.id) },
+              userId: { in: allRecipientIds },
+            },
+            select: { announcementId: true, userId: true },
+          });
+
+    const pct = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+
+    for (const row of rows) {
+      const recipientIds = recipientIdsByAnnouncement.get(row.id) ?? [];
+      const recipientSet = new Set(recipientIds);
+      const readCount = reads.filter(
+        (r) => r.announcementId === row.id && recipientSet.has(r.userId),
+      ).length;
+      statsById.set(row.id, {
+        recipientCount: recipientIds.length,
+        readCount,
+        readPercent: pct(readCount, recipientIds.length),
+      });
+    }
+
+    return statsById;
   }
 
   async create(user: AuthenticatedUser, dto: CreateAnnouncementDto) {
@@ -194,8 +324,25 @@ export class AnnouncementService {
   async update(user: AuthenticatedUser, id: string, dto: UpdateAnnouncementDto) {
     const existing = await this.prisma.announcement.findFirst({
       where: { id, deletedAt: null },
+      include: {
+        blocks: { select: { blockId: true } },
+        units: { select: { unitId: true } },
+      },
     });
     if (!existing) throw new NotFoundException();
+
+    const nextAudienceScope = dto.audienceScope ?? existing.audienceScope;
+    const nextBlockIds =
+      dto.blockIds ?? existing.blocks.map((b) => b.blockId);
+    const nextUnitIds = dto.unitIds ?? existing.units.map((u) => u.unitId);
+
+    if (
+      dto.audienceScope !== undefined ||
+      dto.blockIds !== undefined ||
+      dto.unitIds !== undefined
+    ) {
+      await this.validateAudience(existing.condoId, nextAudienceScope, nextBlockIds, nextUnitIds);
+    }
 
     const nextPublishedAt =
       dto.publishedAt !== undefined ? dto.publishedAt : existing.publishedAt;
@@ -205,12 +352,16 @@ export class AnnouncementService {
     }
 
     const data: Prisma.AnnouncementUpdateInput = {};
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.body !== undefined) data.body = dto.body;
+    if (dto.importance !== undefined) data.importance = dto.importance;
+    if (dto.category !== undefined) data.category = dto.category;
+    if (dto.audienceScope !== undefined) data.audienceScope = dto.audienceScope;
     if (dto.publishedAt !== undefined) data.publishedAt = dto.publishedAt;
     if (dto.expiresAt !== undefined) data.expiresAt = dto.expiresAt;
+    if (dto.requiresAck !== undefined) data.requiresAck = dto.requiresAck;
     if (dto.pinned !== undefined) data.pinned = dto.pinned;
 
-    // Reverting to a draft (or re-scheduling for the future) re-arms notification
-    // so a later publish notifies residents again.
     const becomingUnpublishedOrScheduled =
       dto.publishedAt !== undefined &&
       (dto.publishedAt === null || dto.publishedAt.getTime() > Date.now());
@@ -218,7 +369,30 @@ export class AnnouncementService {
       data.notifiedAt = null;
     }
 
-    await this.prisma.announcement.update({ where: { id }, data });
+    const audienceChanged =
+      dto.audienceScope !== undefined ||
+      dto.blockIds !== undefined ||
+      dto.unitIds !== undefined;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.announcement.update({ where: { id }, data });
+
+      if (audienceChanged) {
+        await tx.announcementBlock.deleteMany({ where: { announcementId: id } });
+        await tx.announcementUnit.deleteMany({ where: { announcementId: id } });
+
+        if (nextAudienceScope === AnnouncementAudienceScope.BLOCKS && nextBlockIds.length) {
+          await tx.announcementBlock.createMany({
+            data: nextBlockIds.map((blockId) => ({ announcementId: id, blockId })),
+          });
+        }
+        if (nextAudienceScope === AnnouncementAudienceScope.UNITS && nextUnitIds.length) {
+          await tx.announcementUnit.createMany({
+            data: nextUnitIds.map((unitId) => ({ announcementId: id, unitId })),
+          });
+        }
+      }
+    });
 
     const isLiveNow = nextPublishedAt != null && nextPublishedAt.getTime() <= Date.now();
     if (isLiveNow) {
@@ -377,7 +551,14 @@ export class AnnouncementService {
     }
   }
 
-  private serialize(row: AnnouncementRow, userId: string) {
+  private serialize(
+    row: AnnouncementRow,
+    userId: string,
+    opts?: {
+      manage?: boolean;
+      readStats?: { recipientCount: number; readCount: number; readPercent: number };
+    },
+  ) {
     const meta = (a: Attachment) => {
       const raw = a.metadata;
       const fileName =
@@ -415,6 +596,8 @@ export class AnnouncementService {
         fileName: meta(a),
       })),
       ackCount: row._count.acks,
+      ...(opts?.manage ? { readCount: row._count.reads } : {}),
+      ...(opts?.readStats ? { readStats: opts.readStats } : {}),
       readByMe: (row.reads?.length ?? 0) > 0,
       ackedByMe: (row.acks?.length ?? 0) > 0,
     };

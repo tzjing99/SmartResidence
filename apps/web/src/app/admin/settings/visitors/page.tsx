@@ -14,7 +14,7 @@ import type {
   UpdateCondoVisitorSettingsInput,
 } from '@smartresidence/shared-types';
 import { MY_STATE_OPTIONS, VISITOR_PURPOSE_OPTIONS } from '@smartresidence/shared-types';
-import { Button, Card, Select, Skeleton } from '@smartresidence/ui-web';
+import { Button, Card, Input, Select, Skeleton } from '@smartresidence/ui-web';
 import {
   CalendarDays,
   CalendarPlus,
@@ -165,7 +165,7 @@ function Stepper({
   const clamp = (v: number) => Math.min(max, Math.max(min, v));
   return (
     <div className={`flex items-center gap-2${disabled ? ' opacity-50' : ''}`}>
-      <div className="flex items-center rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))]">
+      <div className="flex items-center rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-bg))]/75 shadow-sm">
         <button
           type="button"
           aria-label="Decrease"
@@ -617,12 +617,12 @@ export default function VisitorSettingsPage() {
           )}
 
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="date"
               value={newHoliday}
               onChange={(e) => setNewHoliday(e.target.value)}
               aria-label="Add a custom holiday date"
-              className="h-10 flex-1 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 text-sm focus:border-[rgb(var(--sr-coral))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--sr-coral))]/30"
+              className="h-10 flex-1"
             />
             <Button type="button" variant="secondary" onClick={addCustomHoliday}>
               <CalendarPlus className="size-4" />

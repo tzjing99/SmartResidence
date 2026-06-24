@@ -164,3 +164,63 @@ export function MetaDot() {
     </span>
   );
 }
+
+type CategoryFilterProps<T extends string> = {
+  value: T | '' | 'insights';
+  onChange: (value: T | '' | 'insights') => void;
+  options: Array<{ value: T; label: string }>;
+  allLabel?: string;
+  insightsLabel?: string;
+  showInsights?: boolean;
+  className?: string;
+  'aria-label'?: string;
+};
+
+/** Pill tabs for filtering announcements by category, with optional Insights metrics tab. */
+export function AnnouncementCategoryFilter<T extends string>({
+  value,
+  onChange,
+  options,
+  allLabel = 'All',
+  insightsLabel = 'Insights',
+  showInsights = false,
+  className,
+  'aria-label': ariaLabel = 'Filter by category',
+}: CategoryFilterProps<T>) {
+  return (
+    <div className={cn('ann-filter-row', className)} role="tablist" aria-label={ariaLabel}>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={value === ''}
+        className={cn('ann-filter-tab', value === '' && 'ann-filter-tab-active')}
+        onClick={() => onChange('')}
+      >
+        {allLabel}
+      </button>
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          role="tab"
+          aria-selected={value === opt.value}
+          className={cn('ann-filter-tab', value === opt.value && 'ann-filter-tab-active')}
+          onClick={() => onChange(opt.value)}
+        >
+          {opt.label}
+        </button>
+      ))}
+      {showInsights ? (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={value === 'insights'}
+          className={cn('ann-filter-tab', value === 'insights' && 'ann-filter-tab-active')}
+          onClick={() => onChange('insights')}
+        >
+          {insightsLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+}

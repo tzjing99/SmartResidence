@@ -97,9 +97,62 @@ export class ListAnnouncementsQueryDto extends PaginationDto {
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   manage?: boolean;
+
+  @ApiPropertyOptional({ enum: AnnouncementCategory })
+  @IsOptional()
+  @IsEnum(AnnouncementCategory)
+  category?: AnnouncementCategory;
+
+  @ApiPropertyOptional({
+    description: 'Include recipient-scoped read stats per item (management only)',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  includeStats?: boolean;
 }
 
 export class UpdateAnnouncementDto {
+  @ApiPropertyOptional({ minLength: 4, maxLength: 200 })
+  @IsOptional()
+  @IsString()
+  @MinLength(4)
+  @MaxLength(200)
+  title?: string;
+
+  @ApiPropertyOptional({ description: 'Markdown summary — what residents need to know' })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  body?: string;
+
+  @ApiPropertyOptional({ enum: AnnouncementImportance })
+  @IsOptional()
+  @IsEnum(AnnouncementImportance)
+  importance?: AnnouncementImportance;
+
+  @ApiPropertyOptional({ enum: AnnouncementCategory })
+  @IsOptional()
+  @IsEnum(AnnouncementCategory)
+  category?: AnnouncementCategory;
+
+  @ApiPropertyOptional({ enum: AnnouncementAudienceScope })
+  @IsOptional()
+  @IsEnum(AnnouncementAudienceScope)
+  audienceScope?: AnnouncementAudienceScope;
+
+  @ApiPropertyOptional({ type: [String], description: 'Required when audienceScope is BLOCKS' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  blockIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], description: 'Required when audienceScope is UNITS' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  unitIds?: string[];
+
   @ApiPropertyOptional({
     type: String,
     format: 'date-time',
@@ -123,6 +176,11 @@ export class UpdateAnnouncementDto {
   @Type(() => Date)
   @IsDate()
   expiresAt?: Date | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  requiresAck?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

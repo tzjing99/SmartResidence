@@ -64,6 +64,16 @@ export const AnnouncementAudienceUnitSchema = z.object({
   identifier: z.string(),
 });
 
+/** Admin read/ack engagement scoped to audience recipients. */
+export const AnnouncementReadStatsSchema = z.object({
+  recipientCount: z.number().int(),
+  readCount: z.number().int(),
+  ackCount: z.number().int(),
+  readPercent: z.number().int(),
+  ackPercent: z.number().int(),
+});
+export type AnnouncementReadStats = z.infer<typeof AnnouncementReadStatsSchema>;
+
 export const AnnouncementSchema = z.object({
   id: z.string().uuid(),
   condoId: z.string().uuid(),
@@ -91,6 +101,13 @@ export const AnnouncementSchema = z.object({
     .optional(),
   attachments: z.array(AnnouncementAttachmentSchema).optional(),
   ackCount: z.number().int().optional(),
+  readCount: z.number().int().optional(),
+  /** Present on manage list when includeStats=true */
+  readStats: AnnouncementReadStatsSchema.pick({
+    recipientCount: true,
+    readCount: true,
+    readPercent: true,
+  }).optional(),
   readByMe: z.boolean().optional(),
   ackedByMe: z.boolean().optional(),
 });
@@ -113,10 +130,9 @@ export const CreateAnnouncementInputSchema = z.object({
 });
 export type CreateAnnouncementInput = z.infer<typeof CreateAnnouncementInputSchema>;
 
-export const UpdateAnnouncementInputSchema = z.object({
+export const UpdateAnnouncementInputSchema = CreateAnnouncementInputSchema.partial().extend({
   publishedAt: z.coerce.date().nullable().optional(),
   expiresAt: z.coerce.date().nullable().optional(),
-  pinned: z.boolean().optional(),
 });
 export type UpdateAnnouncementInput = z.infer<typeof UpdateAnnouncementInputSchema>;
 

@@ -9,7 +9,7 @@ import {
   useUnitVisitors,
 } from '@smartresidence/api-client';
 import { Ionicons } from '@expo/vector-icons';
-import { formatMoney } from '@smartresidence/shared-types';
+import { ANNOUNCEMENT_CATEGORY_LABELS, formatMoney } from '@smartresidence/shared-types';
 import {
   AnimatedPressable,
   AppText,
@@ -257,20 +257,34 @@ export default function HomeScreen() {
             <AppText variant="meta" style={styles.cardMeta}>
               Latest announcement
             </AppText>
-            <AppText numberOfLines={2} style={styles.noticeTitle}>
-              {announcement?.title ?? 'No announcements yet.'}
-            </AppText>
-            {announcement?.importance && announcement.importance !== 'INFO' ? (
-              <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-                <Pill
-                  tone={announcement.importance === 'URGENT' ? 'danger' : 'warning'}
-                  label={announcement.importance.toLowerCase()}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+              {announcement && !announcement.readByMe ? (
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: CORAL,
+                    marginTop: 8,
+                  }}
                 />
-              </View>
-            ) : null}
-            {announcement && !announcement.readByMe ? (
-              <View style={{ marginTop: 8, alignSelf: 'flex-start' }}>
-                <Pill tone="primary" label="new" />
+              ) : null}
+              <AppText numberOfLines={2} style={[styles.noticeTitle, { flex: 1 }]}>
+                {announcement?.title ?? 'No announcements yet.'}
+              </AppText>
+            </View>
+            {announcement ? (
+              <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <Pill tone="neutral" label={ANNOUNCEMENT_CATEGORY_LABELS[announcement.category]} />
+                {announcement.importance !== 'INFO' ? (
+                  <Pill
+                    tone={announcement.importance === 'URGENT' ? 'danger' : 'warning'}
+                    label={announcement.importance === 'URGENT' ? 'Urgent' : 'Important'}
+                  />
+                ) : null}
+                {announcement.requiresAck && !announcement.ackedByMe ? (
+                  <Pill tone="primary" label="Ack required" />
+                ) : null}
               </View>
             ) : null}
           </View>

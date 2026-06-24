@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AnnouncementCategoryFilter,
   AnnouncementListTitle,
   AnnouncementMetaRow,
   AnnouncementsPageHeader,
@@ -10,7 +11,7 @@ import {
 } from '@/components/announcements-ui';
 import { api } from '@/lib/api';
 import { useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
-import type { Announcement } from '@smartresidence/shared-types';
+import type { Announcement, AnnouncementCategory } from '@smartresidence/shared-types';
 import {
   ANNOUNCEMENT_CATEGORY_LABELS,
   announcementExcerpt,
@@ -19,6 +20,11 @@ import {
 import { Badge, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { ChevronRight, FileText } from 'lucide-react';
 import Link from 'next/link';
+import * as React from 'react';
+
+const CATEGORY_OPTIONS = (
+  Object.entries(ANNOUNCEMENT_CATEGORY_LABELS) as [AnnouncementCategory, string][]
+).map(([value, label]) => ({ value, label }));
 
 function formatListDate(d: Date | string | null | undefined) {
   if (!d) return '';
@@ -48,6 +54,9 @@ function AnnouncementListItem({ announcement: a }: { announcement: Announcement 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <AnnouncementListTitle>{a.title}</AnnouncementListTitle>
+              <Badge tone="neutral" className="text-[10px] px-1.5 py-0">
+                {ANNOUNCEMENT_CATEGORY_LABELS[a.category]}
+              </Badge>
               {a.pinned ? (
                 <Badge tone="primary" className="text-[10px] px-1.5 py-0">
                   Pinned
@@ -97,7 +106,10 @@ function AnnouncementListItem({ announcement: a }: { announcement: Announcement 
 export default function AnnouncementsPage() {
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
-  const list = useCondoAnnouncements(api, condo?.id ?? null);
+  const [categoryFilter, setCategoryFilter] = React.useState<AnnouncementCategory | ''>('');
+  const list = useCondoAnnouncements(api, condo?.id ?? null, {
+    category: categoryFilter || undefined,
+  });
 
   return (
     <AnnouncementsPageShell variant="resident">
@@ -105,6 +117,13 @@ export default function AnnouncementsPage() {
         eyebrow="Notices"
         title="Announcements"
         description="Official memos and updates from your management office."
+      />
+      <AnnouncementCategoryFilter
+        value={categoryFilter}
+        onChange={(value) => {
+          if (value !== 'insights') setCategoryFilter(value);
+        }}
+        options={CATEGORY_OPTIONS}
       />
       {list.isLoading ? (
         <Skeleton className="h-36 rounded-2xl" />

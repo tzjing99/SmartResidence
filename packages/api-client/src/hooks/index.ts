@@ -346,17 +346,38 @@ export function useTransitionDefect(api: ApiClient) {
 export function useCondoAnnouncements(
   api: ApiClient,
   condoId: string | null,
-  opts: { manage?: boolean } = {},
+  opts: {
+    manage?: boolean;
+    category?: import('@smartresidence/shared-types').AnnouncementCategory;
+    includeStats?: boolean;
+  } = {},
 ) {
   return useQuery({
     queryKey: condoId
-      ? [...queryKeys.condoAnnouncements(condoId), opts.manage ? 'manage' : 'resident']
+      ? [
+          ...queryKeys.condoAnnouncements(condoId),
+          opts.manage ? 'manage' : 'resident',
+          opts.category ?? 'all',
+          opts.includeStats ? 'stats' : 'no-stats',
+        ]
       : ['announcements', 'condo', null],
     queryFn: () =>
       condoId
-        ? api.announcementsForCondo(condoId, { manage: opts.manage })
+        ? api.announcementsForCondo(condoId, {
+            manage: opts.manage,
+            category: opts.category,
+            includeStats: opts.includeStats,
+          })
         : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId),
+  });
+}
+
+export function useAnnouncementReadStats(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? ['announcements', id, 'stats'] : ['announcements', null, 'stats'],
+    queryFn: () => (id ? api.announcementReadStats(id) : Promise.reject(new Error('No id'))),
+    enabled: Boolean(id),
   });
 }
 
@@ -406,7 +427,10 @@ export function useMarkAnnouncementRead(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.markAnnouncementRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ['announcements'] });
+      qc.invalidateQueries({ queryKey: ['announcements', id, 'stats'] });
+    },
   });
 }
 
@@ -414,7 +438,10 @@ export function useAckAnnouncement(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.ackAnnouncement(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ['announcements'] });
+      qc.invalidateQueries({ queryKey: ['announcements', id, 'stats'] });
+    },
   });
 }
 

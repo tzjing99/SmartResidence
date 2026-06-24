@@ -23,8 +23,7 @@ import {
 import { Trash2 } from 'lucide-react';
 import * as React from 'react';
 
-const selectCls =
-  'h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-4 text-sm';
+const selectCls = 'sr-select';
 
 export default function AdminFaqPage() {
   const condos = useMyCondos(api);
@@ -64,28 +63,47 @@ export default function AdminFaqPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl">
+    <div className="ann-page flex flex-col gap-6 sm:gap-8 max-w-4xl">
       <header>
-        <h2 className="sr-section-title">FAQ management</h2>
-        <p className="sr-muted">
+        <p className="ann-eyebrow mb-1">Management</p>
+        <h2 className="ann-page-title">FAQ management</h2>
+        <p className="ann-page-subtitle !max-w-none">
           Publish answers residents can self-serve, reducing repeat questions.
         </p>
       </header>
 
-      <Card>
-        <h3 className="font-semibold mb-4">New article</h3>
+      <Card className="ann-surface !rounded-2xl !p-5 sm:!p-7 shadow-card border-[rgb(var(--sr-border))]/75">
+        <h3 className="ann-detail-title text-xl sm:text-2xl mb-1">New article</h3>
+        <p className="ann-meta mb-5">Add a question and answer; residents see published items in Help &amp; FAQ.</p>
         <form className="flex flex-col gap-4" onSubmit={onCreate}>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="q">Question</Label>
-            <Input id="q" value={question} onChange={(e) => setQuestion(e.target.value)} />
+            <Label htmlFor="q" className="text-[rgb(var(--sr-fg))]">
+              Question
+            </Label>
+            <Input
+              id="q"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="e.g. How do I book the function room?"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="a">Answer</Label>
-            <Textarea id="a" rows={5} value={answer} onChange={(e) => setAnswer(e.target.value)} />
+            <Label htmlFor="a" className="text-[rgb(var(--sr-fg))]">
+              Answer
+            </Label>
+            <Textarea
+              id="a"
+              rows={5}
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="Write a clear, concise answer residents can act on."
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cat">Category</Label>
+              <Label htmlFor="cat" className="text-[rgb(var(--sr-fg))]">
+                Category
+              </Label>
               <select
                 id="cat"
                 className={selectCls}
@@ -100,16 +118,17 @@ export default function AdminFaqPage() {
                 ))}
               </select>
             </div>
-            <label className="flex items-center gap-2 text-sm self-end pb-3">
+            <label className="flex items-center gap-2 text-sm text-[rgb(var(--sr-fg))] self-end pb-3">
               <input
                 type="checkbox"
+                className="size-4 rounded border-[rgb(var(--sr-border))]"
                 checked={published}
                 onChange={(e) => setPublished(e.target.checked)}
               />
               Publish immediately
             </label>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-2 border-t border-[rgb(var(--sr-border))]/70">
             <Button type="submit" disabled={create.isPending}>
               {create.isPending ? 'Saving…' : 'Add article'}
             </Button>
@@ -118,7 +137,7 @@ export default function AdminFaqPage() {
       </Card>
 
       <div>
-        <h3 className="font-semibold mb-3">Articles</h3>
+        <h3 className="text-sm font-semibold text-[rgb(var(--sr-fg))] mb-3 sm:mb-4">Articles</h3>
         {list.isLoading ? (
           <Skeleton className="h-40" />
         ) : (list.data?.items.length ?? 0) === 0 ? (
@@ -126,10 +145,13 @@ export default function AdminFaqPage() {
         ) : (
           <ul className="flex flex-col gap-3">
             {list.data?.items.map((a) => (
-              <Card key={a.id}>
+              <Card
+                key={a.id}
+                className="ann-surface !rounded-2xl !p-4 sm:!p-5 border-[rgb(var(--sr-border))]/75"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="font-medium">{a.question}</div>
+                    <div className="font-medium text-[rgb(var(--sr-fg))]">{a.question}</div>
                     <div className="text-xs sr-muted mt-0.5">
                       {a.category?.name ?? 'Uncategorised'} · {a.viewCount} views · {a.helpfulCount}{' '}
                       helpful

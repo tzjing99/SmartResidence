@@ -45,8 +45,7 @@ const CATEGORIES: ThreadCategory[] = [
   'GOVERNANCE',
   'GENERAL',
 ];
-const selectCls =
-  'h-9 w-full rounded-lg border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--sr-coral))]';
+const selectCls = 'sr-select-sm';
 
 function ActionHint({ children }: { children: React.ReactNode }) {
   return <p className="text-[11px] sr-muted leading-snug">{children}</p>;

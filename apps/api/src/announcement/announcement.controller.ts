@@ -39,7 +39,18 @@ export class AnnouncementController {
       limit: query.limit,
       offset: query.offset,
       manage: query.manage === true,
+      category: query.category,
+      includeStats: query.includeStats === true,
     });
+  }
+
+  @Get(':id/stats')
+  @CheckAbility({ action: 'publish', subject: 'Announcement' })
+  getReadStats(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.announcements.getReadStats(user, id);
   }
 
   @Get(':id')

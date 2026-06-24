@@ -12,7 +12,15 @@ function service() {
       return ops;
     }),
   };
-  return { svc: new TenantService(prisma), prisma };
+  const cache: any = {
+    wrap: (_k: string, _t: number, fn: () => unknown) => fn(),
+    wrapNamespaced: (_ns: string, _k: string, _t: number, fn: () => unknown) => fn(),
+    invalidateNamespace: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+  };
+  return { svc: new TenantService(prisma, cache), prisma };
 }
 
 describe('TenantService.listUnits', () => {

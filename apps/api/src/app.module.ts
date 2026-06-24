@@ -14,6 +14,7 @@ import { AnnouncementModule } from './announcement/announcement.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
+import { CacheModule } from './cache/cache.module';
 import { DefectModule } from './defect/defect.module';
 import { FaqModule } from './faq/faq.module';
 import { NotificationModule } from './notification/notification.module';
@@ -39,6 +40,7 @@ import { VisitorModule } from './visitor/visitor.module';
     ]),
     PrismaModule,
     RedisModule,
+    CacheModule,
     HealthModule,
     StorageModule,
     AuthModule,

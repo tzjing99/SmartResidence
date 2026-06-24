@@ -15,7 +15,7 @@ import {
   type Prisma,
   type User,
 } from '@prisma/client';
-import { isPdfMime } from '@smartresidence/shared-types';
+import { announcementStatus, isPdfMime } from '@smartresidence/shared-types';
 import {
   announcementMatchesResident,
   audienceWhereForResident,
@@ -111,6 +111,10 @@ export class AnnouncementService {
 
     const manage = opts?.manage ?? isManagementForCondo(user, row.condoId);
     if (!manage) {
+      // Residents must never see drafts, future-scheduled, or expired notices.
+      if (announcementStatus(row) !== 'PUBLISHED') {
+        throw new NotFoundException();
+      }
       const audienceCtx = await this.getResidentAudienceContext(user, row.condoId);
       if (!announcementMatchesResident(row, audienceCtx)) {
         throw new NotFoundException();
@@ -127,6 +131,9 @@ export class AnnouncementService {
     const audienceScope = dto.audienceScope ?? AnnouncementAudienceScope.CONDO;
     await this.validateAudience(dto.condoId, audienceScope, dto.blockIds, dto.unitIds);
 
+    const publishedAt = dto.publishedAt ?? new Date();
+    this.validateSchedule(publishedAt, dto.expiresAt ?? null);
+
     const announcement = await this.prisma.$transaction(async (tx) => {
       const created = await tx.announcement.create({
         data: {
@@ -138,7 +145,7 @@ export class AnnouncementService {
           category: dto.category ?? 'DOCUMENT',
           audienceScope,
           audience: {},
-          publishedAt: dto.publishedAt ?? new Date(),
+          publishedAt,
           expiresAt: dto.expiresAt,
           requiresAck: dto.requiresAck ?? false,
           pinned: dto.pinned ?? false,
@@ -175,10 +182,11 @@ export class AnnouncementService {
       return created;
     });
 
-    this.events.emit('announcement.published', {
-      announcementId: announcement.id,
-      condoId: announcement.condoId,
-    });
+    // Notify immediately only if it's live now; scheduled notices are picked up
+    // by the sweeper when their publish time arrives.
+    if (publishedAt.getTime() <= Date.now()) {
+      await this.claimAndNotify(announcement.id, announcement.condoId);
+    }
 
     return this.getOne(user, announcement.id, { manage: true });
   }
@@ -189,19 +197,32 @@ export class AnnouncementService {
     });
     if (!existing) throw new NotFoundException();
 
+    const nextPublishedAt =
+      dto.publishedAt !== undefined ? dto.publishedAt : existing.publishedAt;
+    const nextExpiresAt = dto.expiresAt !== undefined ? dto.expiresAt : existing.expiresAt;
+    if (nextPublishedAt) {
+      this.validateSchedule(nextPublishedAt, nextExpiresAt ?? null);
+    }
+
     const data: Prisma.AnnouncementUpdateInput = {};
     if (dto.publishedAt !== undefined) data.publishedAt = dto.publishedAt;
+    if (dto.expiresAt !== undefined) data.expiresAt = dto.expiresAt;
     if (dto.pinned !== undefined) data.pinned = dto.pinned;
+
+    // Reverting to a draft (or re-scheduling for the future) re-arms notification
+    // so a later publish notifies residents again.
+    const becomingUnpublishedOrScheduled =
+      dto.publishedAt !== undefined &&
+      (dto.publishedAt === null || dto.publishedAt.getTime() > Date.now());
+    if (becomingUnpublishedOrScheduled) {
+      data.notifiedAt = null;
+    }
 
     await this.prisma.announcement.update({ where: { id }, data });
 
-    const becamePublished =
-      existing.publishedAt === null && dto.publishedAt != null;
-    if (becamePublished) {
-      this.events.emit('announcement.published', {
-        announcementId: id,
-        condoId: existing.condoId,
-      });
+    const isLiveNow = nextPublishedAt != null && nextPublishedAt.getTime() <= Date.now();
+    if (isLiveNow) {
+      await this.claimAndNotify(id, existing.condoId);
     }
 
     return this.getOne(user, id, { manage: true });
@@ -300,6 +321,44 @@ export class AnnouncementService {
     }
   }
 
+  /**
+   * Publishes notifications for scheduled notices whose publish time has arrived.
+   * Called by the sweeper. The notifiedAt claim is atomic so a notice is never
+   * double-dispatched (sweeper vs. immediate publish on edit).
+   */
+  async publishDueScheduled(now: Date = new Date()): Promise<number> {
+    const due = await this.prisma.announcement.findMany({
+      where: {
+        deletedAt: null,
+        notifiedAt: null,
+        publishedAt: { not: null, lte: now },
+      },
+      select: { id: true, condoId: true },
+    });
+    let notified = 0;
+    for (const a of due) {
+      if (await this.claimAndNotify(a.id, a.condoId, now)) notified += 1;
+    }
+    return notified;
+  }
+
+  /** Atomically claim the notifiedAt slot, then emit the published event once. */
+  private async claimAndNotify(id: string, condoId: string, now: Date = new Date()) {
+    const claimed = await this.prisma.announcement.updateMany({
+      where: { id, notifiedAt: null },
+      data: { notifiedAt: now },
+    });
+    if (claimed.count !== 1) return false;
+    this.events.emit('announcement.published', { announcementId: id, condoId });
+    return true;
+  }
+
+  private validateSchedule(publishedAt: Date, expiresAt: Date | null) {
+    if (expiresAt && expiresAt.getTime() <= publishedAt.getTime()) {
+      throw new BadRequestException('Expiry must be after the publish time');
+    }
+  }
+
   private async validateAttachments(userId: string, attachmentIds: string[]) {
     const attachments = await this.prisma.attachment.findMany({
       where: {
@@ -339,6 +398,7 @@ export class AnnouncementService {
       audienceSummary: formatAudienceSummary(row),
       audienceBlocks: row.blocks.map((b) => ({ id: b.block.id, name: b.block.name })),
       audienceUnits: row.units.map((u) => ({ id: u.unit.id, identifier: u.unit.identifier })),
+      status: announcementStatus(row),
       publishedAt: row.publishedAt,
       expiresAt: row.expiresAt,
       requiresAck: row.requiresAck,

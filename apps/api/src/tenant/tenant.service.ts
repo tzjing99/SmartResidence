@@ -1,11 +1,19 @@
+import { CacheService } from '@/cache/cache.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { buildUnitListWhere, normalizeUnitSearchTerm } from './unit-search';
 
+/** Condo + block reference data changes rarely; short TTL keeps it fresh enough. */
+const CONDO_TTL = 300;
+const BLOCKS_TTL = 300;
+
 @Injectable()
 export class TenantService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async listMyCondos(user: AuthenticatedUser) {
     const condoIds = Array.from(
@@ -19,12 +27,14 @@ export class TenantService {
   }
 
   async getCondo(condoId: string) {
-    const condo = await this.prisma.condo.findUnique({
-      where: { id: condoId },
-      include: {
-        _count: { select: { units: true, blocks: true } },
-      },
-    });
+    const condo = await this.cache.wrap(`condo:${condoId}`, CONDO_TTL, () =>
+      this.prisma.condo.findUnique({
+        where: { id: condoId },
+        include: {
+          _count: { select: { units: true, blocks: true } },
+        },
+      }),
+    );
     if (!condo) throw new NotFoundException('Condo not found');
     return condo;
   }
@@ -49,11 +59,13 @@ export class TenantService {
   }
 
   async listBlocks(condoId: string) {
-    return this.prisma.block.findMany({
-      where: { condoId },
-      orderBy: { position: 'asc' },
-      select: { id: true, name: true, position: true },
-    });
+    return this.cache.wrap(`blocks:${condoId}`, BLOCKS_TTL, () =>
+      this.prisma.block.findMany({
+        where: { condoId },
+        orderBy: { position: 'asc' },
+        select: { id: true, name: true, position: true },
+      }),
+    );
   }
 
   async getMyUnits(user: AuthenticatedUser) {

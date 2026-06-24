@@ -21,6 +21,28 @@ export const ANNOUNCEMENT_AUDIENCE_LABELS: Record<AnnouncementAudienceScope, str
   UNITS: 'Specific units',
 };
 
+export const AnnouncementStatus = z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHED', 'EXPIRED']);
+export type AnnouncementStatus = z.infer<typeof AnnouncementStatus>;
+
+export const ANNOUNCEMENT_STATUS_LABELS: Record<AnnouncementStatus, string> = {
+  DRAFT: 'Draft',
+  SCHEDULED: 'Scheduled',
+  PUBLISHED: 'Live',
+  EXPIRED: 'Expired',
+};
+
+/** Derive the lifecycle status from publish/expiry dates (shared by API + web). */
+export function announcementStatus(
+  a: { publishedAt?: Date | string | null; expiresAt?: Date | string | null },
+  now: Date = new Date(),
+): AnnouncementStatus {
+  if (!a.publishedAt) return 'DRAFT';
+  const published = new Date(a.publishedAt);
+  if (published.getTime() > now.getTime()) return 'SCHEDULED';
+  if (a.expiresAt && new Date(a.expiresAt).getTime() <= now.getTime()) return 'EXPIRED';
+  return 'PUBLISHED';
+}
+
 export const AnnouncementAttachmentSchema = z.object({
   id: z.string().uuid(),
   mimeType: z.string(),
@@ -53,6 +75,7 @@ export const AnnouncementSchema = z.object({
   audienceSummary: z.string().optional(),
   audienceBlocks: z.array(AnnouncementAudienceBlockSchema).optional(),
   audienceUnits: z.array(AnnouncementAudienceUnitSchema).optional(),
+  status: AnnouncementStatus.optional(),
   publishedAt: z.coerce.date().nullable().optional(),
   expiresAt: z.coerce.date().nullable().optional(),
   requiresAck: z.boolean(),
@@ -92,6 +115,7 @@ export type CreateAnnouncementInput = z.infer<typeof CreateAnnouncementInputSche
 
 export const UpdateAnnouncementInputSchema = z.object({
   publishedAt: z.coerce.date().nullable().optional(),
+  expiresAt: z.coerce.date().nullable().optional(),
   pinned: z.boolean().optional(),
 });
 export type UpdateAnnouncementInput = z.infer<typeof UpdateAnnouncementInputSchema>;

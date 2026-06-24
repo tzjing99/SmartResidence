@@ -15,7 +15,15 @@ function service() {
     faqCategory: { findUnique: vi.fn() },
     $transaction: vi.fn(),
   };
-  return { svc: new FaqService(prisma), prisma };
+  const cache: any = {
+    wrap: (_k: string, _t: number, fn: () => unknown) => fn(),
+    wrapNamespaced: (_ns: string, _k: string, _t: number, fn: () => unknown) => fn(),
+    invalidateNamespace: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+  };
+  return { svc: new FaqService(prisma, cache), prisma };
 }
 
 const user: any = { id: 'admin1' };

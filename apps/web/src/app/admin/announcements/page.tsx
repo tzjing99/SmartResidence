@@ -34,9 +34,12 @@ import type {
 } from '@smartresidence/shared-types';
 import {
   ANNOUNCEMENT_CATEGORY_LABELS,
+  ANNOUNCEMENT_STATUS_LABELS,
+  announcementStatus,
   DOCUMENT_ACCEPT_ATTR,
   MAX_ANNOUNCEMENT_ATTACHMENTS,
 } from '@smartresidence/shared-types';
+import type { AnnouncementStatus } from '@smartresidence/shared-types';
 import {
   Badge,
   Button,
@@ -86,13 +89,38 @@ function formatNoticeDate(d: Date | string | null | undefined) {
   });
 }
 
+function formatNoticeDateTime(d: Date | string | null | undefined) {
+  if (!d) return '';
+  return new Date(d).toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const STATUS_TONE: Record<AnnouncementStatus, 'success' | 'neutral' | 'info' | 'warning'> = {
+  PUBLISHED: 'success',
+  DRAFT: 'neutral',
+  SCHEDULED: 'info',
+  EXPIRED: 'warning',
+};
+
 function noticeMetaLine(a: Announcement) {
-  const parts = [
-    a.publishedAt ? 'Published' : 'Draft',
-    ANNOUNCEMENT_CATEGORY_LABELS[a.category],
-    a.audienceSummary ?? 'Whole condo',
-    formatNoticeDate(a.publishedAt ?? a.createdAt),
-  ];
+  const status = a.status ?? announcementStatus(a);
+  const parts: string[] = [];
+  if (status === 'SCHEDULED') {
+    parts.push(`Goes live ${formatNoticeDateTime(a.publishedAt)}`);
+  } else if (status === 'EXPIRED') {
+    parts.push(`Expired ${formatNoticeDate(a.expiresAt)}`);
+  } else if (status === 'PUBLISHED') {
+    parts.push(formatNoticeDate(a.publishedAt));
+    if (a.expiresAt) parts.push(`until ${formatNoticeDate(a.expiresAt)}`);
+  } else {
+    parts.push('Not published');
+  }
+  parts.push(ANNOUNCEMENT_CATEGORY_LABELS[a.category]);
+  parts.push(a.audienceSummary ?? 'Whole condo');
   if (a.attachments?.length) {
     parts.push(`${a.attachments.length} file${a.attachments.length === 1 ? '' : 's'}`);
   }
@@ -110,7 +138,7 @@ function AdminNoticeRow({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const isPublished = Boolean(notice.publishedAt);
+  const status = notice.status ?? announcementStatus(notice);
   return (
     <button
       type="button"
@@ -124,8 +152,8 @@ function AdminNoticeRow({
           <AnnouncementListTitle className="truncate">{notice.title}</AnnouncementListTitle>
           <AnnouncementMetaLine className="mt-1 truncate">{noticeMetaLine(notice)}</AnnouncementMetaLine>
         </div>
-        <Badge tone={isPublished ? 'success' : 'neutral'} className="shrink-0 text-[11px]">
-          {isPublished ? 'Live' : 'Draft'}
+        <Badge tone={STATUS_TONE[status]} className="shrink-0 text-[11px]">
+          {ANNOUNCEMENT_STATUS_LABELS[status]}
         </Badge>
         <ChevronRight className="size-4 shrink-0 text-[rgb(var(--sr-muted))] sm:size-5" />
       </div>
@@ -146,18 +174,23 @@ function AdminNoticeDetail({
   updatePending: boolean;
   removePending: boolean;
 }) {
-  const isPublished = Boolean(notice.publishedAt);
+  const status = notice.status ?? announcementStatus(notice);
+  const isLive = status === 'PUBLISHED';
+  const toggleLabel = isLive ? 'Unpublish' : status === 'SCHEDULED' ? 'Publish now' : 'Publish';
   return (
     <AnnouncementSurface className="p-5 sm:p-6">
       <AnnouncementHero className="mb-5 sm:mb-6 !p-4 sm:!p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
+            <div className="mb-2">
+              <Badge tone={STATUS_TONE[status]}>{ANNOUNCEMENT_STATUS_LABELS[status]}</Badge>
+            </div>
             <AnnouncementDetailTitle>{notice.title}</AnnouncementDetailTitle>
             <AnnouncementMetaLine className="mt-2">{noticeMetaLine(notice)}</AnnouncementMetaLine>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">
             <Button variant="secondary" size="sm" disabled={updatePending} onClick={onTogglePublish}>
-              {isPublished ? 'Unpublish' : 'Publish'}
+              {toggleLabel}
             </Button>
             <Button
               variant="ghost"
@@ -209,6 +242,10 @@ export default function AdminAnnouncementsPage() {
   const unitResults = useCondoUnitsSearch(api, condoId, unitSearch, audienceScope === 'UNITS');
   const [pinned, setPinned] = React.useState(false);
   const [requiresAck, setRequiresAck] = React.useState(false);
+  const [publishMode, setPublishMode] = React.useState<'now' | 'schedule'>('now');
+  const [scheduledAt, setScheduledAt] = React.useState('');
+  const [hasExpiry, setHasExpiry] = React.useState(false);
+  const [expiresAt, setExpiresAt] = React.useState('');
   const [imageIds, setImageIds] = React.useState<string[]>([]);
   const [pdfMemo, setPdfMemo] = React.useState<PendingPdf | null>(null);
   const [pdfUploading, setPdfUploading] = React.useState(false);
@@ -241,6 +278,10 @@ export default function AdminAnnouncementsPage() {
     setUnitSearch('');
     setPinned(false);
     setRequiresAck(false);
+    setPublishMode('now');
+    setScheduledAt('');
+    setHasExpiry(false);
+    setExpiresAt('');
     setImageIds([]);
     setPdfMemo(null);
     photoRef.current?.reset();
@@ -309,6 +350,34 @@ export default function AdminAnnouncementsPage() {
       toast.error('Select at least one unit');
       return;
     }
+
+    let publishedAt: Date | undefined;
+    if (publishMode === 'schedule') {
+      if (!scheduledAt) {
+        toast.error('Pick a date and time to schedule');
+        return;
+      }
+      publishedAt = new Date(scheduledAt);
+      if (publishedAt.getTime() <= Date.now()) {
+        toast.error('Scheduled time must be in the future');
+        return;
+      }
+    }
+
+    let expiry: Date | undefined;
+    if (hasExpiry) {
+      if (!expiresAt) {
+        toast.error('Pick an expiry date and time');
+        return;
+      }
+      expiry = new Date(expiresAt);
+      const base = publishedAt ?? new Date();
+      if (expiry.getTime() <= base.getTime()) {
+        toast.error('Expiry must be after the publish time');
+        return;
+      }
+    }
+
     try {
       await create.mutateAsync({
         condoId,
@@ -319,11 +388,13 @@ export default function AdminAnnouncementsPage() {
         audienceScope,
         blockIds: audienceScope === 'BLOCKS' ? selectedBlockIds : undefined,
         unitIds: audienceScope === 'UNITS' ? selectedUnitIds : undefined,
+        publishedAt,
+        expiresAt: expiry,
         pinned,
         requiresAck,
         attachmentIds: attachmentIds.length ? attachmentIds : undefined,
       });
-      toast.success('Notice published');
+      toast.success(publishMode === 'schedule' ? 'Notice scheduled' : 'Notice published');
       resetForm();
       setComposeOpen(false);
     } catch (err) {
@@ -332,13 +403,14 @@ export default function AdminAnnouncementsPage() {
   }
 
   async function onTogglePublish(a: Announcement) {
-    const isPublished = Boolean(a.publishedAt);
+    const status = a.status ?? announcementStatus(a);
+    const unpublish = status === 'PUBLISHED';
     try {
       await update.mutateAsync({
         id: a.id,
-        data: { publishedAt: isPublished ? null : new Date() },
+        data: { publishedAt: unpublish ? null : new Date() },
       });
-      toast.success(isPublished ? 'Moved to draft' : 'Published');
+      toast.success(unpublish ? 'Moved to draft' : 'Published');
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -634,6 +706,81 @@ export default function AdminAnnouncementsPage() {
               />
             </section>
 
+            <section className="flex flex-col gap-3">
+              <div>
+                <AnnouncementSectionLabel className="block text-sm normal-case tracking-normal font-medium text-[rgb(var(--sr-fg))]">
+                  Publishing
+                </AnnouncementSectionLabel>
+                <p className="ann-meta mt-1">When should residents see this and get notified?</p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {(
+                  [
+                    { value: 'now', label: 'Publish now', hint: 'Live immediately' },
+                    { value: 'schedule', label: 'Schedule', hint: 'Go live at a set time' },
+                  ] as const
+                ).map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex flex-1 items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
+                      publishMode === opt.value
+                        ? 'border-[rgb(var(--sr-coral)/0.55)] bg-[rgb(var(--sr-coral)/0.05)]'
+                        : 'border-[rgb(var(--sr-border))]/80 bg-[rgb(var(--sr-card))] hover:border-[rgb(var(--sr-coral)/0.25)]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="publishMode"
+                      className="mt-1"
+                      checked={publishMode === opt.value}
+                      onChange={() => setPublishMode(opt.value)}
+                    />
+                    <span>
+                      <span className="text-sm font-medium block">{opt.label}</span>
+                      <span className="text-xs sr-muted">{opt.hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {publishMode === 'schedule' ? (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="ann-schedule">Publish date &amp; time</Label>
+                  <input
+                    id="ann-schedule"
+                    type="datetime-local"
+                    className={selectCls}
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                  />
+                </div>
+              ) : null}
+
+              <label className="flex items-center gap-2 text-sm mt-1">
+                <input
+                  type="checkbox"
+                  checked={hasExpiry}
+                  onChange={(e) => setHasExpiry(e.target.checked)}
+                />
+                Auto-hide after an expiry date
+              </label>
+              {hasExpiry ? (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="ann-expiry">Expiry date &amp; time</Label>
+                  <input
+                    id="ann-expiry"
+                    type="datetime-local"
+                    className={selectCls}
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                  />
+                  <p className="text-xs sr-muted">
+                    Residents stop seeing the notice after this time. It stays here for your records.
+                  </p>
+                </div>
+              ) : null}
+            </section>
+
             <div className="flex flex-wrap gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />
@@ -658,7 +805,11 @@ export default function AdminAnnouncementsPage() {
                 className="w-full sm:w-auto"
                 disabled={!title.trim() || !body.trim() || create.isPending}
               >
-                {create.isPending ? 'Publishing…' : 'Publish notice'}
+                {create.isPending
+                  ? 'Saving…'
+                  : publishMode === 'schedule'
+                    ? 'Schedule notice'
+                    : 'Publish notice'}
               </Button>
             </div>
           </form>

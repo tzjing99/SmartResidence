@@ -781,6 +781,9 @@ model Announcement {
   audience      Json                      @default("{}")
   publishedAt   DateTime?
   expiresAt     DateTime?
+  // Set once the "published" push has gone out. Guards against double-notifying
+  // when a scheduled notice goes live (sweeper) vs. immediate publish.
+  notifiedAt    DateTime?
   requiresAck   Boolean                   @default(false)
   pinned        Boolean                   @default(false)
   metadata      Json                      @default("{}")

@@ -112,6 +112,18 @@ export class UpdateAnnouncementDto {
   @IsDate()
   publishedAt?: Date | null;
 
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'Set to null to clear the expiry; a date to auto-hide after that time',
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @Type(() => Date)
+  @IsDate()
+  expiresAt?: Date | null;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

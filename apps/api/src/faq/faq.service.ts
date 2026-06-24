@@ -1,3 +1,4 @@
+import { CacheService } from '@/cache/cache.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -10,9 +11,25 @@ import type {
   UpdateFaqCategoryDto,
 } from './dto/faq.dto';
 
+/** FAQ content is read-heavy (resident-facing) and changes rarely. */
+const FAQ_CATEGORIES_TTL = 120;
+const FAQ_PUBLISHED_TTL = 60;
+
 @Injectable()
 export class FaqService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
+
+  /** Per-condo cache namespace; bumped on any FAQ write to invalidate reads. */
+  private faqNamespace(condoId: string): string {
+    return `faq:${condoId}`;
+  }
+
+  private async invalidate(condoId: string): Promise<void> {
+    await this.cache.invalidateNamespace(this.faqNamespace(condoId));
+  }
 
   /** Turn a free-text query into a Postgres tsquery-friendly string. */
   private toSearch(q: string | undefined): string | undefined {
@@ -28,26 +45,33 @@ export class FaqService {
   // -- categories ----------------------------------------------------
 
   listCategories(condoId: string) {
-    return this.prisma.faqCategory.findMany({
-      where: { condoId },
-      orderBy: [{ position: 'asc' }, { name: 'asc' }],
-    });
+    return this.cache.wrapNamespaced(this.faqNamespace(condoId), 'categories', FAQ_CATEGORIES_TTL, () =>
+      this.prisma.faqCategory.findMany({
+        where: { condoId },
+        orderBy: [{ position: 'asc' }, { name: 'asc' }],
+      }),
+    );
   }
 
-  createCategory(dto: CreateFaqCategoryDto) {
-    return this.prisma.faqCategory.create({
+  async createCategory(dto: CreateFaqCategoryDto) {
+    const created = await this.prisma.faqCategory.create({
       data: { condoId: dto.condoId, name: dto.name, position: dto.position ?? 0 },
     });
+    await this.invalidate(dto.condoId);
+    return created;
   }
 
   async updateCategory(id: string, dto: UpdateFaqCategoryDto) {
-    await this.ensureCategory(id);
-    return this.prisma.faqCategory.update({ where: { id }, data: dto });
+    const existing = await this.ensureCategory(id);
+    const updated = await this.prisma.faqCategory.update({ where: { id }, data: dto });
+    await this.invalidate(existing.condoId);
+    return updated;
   }
 
   async deleteCategory(id: string) {
-    await this.ensureCategory(id);
+    const existing = await this.ensureCategory(id);
     await this.prisma.faqCategory.delete({ where: { id } });
+    await this.invalidate(existing.condoId);
     return { ok: true };
   }
 
@@ -61,23 +85,31 @@ export class FaqService {
 
   async listPublished(condoId: string, dto: ListFaqDto) {
     const search = this.toSearch(dto.q);
-    const where: Prisma.FaqArticleWhereInput = {
-      condoId,
-      published: true,
-      ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
-      ...(search ? { OR: [{ question: { search } }, { answer: { search } }] } : {}),
-    };
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.faqArticle.findMany({
-        where,
-        include: { category: true },
-        orderBy: [{ pinned: 'desc' }, { position: 'asc' }, { helpfulCount: 'desc' }],
-        take: dto.limit,
-        skip: dto.offset,
-      }),
-      this.prisma.faqArticle.count({ where }),
-    ]);
-    return { items, total, limit: dto.limit, offset: dto.offset };
+    const keySuffix = `published:${JSON.stringify({
+      categoryId: dto.categoryId ?? null,
+      q: search ?? null,
+      limit: dto.limit,
+      offset: dto.offset,
+    })}`;
+    return this.cache.wrapNamespaced(this.faqNamespace(condoId), keySuffix, FAQ_PUBLISHED_TTL, async () => {
+      const where: Prisma.FaqArticleWhereInput = {
+        condoId,
+        published: true,
+        ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
+        ...(search ? { OR: [{ question: { search } }, { answer: { search } }] } : {}),
+      };
+      const [items, total] = await this.prisma.$transaction([
+        this.prisma.faqArticle.findMany({
+          where,
+          include: { category: true },
+          orderBy: [{ pinned: 'desc' }, { position: 'asc' }, { helpfulCount: 'desc' }],
+          take: dto.limit,
+          skip: dto.offset,
+        }),
+        this.prisma.faqArticle.count({ where }),
+      ]);
+      return { items, total, limit: dto.limit, offset: dto.offset };
+    });
   }
 
   async listAll(condoId: string, dto: ListFaqDto) {
@@ -113,8 +145,8 @@ export class FaqService {
     return article;
   }
 
-  createArticle(user: AuthenticatedUser, dto: CreateFaqArticleDto) {
-    return this.prisma.faqArticle.create({
+  async createArticle(user: AuthenticatedUser, dto: CreateFaqArticleDto) {
+    const created = await this.prisma.faqArticle.create({
       data: {
         condoId: dto.condoId,
         categoryId: dto.categoryId ?? null,
@@ -127,11 +159,13 @@ export class FaqService {
         authorUserId: user.id,
       },
     });
+    await this.invalidate(dto.condoId);
+    return created;
   }
 
   async updateArticle(id: string, dto: UpdateFaqArticleDto) {
-    await this.getArticle(id);
-    return this.prisma.faqArticle.update({
+    const existing = await this.getArticle(id);
+    const updated = await this.prisma.faqArticle.update({
       where: { id },
       data: {
         ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
@@ -143,20 +177,25 @@ export class FaqService {
         ...(dto.position !== undefined ? { position: dto.position } : {}),
       },
     });
+    await this.invalidate(existing.condoId);
+    return updated;
   }
 
   async deleteArticle(id: string) {
-    await this.getArticle(id);
+    const existing = await this.getArticle(id);
     await this.prisma.faqArticle.delete({ where: { id } });
+    await this.invalidate(existing.condoId);
     return { ok: true };
   }
 
   async markHelpful(id: string) {
-    await this.getArticle(id);
-    return this.prisma.faqArticle.update({
+    const existing = await this.getArticle(id);
+    const updated = await this.prisma.faqArticle.update({
       where: { id },
       data: { helpfulCount: { increment: 1 } },
     });
+    await this.invalidate(existing.condoId);
+    return updated;
   }
 
   /** Token overlap score for F4 deflection matching. */

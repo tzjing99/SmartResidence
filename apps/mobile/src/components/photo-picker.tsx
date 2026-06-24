@@ -38,11 +38,11 @@ export function PhotoPicker({ controller }: { controller: UsePhotoUpload }) {
               contentFit="cover"
             />
 
-            {item.status === 'uploading' ? (
+            {item.status === 'uploading' || item.status === 'queued' ? (
               <View style={overlayStyle}>
                 <ActivityIndicator color="#fff" />
                 <Text style={{ color: '#fff', fontSize: 11, marginTop: 2 }}>
-                  {Math.round(item.progress * 100)}%
+                  {item.status === 'queued' ? '…' : `${Math.round(item.progress * 100)}%`}
                 </Text>
               </View>
             ) : null}

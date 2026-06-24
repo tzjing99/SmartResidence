@@ -32,6 +32,7 @@ export default function DefectKanbanPage() {
 
   const [severity, setSeverity] = React.useState('ALL');
   const [category, setCategory] = React.useState('ALL');
+  const [exporting, setExporting] = React.useState(false);
 
   const items = (defects.data?.items as any[]) ?? [];
   const categoryOptions = React.useMemo(() => {
@@ -48,6 +49,27 @@ export default function DefectKanbanPage() {
       toast.success(`Moved to ${DEFECT_STATUS_LABELS[status]}`);
     } catch (err) {
       toast.error((err as Error).message);
+    }
+  }
+
+  async function exportPdf() {
+    if (!condo) return;
+    setExporting(true);
+    try {
+      const blob = await api.exportCondoDefectsPdf(condo.id, {
+        severity: severity === 'ALL' ? undefined : severity,
+        category: category === 'ALL' ? undefined : category,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `defects-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -78,7 +100,10 @@ export default function DefectKanbanPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Defect board</h1>
-          <p className="sr-muted">Open a ticket to assign, update status, and reply.</p>
+          <p className="sr-muted">
+            First come, first served — oldest tickets first. Open one to assign, update status, and
+            reply.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Select
@@ -95,6 +120,14 @@ export default function DefectKanbanPage() {
             aria-label="Filter by category"
             className="w-44"
           />
+          <button
+            type="button"
+            onClick={exportPdf}
+            disabled={exporting || !condo}
+            className="inline-flex items-center justify-center gap-2 h-11 rounded-xl px-4 text-sm font-medium bg-[rgb(var(--sr-coral))] text-[rgb(var(--sr-coral-fg))] hover:brightness-105 disabled:opacity-50"
+          >
+            {exporting ? 'Exporting…' : 'Export PDF'}
+          </button>
         </div>
       </header>
       <div className="grid grid-cols-5 gap-4 min-w-0">

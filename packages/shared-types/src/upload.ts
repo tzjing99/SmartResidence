@@ -30,6 +30,13 @@ export type AllowedDocumentMimeType = (typeof ALLOWED_DOCUMENT_MIME_TYPES)[numbe
 /** How many attachments a single message / form may carry. */
 export const MAX_ATTACHMENTS_PER_MESSAGE = 6;
 
+/**
+ * How many files a client uploads at once. Bounded so a bulk multi-photo
+ * submission doesn't open dozens of parallel requests (which can stall the
+ * network, hammer the API, or exhaust mobile memory). Remaining files queue.
+ */
+export const MAX_UPLOAD_CONCURRENCY = 3;
+
 /** Max combined size of a single message's attachments (40 MB). */
 export const MAX_TOTAL_UPLOAD_BYTES = 40 * 1024 * 1024;
 

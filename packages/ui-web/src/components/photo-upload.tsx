@@ -30,11 +30,66 @@ interface InternalItem {
   id: string;
   file: File;
   previewUrl: string;
-  status: 'uploading' | 'done' | 'error' | 'canceled';
+  status: 'queued' | 'uploading' | 'done' | 'error' | 'canceled';
   progress: number;
   attachmentId?: string;
   error?: string;
   controller?: AbortController;
+}
+
+/**
+ * How many files upload at once. A bulk multi-photo submission queues the rest
+ * so we never open dozens of parallel requests (network stalls / server load).
+ */
+const MAX_CONCURRENT_UPLOADS = 3;
+
+/** Longest edge we downscale to client-side before upload (server caps again). */
+const CLIENT_MAX_DIMENSION = 1600;
+
+/** Re-encode threshold: skip work for already-small images that won't shrink. */
+const SKIP_DOWNSCALE_BELOW_BYTES = 1_500_000;
+
+/**
+ * Downscale + re-encode a large image to JPEG in the browser so we don't upload
+ * a multi-MB phone photo. HEIC/HEIF and GIF are passed through untouched —
+ * browsers can't decode HEIC (the server transcodes it) and re-encoding a GIF
+ * would flatten the animation. Any failure falls back to the original file so
+ * the upload still proceeds.
+ */
+async function downscaleImage(file: File): Promise<File> {
+  const lowerName = file.name.toLowerCase();
+  const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(lowerName);
+  const isGif = file.type === 'image/gif' || lowerName.endsWith('.gif');
+  if (isHeic || isGif) return file;
+  if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') return file;
+  if (file.size <= SKIP_DOWNSCALE_BELOW_BYTES) return file;
+
+  let bitmap: ImageBitmap | null = null;
+  try {
+    bitmap = await createImageBitmap(file);
+    const { width, height } = bitmap;
+    const scale = Math.min(1, CLIENT_MAX_DIMENSION / Math.max(width, height));
+    const targetW = Math.max(1, Math.round(width * scale));
+    const targetH = Math.max(1, Math.round(height * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.82),
+    );
+    // Only swap in the re-encoded version when it's actually smaller.
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name, { type: 'image/jpeg', lastModified: file.lastModified });
+  } catch {
+    return file;
+  } finally {
+    bitmap?.close?.();
+  }
 }
 
 export interface PhotoUploadHandle {
@@ -95,23 +150,52 @@ export const PhotoUpload = React.forwardRef<PhotoUploadHandle, PhotoUploadProps>
       [emitChange],
     );
 
-    const startUpload = React.useCallback(
-      (item: InternalItem) => {
+    // Bounded-concurrency scheduler. Files beyond MAX_CONCURRENT_UPLOADS sit in
+    // `queueRef` (status 'queued') and start as in-flight uploads settle.
+    const queueRef = React.useRef<string[]>([]);
+    const activeRef = React.useRef(0);
+
+    const runUpload = React.useCallback(
+      async (id: string) => {
+        const item = itemsRef.current.find((i) => i.id === id);
+        if (!item) return; // removed before it got a turn
         const controller = new AbortController();
-        patch(item.id, { status: 'uploading', progress: 0, error: undefined, controller });
-        upload(item.file, {
-          onProgress: (fraction) => patch(item.id, { progress: fraction }),
-          signal: controller.signal,
-        })
-          .then((res) =>
-            patch(item.id, { status: 'done', progress: 1, attachmentId: res.attachmentId }),
-          )
-          .catch((err: unknown) => {
-            if (controller.signal.aborted) return;
-            patch(item.id, { status: 'error', error: (err as Error).message });
+        patch(id, { status: 'uploading', progress: 0, error: undefined, controller });
+        try {
+          const optimized = await downscaleImage(item.file);
+          if (controller.signal.aborted) return;
+          const res = await upload(optimized, {
+            onProgress: (fraction) => patch(id, { progress: fraction }),
+            signal: controller.signal,
           });
+          patch(id, { status: 'done', progress: 1, attachmentId: res.attachmentId });
+        } catch (err: unknown) {
+          if (controller.signal.aborted) return;
+          patch(id, { status: 'error', error: (err as Error).message });
+        }
       },
       [patch, upload],
+    );
+
+    const pump = React.useCallback(() => {
+      while (activeRef.current < MAX_CONCURRENT_UPLOADS && queueRef.current.length > 0) {
+        const id = queueRef.current.shift();
+        if (!id) break;
+        if (!itemsRef.current.some((i) => i.id === id)) continue; // removed while queued
+        activeRef.current += 1;
+        void runUpload(id).finally(() => {
+          activeRef.current -= 1;
+          pump();
+        });
+      }
+    }, [runUpload]);
+
+    const enqueue = React.useCallback(
+      (ids: string[]) => {
+        queueRef.current.push(...ids);
+        pump();
+      },
+      [pump],
     );
 
     const addFiles = React.useCallback(
@@ -135,13 +219,13 @@ export const PhotoUpload = React.forwardRef<PhotoUploadHandle, PhotoUploadProps>
           id: nextId(),
           file,
           previewUrl: URL.createObjectURL(file),
-          status: 'uploading',
+          status: 'queued',
           progress: 0,
         }));
         setItems((prev) => [...prev, ...created]);
-        for (const item of created) startUpload(item);
+        enqueue(created.map((i) => i.id));
       },
-      [maxFiles, startUpload, t.tooMany],
+      [enqueue, maxFiles, t.tooMany],
     );
 
     const removeItem = React.useCallback(
@@ -253,11 +337,11 @@ export const PhotoUpload = React.forwardRef<PhotoUploadHandle, PhotoUploadProps>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.previewUrl} alt="" className="size-full object-cover" />
 
-                {item.status === 'uploading' ? (
+                {item.status === 'uploading' || item.status === 'queued' ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 text-white">
                     <Loader2 className="size-5 animate-spin" />
                     <span className="text-[11px] font-medium">
-                      {Math.round(item.progress * 100)}%
+                      {item.status === 'queued' ? '…' : `${Math.round(item.progress * 100)}%`}
                     </span>
                   </div>
                 ) : null}
@@ -265,7 +349,7 @@ export const PhotoUpload = React.forwardRef<PhotoUploadHandle, PhotoUploadProps>
                 {item.status === 'error' ? (
                   <button
                     type="button"
-                    onClick={() => startUpload(item)}
+                    onClick={() => enqueue([item.id])}
                     className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-red-600/70 text-white"
                     title={item.error}
                   >
@@ -277,7 +361,9 @@ export const PhotoUpload = React.forwardRef<PhotoUploadHandle, PhotoUploadProps>
                 <button
                   type="button"
                   onClick={() => removeItem(item.id)}
-                  aria-label={item.status === 'uploading' ? t.cancel : t.remove}
+                  aria-label={
+                    item.status === 'uploading' || item.status === 'queued' ? t.cancel : t.remove
+                  }
                   className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity hover:bg-black/75 group-hover:opacity-100 focus:opacity-100"
                 >
                   <X className="size-3.5" />

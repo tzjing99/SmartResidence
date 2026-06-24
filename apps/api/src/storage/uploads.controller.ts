@@ -8,13 +8,16 @@ import { PrismaService } from '@/prisma/prisma.service';
 import {
   BadRequestException,
   Controller,
+  Logger,
+  PayloadTooLargeException,
   Post,
+  UnsupportedMediaTypeException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { AttachmentOwner, AttachmentStatus } from '@prisma/client';
+import { AttachmentOwner, AttachmentStatus, TranscodeStatus } from '@prisma/client';
 import {
   MAX_DOCUMENT_UPLOAD_BYTES,
   MAX_UPLOAD_BYTES,
@@ -25,13 +28,15 @@ import {
 } from '@smartresidence/shared-types';
 import { diskStorage } from 'multer';
 import { nanoid } from 'nanoid';
-import { ImageService } from './image.service';
+import { ImageService, UnsupportedImageError } from './image.service';
 import { StorageService } from './storage.service';
 
 @ApiTags('Storage')
 @ApiBearerAuth('access')
 @Controller('uploads')
 export class UploadsController {
+  private readonly logger = new Logger(UploadsController.name);
+
   constructor(
     private readonly storage: StorageService,
     private readonly images: ImageService,
@@ -108,10 +113,26 @@ export class UploadsController {
       }
 
       if (!isAllowedImageMime(file.mimetype)) {
-        throw new BadRequestException(`Unsupported file type: ${file.mimetype}`);
+        throw new UnsupportedMediaTypeException(`Unsupported file type: ${file.mimetype}`);
       }
 
-      const processed = await this.images.process(tempPath, file.mimetype);
+      // Images get a tighter limit than the multer-level PDF limit. Anything
+      // between the two limits reached the temp file but is rejected here.
+      if (file.size > MAX_UPLOAD_BYTES) {
+        throw new PayloadTooLargeException('Image is too large (max 15 MB).');
+      }
+
+      let processed: Awaited<ReturnType<ImageService['process']>>;
+      try {
+        processed = await this.images.process(tempPath, file.mimetype);
+      } catch (err) {
+        if (err instanceof UnsupportedImageError) {
+          this.logger.warn(`Rejected unprocessable image for user ${user.id}: ${err.message}`);
+          throw new UnsupportedMediaTypeException(err.message);
+        }
+        throw err;
+      }
+
       const safeName = sanitizeFileName(file.originalname);
       const prefix = `uploads/${user.id}/${Date.now()}-${nanoid(8)}`;
       const fullExt = extFor(processed.full.contentType);
@@ -142,6 +163,8 @@ export class UploadsController {
           size: processed.full.buffer.length,
           width: processed.full.width,
           height: processed.full.height,
+          format: processed.sourceFormat,
+          transcodeStatus: processed.transcoded ? TranscodeStatus.READY : TranscodeStatus.FAILED,
           status: AttachmentStatus.PENDING,
           ownerKind: AttachmentOwner.GENERIC,
           uploadedByUserId: user.id,

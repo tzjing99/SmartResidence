@@ -110,3 +110,12 @@ export function nextDefectStatuses(status: DefectStatus): DefectStatus[] {
 export function isTerminalDefectStatus(status: DefectStatus): boolean {
   return status === 'CLOSED';
 }
+
+/**
+ * Human-readable short reference for a defect, derived deterministically from
+ * its id (e.g. `DF-1A2B3C4D`). Used in the contractor export and anywhere a
+ * compact ticket label is friendlier than a raw UUID.
+ */
+export function defectReference(id: string): string {
+  return `DF-${id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+}

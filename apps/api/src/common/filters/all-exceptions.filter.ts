@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { Response } from 'express';
+import { MulterError } from 'multer';
 
 interface ErrorBody {
   statusCode: number;
@@ -61,6 +62,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
           status = HttpStatus.BAD_REQUEST;
           error = 'PrismaError';
           message = exception.message;
+      }
+    } else if (exception instanceof MulterError) {
+      // Multipart upload failures (size/file-count) should be 4xx, not 500.
+      error = 'UploadError';
+      if (exception.code === 'LIMIT_FILE_SIZE') {
+        status = HttpStatus.PAYLOAD_TOO_LARGE;
+        message = 'File is too large.';
+      } else if (
+        exception.code === 'LIMIT_FILE_COUNT' ||
+        exception.code === 'LIMIT_UNEXPECTED_FILE'
+      ) {
+        status = HttpStatus.BAD_REQUEST;
+        message = 'Too many files in this upload.';
+      } else {
+        status = HttpStatus.BAD_REQUEST;
+        message = exception.message;
       }
     } else if (exception instanceof Error) {
       message = exception.message;

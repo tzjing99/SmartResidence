@@ -616,6 +616,39 @@ export class ApiClient {
   ) {
     return this.request<unknown>('POST', `/api/defects/${id}/updates`, body);
   }
+  /** Download the condo defect schedule as a PDF (management only). */
+  async exportCondoDefectsPdf(
+    condoId: string,
+    params: { status?: string; severity?: string; category?: string } = {},
+  ): Promise<Blob> {
+    const headers: Record<string, string> = { Accept: 'application/pdf' };
+    const token = await this.cfg.getAccessToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const activeCondoId = await this.cfg.getActiveCondoId?.();
+    if (activeCondoId) headers['x-condo-id'] = activeCondoId;
+    const query = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params).filter(([, v]) => Boolean(v) && v !== 'ALL') as [string, string][],
+      ),
+    ).toString();
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const res = await fetchImpl(
+      `${this.cfg.baseUrl}/api/defects/condo/${condoId}/export.pdf${query ? `?${query}` : ''}`,
+      { method: 'GET', headers, credentials: 'include' },
+    );
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = await res.json();
+      } catch {
+        /* ignore */
+      }
+      const message =
+        (parsed as { message?: string } | null)?.message ?? `HTTP ${res.status} ${res.statusText}`;
+      throw new ApiError(res.status, parsed, message);
+    }
+    return res.blob();
+  }
 
   // Announcements ----------------------------------------------------
   announcementsForCondo(

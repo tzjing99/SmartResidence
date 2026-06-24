@@ -1,5 +1,9 @@
 import { uploadAttachment } from '@smartresidence/api-client';
-import { IMAGE_MAX_DIMENSION, MAX_ATTACHMENTS_PER_MESSAGE } from '@smartresidence/shared-types';
+import {
+  IMAGE_MAX_DIMENSION,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_UPLOAD_CONCURRENCY,
+} from '@smartresidence/shared-types';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -10,7 +14,7 @@ export interface PhotoUploadItem {
   id: string;
   /** Local (downscaled) uri used for preview. */
   uri: string;
-  status: 'uploading' | 'done' | 'error';
+  status: 'queued' | 'uploading' | 'done' | 'error';
   progress: number;
   attachmentId?: string;
   error?: string;
@@ -37,7 +41,7 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
         .map((i) => i.attachmentId as string),
     [items],
   );
-  const uploading = items.some((i) => i.status === 'uploading');
+  const uploading = items.some((i) => i.status === 'uploading' || i.status === 'queued');
 
   const patch = useCallback((id: string, updates: Partial<PhotoUploadItem>) => {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...updates } : i)));
@@ -76,6 +80,33 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
     [patch],
   );
 
+  // Bounded-concurrency scheduler so a bulk selection doesn't transcode +
+  // upload every photo at once (which can spike memory and stall on cellular).
+  const queueRef = useRef<string[]>([]);
+  const activeRef = useRef(0);
+
+  const pump = useCallback(() => {
+    while (activeRef.current < MAX_UPLOAD_CONCURRENCY && queueRef.current.length > 0) {
+      const id = queueRef.current.shift();
+      if (!id) break;
+      const item = itemsRef.current.find((i) => i.id === id);
+      if (!item) continue; // removed while queued
+      activeRef.current += 1;
+      void startUpload(id, item.uri).finally(() => {
+        activeRef.current -= 1;
+        pump();
+      });
+    }
+  }, [startUpload]);
+
+  const enqueue = useCallback(
+    (ids: string[]) => {
+      queueRef.current.push(...ids);
+      pump();
+    },
+    [pump],
+  );
+
   const addAssets = useCallback(
     (uris: string[]) => {
       const remaining = maxFiles - itemsRef.current.length;
@@ -87,13 +118,13 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
       const created = accepted.map<PhotoUploadItem>((uri) => ({
         id: `m-${Date.now()}-${counter.current++}`,
         uri,
-        status: 'uploading',
+        status: 'queued',
         progress: 0,
       }));
       setItems((prev) => [...prev, ...created]);
-      for (const item of created) void startUpload(item.id, item.uri);
+      enqueue(created.map((i) => i.id));
     },
-    [maxFiles, startUpload],
+    [enqueue, maxFiles],
   );
 
   const pickFromLibrary = useCallback(async () => {
@@ -137,9 +168,11 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
   const retry = useCallback(
     (id: string) => {
       const item = itemsRef.current.find((i) => i.id === id);
-      if (item) void startUpload(id, item.uri);
+      if (!item) return;
+      patch(id, { status: 'queued', error: undefined, progress: 0 });
+      enqueue([id]);
     },
-    [startUpload],
+    [enqueue, patch],
   );
 
   const reset = useCallback(() => {

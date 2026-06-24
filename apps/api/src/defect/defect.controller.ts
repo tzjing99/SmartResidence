@@ -3,9 +3,20 @@ import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuditAction, type DefectStatus } from '@prisma/client';
+import { AuditAction, type DefectSeverity, type DefectStatus } from '@prisma/client';
+import type { Response } from 'express';
 import { DefectService } from './defect.service';
 import { AddDefectUpdateDto, CreateDefectDto, TransitionDefectDto } from './dto/defect.dto';
 
@@ -37,6 +48,27 @@ export class DefectController {
     @Query('status') status?: DefectStatus,
   ) {
     return this.defects.listForCondo(condoId, { ...page, status });
+  }
+
+  @Get('condo/:condoId/export.pdf')
+  @CheckAbility({ action: 'read', subject: 'Defect' })
+  @ApiOperation({ summary: 'Export the condo defect schedule as a PDF (management only)' })
+  async exportCondoPdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Res() res: Response,
+    @Query('status') status?: DefectStatus,
+    @Query('severity') severity?: DefectSeverity,
+    @Query('category') category?: string,
+  ) {
+    const { buffer, filename } = await this.defects.exportCondoPdf(user, condoId, {
+      status,
+      severity,
+      category,
+    });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 
   @Get(':id')

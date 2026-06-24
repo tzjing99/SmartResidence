@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { Injectable, Logger } from '@nestjs/common';
-import { IMAGE_MAX_DIMENSION, THUMBNAIL_MAX_DIMENSION } from '@smartresidence/shared-types';
+import { IMAGE_MAX_DIMENSION, THUMBNAIL_MAX_DIMENSION, isHeic } from '@smartresidence/shared-types';
 import sharp from 'sharp';
 
 export interface ProcessedImage {
@@ -8,8 +8,26 @@ export interface ProcessedImage {
   full: { buffer: Buffer; contentType: string; width: number | null; height: number | null };
   /** Small thumbnail derivative (null if it could not be generated). */
   thumbnail: { buffer: Buffer; contentType: string } | null;
-  /** True when sharp could not decode the input and we fell back to the raw bytes. */
-  fellBack: boolean;
+  /** True when we successfully re-encoded the source to a web-friendly format. */
+  transcoded: boolean;
+  /** Source format reported by sharp (e.g. `jpeg`, `heif`), or null if unknown. */
+  sourceFormat: string | null;
+}
+
+/**
+ * Thrown when an image cannot be decoded/transcoded and storing the original
+ * bytes would not be useful (e.g. an HEIC the browser can't render). The
+ * controller maps this to a 4xx so the client gets a clear message instead of
+ * an opaque 500.
+ */
+export class UnsupportedImageError extends Error {
+  constructor(
+    readonly mimeType: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'UnsupportedImageError';
+  }
 }
 
 // Animated GIFs are stored as-is so we don't flatten the animation.
@@ -25,26 +43,34 @@ export class ImageService {
    * - re-encodes to webp (covers HEIC->web-viewable, shrinks phone photos),
    * - generates a thumbnail.
    *
-   * sharp's prebuilt libvips may lack HEIC decode on some hosts; in that case
-   * (or for passthrough types) we store the original bytes untouched so the
-   * upload never hard-fails.
+   * sharp reads lazily from the file path rather than a full in-memory buffer,
+   * so concurrent uploads of large photos don't multiply memory use. All sharp
+   * work is wrapped so a corrupt/unsupported image never throws an unhandled
+   * 500: non-HEIC inputs fall back to storing the original bytes, while HEIC
+   * inputs that can't be decoded (no libheif/HEVC decoder on this host) raise a
+   * typed {@link UnsupportedImageError} the controller turns into a 4xx.
    */
   async process(filePath: string, mimeType: string): Promise<ProcessedImage> {
-    const original = await readFile(filePath);
-
     if (PASSTHROUGH_MIME.has(mimeType.toLowerCase())) {
+      const original = await readFile(filePath);
       return {
         full: { buffer: original, contentType: mimeType, width: null, height: null },
         thumbnail: null,
-        fellBack: true,
+        transcoded: false,
+        sourceFormat: 'gif',
       };
     }
 
+    let sourceFormat: string | null = null;
     try {
-      const base = sharp(original, { failOn: 'none' }).rotate();
-      const meta = await base.metadata();
+      const meta = await sharp(filePath, { failOn: 'none' }).metadata();
+      sourceFormat = meta.format ?? null;
+    } catch {
+      // Header probe failed; the encode attempt below will decide the outcome.
+    }
 
-      const full = await sharp(original, { failOn: 'none' })
+    try {
+      const { data: fullBuffer, info: fullInfo } = await sharp(filePath, { failOn: 'none' })
         .rotate()
         .resize({
           width: IMAGE_MAX_DIMENSION,
@@ -53,11 +79,9 @@ export class ImageService {
           withoutEnlargement: true,
         })
         .webp({ quality: 82 })
-        .toBuffer();
+        .toBuffer({ resolveWithObject: true });
 
-      const fullMeta = await sharp(full).metadata();
-
-      const thumbnail = await sharp(original, { failOn: 'none' })
+      const thumbnail = await sharp(filePath, { failOn: 'none' })
         .rotate()
         .resize({
           width: THUMBNAIL_MAX_DIMENSION,
@@ -70,23 +94,37 @@ export class ImageService {
 
       return {
         full: {
-          buffer: full,
+          buffer: fullBuffer,
           contentType: 'image/webp',
-          width: fullMeta.width ?? meta.width ?? null,
-          height: fullMeta.height ?? meta.height ?? null,
+          width: fullInfo.width ?? null,
+          height: fullInfo.height ?? null,
         },
         thumbnail: { buffer: thumbnail, contentType: 'image/webp' },
-        fellBack: false,
+        transcoded: true,
+        sourceFormat,
       };
     } catch (err) {
-      // Unsupported codec (often HEIC without libheif) — keep the original.
-      this.logger.warn(
-        `Image optimization failed (${mimeType}); storing original: ${(err as Error).message}`,
-      );
+      const reason = (err as Error).message;
+      this.logger.warn(`Image optimization failed (mime=${mimeType}, format=${sourceFormat}): ${reason}`);
+
+      // HEIC/HEIF that can't be transcoded is useless to web/Android clients
+      // (they can't render it), so reject with a clear, typed 4xx instead of
+      // silently storing un-viewable bytes.
+      if (isHeic(mimeType)) {
+        throw new UnsupportedImageError(
+          mimeType,
+          'This HEIC/HEIF photo could not be processed. Please upload a JPEG or PNG instead.',
+        );
+      }
+
+      // Other decodable-on-most-clients formats: keep the original so the
+      // upload still succeeds even if sharp couldn't optimize it.
+      const original = await readFile(filePath);
       return {
         full: { buffer: original, contentType: mimeType, width: null, height: null },
         thumbnail: null,
-        fellBack: true,
+        transcoded: false,
+        sourceFormat,
       };
     }
   }

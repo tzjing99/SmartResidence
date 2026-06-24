@@ -1,8 +1,8 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
-import { DefectStatus } from '@prisma/client';
+import { DefectStatus, RoleId } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { DefectService } from './defect.service';
 
@@ -86,6 +86,56 @@ describe('DefectService.transition', () => {
     expect(events.emit).toHaveBeenCalledWith(
       'defect.updated',
       expect.objectContaining({ assigneeChanged: true, assignedToUserId: 'mgr-9' }),
+    );
+  });
+});
+
+describe('DefectService.exportCondoPdf', () => {
+  function exportService(defects: Array<Record<string, unknown>>) {
+    const prisma = {
+      condo: { findUnique: vi.fn(async () => ({ id: 'c1', name: 'Acacia Residence' })) },
+      defect: { findMany: vi.fn(async () => defects) },
+    } as unknown as PrismaService;
+    const events = { emit: vi.fn() } as unknown as EventEmitter2;
+    return { svc: new DefectService(prisma, events), prisma };
+  }
+
+  const mgmtUser = {
+    id: 'admin-1',
+    roles: [{ roleId: RoleId.MANAGEMENT_ADMIN, condoId: 'c1' }],
+  } as unknown as AuthenticatedUser;
+  const residentUser = {
+    id: 'res-1',
+    roles: [{ roleId: RoleId.UNIT_OWNER, condoId: 'c1' }],
+  } as unknown as AuthenticatedUser;
+
+  it('forbids non-management users', async () => {
+    const { svc } = exportService([]);
+    await expect(svc.exportCondoPdf(residentUser, 'c1', {})).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('returns a PDF buffer ordered earliest-first for management', async () => {
+    const { svc, prisma } = exportService([
+      {
+        id: '11111111-2222-3333-4444-555555555555',
+        title: 'Leaking pipe',
+        description: 'Water under the sink',
+        severity: 'HIGH',
+        status: DefectStatus.NEW,
+        category: 'Plumbing',
+        unit: { identifier: 'A-12-03', block: { name: 'Block A' } },
+      },
+    ]);
+    const { buffer, filename } = await svc.exportCondoPdf(mgmtUser, 'c1', {
+      severity: 'HIGH',
+    });
+    expect(buffer.subarray(0, 4).toString()).toBe('%PDF');
+    expect(filename).toContain('defects-');
+    expect(filename.endsWith('.pdf')).toBe(true);
+    expect(prisma.defect.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: 'asc' } }),
     );
   });
 });

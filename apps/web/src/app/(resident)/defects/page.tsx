@@ -54,26 +54,32 @@ export default function DefectsPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {(defects.data?.items as any[])?.map((d) => (
-            <Card key={d.id}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="font-medium">{d.title}</div>
-                  <div className="text-xs sr-muted mt-0.5">
-                    {d.category} · raised {new Date(d.createdAt).toLocaleDateString()}
+            <li key={d.id}>
+              <Link href={`/defects/${d.id}`} className="block">
+                <Card className="transition-colors hover:border-[rgb(var(--sr-coral)/0.4)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="font-medium">{d.title}</div>
+                      <div className="text-xs sr-muted mt-0.5">
+                        {d.category} · raised {new Date(d.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge tone={SEVERITY_TONE[d.severity] ?? 'neutral'}>
+                        {d.severity.toLowerCase()}
+                      </Badge>
+                      <Badge
+                        tone={
+                          d.status === 'CLOSED' || d.status === 'RESOLVED' ? 'success' : 'primary'
+                        }
+                      >
+                        {d.status.toLowerCase().replace('_', ' ')}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Badge tone={SEVERITY_TONE[d.severity] ?? 'neutral'}>
-                    {d.severity.toLowerCase()}
-                  </Badge>
-                  <Badge
-                    tone={d.status === 'CLOSED' || d.status === 'RESOLVED' ? 'success' : 'primary'}
-                  >
-                    {d.status.toLowerCase().replace('_', ' ')}
-                  </Badge>
-                </div>
-              </div>
-            </Card>
+                </Card>
+              </Link>
+            </li>
           ))}
         </ul>
       )}

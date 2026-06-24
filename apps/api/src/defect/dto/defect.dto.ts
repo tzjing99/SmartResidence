@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DefectSeverity, DefectStatus } from '@prisma/client';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
@@ -73,5 +74,12 @@ export class AddDefectUpdateDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsBoolean()
   isInternal?: boolean;
+
+  @ApiPropertyOptional({ description: 'Pre-uploaded attachment ids', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  attachmentIds?: string[];
 }

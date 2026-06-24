@@ -3,17 +3,8 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AttachmentOwner, AttachmentStatus, DefectStatus } from '@prisma/client';
+import { canTransitionDefect } from './defect-transitions';
 import type { AddDefectUpdateDto, CreateDefectDto, TransitionDefectDto } from './dto/defect.dto';
-
-const VALID_TRANSITIONS: Record<DefectStatus, DefectStatus[]> = {
-  NEW: ['ACK', 'ASSIGNED', 'CLOSED'],
-  ACK: ['ASSIGNED', 'IN_PROGRESS', 'CLOSED'],
-  ASSIGNED: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
-  IN_PROGRESS: ['RESOLVED', 'CLOSED'],
-  RESOLVED: ['CLOSED', 'REOPENED'],
-  CLOSED: ['REOPENED'],
-  REOPENED: ['ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
-};
 
 @Injectable()
 export class DefectService {
@@ -112,16 +103,19 @@ export class DefectService {
   async transition(id: string, user: AuthenticatedUser, dto: TransitionDefectDto) {
     const defect = await this.prisma.defect.findUnique({ where: { id } });
     if (!defect) throw new NotFoundException();
-    const allowed = VALID_TRANSITIONS[defect.status];
-    if (!allowed.includes(dto.status)) {
+    if (!canTransitionDefect(defect.status, dto.status)) {
       throw new BadRequestException(`Cannot move from ${defect.status} to ${dto.status}`);
     }
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.defect.update({
+    const nextAssignee = dto.assignedToUserId ?? defect.assignedToUserId;
+    const assigneeChanged = Boolean(
+      dto.assignedToUserId && dto.assignedToUserId !== defect.assignedToUserId,
+    );
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.defect.update({
         where: { id },
         data: {
           status: dto.status,
-          assignedToUserId: dto.assignedToUserId ?? defect.assignedToUserId,
+          assignedToUserId: nextAssignee,
           acknowledgedAt: dto.status === 'ACK' ? new Date() : defect.acknowledgedAt,
           resolvedAt: dto.status === 'RESOLVED' ? new Date() : defect.resolvedAt,
           closedAt: dto.status === 'CLOSED' ? new Date() : defect.closedAt,
@@ -136,21 +130,60 @@ export class DefectService {
           statusTo: dto.status,
         },
       });
-      this.events.emit('defect.updated', { defectId: id, condoId: defect.condoId });
-      return updated;
+      return result;
     });
+
+    this.events.emit('defect.updated', {
+      defectId: id,
+      condoId: defect.condoId,
+      statusFrom: defect.status,
+      statusTo: dto.status,
+      assigneeChanged,
+      assignedToUserId: assigneeChanged ? nextAssignee : undefined,
+      actorUserId: user.id,
+    });
+    return updated;
   }
 
   async addUpdate(id: string, user: AuthenticatedUser, dto: AddDefectUpdateDto) {
     const defect = await this.prisma.defect.findUnique({ where: { id } });
     if (!defect) throw new NotFoundException();
-    return this.prisma.defectUpdate.create({
-      data: {
-        defectId: id,
-        authorUserId: user.id,
-        message: dto.message,
-        isInternal: dto.isInternal ?? false,
-      },
+
+    const update = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.defectUpdate.create({
+        data: {
+          defectId: id,
+          authorUserId: user.id,
+          message: dto.message,
+          isInternal: dto.isInternal ?? false,
+        },
+      });
+      if (dto.attachmentIds?.length) {
+        await tx.attachment.updateMany({
+          where: {
+            id: { in: dto.attachmentIds },
+            uploadedByUserId: user.id,
+            ownerKind: AttachmentOwner.GENERIC,
+          },
+          data: {
+            defectUpdateId: created.id,
+            ownerKind: AttachmentOwner.DEFECT_UPDATE,
+            status: AttachmentStatus.COMMITTED,
+          },
+        });
+      }
+      return tx.defectUpdate.findUnique({
+        where: { id: created.id },
+        include: { author: true, attachments: true },
+      });
     });
+
+    this.events.emit('defect.commented', {
+      defectId: id,
+      condoId: defect.condoId,
+      authorUserId: user.id,
+      isInternal: dto.isInternal ?? false,
+    });
+    return update;
   }
 }

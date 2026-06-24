@@ -2,11 +2,21 @@
 
 import { api } from '@/lib/api';
 import { useMyUnits, useUnitInvoices } from '@smartresidence/api-client';
-import { formatMoney } from '@smartresidence/shared-types';
+import type { InvoiceStatus } from '@smartresidence/shared-types';
+import { INVOICE_STATUS_LABELS, formatMoney } from '@smartresidence/shared-types';
 import { Badge, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import Link from 'next/link';
 
 const SKELETON_KEYS = ['s1', 's2', 's3'];
+
+const STATUS_TONE: Record<InvoiceStatus, 'success' | 'neutral' | 'info' | 'warning' | 'danger'> = {
+  DRAFT: 'neutral',
+  ISSUED: 'info',
+  PARTIAL: 'warning',
+  PAID: 'success',
+  VOID: 'neutral',
+  OVERDUE: 'danger',
+};
 
 export default function BillingPage() {
   const units = useMyUnits(api);
@@ -49,16 +59,8 @@ export default function BillingPage() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold">{formatMoney(inv.total, inv.currencyCode)}</div>
-                    <Badge
-                      tone={
-                        inv.status === 'PAID'
-                          ? 'success'
-                          : inv.status === 'OVERDUE'
-                            ? 'danger'
-                            : 'primary'
-                      }
-                    >
-                      {inv.status.toLowerCase()}
+                    <Badge tone={STATUS_TONE[inv.status as InvoiceStatus] ?? 'neutral'}>
+                      {INVOICE_STATUS_LABELS[inv.status as InvoiceStatus] ?? inv.status}
                     </Badge>
                   </div>
                 </div>

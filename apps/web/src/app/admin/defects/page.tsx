@@ -3,16 +3,53 @@
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useCondoDefects, useMyCondos, useTransitionDefect } from '@smartresidence/api-client';
-import { type DefectStatus, KANBAN_COLUMNS } from '@smartresidence/shared-types';
-import { Badge, Card, Skeleton } from '@smartresidence/ui-web';
+import {
+  DEFECT_SEVERITY_LABELS,
+  DEFECT_STATUS_LABELS,
+  type DefectSeverity,
+  type DefectStatus,
+  KANBAN_COLUMNS,
+  nextDefectStatuses,
+} from '@smartresidence/shared-types';
+import { Badge, Card, Select, Skeleton } from '@smartresidence/ui-web';
+import Link from 'next/link';
+import * as React from 'react';
 
 const SKELETON_KEYS = ['s1', 's2', 's3', 's4', 's5'];
+const SEVERITY_FILTER_OPTIONS = [
+  { value: 'ALL', label: 'All severities' },
+  ...(['URGENT', 'HIGH', 'MEDIUM', 'LOW'] as DefectSeverity[]).map((s) => ({
+    value: s,
+    label: DEFECT_SEVERITY_LABELS[s],
+  })),
+];
 
 export default function DefectKanbanPage() {
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const defects = useCondoDefects(api, condo?.id ?? null);
   const transition = useTransitionDefect(api);
+
+  const [severity, setSeverity] = React.useState('ALL');
+  const [category, setCategory] = React.useState('ALL');
+
+  const items = (defects.data?.items as any[]) ?? [];
+  const categoryOptions = React.useMemo(() => {
+    const set = new Set<string>(items.map((d) => d.category));
+    return [
+      { value: 'ALL', label: 'All categories' },
+      ...[...set].sort().map((c) => ({ value: c, label: c })),
+    ];
+  }, [items]);
+
+  async function move(id: string, status: DefectStatus) {
+    try {
+      await transition.mutateAsync({ id, status });
+      toast.success(`Moved to ${DEFECT_STATUS_LABELS[status]}`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
 
   if (defects.isLoading) {
     return (
@@ -24,28 +61,41 @@ export default function DefectKanbanPage() {
     );
   }
 
-  const items = (defects.data?.items as any[]) ?? [];
+  const filtered = items.filter(
+    (d) =>
+      (severity === 'ALL' || d.severity === severity) &&
+      (category === 'ALL' || d.category === category),
+  );
   const grouped: Record<string, any[]> = {};
   for (const col of KANBAN_COLUMNS) grouped[col.status] = [];
-  for (const d of items) {
+  for (const d of filtered) {
     const k = d.status === 'ACK' || d.status === 'REOPENED' ? 'NEW' : d.status;
     (grouped[k] ?? grouped.NEW)?.push(d);
   }
 
-  async function move(id: string, status: DefectStatus) {
-    try {
-      await transition.mutateAsync({ id, status });
-      toast.success(`Moved to ${status.toLowerCase()}`);
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Defect board</h1>
-        <p className="sr-muted">Drag-equivalent transitions via the buttons below.</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Defect board</h1>
+          <p className="sr-muted">Open a ticket to assign, update status, and reply.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Select
+            value={severity}
+            onValueChange={setSeverity}
+            options={SEVERITY_FILTER_OPTIONS}
+            aria-label="Filter by severity"
+            className="w-40"
+          />
+          <Select
+            value={category}
+            onValueChange={setCategory}
+            options={categoryOptions}
+            aria-label="Filter by category"
+            className="w-44"
+          />
+        </div>
       </header>
       <div className="grid grid-cols-5 gap-4 min-w-0">
         {KANBAN_COLUMNS.map((col) => (
@@ -57,32 +107,37 @@ export default function DefectKanbanPage() {
             <div className="flex flex-col gap-2 min-h-[100px]">
               {(grouped[col.status] ?? []).map((d: any) => (
                 <Card key={d.id} className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="font-medium text-sm leading-tight">{d.title}</div>
-                    <Badge
-                      tone={
-                        d.severity === 'URGENT'
-                          ? 'danger'
-                          : d.severity === 'HIGH'
-                            ? 'warning'
-                            : 'neutral'
-                      }
-                    >
-                      {d.severity.toLowerCase()}
-                    </Badge>
-                  </div>
-                  <div className="text-xs sr-muted mb-3">
-                    {d.unit?.identifier ?? '—'} · {d.category}
-                  </div>
+                  <Link href={`/admin/defects/${d.id}`} className="block">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="font-medium text-sm leading-tight hover:text-[rgb(var(--sr-coral))]">
+                        {d.title}
+                      </div>
+                      <Badge
+                        tone={
+                          d.severity === 'URGENT'
+                            ? 'danger'
+                            : d.severity === 'HIGH'
+                              ? 'warning'
+                              : 'neutral'
+                        }
+                      >
+                        {d.severity.toLowerCase()}
+                      </Badge>
+                    </div>
+                    <div className="text-xs sr-muted mb-3">
+                      {d.unit?.identifier ?? '—'} · {d.category}
+                      {d.assignedTo?.name ? ` · ${d.assignedTo.name}` : ''}
+                    </div>
+                  </Link>
                   <div className="flex flex-wrap gap-1">
-                    {nextStatuses(col.status).map((next) => (
+                    {nextDefectStatuses(d.status as DefectStatus).map((next) => (
                       <button
                         key={next}
                         type="button"
                         onClick={() => move(d.id, next)}
                         className="text-xs px-2 py-1 rounded-lg bg-[rgb(var(--sr-bg))] hover:bg-[rgb(var(--sr-border))]/60"
                       >
-                        → {next.toLowerCase()}
+                        → {DEFECT_STATUS_LABELS[next]}
                       </button>
                     ))}
                   </div>
@@ -94,21 +149,4 @@ export default function DefectKanbanPage() {
       </div>
     </div>
   );
-}
-
-function nextStatuses(s: DefectStatus): DefectStatus[] {
-  switch (s) {
-    case 'NEW':
-      return ['ASSIGNED', 'IN_PROGRESS'];
-    case 'ASSIGNED':
-      return ['IN_PROGRESS', 'RESOLVED'];
-    case 'IN_PROGRESS':
-      return ['RESOLVED', 'CLOSED'];
-    case 'RESOLVED':
-      return ['CLOSED', 'REOPENED' as DefectStatus];
-    case 'CLOSED':
-      return ['REOPENED' as DefectStatus];
-    default:
-      return [];
-  }
 }

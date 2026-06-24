@@ -18,7 +18,12 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction, type InvoiceStatus } from '@prisma/client';
 import { BillingService } from './billing.service';
-import { CreateInvoiceDto, CreatePaymentDto } from './dto/billing.dto';
+import {
+  CreateInvoiceDto,
+  CreatePaymentDto,
+  GenerateRecurringDto,
+  RecordManualPaymentDto,
+} from './dto/billing.dto';
 import { StripeAdapter } from './providers/stripe.adapter';
 
 @ApiTags('Billing')
@@ -69,6 +74,48 @@ export class BillingController {
     @Body() dto: CreatePaymentDto,
   ) {
     return this.billing.createPayment(user, id, dto);
+  }
+
+  @Post(':id/manual-payment')
+  @CheckAbility({ action: 'manage', subject: 'Payment' })
+  @Audit({ action: AuditAction.PAYMENT, resourceType: 'Payment', resourceIdFrom: 'params.id' })
+  @ApiOperation({ summary: 'Record an off-gateway (cash/transfer) settlement against an invoice' })
+  recordManualPayment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: RecordManualPaymentDto,
+  ) {
+    return this.billing.recordManualPayment(user, id, dto);
+  }
+
+  @Post(':id/void')
+  @CheckAbility({ action: 'manage', subject: 'Invoice' })
+  @Audit({ action: AuditAction.UPDATE, resourceType: 'Invoice', resourceIdFrom: 'params.id' })
+  @ApiOperation({ summary: 'Void an invoice (cannot void a fully paid one)' })
+  voidInvoice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.billing.voidInvoice(user, id, body?.reason);
+  }
+
+  @Post('condo/:condoId/generate-recurring')
+  @CheckAbility({ action: 'manage', subject: 'Invoice' })
+  @ApiOperation({ summary: 'Generate a maintenance-fee invoice per unit for a billing period' })
+  generateRecurring(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Body() dto: GenerateRecurringDto,
+  ) {
+    return this.billing.generateRecurring(user, condoId, dto);
+  }
+
+  @Post('condo/:condoId/run-due-sweep')
+  @CheckAbility({ action: 'manage', subject: 'Invoice' })
+  @ApiOperation({ summary: 'Flag overdue invoices and emit upcoming-due reminders for a condo' })
+  runDueSweep(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+    return this.billing.runDueSweep(condoId);
   }
 }
 

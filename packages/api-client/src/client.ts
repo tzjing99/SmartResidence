@@ -533,6 +533,19 @@ export class ApiClient {
       `/api/invoices/unit/${unitId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
     );
   }
+  invoicesForCondo(
+    condoId: string,
+    params: { status?: string; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    return this.request<{ items: Invoice[]; total: number }>(
+      'GET',
+      `/api/invoices/condo/${condoId}${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
   invoice(id: string) {
     return this.request<Invoice>('GET', `/api/invoices/${id}`);
   }
@@ -541,6 +554,31 @@ export class ApiClient {
       'POST',
       `/api/invoices/${id}/payments`,
       body,
+    );
+  }
+  recordManualPayment(
+    id: string,
+    body: import('@smartresidence/shared-types').RecordManualPaymentInput,
+  ) {
+    return this.request<Invoice>('POST', `/api/invoices/${id}/manual-payment`, body);
+  }
+  voidInvoice(id: string, reason?: string) {
+    return this.request<Invoice>('POST', `/api/invoices/${id}/void`, { reason });
+  }
+  generateRecurringInvoices(
+    condoId: string,
+    body: import('@smartresidence/shared-types').GenerateRecurringInput,
+  ) {
+    return this.request<{ created: number; skipped: number; units: number }>(
+      'POST',
+      `/api/invoices/condo/${condoId}/generate-recurring`,
+      body,
+    );
+  }
+  runInvoiceDueSweep(condoId: string) {
+    return this.request<{ overdue: number; dueSoonNotified: number; sweptAt: string }>(
+      'POST',
+      `/api/invoices/condo/${condoId}/run-due-sweep`,
     );
   }
 
@@ -571,6 +609,12 @@ export class ApiClient {
     body: { status: string; message?: string; assignedToUserId?: string },
   ) {
     return this.request<unknown>('PATCH', `/api/defects/${id}/status`, body);
+  }
+  addDefectUpdate(
+    id: string,
+    body: { message: string; isInternal?: boolean; attachmentIds?: string[] },
+  ) {
+    return this.request<unknown>('POST', `/api/defects/${id}/updates`, body);
   }
 
   // Announcements ----------------------------------------------------

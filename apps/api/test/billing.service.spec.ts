@@ -27,8 +27,9 @@ function makeService() {
     createIntent: vi.fn(async () => ({ providerRef: 'fpx_x', redirectUrl: 'https://gw.test' })),
     verifyWebhook: vi.fn(),
   };
-  const service = new BillingService(prisma, stripe, fpx);
-  return { service, prisma, stripe, fpx };
+  const events: any = { emit: vi.fn() };
+  const service = new BillingService(prisma, events, stripe, fpx);
+  return { service, prisma, stripe, fpx, events };
 }
 
 const actor: any = { id: 'u1' };

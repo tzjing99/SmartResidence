@@ -17,6 +17,16 @@ const THREAD_KINDS: NotificationKind[] = [
   NotificationKind.THREAD_SLA_ESCALATION,
 ];
 
+/** Human-friendly notification titles for defect status transitions. */
+const DEFECT_STATUS_BODY: Record<string, string> = {
+  ACK: 'acknowledged',
+  ASSIGNED: 'assigned',
+  IN_PROGRESS: 'in progress',
+  RESOLVED: 'resolved',
+  CLOSED: 'closed',
+  REOPENED: 'reopened',
+};
+
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
@@ -344,8 +354,152 @@ export class NotificationService {
       kind: NotificationKind.DEFECT_UPDATE,
       title: 'New defect submitted',
       body: d.title,
-      data: { defectId: d.id },
+      data: { defectId: d.id, deeplink: `smartresidence://defects/${d.id}` },
     });
+  }
+
+  /** Defect status changed / (re)assigned → notify the resident + new assignee. */
+  @OnEvent('defect.updated')
+  async onDefectStatusChanged(payload: {
+    defectId: string;
+    statusFrom?: string;
+    statusTo?: string;
+    assigneeChanged?: boolean;
+    assignedToUserId?: string;
+    actorUserId?: string;
+  }) {
+    const d = await this.prisma.defect.findUnique({ where: { id: payload.defectId } });
+    if (!d) return;
+    const deeplink = `smartresidence://defects/${d.id}`;
+
+    if (payload.statusTo && payload.statusTo !== payload.statusFrom) {
+      const recipients = new Set<string>();
+      if (d.raisedByUserId && d.raisedByUserId !== payload.actorUserId) {
+        recipients.add(d.raisedByUserId);
+      }
+      if (recipients.size > 0) {
+        await this.dispatch({
+          userIds: [...recipients],
+          kind: NotificationKind.DEFECT_UPDATE,
+          title: `Defect ${DEFECT_STATUS_BODY[payload.statusTo] ?? payload.statusTo.toLowerCase()}`,
+          body: d.title,
+          data: { defectId: d.id, status: payload.statusTo, deeplink },
+        });
+      }
+    }
+
+    if (payload.assigneeChanged && payload.assignedToUserId) {
+      await this.dispatch({
+        userIds: [payload.assignedToUserId],
+        kind: NotificationKind.DEFECT_UPDATE,
+        title: 'Defect assigned to you',
+        body: d.title,
+        data: { defectId: d.id, deeplink },
+      });
+    }
+  }
+
+  /** New defect comment → notify the other party (resident ↔ assignee). */
+  @OnEvent('defect.commented')
+  async onDefectCommented(payload: {
+    defectId: string;
+    authorUserId: string;
+    isInternal?: boolean;
+  }) {
+    if (payload.isInternal) return;
+    const d = await this.prisma.defect.findUnique({ where: { id: payload.defectId } });
+    if (!d) return;
+
+    const recipients = new Set<string>();
+    if (payload.authorUserId === d.raisedByUserId) {
+      if (d.assignedToUserId) recipients.add(d.assignedToUserId);
+    } else if (d.raisedByUserId) {
+      recipients.add(d.raisedByUserId);
+    }
+    recipients.delete(payload.authorUserId);
+    if (recipients.size === 0) return;
+
+    await this.dispatch({
+      userIds: [...recipients],
+      kind: NotificationKind.DEFECT_UPDATE,
+      title: 'New comment on your defect',
+      body: d.title,
+      data: { defectId: d.id, deeplink: `smartresidence://defects/${d.id}` },
+    });
+  }
+
+  @OnEvent('invoice.issued')
+  async onInvoiceIssued(payload: { invoiceId: string }) {
+    const inv = await this.invoiceWithUnit(payload.invoiceId);
+    if (!inv) return;
+    const userIds = await this.unitResidentUserIds(inv.unitId);
+    if (userIds.length === 0) return;
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.INVOICE_ISSUED,
+      title: `New invoice ${inv.number}`,
+      body: `${this.formatMyr(inv.total)} due ${inv.dueDate.toLocaleDateString()} for ${inv.unit?.identifier ?? 'your unit'}.`,
+      data: { invoiceId: inv.id, deeplink: `smartresidence://billing/${inv.id}` },
+    });
+  }
+
+  @OnEvent('invoice.paid')
+  async onInvoicePaid(payload: { invoiceId: string }) {
+    const inv = await this.invoiceWithUnit(payload.invoiceId);
+    if (!inv) return;
+    const userIds = await this.unitResidentUserIds(inv.unitId);
+    if (userIds.length === 0) return;
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.INVOICE_PAID,
+      title: `Payment received — ${inv.number}`,
+      body: `We've received ${this.formatMyr(inv.total)} for ${inv.unit?.identifier ?? 'your unit'}. Thank you!`,
+      data: { invoiceId: inv.id, deeplink: `smartresidence://billing/${inv.id}` },
+    });
+  }
+
+  @OnEvent('invoice.due_soon')
+  async onInvoiceDueSoon(payload: { invoiceId: string }) {
+    const inv = await this.invoiceWithUnit(payload.invoiceId);
+    if (!inv) return;
+    const userIds = await this.unitResidentUserIds(inv.unitId);
+    if (userIds.length === 0) return;
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.INVOICE_DUE_SOON,
+      title: `Invoice ${inv.number} due soon`,
+      body: `${this.formatMyr(inv.total)} is due ${inv.dueDate.toLocaleDateString()}. Pay early to avoid late status.`,
+      data: { invoiceId: inv.id, deeplink: `smartresidence://billing/${inv.id}` },
+    });
+  }
+
+  @OnEvent('invoice.overdue')
+  async onInvoiceOverdue(payload: { invoiceId: string }) {
+    const inv = await this.invoiceWithUnit(payload.invoiceId);
+    if (!inv) return;
+    const userIds = await this.unitResidentUserIds(inv.unitId);
+    if (userIds.length === 0) return;
+    const outstanding = Number(inv.total) - Number(inv.amountPaid);
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.INVOICE_DUE_SOON,
+      title: `Invoice ${inv.number} is overdue`,
+      body: `${this.formatMyr(outstanding)} was due ${inv.dueDate.toLocaleDateString()}. Please settle it as soon as possible.`,
+      data: { invoiceId: inv.id, deeplink: `smartresidence://billing/${inv.id}` },
+    });
+  }
+
+  private invoiceWithUnit(invoiceId: string) {
+    return this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { unit: { select: { identifier: true } } },
+    });
+  }
+
+  private formatMyr(amount: number | string | { toString(): string }): string {
+    return new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR' }).format(
+      Number(amount),
+    );
   }
 
   @OnEvent('announcement.published')

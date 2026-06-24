@@ -3,14 +3,24 @@
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCreateDefect, useMyUnits } from '@smartresidence/api-client';
+import { uploadAttachment, useCreateDefect, useMyUnits } from '@smartresidence/api-client';
 import {
   type CreateDefectInput,
   CreateDefectSchema,
   DEFECT_CATEGORIES,
+  MAX_ATTACHMENTS_PER_MESSAGE,
 } from '@smartresidence/shared-types';
-import { Button, Card, Input, Label, Textarea } from '@smartresidence/ui-web';
+import {
+  Button,
+  Card,
+  Input,
+  Label,
+  PhotoUpload,
+  type PhotoUploadHandle,
+  Textarea,
+} from '@smartresidence/ui-web';
 import { useRouter } from 'next/navigation';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 
 export default function NewDefectPage() {
@@ -18,6 +28,8 @@ export default function NewDefectPage() {
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
   const create = useCreateDefect(api);
+  const [attachmentIds, setAttachmentIds] = React.useState<string[]>([]);
+  const photoRef = React.useRef<PhotoUploadHandle>(null);
   const form = useForm<CreateDefectInput>({
     resolver: zodResolver(CreateDefectSchema),
     defaultValues: { unitId: '', severity: 'MEDIUM', category: 'Plumbing' },
@@ -26,7 +38,12 @@ export default function NewDefectPage() {
   async function onSubmit(values: CreateDefectInput) {
     if (!unit) return;
     try {
-      await create.mutateAsync({ ...values, unitId: unit.id });
+      await create.mutateAsync({
+        ...values,
+        unitId: unit.id,
+        attachmentIds: attachmentIds.length ? attachmentIds : undefined,
+      });
+      photoRef.current?.reset();
       toast.success('Defect submitted');
       router.push('/defects');
     } catch (err) {
@@ -78,6 +95,21 @@ export default function NewDefectPage() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" rows={6} {...form.register('description')} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Photos (optional)</Label>
+            <PhotoUpload
+              ref={photoRef}
+              maxFiles={MAX_ATTACHMENTS_PER_MESSAGE}
+              onChange={setAttachmentIds}
+              upload={(file, opts) =>
+                uploadAttachment(
+                  api,
+                  { file, fileName: file.name, contentType: file.type || 'image/jpeg' },
+                  opts,
+                )
+              }
+            />
           </div>
           <div className="flex justify-end gap-3 mt-2">
             <Button type="button" variant="ghost" onClick={() => router.back()}>

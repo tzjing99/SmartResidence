@@ -25,6 +25,20 @@ export const CreateDefectSchema = z.object({
 });
 export type CreateDefectInput = z.infer<typeof CreateDefectSchema>;
 
+export const TransitionDefectSchema = z.object({
+  status: DefectStatus,
+  message: z.string().max(4000).optional(),
+  assignedToUserId: z.string().uuid().optional(),
+});
+export type TransitionDefectInput = z.infer<typeof TransitionDefectSchema>;
+
+export const AddDefectUpdateSchema = z.object({
+  message: z.string().min(1).max(4000),
+  isInternal: z.boolean().optional(),
+  attachmentIds: z.array(z.string().uuid()).optional(),
+});
+export type AddDefectUpdateInput = z.infer<typeof AddDefectUpdateSchema>;
+
 export const DEFECT_CATEGORIES = [
   'Plumbing',
   'Electrical',
@@ -45,3 +59,54 @@ export const KANBAN_COLUMNS: Array<{ status: DefectStatus; label: string }> = [
   { status: 'RESOLVED', label: 'Resolved' },
   { status: 'CLOSED', label: 'Closed' },
 ];
+
+export const DEFECT_STATUS_LABELS: Record<DefectStatus, string> = {
+  NEW: 'Submitted',
+  ACK: 'Acknowledged',
+  ASSIGNED: 'Assigned',
+  IN_PROGRESS: 'In progress',
+  RESOLVED: 'Resolved',
+  CLOSED: 'Closed',
+  REOPENED: 'Reopened',
+};
+
+export const DEFECT_SEVERITY_LABELS: Record<DefectSeverity, string> = {
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  URGENT: 'Urgent',
+};
+
+/**
+ * The "happy path" lifecycle milestones, in order. Used to render a progress
+ * timeline; REOPENED is an off-path branch and is surfaced via the activity
+ * feed rather than as its own milestone.
+ */
+export const DEFECT_STATUS_FLOW: DefectStatus[] = [
+  'NEW',
+  'ACK',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'RESOLVED',
+  'CLOSED',
+];
+
+/** Allowed forward/backward transitions, mirrored by the API guard. */
+export const DEFECT_TRANSITIONS: Record<DefectStatus, DefectStatus[]> = {
+  NEW: ['ACK', 'ASSIGNED', 'CLOSED'],
+  ACK: ['ASSIGNED', 'IN_PROGRESS', 'CLOSED'],
+  ASSIGNED: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+  IN_PROGRESS: ['RESOLVED', 'CLOSED'],
+  RESOLVED: ['CLOSED', 'REOPENED'],
+  CLOSED: ['REOPENED'],
+  REOPENED: ['ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+};
+
+export function nextDefectStatuses(status: DefectStatus): DefectStatus[] {
+  return DEFECT_TRANSITIONS[status] ?? [];
+}
+
+/** True when a status represents a finished lifecycle (no longer actionable). */
+export function isTerminalDefectStatus(status: DefectStatus): boolean {
+  return status === 'CLOSED';
+}

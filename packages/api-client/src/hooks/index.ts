@@ -46,6 +46,8 @@ export const queryKeys = {
   guardLiveVisitors: (condoId: string) => ['visitors', 'guard', 'live', condoId] as const,
   unitFavouriteVisitors: (unitId: string) => ['visitors', 'favourites', unitId] as const,
   unitInvoices: (unitId: string) => ['invoices', 'unit', unitId] as const,
+  condoInvoices: (condoId: string, status?: string) =>
+    ['invoices', 'condo', condoId, status ?? 'all'] as const,
   invoice: (id: string) => ['invoices', id] as const,
   unitDefects: (unitId: string) => ['defects', 'unit', unitId] as const,
   condoDefects: (condoId: string) => ['defects', 'condo', condoId] as const,
@@ -295,6 +297,68 @@ export function usePayInvoice(api: ApiClient) {
   });
 }
 
+export function useCondoInvoices(
+  api: ApiClient,
+  condoId: string | null,
+  status?: string,
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoInvoices(condoId, status) : ['invoices', 'condo', null],
+    queryFn: () =>
+      condoId
+        ? api.invoicesForCondo(condoId, status ? { status } : {})
+        : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useRecordManualPayment(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      input: import('@smartresidence/shared-types').RecordManualPaymentInput;
+    }) => api.recordManualPayment(vars.id, vars.input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}
+
+export function useVoidInvoice(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; reason?: string }) => api.voidInvoice(vars.id, vars.reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}
+
+export function useGenerateRecurringInvoices(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').GenerateRecurringInput;
+    }) => api.generateRecurringInvoices(vars.condoId, vars.input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}
+
+export function useRunInvoiceDueSweep(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string }) => api.runInvoiceDueSweep(vars.condoId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}
+
 export function useUnitDefects(api: ApiClient, unitId: string | null) {
   return useQuery({
     queryKey: unitId ? queryKeys.unitDefects(unitId) : ['defects', 'unit', null],
@@ -322,6 +386,14 @@ export function useCreateDefect(api: ApiClient) {
   });
 }
 
+export function useDefect(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? queryKeys.defect(id) : ['defects', null],
+    queryFn: () => (id ? api.defect(id) : Promise.reject(new Error('no defect'))),
+    enabled: Boolean(id),
+  });
+}
+
 export function useTransitionDefect(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
@@ -335,6 +407,27 @@ export function useTransitionDefect(api: ApiClient) {
         status: vars.status,
         message: vars.message,
         assignedToUserId: vars.assignedToUserId,
+      }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.defect(vars.id) });
+      qc.invalidateQueries({ queryKey: ['defects'] });
+    },
+  });
+}
+
+export function useAddDefectUpdate(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      message: string;
+      isInternal?: boolean;
+      attachmentIds?: string[];
+    }) =>
+      api.addDefectUpdate(vars.id, {
+        message: vars.message,
+        isInternal: vars.isInternal,
+        attachmentIds: vars.attachmentIds,
       }),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.defect(vars.id) });

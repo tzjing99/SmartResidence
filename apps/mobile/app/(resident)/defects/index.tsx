@@ -28,9 +28,8 @@ import {
   spacing,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { PhotoPicker } from '../../../src/components/photo-picker';
 import { DefectSubmissionProgress } from '../../../src/components/defect-submission-progress';
 import {
@@ -98,44 +97,56 @@ export default function DefectsScreen() {
           row.kind === 'package' ? (
             <PackageCard key={`package-${row.data.id}`} report={row.data} />
           ) : (
-            <Card key={`defect-${row.data.id}`} style={residentStyles.card}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  gap: 10,
-                }}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
-                    {row.data.title}
-                  </AppText>
-                  <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
-                    {row.data.category} · {new Date(row.data.createdAt).toLocaleDateString()}
-                  </AppText>
-                </View>
-                <Pill
-                  tone={
-                    row.data.status === 'CLOSED' || row.data.status === 'RESOLVED'
-                      ? 'success'
-                      : row.data.status === 'NEW'
-                        ? 'primary'
-                        : 'info'
-                  }
-                  label={
-                    row.data.status === 'RESOLVED'
-                      ? 'Waiting sign-off'
-                      : prettyLabel(row.data.status)
-                  }
-                />
-              </View>
-            </Card>
+            <StandaloneDefectCard key={`defect-${row.data.id}`} defect={row.data} />
           ),
         )
       )}
     </ResidentScreen>
+  );
+}
+
+function StandaloneDefectCard({
+  defect,
+}: {
+  defect: { id: string; title: string; category: string; status: DefectStatus; createdAt: string };
+}) {
+  const router = useRouter();
+
+  return (
+    <AnimatedPressable onPress={() => router.push(`/(resident)/defects/${defect.id}` as Href)}>
+      <Card style={residentStyles.card}>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 10,
+          }}
+        >
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+              {defect.title}
+            </AppText>
+            <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+              {defect.category} · {new Date(defect.createdAt).toLocaleDateString()}
+            </AppText>
+          </View>
+          <Pill
+            tone={
+              defect.status === 'CLOSED' || defect.status === 'RESOLVED'
+                ? 'success'
+                : defect.status === 'NEW'
+                  ? 'primary'
+                  : 'info'
+            }
+            label={
+              defect.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(defect.status)
+            }
+          />
+        </View>
+      </Card>
+    </AnimatedPressable>
   );
 }
 
@@ -230,38 +241,31 @@ function reportStatus(report: DefectReportSummary): DefectStatus {
 
 function SingleDefectForm({ unitId }: { unitId?: string }) {
   const create = useCreateDefect(api);
+  const photo = usePhotoUpload();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-
-  async function attach() {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (perm.status !== 'granted') {
-      Alert.alert('Camera permission needed');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (!result.canceled) setPhotoUri(result.assets[0]?.uri ?? null);
-  }
 
   async function submit() {
-    if (!unitId || !title || !description) {
+    if (!unitId || !title.trim() || !description.trim()) {
       Alert.alert('Please fill title and description');
+      return;
+    }
+    if (photo.uploading) {
+      Alert.alert('Please wait', 'Photos are still uploading.');
       return;
     }
     try {
       await create.mutateAsync({
         unitId,
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         category: 'Other',
+        attachmentIds: photo.attachmentIds.length ? photo.attachmentIds : undefined,
       });
       setTitle('');
       setDescription('');
-      setPhotoUri(null);
+      photo.reset();
+      Alert.alert('Submitted', 'Your defect report was sent to management.');
     } catch (err) {
       Alert.alert('Could not submit', (err as Error).message);
     }
@@ -283,28 +287,14 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
         multiline
         style={[inputStyle, { height: 90, marginTop: 10, textAlignVertical: 'top', paddingTop: 10 }]}
       />
-      {photoUri ? (
-        <Image
-          source={{ uri: photoUri }}
-          style={{ height: 140, borderRadius: radius.lg, marginTop: 10 }}
-        />
-      ) : null}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Button
-          title={photoUri ? 'Retake photo' : 'Take photo'}
-          variant="secondary"
-          size="sm"
-          style={{ flexGrow: 1 }}
-          onPress={attach}
-        />
-        <Button
-          title={create.isPending ? 'Submitting…' : 'Submit'}
-          loading={create.isPending}
-          onPress={submit}
-          size="sm"
-          style={{ flexGrow: 1 }}
-        />
-      </View>
+      <PhotoPicker controller={photo} />
+      <Button
+        title={create.isPending ? 'Submitting…' : 'Submit'}
+        loading={create.isPending}
+        onPress={submit}
+        size="sm"
+        disabled={photo.uploading}
+      />
     </Card>
   );
 }

@@ -89,7 +89,6 @@ export default function ResidentDefectDetailPage() {
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <DefectStatusBadge status={d.status} />
-          <DefectSeverityBadge severity={d.severity} />
         </div>
         <h2 className="sr-section-title">{d.title}</h2>
         <p className="text-sm sr-muted">

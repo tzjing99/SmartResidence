@@ -58,6 +58,7 @@ model User {
   payments           Payment[]
   raisedDefects      Defect[]             @relation("raisedBy")
   assignedDefects    Defect[]             @relation("assignedTo")
+  raisedDefectReports DefectReport[]      @relation("reportRaisedBy")
   defectUpdates      DefectUpdate[]
   attachmentUploads  Attachment[]
   authoredAnnouncements Announcement[]    @relation("announcementAuthor")
@@ -174,6 +175,11 @@ model Condo {
   slaPolicies     SlaPolicy[]
   faqCategories   FaqCategory[]
   faqArticles     FaqArticle[]
+  unitTypes        UnitType[]
+  defectSpaceTypes DefectSpaceType[]
+  defectElements   DefectElement[]
+  defectIssues     DefectIssue[]
+  defectReports    DefectReport[]
 
   @@map("condos")
 }
@@ -213,6 +219,8 @@ model Unit {
   sqft        Decimal?   @db.Decimal(10, 2)
   bedrooms    Int?
   bathrooms   Int?
+  unitTypeId  String?    @db.Uuid
+  unitType    UnitType?  @relation(fields: [unitTypeId], references: [id], onDelete: SetNull)
   status      UnitStatus @default(OCCUPIED)
   metadata    Json       @default("{}")
   createdAt   DateTime   @default(now())
@@ -226,6 +234,7 @@ model Unit {
   visitorPolicies  UnitVisitorPolicy[]
   invoices         Invoice[]
   defects          Defect[]
+  defectReports    DefectReport[]
   roleAssignments  RoleAssignment[]
   auditLogs        AuditLog[]
   threads          Thread[]
@@ -233,6 +242,7 @@ model Unit {
 
   @@unique([condoId, identifier])
   @@index([blockId])
+  @@index([unitTypeId])
   @@map("units")
 }
 
@@ -648,6 +658,19 @@ model Defect {
   status          DefectStatus   @default(NEW)
   assignedToUserId String?       @db.Uuid
   assignedTo      User?          @relation("assignedTo", fields: [assignedToUserId], references: [id])
+  // Handover inspection grouping: a Defect can be a line item of a parent
+  // DefectReport. Nullable so standalone (ongoing-maintenance) defects keep working.
+  reportId        String?        @db.Uuid
+  report          DefectReport?  @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  // Optional taxonomy classification (Space -> Element -> Issue) for handover items.
+  spaceTypeId     String?        @db.Uuid
+  spaceType       DefectSpaceType? @relation(fields: [spaceTypeId], references: [id], onDelete: SetNull)
+  elementId       String?        @db.Uuid
+  element         DefectElement? @relation(fields: [elementId], references: [id], onDelete: SetNull)
+  issueId         String?        @db.Uuid
+  issue           DefectIssue?   @relation(fields: [issueId], references: [id], onDelete: SetNull)
+  // Concrete room label within the unit, e.g. "Bathroom 1".
+  spaceLabel      String?
   acknowledgedAt  DateTime?
   resolvedAt      DateTime?
   closedAt        DateTime?
@@ -662,6 +685,7 @@ model Defect {
   @@index([unitId])
   @@index([raisedByUserId])
   @@index([assignedToUserId])
+  @@index([reportId])
   @@map("defects")
 }
 
@@ -1130,4 +1154,126 @@ model FaqArticle {
   @@index([condoId, published])
   @@index([categoryId])
   @@map("faq_articles")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Unit types, room templates & handover defect taxonomy
+//////////////////////////////////////////////////////////////////////////////
+
+enum DefectReportKind {
+  HANDOVER
+  STANDARD
+}
+
+/// A reusable unit layout (e.g. "Type A — 3 bed") with a template of rooms.
+model UnitType {
+  id          String   @id @default(uuid()) @db.Uuid
+  condoId     String   @db.Uuid
+  condo       Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  spaces UnitTypeSpace[]
+  units  Unit[]
+
+  @@index([condoId])
+  @@map("unit_types")
+}
+
+/// A concrete room within a unit type, e.g. "Bathroom 1", typed by a space type.
+model UnitTypeSpace {
+  id          String           @id @default(uuid()) @db.Uuid
+  unitTypeId  String           @db.Uuid
+  unitType    UnitType         @relation(fields: [unitTypeId], references: [id], onDelete: Cascade)
+  spaceTypeId String?          @db.Uuid
+  spaceType   DefectSpaceType? @relation(fields: [spaceTypeId], references: [id], onDelete: SetNull)
+  name        String
+  position    Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([unitTypeId])
+  @@index([spaceTypeId])
+  @@map("unit_type_spaces")
+}
+
+/// Top of the defect taxonomy: a kind of space, e.g. "Bathroom", "Kitchen".
+model DefectSpaceType {
+  id        String   @id @default(uuid()) @db.Uuid
+  condoId   String   @db.Uuid
+  condo     Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name      String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  elements   DefectElement[]
+  unitSpaces UnitTypeSpace[]
+  defects    Defect[]
+
+  @@index([condoId])
+  @@map("defect_space_types")
+}
+
+/// A checkable element within a space type, e.g. "Tiles", "Tap", "Door".
+model DefectElement {
+  id          String          @id @default(uuid()) @db.Uuid
+  condoId     String          @db.Uuid
+  condo       Condo           @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  spaceTypeId String          @db.Uuid
+  spaceType   DefectSpaceType @relation(fields: [spaceTypeId], references: [id], onDelete: Cascade)
+  name        String
+  position    Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  issues  DefectIssue[]
+  defects Defect[]
+
+  @@index([condoId])
+  @@index([spaceTypeId])
+  @@map("defect_elements")
+}
+
+/// A specific issue for an element, e.g. "Uneven tiles", "Leaking".
+model DefectIssue {
+  id        String        @id @default(uuid()) @db.Uuid
+  condoId   String        @db.Uuid
+  condo     Condo         @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  elementId String        @db.Uuid
+  element   DefectElement @relation(fields: [elementId], references: [id], onDelete: Cascade)
+  name      String
+  position  Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  defects Defect[]
+
+  @@index([condoId])
+  @@index([elementId])
+  @@map("defect_issues")
+}
+
+/// Parent ticket grouping many Defect line items (e.g. one handover inspection).
+model DefectReport {
+  id             String           @id @default(uuid()) @db.Uuid
+  condoId        String           @db.Uuid
+  condo          Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId         String?          @db.Uuid
+  unit           Unit?            @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  raisedByUserId String           @db.Uuid
+  raisedBy       User             @relation("reportRaisedBy", fields: [raisedByUserId], references: [id])
+  kind           DefectReportKind @default(HANDOVER)
+  title          String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  defects Defect[]
+
+  @@index([condoId, createdAt])
+  @@index([unitId])
+  @@map("defect_reports")
 }

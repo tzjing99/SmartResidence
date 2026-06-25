@@ -5,6 +5,7 @@ export * from './walk-in-owner';
 export * from './unit-search';
 export * from './billing';
 export * from './defect';
+export * from './handover';
 export * from './announcement';
 export * from './upload';
 

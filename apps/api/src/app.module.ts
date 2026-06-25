@@ -17,6 +17,7 @@ import { BillingModule } from './billing/billing.module';
 import { CacheModule } from './cache/cache.module';
 import { DefectModule } from './defect/defect.module';
 import { FaqModule } from './faq/faq.module';
+import { HandoverModule } from './handover/handover.module';
 import { NotificationModule } from './notification/notification.module';
 import { OwnerModule } from './owner/owner.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -56,6 +57,7 @@ import { VisitorModule } from './visitor/visitor.module';
     ThreadsModule,
     SlaModule,
     FaqModule,
+    HandoverModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

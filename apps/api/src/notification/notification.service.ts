@@ -358,6 +358,68 @@ export class NotificationService {
     });
   }
 
+  /**
+   * Handover report submitted → ONE summary notification to the unit's other
+   * residents (never one push per line item). Management triages it on the web.
+   */
+  @OnEvent('defect.report.created')
+  async onDefectReportCreated(payload: {
+    reportId: string;
+    condoId: string;
+    itemCount: number;
+    actorUserId?: string;
+  }) {
+    const report = await this.prisma.defectReport.findUnique({
+      where: { id: payload.reportId },
+      include: { unit: { select: { identifier: true } } },
+    });
+    if (!report?.unitId) return;
+    const residents = await this.unitResidentUserIds(report.unitId);
+    const recipients = residents.filter((id) => id !== payload.actorUserId);
+    if (recipients.length === 0) return;
+    await this.dispatch({
+      userIds: recipients,
+      kind: NotificationKind.DEFECT_UPDATE,
+      title: 'Handover inspection submitted',
+      body: `${payload.itemCount} item(s) logged for ${report.unit?.identifier ?? 'your unit'}.`,
+      data: {
+        reportId: report.id,
+        deeplink: `smartresidence://defects/reports/${report.id}`,
+      },
+    });
+  }
+
+  /**
+   * Bulk items resolved → one summary notification to the unit resident(s) asking
+   * them to sign off. Excludes the actor so management doesn't notify themselves.
+   */
+  @OnEvent('defect.report.items.resolved')
+  async onDefectReportItemsResolved(payload: {
+    reportId: string;
+    condoId: string;
+    updatedCount: number;
+    actorUserId?: string;
+  }) {
+    const report = await this.prisma.defectReport.findUnique({
+      where: { id: payload.reportId },
+      include: { unit: { select: { identifier: true } } },
+    });
+    if (!report?.unitId) return;
+    const residents = await this.unitResidentUserIds(report.unitId);
+    const recipients = residents.filter((id) => id !== payload.actorUserId);
+    if (recipients.length === 0) return;
+    await this.dispatch({
+      userIds: recipients,
+      kind: NotificationKind.DEFECT_UPDATE,
+      title: 'Defects fixed — sign-off required',
+      body: `${payload.updatedCount} defect(s) in your unit ${report.unit?.identifier ?? ''} have been marked fixed. Please review and sign off.`.trim(),
+      data: {
+        reportId: report.id,
+        deeplink: `smartresidence://defects/reports/${report.id}`,
+      },
+    });
+  }
+
   /** Defect status changed / (re)assigned → notify the resident + new assignee. */
   @OnEvent('defect.updated')
   async onDefectStatusChanged(payload: {

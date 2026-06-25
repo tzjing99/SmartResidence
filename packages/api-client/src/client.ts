@@ -14,14 +14,31 @@ import type {
   Announcement,
   AnnouncementCategory,
   AnnouncementReadStats,
+  BulkUpdateReportItemsInput,
   CreateAnnouncementInput,
   CreateDefectInput,
+  CreateDefectElementInput,
+  CreateDefectIssueInput,
+  CreateDefectSpaceTypeInput,
   CreateFavouriteVisitorInput,
+  CreateHandoverReportInput,
+  CreateUnitTypeInput,
+  CreateUnitTypeSpaceInput,
   CreateVisitorInput,
+  DefectReportDetail,
+  DefectReportSummary,
+  DefectSpaceTypeTree,
   FavouriteVisitor,
+  HandoverTemplate,
   Invoice,
+  UnitType,
   UpdateAnnouncementInput,
+  UpdateDefectElementInput,
+  UpdateDefectIssueInput,
+  UpdateDefectSpaceTypeInput,
   UpdateFavouriteVisitorInput,
+  UpdateUnitTypeInput,
+  UpdateUnitTypeSpaceInput,
   UploadResponse,
   UploadedAttachment,
   Visitor,
@@ -936,6 +953,110 @@ export class ApiClient {
   }
   deleteFaqCategory(id: string) {
     return this.request<{ ok: boolean }>('DELETE', `/api/faq/categories/${id}`);
+  }
+
+  // Handover: unit types & defect taxonomy --------------------------
+  unitTypes(condoId: string) {
+    return this.request<UnitType[]>('GET', `/api/condos/${condoId}/unit-types`);
+  }
+  createUnitType(body: CreateUnitTypeInput) {
+    return this.request<UnitType>('POST', '/api/unit-types', body);
+  }
+  updateUnitType(id: string, body: UpdateUnitTypeInput) {
+    return this.request<UnitType>('PATCH', `/api/unit-types/${id}`, body);
+  }
+  deleteUnitType(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/unit-types/${id}`);
+  }
+  addUnitTypeSpace(unitTypeId: string, body: CreateUnitTypeSpaceInput) {
+    return this.request<unknown>('POST', `/api/unit-types/${unitTypeId}/spaces`, body);
+  }
+  updateUnitTypeSpace(id: string, body: UpdateUnitTypeSpaceInput) {
+    return this.request<unknown>('PATCH', `/api/unit-type-spaces/${id}`, body);
+  }
+  deleteUnitTypeSpace(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/unit-type-spaces/${id}`);
+  }
+  defectTaxonomy(condoId: string) {
+    return this.request<DefectSpaceTypeTree[]>('GET', `/api/condos/${condoId}/defect-taxonomy`);
+  }
+  createDefectSpaceType(body: CreateDefectSpaceTypeInput) {
+    return this.request<unknown>('POST', '/api/defect-space-types', body);
+  }
+  updateDefectSpaceType(id: string, body: UpdateDefectSpaceTypeInput) {
+    return this.request<unknown>('PATCH', `/api/defect-space-types/${id}`, body);
+  }
+  deleteDefectSpaceType(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/defect-space-types/${id}`);
+  }
+  createDefectElement(body: CreateDefectElementInput) {
+    return this.request<unknown>('POST', '/api/defect-elements', body);
+  }
+  updateDefectElement(id: string, body: UpdateDefectElementInput) {
+    return this.request<unknown>('PATCH', `/api/defect-elements/${id}`, body);
+  }
+  deleteDefectElement(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/defect-elements/${id}`);
+  }
+  createDefectIssue(body: CreateDefectIssueInput) {
+    return this.request<unknown>('POST', '/api/defect-issues', body);
+  }
+  updateDefectIssue(id: string, body: UpdateDefectIssueInput) {
+    return this.request<unknown>('PATCH', `/api/defect-issues/${id}`, body);
+  }
+  deleteDefectIssue(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/defect-issues/${id}`);
+  }
+  setUnitType(condoId: string, unitId: string, unitTypeId: string | null) {
+    return this.request<unknown>('PATCH', `/api/condos/${condoId}/units/${unitId}`, {
+      unitTypeId,
+    });
+  }
+  unitHandoverTemplate(unitId: string) {
+    return this.request<HandoverTemplate>('GET', `/api/units/${unitId}/handover-template`);
+  }
+
+  // Handover reports -------------------------------------------------
+  createHandoverReport(input: CreateHandoverReportInput) {
+    return this.request<DefectReportSummary>('POST', '/api/defects/reports', input);
+  }
+  defectReportsForCondo(condoId: string) {
+    return this.request<DefectReportSummary[]>('GET', `/api/defects/reports/condo/${condoId}`);
+  }
+  defectReportsForUnit(unitId: string) {
+    return this.request<DefectReportSummary[]>('GET', `/api/defects/reports/unit/${unitId}`);
+  }
+  defectReport(id: string) {
+    return this.request<DefectReportDetail>('GET', `/api/defects/reports/${id}`);
+  }
+  bulkUpdateReportItems(id: string, body: BulkUpdateReportItemsInput) {
+    return this.request<{ updated: number }>('PATCH', `/api/defects/reports/${id}/items`, body);
+  }
+  /** Download a handover report as a contractor PDF (management only). */
+  async exportDefectReportPdf(id: string): Promise<Blob> {
+    const headers: Record<string, string> = { Accept: 'application/pdf' };
+    const token = await this.cfg.getAccessToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const condoId = await this.cfg.getActiveCondoId?.();
+    if (condoId) headers['x-condo-id'] = condoId;
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const res = await fetchImpl(`${this.cfg.baseUrl}/api/defects/reports/${id}/export.pdf`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = await res.json();
+      } catch {
+        /* ignore */
+      }
+      const message =
+        (parsed as { message?: string } | null)?.message ?? `HTTP ${res.status} ${res.statusText}`;
+      throw new ApiError(res.status, parsed, message);
+    }
+    return res.blob();
   }
 
   // Storage ----------------------------------------------------------

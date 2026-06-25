@@ -32,6 +32,9 @@ export type Subject =
   | 'Payment'
   | 'Defect'
   | 'DefectUpdate'
+  | 'DefectReport'
+  | 'UnitType'
+  | 'DefectTaxonomy'
   | 'Announcement'
   | 'AuditLog'
   | 'User'
@@ -123,6 +126,10 @@ export class AbilityFactory {
         can('manage', 'Invoice', { condoId: scope.condoId ?? '' });
         can('manage', 'Payment');
         can('manage', 'Defect', { condoId: scope.condoId ?? '' });
+        can('manage', 'DefectReport', { condoId: scope.condoId ?? '' });
+        // Handover config (unit types + defect taxonomy): admin-managed like FAQ.
+        can('manage', 'UnitType', { condoId: scope.condoId ?? '' });
+        can('manage', 'DefectTaxonomy', { condoId: scope.condoId ?? '' });
         can('manage', 'Announcement', { condoId: scope.condoId ?? '' });
         can('manage', 'RoleAssignment', { condoId: scope.condoId ?? '' });
         can('manage', 'Thread', { condoId: scope.condoId ?? '' });
@@ -142,6 +149,11 @@ export class AbilityFactory {
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
         can('read', 'Defect', { condoId: scope.condoId ?? '' });
         can('update', 'Defect', { condoId: scope.condoId ?? '' });
+        can('read', 'DefectReport', { condoId: scope.condoId ?? '' });
+        can('update', 'DefectReport', { condoId: scope.condoId ?? '' });
+        // Staff read handover config (unit types + taxonomy), admins manage it.
+        can('read', 'UnitType', { condoId: scope.condoId ?? '' });
+        can('read', 'DefectTaxonomy', { condoId: scope.condoId ?? '' });
         can('read', 'Invoice', { condoId: scope.condoId ?? '' });
         can('publish', 'Announcement', { condoId: scope.condoId ?? '' });
         can('read', 'Thread', { condoId: scope.condoId ?? '' });
@@ -167,6 +179,7 @@ export class AbilityFactory {
         can('read', 'Invoice', { unitId: scope.unitId ?? '' });
         can('pay', 'Invoice', { unitId: scope.unitId ?? '' });
         can('manage', 'Defect', { unitId: scope.unitId ?? '' });
+        can('manage', 'DefectReport', { unitId: scope.unitId ?? '' });
         can('read', 'Announcement', { condoId: scope.condoId ?? '' });
         can('acknowledge', 'Announcement');
         can('manage', 'Tenancy', { unitId: scope.unitId ?? '' });
@@ -193,6 +206,7 @@ export class AbilityFactory {
         can('manage', 'FavouriteVisitor', { unitId: scope.unitId ?? '' });
         can('read', 'Invoice', { unitId: scope.unitId ?? '' });
         can('manage', 'Defect', { unitId: scope.unitId ?? '' });
+        can('manage', 'DefectReport', { unitId: scope.unitId ?? '' });
         can('read', 'Announcement', { condoId: scope.condoId ?? '' });
         can('acknowledge', 'Announcement');
         can('read', 'Thread', { unitId: scope.unitId ?? '' });

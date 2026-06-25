@@ -93,8 +93,8 @@ export const DEFECT_STATUS_FLOW: DefectStatus[] = [
 
 /** Allowed forward/backward transitions, mirrored by the API guard. */
 export const DEFECT_TRANSITIONS: Record<DefectStatus, DefectStatus[]> = {
-  NEW: ['ACK', 'ASSIGNED', 'CLOSED'],
-  ACK: ['ASSIGNED', 'IN_PROGRESS', 'CLOSED'],
+  NEW: ['ACK', 'ASSIGNED', 'RESOLVED', 'CLOSED'],
+  ACK: ['ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
   ASSIGNED: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
   IN_PROGRESS: ['RESOLVED', 'CLOSED'],
   RESOLVED: ['CLOSED', 'REOPENED'],

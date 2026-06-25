@@ -16,6 +16,8 @@ const buttonVariants = cva(
           'bg-[rgb(var(--sr-coral))] text-[rgb(var(--sr-coral-fg))] hover:brightness-105 shadow-[0_2px_6px_-1px_rgba(255,90,95,0.4)]',
         'soft-primary':
           'bg-[rgb(var(--message-mgmt-coral-bg))] text-[rgb(var(--sr-coral))] border border-[rgb(var(--message-mgmt-coral-border))]/80 hover:bg-[rgb(var(--message-mgmt-coral-border))]/25',
+        'soft-success':
+          'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/30 focus-visible:ring-emerald-400',
         'soft-sky':
           'bg-[rgb(var(--message-mgmt-sky-bg))] text-sky-700 dark:text-sky-300 border border-[rgb(var(--message-mgmt-sky-border))]/80 hover:bg-[rgb(var(--message-mgmt-sky-border))]/30 focus-visible:ring-sky-400',
         secondary:

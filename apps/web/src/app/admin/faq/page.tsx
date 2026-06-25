@@ -74,7 +74,9 @@ export default function AdminFaqPage() {
 
       <Card className="ann-surface !rounded-2xl !p-5 sm:!p-7 shadow-card border-[rgb(var(--sr-border))]/75">
         <h3 className="ann-detail-title text-xl sm:text-2xl mb-1">New article</h3>
-        <p className="ann-meta mb-5">Add a question and answer; residents see published items in Help &amp; FAQ.</p>
+        <p className="ann-meta mb-5">
+          Add a question and answer; residents see published items in Help &amp; FAQ.
+        </p>
         <form className="flex flex-col gap-4" onSubmit={onCreate}>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="q" className="text-[rgb(var(--sr-fg))]">

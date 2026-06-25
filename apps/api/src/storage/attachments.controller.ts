@@ -14,7 +14,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { AttachmentOwner, AttachmentStatus, RoleId } from '@prisma/client';
-import { isAllowedImageMime, isPdfMime, MAX_UPLOAD_BYTES, sanitizeFileName } from '@smartresidence/shared-types';
+import {
+  MAX_UPLOAD_BYTES,
+  isAllowedImageMime,
+  isPdfMime,
+  sanitizeFileName,
+} from '@smartresidence/shared-types';
 import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import type { Response } from 'express';
 import { nanoid } from 'nanoid';
@@ -154,6 +159,8 @@ export class AttachmentsController {
       include: {
         threadMessage: { include: { thread: true } },
         announcement: { select: { id: true, condoId: true, deletedAt: true } },
+        defect: { select: { condoId: true, unitId: true } },
+        defectUpdate: { select: { defect: { select: { condoId: true, unitId: true } } } },
       },
     });
     if (!attachment) throw new NotFoundException();
@@ -165,8 +172,26 @@ export class AttachmentsController {
       attachment.announcement && !attachment.announcement.deletedAt
         ? this.canViewCondoAnnouncement(user, attachment.announcement.condoId)
         : false;
-    if (!isUploader && !canViewThread && !canViewAnnouncement) throw new ForbiddenException();
+    // Defect / handover photos: management (condo-scoped) and the unit's
+    // residents may view, not just the uploader, so triage thumbnails resolve.
+    const defectScope = attachment.defect ?? attachment.defectUpdate?.defect ?? null;
+    const canViewDefect = defectScope ? this.canViewDefect(user, defectScope) : false;
+    if (!isUploader && !canViewThread && !canViewAnnouncement && !canViewDefect) {
+      throw new ForbiddenException();
+    }
     return attachment;
+  }
+
+  private canViewDefect(
+    user: AuthenticatedUser,
+    defect: { condoId: string; unitId: string | null },
+  ): boolean {
+    const isManagement = user.roles.some(
+      (r) => MANAGEMENT_ROLES.includes(r.roleId) && r.condoId === defect.condoId,
+    );
+    if (isManagement) return true;
+    if (defect.unitId && user.roles.some((r) => r.unitId === defect.unitId)) return true;
+    return false;
   }
 
   private canViewCondoAnnouncement(user: AuthenticatedUser, condoId: string): boolean {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CreateVisitorSchema,
   CreateWalkInOfficeSchema,
   CreateWalkInUnitSchema,
-  CreateVisitorSchema,
   guardCanAcknowledgeWalkIn,
   guardCanCheckOutVisitor,
   isWalkInVisitType,
@@ -63,9 +63,7 @@ describe('walk-in business rules helpers', () => {
   });
 
   it('allows acknowledge only for owner-approved unit walk-ins', () => {
-    expect(
-      guardCanAcknowledgeWalkIn({ visitType: 'WALKIN_UNIT', status: 'APPROVED' }),
-    ).toBe(true);
+    expect(guardCanAcknowledgeWalkIn({ visitType: 'WALKIN_UNIT', status: 'APPROVED' })).toBe(true);
     expect(
       guardCanAcknowledgeWalkIn({ visitType: 'WALKIN_UNIT', status: 'PENDING_OWNER_APPROVAL' }),
     ).toBe(false);

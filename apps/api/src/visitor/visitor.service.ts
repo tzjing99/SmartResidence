@@ -846,9 +846,7 @@ export class VisitorService {
             visitType: 'WALKIN_UNIT',
             status: 'CHECKED_IN',
             ownerApprovalSkipped: true,
-            ...(guardAdmitted
-              ? { admittedByGuard: true, admissionSource: 'GUARD_WALK_IN' }
-              : {}),
+            ...(guardAdmitted ? { admittedByGuard: true, admissionSource: 'GUARD_WALK_IN' } : {}),
           },
         },
       });

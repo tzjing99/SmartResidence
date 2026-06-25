@@ -1,11 +1,23 @@
 'use client';
 
 import type {
+  BulkUpdateReportItemsInput,
   CreateAnnouncementInput,
+  CreateDefectElementInput,
   CreateDefectInput,
+  CreateDefectIssueInput,
+  CreateDefectSpaceTypeInput,
   CreateFavouriteVisitorInput,
+  CreateHandoverReportInput,
+  CreateUnitTypeInput,
+  CreateUnitTypeSpaceInput,
   CreateVisitorInput,
   UpdateAnnouncementInput,
+  UpdateDefectElementInput,
+  UpdateDefectIssueInput,
+  UpdateDefectSpaceTypeInput,
+  UpdateUnitTypeInput,
+  UpdateUnitTypeSpaceInput,
 } from '@smartresidence/shared-types';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
@@ -52,6 +64,12 @@ export const queryKeys = {
   unitDefects: (unitId: string) => ['defects', 'unit', unitId] as const,
   condoDefects: (condoId: string) => ['defects', 'condo', condoId] as const,
   defect: (id: string) => ['defects', id] as const,
+  unitTypes: (condoId: string) => ['unit-types', condoId] as const,
+  defectTaxonomy: (condoId: string) => ['defect-taxonomy', condoId] as const,
+  unitHandoverTemplate: (unitId: string) => ['handover-template', unitId] as const,
+  defectReports: (condoId: string) => ['defect-reports', 'condo', condoId] as const,
+  unitDefectReports: (unitId: string) => ['defect-reports', 'unit', unitId] as const,
+  defectReport: (id: string) => ['defect-reports', id] as const,
   condoAnnouncements: (condoId: string) => ['announcements', 'condo', condoId] as const,
   myActivity: ['audit', 'me', 'activity'] as const,
   whoViewedMe: ['audit', 'me', 'who-viewed'] as const,
@@ -297,11 +315,7 @@ export function usePayInvoice(api: ApiClient) {
   });
 }
 
-export function useCondoInvoices(
-  api: ApiClient,
-  condoId: string | null,
-  status?: string,
-) {
+export function useCondoInvoices(api: ApiClient, condoId: string | null, status?: string) {
   return useQuery({
     queryKey: condoId ? queryKeys.condoInvoices(condoId, status) : ['invoices', 'condo', null],
     queryFn: () =>
@@ -1028,6 +1042,224 @@ export function useCloseAbusiveThread(api: ApiClient) {
       api.closeAbusiveThread(vars.id, { reason: vars.reason }),
     onSuccess: (data, vars) => {
       syncThreadAfterMutation(qc, api, vars.id, data);
+    },
+  });
+}
+
+// -- Handover: unit types & defect taxonomy --------------------------
+
+export function useUnitTypes(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.unitTypes(condoId) : ['unit-types', null],
+    queryFn: () => (condoId ? api.unitTypes(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useDefectTaxonomy(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.defectTaxonomy(condoId) : ['defect-taxonomy', null],
+    queryFn: () => (condoId ? api.defectTaxonomy(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUnitHandoverTemplate(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId ? queryKeys.unitHandoverTemplate(unitId) : ['handover-template', null],
+    queryFn: () =>
+      unitId ? api.unitHandoverTemplate(unitId) : Promise.reject(new Error('no unit')),
+    enabled: Boolean(unitId),
+  });
+}
+
+export function useCreateUnitType(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateUnitTypeInput) => api.createUnitType(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['unit-types'] }),
+  });
+}
+
+export function useUpdateUnitType(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateUnitTypeInput }) =>
+      api.updateUnitType(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['unit-types'] }),
+  });
+}
+
+export function useDeleteUnitType(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteUnitType(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['unit-types'] }),
+  });
+}
+
+export function useAddUnitTypeSpace(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { unitTypeId: string; data: CreateUnitTypeSpaceInput }) =>
+      api.addUnitTypeSpace(vars.unitTypeId, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['unit-types'] }),
+  });
+}
+
+export function useUpdateUnitTypeSpace(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateUnitTypeSpaceInput }) =>
+      api.updateUnitTypeSpace(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['unit-types'] }),
+  });
+}
+
+export function useDeleteUnitTypeSpace(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteUnitTypeSpace(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['unit-types'] }),
+  });
+}
+
+export function useCreateDefectSpaceType(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateDefectSpaceTypeInput) => api.createDefectSpaceType(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useUpdateDefectSpaceType(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateDefectSpaceTypeInput }) =>
+      api.updateDefectSpaceType(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useDeleteDefectSpaceType(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteDefectSpaceType(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useCreateDefectElement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateDefectElementInput) => api.createDefectElement(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useUpdateDefectElement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateDefectElementInput }) =>
+      api.updateDefectElement(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useDeleteDefectElement(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteDefectElement(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useCreateDefectIssue(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateDefectIssueInput) => api.createDefectIssue(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useUpdateDefectIssue(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateDefectIssueInput }) =>
+      api.updateDefectIssue(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useDeleteDefectIssue(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteDefectIssue(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['defect-taxonomy'] }),
+  });
+}
+
+export function useSetUnitType(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; unitId: string; unitTypeId: string | null }) =>
+      api.setUnitType(vars.condoId, vars.unitId, vars.unitTypeId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['units', vars.condoId] });
+      qc.invalidateQueries({ queryKey: queryKeys.unitHandoverTemplate(vars.unitId) });
+    },
+  });
+}
+
+// -- Handover reports -------------------------------------------------
+
+export function useCreateHandoverReport(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateHandoverReportInput) => api.createHandoverReport(input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['defect-reports'] });
+      qc.invalidateQueries({ queryKey: queryKeys.unitDefects(vars.unitId) });
+      qc.invalidateQueries({ queryKey: queryKeys.unitDefectReports(vars.unitId) });
+    },
+  });
+}
+
+export function useDefectReports(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.defectReports(condoId) : ['defect-reports', 'condo', null],
+    queryFn: () => (condoId ? api.defectReportsForCondo(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useUnitDefectReports(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId ? queryKeys.unitDefectReports(unitId) : ['defect-reports', 'unit', null],
+    queryFn: () => (unitId ? api.defectReportsForUnit(unitId) : Promise.resolve([])),
+    enabled: Boolean(unitId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useDefectReport(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? queryKeys.defectReport(id) : ['defect-reports', null],
+    queryFn: () => (id ? api.defectReport(id) : Promise.reject(new Error('no report'))),
+    enabled: Boolean(id),
+  });
+}
+
+export function useBulkUpdateReportItems(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: BulkUpdateReportItemsInput }) =>
+      api.bulkUpdateReportItems(vars.id, vars.data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.defectReport(vars.id) });
+      qc.invalidateQueries({ queryKey: ['defect-reports'] });
+      qc.invalidateQueries({ queryKey: ['defects'] });
     },
   });
 }

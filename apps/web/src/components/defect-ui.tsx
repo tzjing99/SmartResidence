@@ -30,7 +30,9 @@ const STATUS_TONE: Record<DefectStatus, 'neutral' | 'primary' | 'warning' | 'suc
   };
 
 export function DefectSeverityBadge({ severity }: { severity: DefectSeverity }) {
-  return <Badge tone={SEVERITY_TONE[severity] ?? 'neutral'}>{DEFECT_SEVERITY_LABELS[severity]}</Badge>;
+  return (
+    <Badge tone={SEVERITY_TONE[severity] ?? 'neutral'}>{DEFECT_SEVERITY_LABELS[severity]}</Badge>
+  );
 }
 
 export function DefectStatusBadge({ status }: { status: DefectStatus }) {
@@ -90,9 +92,7 @@ export function DefectStatusTimeline({
                 <span
                   className={cn(
                     'w-px flex-1 min-h-6',
-                    idx < currentIndex
-                      ? 'bg-[rgb(var(--sr-coral))]'
-                      : 'bg-[rgb(var(--sr-border))]',
+                    idx < currentIndex ? 'bg-[rgb(var(--sr-coral))]' : 'bg-[rgb(var(--sr-border))]',
                   )}
                 />
               ) : null}
@@ -179,9 +179,7 @@ export function DefectActivityFeed({
             key={u.id}
             className={cn(
               'rounded-xl border border-[rgb(var(--sr-border))] p-3.5',
-              u.isInternal
-                ? 'bg-amber-500/5 border-amber-500/30'
-                : 'bg-[rgb(var(--sr-bg))]/50',
+              u.isInternal ? 'bg-amber-500/5 border-amber-500/30' : 'bg-[rgb(var(--sr-bg))]/50',
             )}
           >
             <div className="flex items-center gap-2 text-xs sr-muted">

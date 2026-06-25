@@ -84,7 +84,14 @@ export function GuardExpectedVisitorCard({
 }: {
   visitor: Pick<
     GuardExpectedVisitor,
-    'id' | 'name' | 'expectedAt' | 'unitLabel' | 'visitType' | 'vehiclePlate' | 'overnight' | 'status'
+    | 'id'
+    | 'name'
+    | 'expectedAt'
+    | 'unitLabel'
+    | 'visitType'
+    | 'vehiclePlate'
+    | 'overnight'
+    | 'status'
   >;
   variant: GuardExpectedCardVariant;
   onAcknowledgeWalkIn?: (visitorId: string) => void;
@@ -183,7 +190,7 @@ export function GuardExpectedVisitorCard({
             className="w-full"
             size="sm"
             disabled={acknowledging}
-            onClick={() => onAcknowledgeWalkIn!(visitor.id)}
+            onClick={() => onAcknowledgeWalkIn?.(visitor.id)}
           >
             {t('visitors.guard.acknowledgeWalkIn')}
           </Button>

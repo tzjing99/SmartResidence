@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
  */
 import {
   AnnouncementImportance,
+  DefectReportKind,
   DefectSeverity,
   DefectStatus,
   InvoiceStatus,
@@ -321,11 +322,14 @@ async function main() {
   const subtotal = maintenanceFee + sinkingFund + garbage;
   const total = subtotal;
 
-  const invoice = await prisma.invoice.create({
-    data: {
+  const invoiceNumber = `INV-${new Date().getFullYear()}-000001`;
+  const invoice = await prisma.invoice.upsert({
+    where: { condoId_number: { condoId: condo.id, number: invoiceNumber } },
+    update: {},
+    create: {
       condoId: condo.id,
       unitId: ownerUnit.id,
-      number: `INV-${new Date().getFullYear()}-000001`,
+      number: invoiceNumber,
       periodStart: new Date('2026-06-01T00:00:00Z'),
       periodEnd: new Date('2026-06-30T23:59:59Z'),
       dueDate: new Date('2026-06-15T23:59:59Z'),
@@ -519,6 +523,262 @@ async function main() {
     },
   });
 
+  // --- Demo defect packages (multi-defect submissions) ------------------
+  const packageCount = await prisma.defectReport.count({ where: { condoId: condo.id } });
+  if (packageCount === 0) {
+    const now = Date.now();
+
+    // Helper to find a unit by identifier within the condo
+    const findUnit = (identifier: string) =>
+      prisma.unit.findUniqueOrThrow({
+        where: { condoId_identifier: { condoId: condo.id, identifier } },
+      });
+
+    // Package 1 — A-03-1, newly submitted, all defects still open
+    const unitA031 = await findUnit('A-03-1');
+    const pkg1 = await prisma.defectReport.create({
+      data: {
+        condoId: condo.id,
+        unitId: unitA031.id,
+        raisedByUserId: owner.id,
+        kind: DefectReportKind.HANDOVER,
+        title: 'Multiple defects',
+        createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+      },
+    });
+    await prisma.defect.createMany({
+      data: [
+        {
+          condoId: condo.id,
+          unitId: unitA031.id,
+          raisedByUserId: owner.id,
+          reportId: pkg1.id,
+          category: 'Plumbing',
+          severity: DefectSeverity.HIGH,
+          title: 'Master Bathroom - Shower: Leaking showerhead',
+          description: 'Water drips continuously even when shower is off.',
+          spaceLabel: 'Master Bathroom',
+          location: 'Master Bathroom',
+          status: DefectStatus.NEW,
+          createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitA031.id,
+          raisedByUserId: owner.id,
+          reportId: pkg1.id,
+          category: 'Electrical',
+          severity: DefectSeverity.MEDIUM,
+          title: 'Master Bathroom - Light switch: Not functioning',
+          description: 'Light switch plate is loose and intermittently cuts power.',
+          spaceLabel: 'Master Bathroom',
+          location: 'Master Bathroom',
+          status: DefectStatus.NEW,
+          createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitA031.id,
+          raisedByUserId: owner.id,
+          reportId: pkg1.id,
+          category: 'Structural',
+          severity: DefectSeverity.LOW,
+          title: 'Living Room - Wall: Hairline crack',
+          description: 'Hairline crack along the top-right corner above the TV feature wall.',
+          spaceLabel: 'Living Room',
+          location: 'Living Room',
+          status: DefectStatus.NEW,
+          createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitA031.id,
+          raisedByUserId: owner.id,
+          reportId: pkg1.id,
+          category: 'Plumbing',
+          severity: DefectSeverity.MEDIUM,
+          title: 'Kitchen - Sink: Drainage slow',
+          description: 'Kitchen sink drains very slowly, possible blockage in pipe.',
+          spaceLabel: 'Kitchen',
+          location: 'Kitchen',
+          status: DefectStatus.ACK,
+          acknowledgedAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitA031.id,
+          raisedByUserId: owner.id,
+          reportId: pkg1.id,
+          category: 'Structural',
+          severity: DefectSeverity.LOW,
+          title: 'Bedroom 2 - Door: Does not close properly',
+          description: 'Bedroom 2 door does not latch properly — hinges misaligned.',
+          spaceLabel: 'Bedroom 2',
+          location: 'Bedroom 2',
+          status: DefectStatus.NEW,
+          createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+        },
+      ],
+    });
+
+    // Package 2 — B-07-3, contractor assigned and in progress
+    const unitB073 = await findUnit('B-07-3');
+    const pkg2 = await prisma.defectReport.create({
+      data: {
+        condoId: condo.id,
+        unitId: unitB073.id,
+        raisedByUserId: tenant.id,
+        kind: DefectReportKind.HANDOVER,
+        title: 'Multiple defects',
+        createdAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+      },
+    });
+    await prisma.defect.createMany({
+      data: [
+        {
+          condoId: condo.id,
+          unitId: unitB073.id,
+          raisedByUserId: tenant.id,
+          reportId: pkg2.id,
+          category: 'Electrical',
+          severity: DefectSeverity.URGENT,
+          title: 'Utility Room - DB Box: Tripping breaker',
+          description: 'Circuit breaker trips every evening around 7–8pm when AC and oven are on.',
+          spaceLabel: 'Utility Room',
+          location: 'Utility Room',
+          status: DefectStatus.IN_PROGRESS,
+          assignedToUserId: admin.id,
+          acknowledgedAt: new Date(now - 4 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitB073.id,
+          raisedByUserId: tenant.id,
+          reportId: pkg2.id,
+          category: 'Plumbing',
+          severity: DefectSeverity.HIGH,
+          title: 'Second Bathroom - Floor: Water ponding',
+          description:
+            'Water accumulates at the floor drain area — floor screed not sloped properly.',
+          spaceLabel: 'Second Bathroom',
+          location: 'Second Bathroom',
+          status: DefectStatus.ASSIGNED,
+          assignedToUserId: admin.id,
+          acknowledgedAt: new Date(now - 4 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitB073.id,
+          raisedByUserId: tenant.id,
+          reportId: pkg2.id,
+          category: 'Structural',
+          severity: DefectSeverity.MEDIUM,
+          title: 'Bedroom 1 - Ceiling: Damp patch',
+          description:
+            'Visible damp stain on bedroom 1 ceiling near the AC unit, possibly condensation leak.',
+          spaceLabel: 'Bedroom 1',
+          location: 'Bedroom 1',
+          status: DefectStatus.RESOLVED,
+          assignedToUserId: admin.id,
+          acknowledgedAt: new Date(now - 4 * 24 * 60 * 60 * 1000),
+          resolvedAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitB073.id,
+          raisedByUserId: tenant.id,
+          reportId: pkg2.id,
+          category: 'Structural',
+          severity: DefectSeverity.LOW,
+          title: 'Balcony - Wall: Paint peeling',
+          description: 'Exterior-facing balcony wall paint peeling off in large sections.',
+          spaceLabel: 'Balcony',
+          location: 'Balcony',
+          status: DefectStatus.RESOLVED,
+          assignedToUserId: admin.id,
+          acknowledgedAt: new Date(now - 4 * 24 * 60 * 60 * 1000),
+          resolvedAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+        },
+      ],
+    });
+
+    // Package 3 — C-02-4, all defects fixed and closed (completed handover)
+    const unitC024 = await findUnit('C-02-4');
+    const pkg3 = await prisma.defectReport.create({
+      data: {
+        condoId: condo.id,
+        unitId: unitC024.id,
+        raisedByUserId: owner.id,
+        kind: DefectReportKind.HANDOVER,
+        title: 'Multiple defects',
+        createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
+      },
+    });
+    await prisma.defect.createMany({
+      data: [
+        {
+          condoId: condo.id,
+          unitId: unitC024.id,
+          raisedByUserId: owner.id,
+          reportId: pkg3.id,
+          category: 'Plumbing',
+          severity: DefectSeverity.MEDIUM,
+          title: 'Kitchen - Tap: Dripping',
+          description: 'Kitchen tap drips when closed fully.',
+          spaceLabel: 'Kitchen',
+          location: 'Kitchen',
+          status: DefectStatus.CLOSED,
+          assignedToUserId: admin.id,
+          acknowledgedAt: new Date(now - 13 * 24 * 60 * 60 * 1000),
+          resolvedAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
+          closedAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitC024.id,
+          raisedByUserId: owner.id,
+          reportId: pkg3.id,
+          category: 'Electrical',
+          severity: DefectSeverity.LOW,
+          title: 'Living Room - Power socket: Loose fitting',
+          description: 'Power socket near the TV console is loose — plug keeps falling out.',
+          spaceLabel: 'Living Room',
+          location: 'Living Room',
+          status: DefectStatus.CLOSED,
+          assignedToUserId: admin.id,
+          acknowledgedAt: new Date(now - 13 * 24 * 60 * 60 * 1000),
+          resolvedAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
+          closedAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
+        },
+        {
+          condoId: condo.id,
+          unitId: unitC024.id,
+          raisedByUserId: owner.id,
+          reportId: pkg3.id,
+          category: 'Structural',
+          severity: DefectSeverity.LOW,
+          title: 'Master Bathroom - Tiles: Hollow tile',
+          description: 'Three floor tiles near the shower drain sound hollow when tapped.',
+          spaceLabel: 'Master Bathroom',
+          location: 'Master Bathroom',
+          status: DefectStatus.CLOSED,
+          assignedToUserId: admin.id,
+          acknowledgedAt: new Date(now - 13 * 24 * 60 * 60 * 1000),
+          resolvedAt: new Date(now - 7 * 24 * 60 * 60 * 1000),
+          closedAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(now - 14 * 24 * 60 * 60 * 1000),
+        },
+      ],
+    });
+  }
+
   await prisma.announcement.create({
     data: {
       condoId: condo.id,
@@ -640,6 +900,176 @@ async function main() {
         },
       ],
     });
+  }
+
+  // --- Unit types, room templates & defect taxonomy -----------------
+  const unitTypeCount = await prisma.unitType.count({ where: { condoId: condo.id } });
+  if (unitTypeCount === 0) {
+    // Per-space-type taxonomy of common elements and their typical issues.
+    const taxonomy: Array<{ name: string; elements: Array<{ name: string; issues: string[] }> }> = [
+      {
+        name: 'Bathroom',
+        elements: [
+          {
+            name: 'Tiles',
+            issues: ['Cracked tiles', 'Uneven tiles', 'Hollow tiles', 'Stained grout'],
+          },
+          { name: 'Tap / Faucet', issues: ['Leaking', 'Loose', 'No water flow', 'Low pressure'] },
+          { name: 'Toilet bowl', issues: ['Not flushing', 'Cracked', 'Loose seat', 'Water leak'] },
+          { name: 'Door', issues: ['Does not close', 'Misaligned', 'Scratched', 'Faulty lock'] },
+          { name: 'Waterproofing', issues: ['Damp patch', 'Water seepage', 'Mould'] },
+        ],
+      },
+      {
+        name: 'Kitchen',
+        elements: [
+          {
+            name: 'Cabinets',
+            issues: ['Door misaligned', 'Scratched', 'Loose hinge', 'Missing handle'],
+          },
+          { name: 'Sink', issues: ['Leaking', 'Clogged', 'Scratched', 'Loose tap'] },
+          { name: 'Countertop', issues: ['Cracked', 'Stained', 'Uneven', 'Chipped edge'] },
+          { name: 'Tiles', issues: ['Cracked tiles', 'Hollow tiles', 'Stained grout'] },
+          { name: 'Power point', issues: ['Not working', 'Loose', 'No cover plate'] },
+        ],
+      },
+      {
+        name: 'Bedroom',
+        elements: [
+          { name: 'Wall', issues: ['Crack', 'Uneven paint', 'Stain', 'Dent'] },
+          { name: 'Flooring', issues: ['Scratched', 'Uneven', 'Gap between planks', 'Squeaky'] },
+          {
+            name: 'Window',
+            issues: ['Does not close', 'Scratched glass', 'Leaking', 'Faulty lock'],
+          },
+          {
+            name: 'Wardrobe',
+            issues: ['Door misaligned', 'Scratched', 'Loose handle', 'Broken rail'],
+          },
+          { name: 'Power point', issues: ['Not working', 'Loose', 'No cover plate'] },
+        ],
+      },
+      {
+        name: 'Living Room',
+        elements: [
+          { name: 'Wall', issues: ['Crack', 'Uneven paint', 'Stain', 'Dent'] },
+          { name: 'Flooring', issues: ['Scratched', 'Uneven', 'Gap between planks', 'Squeaky'] },
+          {
+            name: 'Window',
+            issues: ['Does not close', 'Scratched glass', 'Leaking', 'Faulty lock'],
+          },
+          { name: 'Ceiling', issues: ['Crack', 'Water stain', 'Uneven paint'] },
+          { name: 'Power point', issues: ['Not working', 'Loose', 'No cover plate'] },
+        ],
+      },
+      {
+        name: 'Balcony',
+        elements: [
+          { name: 'Tiles', issues: ['Cracked tiles', 'Uneven tiles', 'Stained grout'] },
+          { name: 'Railing', issues: ['Loose', 'Rusty', 'Wobbly', 'Scratched'] },
+          { name: 'Drainage', issues: ['Clogged', 'Poor slope', 'Stagnant water'] },
+          { name: 'Door', issues: ['Does not close', 'Scratched', 'Faulty lock'] },
+        ],
+      },
+    ];
+
+    const spaceTypeIdByName: Record<string, string> = {};
+    for (let s = 0; s < taxonomy.length; s++) {
+      const st = taxonomy[s]!;
+      const created = await prisma.defectSpaceType.create({
+        data: {
+          condoId: condo.id,
+          name: st.name,
+          position: s,
+          elements: {
+            create: st.elements.map((el, ei) => ({
+              condoId: condo.id,
+              name: el.name,
+              position: ei,
+              issues: {
+                create: el.issues.map((iss, ii) => ({
+                  condoId: condo.id,
+                  name: iss,
+                  position: ii,
+                })),
+              },
+            })),
+          },
+        },
+      });
+      spaceTypeIdByName[st.name] = created.id;
+    }
+
+    const unitTypeDefs: Array<{
+      name: string;
+      description: string;
+      rooms: Array<{ name: string; spaceType: string }>;
+    }> = [
+      {
+        name: 'Type A — 2 Bedroom',
+        description: 'Standard 2-bedroom layout (~950–1,250 sqft).',
+        rooms: [
+          { name: 'Living Room', spaceType: 'Living Room' },
+          { name: 'Kitchen', spaceType: 'Kitchen' },
+          { name: 'Bedroom 1', spaceType: 'Bedroom' },
+          { name: 'Bedroom 2', spaceType: 'Bedroom' },
+          { name: 'Bathroom 1', spaceType: 'Bathroom' },
+          { name: 'Bathroom 2', spaceType: 'Bathroom' },
+          { name: 'Balcony', spaceType: 'Balcony' },
+        ],
+      },
+      {
+        name: 'Type B — 3 Bedroom',
+        description: 'Larger 3-bedroom layout (~1,400–1,650 sqft).',
+        rooms: [
+          { name: 'Living Room', spaceType: 'Living Room' },
+          { name: 'Kitchen', spaceType: 'Kitchen' },
+          { name: 'Bedroom 1', spaceType: 'Bedroom' },
+          { name: 'Bedroom 2', spaceType: 'Bedroom' },
+          { name: 'Bedroom 3', spaceType: 'Bedroom' },
+          { name: 'Bathroom 1', spaceType: 'Bathroom' },
+          { name: 'Bathroom 2', spaceType: 'Bathroom' },
+          { name: 'Balcony', spaceType: 'Balcony' },
+        ],
+      },
+    ];
+
+    const unitTypeIds: string[] = [];
+    for (let t = 0; t < unitTypeDefs.length; t++) {
+      const ut = unitTypeDefs[t]!;
+      const created = await prisma.unitType.create({
+        data: {
+          condoId: condo.id,
+          name: ut.name,
+          description: ut.description,
+          position: t,
+          spaces: {
+            create: ut.rooms.map((r, ri) => ({
+              name: r.name,
+              position: ri,
+              spaceTypeId: spaceTypeIdByName[r.spaceType] ?? null,
+            })),
+          },
+        },
+      });
+      unitTypeIds.push(created.id);
+    }
+
+    // Tag demo units so the handover flow works end-to-end: 3-bed units get
+    // Type B, everyone else Type A.
+    const [typeAId, typeBId] = unitTypeIds;
+    if (typeBId) {
+      await prisma.unit.updateMany({
+        where: { condoId: condo.id, bedrooms: 3 },
+        data: { unitTypeId: typeBId },
+      });
+    }
+    if (typeAId) {
+      await prisma.unit.updateMany({
+        where: { condoId: condo.id, NOT: { bedrooms: 3 } },
+        data: { unitTypeId: typeAId },
+      });
+    }
   }
 
   // --- Demo communication threads -----------------------------------

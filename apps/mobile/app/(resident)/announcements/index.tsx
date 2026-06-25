@@ -1,14 +1,19 @@
 import { useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
 import type { AnnouncementCategory } from '@smartresidence/shared-types';
-import { AppText, EmptyState, FadeInView, Stack, palette, spacing } from '@smartresidence/ui-mobile';
+import {
+  AppText,
+  EmptyState,
+  FadeInView,
+  Stack,
+  palette,
+  spacing,
+} from '@smartresidence/ui-mobile';
 import { useCallback, useState } from 'react';
 import {
   AnnouncementCategoryFilter,
   AnnouncementListRow,
 } from '../../../src/components/announcements-ui';
-import {
-  ResidentScreen,
-} from '../../../src/components/resident-screen';
+import { ResidentScreen } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
 
@@ -19,9 +24,7 @@ export default function AnnouncementsScreen() {
   const list = useCondoAnnouncements(api, condo?.id ?? null, {
     category: categoryFilter || undefined,
   });
-  const { refreshControl } = usePullToRefresh(
-    useCallback(() => list.refetch(), [list]),
-  );
+  const { refreshControl } = usePullToRefresh(useCallback(() => list.refetch(), [list]));
 
   const items = list.data?.items ?? [];
 

@@ -9,7 +9,7 @@ export const Input = React.forwardRef<
     ref={ref}
     type={type}
     className={cn(
-      'h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-bg))]/75 px-4 text-sm leading-normal text-left text-[rgb(var(--sr-fg))] shadow-sm transition-colors placeholder:text-[rgb(var(--sr-muted))] focus:border-[rgb(var(--sr-coral))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--sr-coral))]/30 disabled:cursor-not-allowed disabled:opacity-50',
+      'h-11 w-full rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-bg))]/75 px-4 text-sm leading-normal text-left text-[rgb(var(--sr-fg))] caret-[rgb(var(--sr-fg))] shadow-sm transition-colors placeholder:text-[rgb(var(--sr-muted))] focus:border-[rgb(var(--sr-coral))] focus:outline-none focus:ring-2 focus:ring-[rgb(var(--sr-coral))]/30 disabled:cursor-not-allowed disabled:opacity-50 [&::-webkit-autofill]:[-webkit-text-fill-color:rgb(var(--sr-fg))] [&::-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&::-webkit-autofill:hover]:[-webkit-text-fill-color:rgb(var(--sr-fg))] [&::-webkit-autofill:focus]:[-webkit-text-fill-color:rgb(var(--sr-fg))]',
       className,
     )}
     {...props}

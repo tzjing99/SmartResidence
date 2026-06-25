@@ -17,6 +17,16 @@ const SETTINGS_NAV: SettingsNavItem[] = [
     label: 'Visitors',
     can: { action: 'manage-overnight-policy', subject: 'Visitor' },
   },
+  {
+    href: '/admin/settings/unit-types',
+    label: 'Unit types',
+    can: { action: 'manage', subject: 'UnitType' },
+  },
+  {
+    href: '/admin/settings/taxonomy',
+    label: 'Defect taxonomy',
+    can: { action: 'manage', subject: 'DefectTaxonomy' },
+  },
   { href: '/admin/settings/notifications', label: 'Notifications' },
   {
     href: '/admin/settings/audit',

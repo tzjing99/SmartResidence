@@ -3,7 +3,6 @@
 import {
   DefectActivityFeed,
   DefectPhotos,
-  DefectSeverityBadge,
   DefectStatusBadge,
   DefectStatusTimeline,
 } from '@/components/defect-ui';
@@ -143,7 +142,6 @@ export default function AdminDefectDetailPage() {
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <DefectStatusBadge status={d.status} />
-          <DefectSeverityBadge severity={d.severity} />
         </div>
         <h1 className="text-2xl font-bold tracking-tight">{d.title}</h1>
         <p className="text-sm sr-muted">

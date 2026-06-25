@@ -1,8 +1,8 @@
 import type { PrismaService } from '@/prisma/prisma.service';
 import type { ThreadPriorityService } from '@/threads/sla/thread-priority.service';
 import { describe, expect, it, vi } from 'vitest';
-import { MlPriorityService } from '../src/threads/ml/ml-priority.service';
 import { ML_PRIORITY_MIN_CLOSED_THREADS } from '../src/threads/ml/ml-priority.constants';
+import { MlPriorityService } from '../src/threads/ml/ml-priority.service';
 
 const CONDO = 'condo-ml';
 

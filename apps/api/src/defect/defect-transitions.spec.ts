@@ -10,6 +10,11 @@ describe('defect transitions', () => {
     expect(canTransitionDefect(DefectStatus.RESOLVED, DefectStatus.CLOSED)).toBe(true);
   });
 
+  it('allows admin to mark a submitted defect fixed for resident sign-off', () => {
+    expect(canTransitionDefect(DefectStatus.NEW, DefectStatus.RESOLVED)).toBe(true);
+    expect(canTransitionDefect(DefectStatus.ACK, DefectStatus.RESOLVED)).toBe(true);
+  });
+
   it('allows reopening from resolved or closed', () => {
     expect(canTransitionDefect(DefectStatus.RESOLVED, DefectStatus.REOPENED)).toBe(true);
     expect(canTransitionDefect(DefectStatus.CLOSED, DefectStatus.REOPENED)).toBe(true);
@@ -17,7 +22,7 @@ describe('defect transitions', () => {
 
   it('rejects skipping back to NEW and illegal jumps', () => {
     expect(canTransitionDefect(DefectStatus.CLOSED, DefectStatus.NEW)).toBe(false);
-    expect(canTransitionDefect(DefectStatus.NEW, DefectStatus.RESOLVED)).toBe(false);
+    expect(canTransitionDefect(DefectStatus.NEW, DefectStatus.IN_PROGRESS)).toBe(false);
     expect(canTransitionDefect(DefectStatus.RESOLVED, DefectStatus.IN_PROGRESS)).toBe(false);
   });
 

@@ -69,9 +69,7 @@ export function buildDefectListPdf(opts: {
   const pagesObjNum = 2 + pages.length * 2;
   const catalogObjNum = pagesObjNum + 1;
 
-  const objBodies: string[] = [
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-  ];
+  const objBodies: string[] = ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
   const pageObjNums: number[] = [];
 
   pages.forEach((pageLines, p) => {
@@ -94,6 +92,103 @@ export function buildDefectListPdf(opts: {
 
   objBodies.push(
     `<< /Type /Pages /Kids [${pageObjNums.map((n) => `${n} 0 R`).join(' ')}] /Count ${pages.length} >>`,
+  );
+  objBodies.push(`<< /Type /Catalog /Pages ${pagesObjNum} 0 R >>`);
+
+  const parts: string[] = ['%PDF-1.4\n'];
+  const offs: number[] = [0];
+  for (let i = 0; i < objBodies.length; i++) {
+    offs.push(Buffer.byteLength(parts.join(''), 'utf8'));
+    parts.push(`${i + 1} 0 obj\n${objBodies[i]}\nendobj\n`);
+  }
+  const body = parts.join('');
+  const xrefOffset = Buffer.byteLength(body, 'utf8');
+  const objCount = objBodies.length + 1;
+  let xref = `xref\n0 ${objCount}\n0000000000 65535 f \n`;
+  for (let i = 1; i < offs.length; i++) {
+    xref += `${String(offs[i]).padStart(10, '0')} 00000 n \n`;
+  }
+  const trailer = `trailer\n<< /Size ${objCount} /Root ${catalogObjNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return Buffer.from(body + xref + trailer, 'utf8');
+}
+
+export interface HandoverReportRow {
+  reference: string;
+  element: string;
+  issue: string;
+  status: string;
+  assignee: string;
+  note: string;
+}
+
+export interface HandoverReportGroup {
+  space: string;
+  rows: HandoverReportRow[];
+}
+
+/**
+ * Contractor schedule for a handover report, grouped by space (room). Reuses
+ * the same dependency-free, multi-page text PDF as the defect list export.
+ */
+export function buildHandoverReportPdf(opts: {
+  title: string;
+  meta: string[];
+  groups: HandoverReportGroup[];
+}): Buffer {
+  const lines: string[] = [opts.title, ...opts.meta, ''];
+  if (opts.groups.length === 0) {
+    lines.push('No items in this report.');
+  }
+  let n = 0;
+  for (const group of opts.groups) {
+    lines.push(`== ${group.space} (${group.rows.length}) ==`);
+    for (const row of group.rows) {
+      n++;
+      lines.push(`${n}. [${row.reference}] ${row.element} — ${row.issue}`);
+      lines.push(`   Status: ${row.status}  |  Assignee: ${row.assignee}`);
+      for (const d of wrapLines(row.note, 92)) lines.push(`   ${d}`);
+    }
+    lines.push('');
+  }
+
+  const wrapped = lines.flatMap((l) => wrapLines(l, 98));
+
+  const lineHeight = 14;
+  const startY = 780;
+  const bottomMargin = 48;
+  const linesPerPage = Math.max(1, Math.floor((startY - bottomMargin) / lineHeight));
+  const pages: string[][] = [];
+  for (let i = 0; i < wrapped.length; i += linesPerPage) {
+    pages.push(wrapped.slice(i, i + linesPerPage));
+  }
+  if (pages.length === 0) pages.push([]);
+
+  const pagesObjNum = 2 + pages.length * 2;
+  const catalogObjNum = pagesObjNum + 1;
+
+  const objBodies: string[] = ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+  const pageObjNums: number[] = [];
+
+  pages.forEach((pageLines, p) => {
+    const textOps = pageLines
+      .map((line, i) => {
+        const y = startY - i * lineHeight;
+        return `1 0 0 1 50 ${y} Tm (${escapePdfText(line.slice(0, 200))}) Tj`;
+      })
+      .join('\n');
+    const stream = `BT\n/F1 10 Tf\n${textOps}\nET`;
+    const streamLen = Buffer.byteLength(stream, 'utf8');
+    const contentObjNum = 2 + p * 2;
+    const pageObjNum = 3 + p * 2;
+    pageObjNums.push(pageObjNum);
+    objBodies.push(`<< /Length ${streamLen} >>\nstream\n${stream}\nendstream`);
+    objBodies.push(
+      `<< /Type /Page /Parent ${pagesObjNum} 0 R /MediaBox [0 0 612 792] /Contents ${contentObjNum} 0 R /Resources << /Font << /F1 1 0 R >> >> >>`,
+    );
+  });
+
+  objBodies.push(
+    `<< /Type /Pages /Kids [${pageObjNums.map((m) => `${m} 0 R`).join(' ')}] /Count ${pages.length} >>`,
   );
   objBodies.push(`<< /Type /Catalog /Pages ${pagesObjNum} 0 R >>`);
 

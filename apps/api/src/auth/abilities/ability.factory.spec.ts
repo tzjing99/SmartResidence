@@ -74,6 +74,47 @@ describe('AbilityFactory', () => {
     expect(ability.can('create', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
   });
 
+  it('lets management admin manage handover config but staff only read it', () => {
+    const admin = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.MANAGEMENT_ADMIN, condoId: 'condo-1', unitId: null, permissions: [] },
+        ],
+        activeRole: RoleId.MANAGEMENT_ADMIN,
+      }),
+    );
+    expect(admin.can('manage', subject('UnitType', { condoId: 'condo-1' }))).toBe(true);
+    expect(admin.can('manage', subject('DefectTaxonomy', { condoId: 'condo-1' }))).toBe(true);
+
+    const staff = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.MANAGEMENT_STAFF, condoId: 'condo-1', unitId: null, permissions: [] },
+        ],
+        activeRole: RoleId.MANAGEMENT_STAFF,
+      }),
+    );
+    expect(staff.can('read', subject('UnitType', { condoId: 'condo-1' }))).toBe(true);
+    expect(staff.can('read', subject('DefectTaxonomy', { condoId: 'condo-1' }))).toBe(true);
+    expect(staff.can('manage', 'UnitType')).toBe(false);
+    expect(staff.can('manage', 'DefectTaxonomy')).toBe(false);
+    expect(staff.can('read', subject('DefectReport', { condoId: 'condo-1' }))).toBe(true);
+    expect(staff.can('update', subject('DefectReport', { condoId: 'condo-1' }))).toBe(true);
+  });
+
+  it('lets a resident create defect reports for their own unit only', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.UNIT_OWNER, condoId: 'condo-1', unitId: 'unit-1', permissions: [] },
+        ],
+      }),
+    );
+    expect(ability.can('create', subject('DefectReport', { unitId: 'unit-1' }))).toBe(true);
+    expect(ability.can('manage', subject('DefectReport', { unitId: 'unit-2' }))).toBe(false);
+    expect(ability.can('manage', 'UnitType')).toBe(false);
+  });
+
   it('lets a unit owner approve and reject visitors for their own unit', () => {
     const ability = factory.build(
       user({

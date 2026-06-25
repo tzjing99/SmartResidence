@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { ThreadCategory } from '@prisma/client';
-import { ThreadPriorityService } from '../sla/thread-priority.service';
 import { MlPriorityService } from '../ml/ml-priority.service';
-import type { AiAssistInput, AiAssistProvider, AiThreadMessage, PrioritySuggestion } from './ai-assist.provider';
+import { ThreadPriorityService } from '../sla/thread-priority.service';
+import type { AiAssistInput, AiAssistProvider, PrioritySuggestion } from './ai-assist.provider';
 
 /**
  * Default production provider: deterministic safety rules + optional per-condo ML

@@ -6,9 +6,9 @@ import {
   AnnouncementDetailTitle,
   AnnouncementHero,
   AnnouncementMetaLine,
-  AnnouncementsPageShell,
   AnnouncementSectionLabel,
   AnnouncementSurface,
+  AnnouncementsPageShell,
 } from '@/components/announcements-ui';
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';

@@ -11,9 +11,7 @@
     "splash": {
       "backgroundColor": "#FF5A5F"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "dev.smartresidence.app",
@@ -27,11 +25,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#FF5A5F"
       },
-      "permissions": [
-        "CAMERA",
-        "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
-      ]
+      "permissions": ["CAMERA", "USE_BIOMETRIC", "USE_FINGERPRINT"]
     },
     "plugins": [
       "expo-router",

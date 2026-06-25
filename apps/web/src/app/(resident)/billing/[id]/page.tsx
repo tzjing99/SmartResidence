@@ -78,8 +78,8 @@ export default function InvoiceDetailPage() {
       ) : overdue ? (
         <div className="flex items-center gap-2 rounded-xl border border-red-200/60 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-400">
           <AlertTriangle className="size-4 shrink-0" />
-          This invoice is overdue. Please settle {formatMoney(outstanding, inv.currencyCode)} as soon
-          as possible.
+          This invoice is overdue. Please settle {formatMoney(outstanding, inv.currencyCode)} as
+          soon as possible.
         </div>
       ) : null}
 

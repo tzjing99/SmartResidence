@@ -8,13 +8,19 @@ import { DefectStatus } from '@prisma/client';
  * source of truth for the guard so it can be unit-tested in isolation.
  */
 export const VALID_TRANSITIONS: Record<DefectStatus, DefectStatus[]> = {
-  [DefectStatus.NEW]: [DefectStatus.ACK, DefectStatus.ASSIGNED, DefectStatus.CLOSED],
-  [DefectStatus.ACK]: [DefectStatus.ASSIGNED, DefectStatus.IN_PROGRESS, DefectStatus.CLOSED],
-  [DefectStatus.ASSIGNED]: [
+  [DefectStatus.NEW]: [
+    DefectStatus.ACK,
+    DefectStatus.ASSIGNED,
+    DefectStatus.RESOLVED,
+    DefectStatus.CLOSED,
+  ],
+  [DefectStatus.ACK]: [
+    DefectStatus.ASSIGNED,
     DefectStatus.IN_PROGRESS,
     DefectStatus.RESOLVED,
     DefectStatus.CLOSED,
   ],
+  [DefectStatus.ASSIGNED]: [DefectStatus.IN_PROGRESS, DefectStatus.RESOLVED, DefectStatus.CLOSED],
   [DefectStatus.IN_PROGRESS]: [DefectStatus.RESOLVED, DefectStatus.CLOSED],
   [DefectStatus.RESOLVED]: [DefectStatus.CLOSED, DefectStatus.REOPENED],
   [DefectStatus.CLOSED]: [DefectStatus.REOPENED],

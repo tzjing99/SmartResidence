@@ -884,7 +884,9 @@ describe('VisitorService', () => {
       overnight: false,
     });
     prisma.visitorCheckIn.create.mockResolvedValueOnce({ id: 'ci-pre', visitorId: 'v-pre' });
-    const result = await svc.checkIn('c1:v-pre:ABC123', guard, { gateLocation: 'Main gate' } as any);
+    const result = await svc.checkIn('c1:v-pre:ABC123', guard, {
+      gateLocation: 'Main gate',
+    } as any);
     expect(result.id).toBe('ci-pre');
     expect(prisma.visitor.update).toHaveBeenCalledWith({
       where: { id: 'v-pre' },

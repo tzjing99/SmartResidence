@@ -35,9 +35,35 @@ describe('DefectService.transition', () => {
       raisedByUserId: 'r1',
     });
     await expect(
-      svc.transition('d1', actor, { status: DefectStatus.RESOLVED }),
+      svc.transition('d1', actor, { status: DefectStatus.IN_PROGRESS }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(events.emit).not.toHaveBeenCalled();
+  });
+
+  it('allows one-click mark fixed from submitted to waiting resident sign-off', async () => {
+    const { svc, events, tx } = makeService({
+      id: 'd1',
+      condoId: 'c1',
+      status: DefectStatus.NEW,
+      raisedByUserId: 'r1',
+      assignedToUserId: null,
+      acknowledgedAt: null,
+      resolvedAt: null,
+      closedAt: null,
+    });
+    await svc.transition('d1', actor, { status: DefectStatus.RESOLVED });
+    expect(tx.defect.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: DefectStatus.RESOLVED,
+          resolvedAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(events.emit).toHaveBeenCalledWith(
+      'defect.updated',
+      expect.objectContaining({ statusFrom: DefectStatus.NEW, statusTo: DefectStatus.RESOLVED }),
+    );
   });
 
   it('writes a timeline entry and emits an enriched event on a valid transition', async () => {

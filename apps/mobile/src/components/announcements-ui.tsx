@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import type { Announcement, AnnouncementCategory } from '@smartresidence/shared-types';
 import {
   ANNOUNCEMENT_CATEGORY_LABELS,
@@ -15,7 +16,6 @@ import {
   radius,
   spacing,
 } from '@smartresidence/ui-mobile';
-import { Ionicons } from '@expo/vector-icons';
 import { type Href, useRouter } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 import { RESIDENT_CORAL, residentStyles } from './resident-screen';
@@ -142,7 +142,11 @@ export function AnnouncementListRow({ item }: { item: Announcement }) {
               {item.pinned ? <Pill tone="info" label="Pinned" /> : null}
               <ImportanceBadge importance={item.importance} />
             </AlignRow>
-            <AppText variant="meta" numberOfLines={2} style={{ color: palette.mutedLight, lineHeight: 20 }}>
+            <AppText
+              variant="meta"
+              numberOfLines={2}
+              style={{ color: palette.mutedLight, lineHeight: 20 }}
+            >
               {announcementExcerpt(item.body, 140)}
             </AppText>
             <MetaLine
@@ -157,14 +161,23 @@ export function AnnouncementListRow({ item }: { item: Announcement }) {
                   </AlignRow>
                 ) : null,
                 item.requiresAck && !item.ackedByMe ? (
-                  <AppText key="ack" variant="meta" style={{ color: RESIDENT_CORAL, fontWeight: '600' }}>
+                  <AppText
+                    key="ack"
+                    variant="meta"
+                    style={{ color: RESIDENT_CORAL, fontWeight: '600' }}
+                  >
                     Ack required
                   </AppText>
                 ) : null,
               ]}
             />
           </View>
-          <Ionicons name="chevron-forward" size={18} color={palette.mutedLight} style={{ marginTop: 4 }} />
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={palette.mutedLight}
+            style={{ marginTop: 4 }}
+          />
         </AlignRow>
       </Card>
     </AnimatedPressable>

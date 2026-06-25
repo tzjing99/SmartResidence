@@ -325,11 +325,7 @@ export class BillingService {
    * against duplicates: a unit that already has a non-void invoice for the same
    * period start is skipped so re-running the cycle is safe.
    */
-  async generateRecurring(
-    actor: AuthenticatedUser,
-    condoId: string,
-    dto: GenerateRecurringDto,
-  ) {
+  async generateRecurring(actor: AuthenticatedUser, condoId: string, dto: GenerateRecurringDto) {
     const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
     if (!condo) throw new NotFoundException('Condo not found');
 

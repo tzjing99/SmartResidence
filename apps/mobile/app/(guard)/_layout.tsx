@@ -20,36 +20,28 @@ export default function GuardLayout() {
           name="scan"
           options={{
             title: 'Scan',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="qr-code-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="qr-code-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="live"
           options={{
             title: 'On site',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="radio-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="radio-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="expected"
           options={{
             title: 'Expected',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="list-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="manual"
           options={{
             title: 'Manual',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="create-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -65,9 +57,7 @@ export default function GuardLayout() {
           name="settings"
           options={{
             title: 'Settings',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="settings-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={22} color={color} />,
           }}
         />
       </Tabs>

@@ -4,9 +4,9 @@ import {
   AnnouncementCategoryFilter,
   AnnouncementListTitle,
   AnnouncementMetaRow,
+  AnnouncementSurface,
   AnnouncementsPageHeader,
   AnnouncementsPageShell,
-  AnnouncementSurface,
   MetaDot,
 } from '@/components/announcements-ui';
 import { api } from '@/lib/api';

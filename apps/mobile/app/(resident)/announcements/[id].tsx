@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
   useAckAnnouncement,
   useAnnouncement,
@@ -14,9 +15,8 @@ import {
   palette,
   spacing,
 } from '@smartresidence/ui-mobile';
-import { Ionicons } from '@expo/vector-icons';
-import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import { Linking, View } from 'react-native';
 import {
@@ -62,11 +62,7 @@ export default function AnnouncementDetailScreen() {
     <ResidentScreen
       eyebrow="Announcement"
       title={item?.title ?? 'Notice'}
-      subtitle={
-        item
-          ? [publishedLabel, item.author?.name].filter(Boolean).join(' · ')
-          : undefined
-      }
+      subtitle={item ? [publishedLabel, item.author?.name].filter(Boolean).join(' · ') : undefined}
       headerAction={
         <AnimatedPressable onPress={() => router.back()} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={22} color={palette.navy} />
@@ -79,7 +75,9 @@ export default function AnnouncementDetailScreen() {
         </AppText>
       ) : detail.isError || !item ? (
         <Stack gap={spacing.md}>
-          <AppText variant="meta">This notice could not be found or is no longer available.</AppText>
+          <AppText variant="meta">
+            This notice could not be found or is no longer available.
+          </AppText>
           <AnimatedPressable onPress={() => router.push('/(resident)/announcements' as Href)}>
             <AlignRow gap={6}>
               <Ionicons name="arrow-back" size={16} color={RESIDENT_CORAL} />
@@ -106,10 +104,17 @@ export default function AnnouncementDetailScreen() {
                         </View>
                         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                           <AppText variant="label">Official memo (PDF)</AppText>
-                          <AppText variant="meta" numberOfLines={1} style={{ color: palette.mutedLight }}>
+                          <AppText
+                            variant="meta"
+                            numberOfLines={1}
+                            style={{ color: palette.mutedLight }}
+                          >
                             {attachment.fileName ?? 'management-memo.pdf'}
                           </AppText>
-                          <AppText variant="meta" style={{ color: RESIDENT_CORAL, fontWeight: '600' }}>
+                          <AppText
+                            variant="meta"
+                            style={{ color: RESIDENT_CORAL, fontWeight: '600' }}
+                          >
                             Tap to view full document
                           </AppText>
                         </View>

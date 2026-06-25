@@ -70,15 +70,16 @@ export class DefectService {
   }
 
   async listForUnit(unitId: string, opts: { limit: number; offset: number }) {
+    const where = { unitId, reportId: null };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.defect.findMany({
-        where: { unitId },
+        where,
         include: { raisedBy: true, assignedTo: true, attachments: true },
         orderBy: { createdAt: 'desc' },
         take: opts.limit,
         skip: opts.offset,
       }),
-      this.prisma.defect.count({ where: { unitId } }),
+      this.prisma.defect.count({ where }),
     ]);
     return { items, total, ...opts };
   }
@@ -91,7 +92,12 @@ export class DefectService {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.defect.findMany({
         where,
-        include: { raisedBy: true, assignedTo: true, unit: true, attachments: true },
+        include: {
+          raisedBy: true,
+          assignedTo: true,
+          unit: { include: { block: true } },
+          attachments: true,
+        },
         // First-come-first-served: oldest submission first so the board and any
         // export read as a queue ordered by who raised the ticket first.
         orderBy: { createdAt: 'asc' },

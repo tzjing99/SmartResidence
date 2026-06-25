@@ -105,7 +105,9 @@ export class ImageService {
       };
     } catch (err) {
       const reason = (err as Error).message;
-      this.logger.warn(`Image optimization failed (mime=${mimeType}, format=${sourceFormat}): ${reason}`);
+      this.logger.warn(
+        `Image optimization failed (mime=${mimeType}, format=${sourceFormat}): ${reason}`,
+      );
 
       // HEIC/HEIF that can't be transcoded is useless to web/Android clients
       // (they can't render it), so reject with a clear, typed 4xx instead of

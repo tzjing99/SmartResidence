@@ -1,20 +1,17 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  type Announcement,
   AnnouncementAudienceScope,
+  type Attachment,
   AttachmentOwner,
   AttachmentStatus,
-  type Announcement,
-  type Attachment,
   type Prisma,
   type User,
 } from '@prisma/client';
+import type { AnnouncementCategory } from '@prisma/client';
 import { announcementStatus, isPdfMime } from '@smartresidence/shared-types';
 import {
   announcementMatchesResident,
@@ -24,7 +21,6 @@ import {
   residentAudienceFromRoles,
   resolveAnnouncementRecipientUserIds,
 } from './announcement-audience';
-import type { AnnouncementCategory } from '@prisma/client';
 import type { CreateAnnouncementDto, UpdateAnnouncementDto } from './dto/announcement.dto';
 
 type AnnouncementRow = Announcement & {
@@ -166,11 +162,7 @@ export class AnnouncementService {
       throw new NotFoundException();
     }
 
-    const recipientIds = await resolveAnnouncementRecipientUserIds(
-      this.prisma,
-      row,
-      row.condoId,
-    );
+    const recipientIds = await resolveAnnouncementRecipientUserIds(this.prisma, row, row.condoId);
     const recipientCount = recipientIds.length;
 
     const [readCount, ackCount] =
@@ -215,11 +207,7 @@ export class AnnouncementService {
     const recipientIdsByAnnouncement = new Map<string, string[]>();
     await Promise.all(
       rows.map(async (row) => {
-        const recipientIds = await resolveAnnouncementRecipientUserIds(
-          this.prisma,
-          row,
-          condoId,
-        );
+        const recipientIds = await resolveAnnouncementRecipientUserIds(this.prisma, row, condoId);
         recipientIdsByAnnouncement.set(row.id, recipientIds);
       }),
     );
@@ -332,8 +320,7 @@ export class AnnouncementService {
     if (!existing) throw new NotFoundException();
 
     const nextAudienceScope = dto.audienceScope ?? existing.audienceScope;
-    const nextBlockIds =
-      dto.blockIds ?? existing.blocks.map((b) => b.blockId);
+    const nextBlockIds = dto.blockIds ?? existing.blocks.map((b) => b.blockId);
     const nextUnitIds = dto.unitIds ?? existing.units.map((u) => u.unitId);
 
     if (
@@ -344,8 +331,7 @@ export class AnnouncementService {
       await this.validateAudience(existing.condoId, nextAudienceScope, nextBlockIds, nextUnitIds);
     }
 
-    const nextPublishedAt =
-      dto.publishedAt !== undefined ? dto.publishedAt : existing.publishedAt;
+    const nextPublishedAt = dto.publishedAt !== undefined ? dto.publishedAt : existing.publishedAt;
     const nextExpiresAt = dto.expiresAt !== undefined ? dto.expiresAt : existing.expiresAt;
     if (nextPublishedAt) {
       this.validateSchedule(nextPublishedAt, nextExpiresAt ?? null);
@@ -370,9 +356,7 @@ export class AnnouncementService {
     }
 
     const audienceChanged =
-      dto.audienceScope !== undefined ||
-      dto.blockIds !== undefined ||
-      dto.unitIds !== undefined;
+      dto.audienceScope !== undefined || dto.blockIds !== undefined || dto.unitIds !== undefined;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.announcement.update({ where: { id }, data });
@@ -402,7 +386,7 @@ export class AnnouncementService {
     return this.getOne(user, id, { manage: true });
   }
 
-  async softDelete(user: AuthenticatedUser, id: string) {
+  async softDelete(_user: AuthenticatedUser, id: string) {
     const existing = await this.prisma.announcement.findFirst({
       where: { id, deletedAt: null },
     });
@@ -553,7 +537,7 @@ export class AnnouncementService {
 
   private serialize(
     row: AnnouncementRow,
-    userId: string,
+    _userId: string,
     opts?: {
       manage?: boolean;
       readStats?: { recipientCount: number; readCount: number; readPercent: number };

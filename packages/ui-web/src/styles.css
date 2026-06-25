@@ -108,7 +108,7 @@
     @apply max-w-2xl lg:max-w-3xl;
   }
   .ann-page-backdrop::before {
-    content: '';
+    content: "";
     @apply pointer-events-none absolute inset-x-0 -top-4 h-40 sm:h-52 -z-10;
     background: radial-gradient(
       ellipse 85% 75% at 50% -15%,

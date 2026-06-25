@@ -3,6 +3,8 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { HANDOVER_REPORT_JSON_BODY_LIMIT } from '@smartresidence/shared-types';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuditLogInterceptor } from './common/interceptors/audit-log.interceptor';
@@ -11,9 +13,13 @@ import type { AppEnv } from './config/env.schema';
 import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, bodyParser: false });
   const config = app.get<ConfigService<AppEnv, true>>(ConfigService);
   const logger = new Logger('bootstrap');
+
+  // Multi-defect submissions can carry hundreds of line items (~1–2 MB JSON).
+  app.use(json({ limit: HANDOVER_REPORT_JSON_BODY_LIMIT }));
+  app.use(urlencoded({ extended: true, limit: HANDOVER_REPORT_JSON_BODY_LIMIT }));
 
   app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
 

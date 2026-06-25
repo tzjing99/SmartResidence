@@ -47,7 +47,13 @@ const PAYMENT_METHODS = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-type FeeLine = { code: string; description: string; formula: string; unitPrice: string; quantity: string };
+type FeeLine = {
+  code: string;
+  description: string;
+  formula: string;
+  unitPrice: string;
+  quantity: string;
+};
 
 const emptyFeeLine = (): FeeLine => ({
   code: '',
@@ -58,7 +64,11 @@ const emptyFeeLine = (): FeeLine => ({
 });
 
 function fmtDate(d: Date | string) {
-  return new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(d).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 function GenerateCycleForm({ condoId, onDone }: { condoId: string; onDone: () => void }) {
@@ -67,7 +77,13 @@ function GenerateCycleForm({ condoId, onDone }: { condoId: string; onDone: () =>
   const [periodEnd, setPeriodEnd] = React.useState('');
   const [dueDate, setDueDate] = React.useState('');
   const [lines, setLines] = React.useState<FeeLine[]>([
-    { code: 'MAINT', description: 'Monthly maintenance fee', formula: '', unitPrice: '', quantity: '1' },
+    {
+      code: 'MAINT',
+      description: 'Monthly maintenance fee',
+      formula: '',
+      unitPrice: '',
+      quantity: '1',
+    },
   ]);
 
   function updateLine(i: number, patch: Partial<FeeLine>) {
@@ -104,8 +120,7 @@ function GenerateCycleForm({ condoId, onDone }: { condoId: string; onDone: () =>
         },
       });
       toast.success(
-        `Generated ${res.created} invoice${res.created === 1 ? '' : 's'}` +
-          (res.skipped ? ` · ${res.skipped} skipped (already billed)` : ''),
+        `Generated ${res.created} invoice${res.created === 1 ? '' : 's'}${res.skipped ? ` · ${res.skipped} skipped (already billed)` : ''}`,
       );
       onDone();
     } catch (err) {
@@ -286,7 +301,9 @@ function InvoiceDetail({ invoice, onClose }: { invoice: Invoice; onClose: () => 
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold font-mono">{invoice.number}</h3>
-            <Badge tone={STATUS_TONE[invoice.status]}>{INVOICE_STATUS_LABELS[invoice.status]}</Badge>
+            <Badge tone={STATUS_TONE[invoice.status]}>
+              {INVOICE_STATUS_LABELS[invoice.status]}
+            </Badge>
           </div>
           <p className="sr-muted text-sm mt-1">
             {fmtDate(invoice.periodStart)} – {fmtDate(invoice.periodEnd)} · due{' '}
@@ -331,7 +348,9 @@ function InvoiceDetail({ invoice, onClose }: { invoice: Invoice; onClose: () => 
         </div>
         <div className="flex justify-between">
           <span className="sr-muted">Paid</span>
-          <span className="font-medium">{formatMoney(invoice.amountPaid, invoice.currencyCode)}</span>
+          <span className="font-medium">
+            {formatMoney(invoice.amountPaid, invoice.currencyCode)}
+          </span>
         </div>
         <div className="flex justify-between border-t border-[rgb(var(--sr-border))]/70 pt-1.5">
           <span className="font-semibold">Outstanding</span>
@@ -378,7 +397,11 @@ function InvoiceDetail({ invoice, onClose }: { invoice: Invoice; onClose: () => 
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs sr-muted">Method</span>
-              <select className={selectCls} value={method} onChange={(e) => setMethod(e.target.value)}>
+              <select
+                className={selectCls}
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+              >
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m.value} value={m.value}>
                     {m.label}

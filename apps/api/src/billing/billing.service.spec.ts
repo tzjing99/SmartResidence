@@ -103,9 +103,9 @@ describe('BillingService.recordManualPayment', () => {
     } as unknown as PrismaService;
     const svc = makeService(prisma, { emit: vi.fn() });
 
-    await expect(
-      svc.recordManualPayment(admin(), 'inv-1', { amount: 50 }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(svc.recordManualPayment(admin(), 'inv-1', { amount: 50 })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('rejects payment on a voided invoice', async () => {

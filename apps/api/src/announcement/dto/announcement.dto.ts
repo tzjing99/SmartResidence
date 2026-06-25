@@ -5,7 +5,7 @@ import {
   AnnouncementCategory,
   AnnouncementImportance,
 } from '@prisma/client';
-import { Type, Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -45,7 +45,10 @@ export class CreateAnnouncementDto {
   @IsEnum(AnnouncementCategory)
   category?: AnnouncementCategory;
 
-  @ApiPropertyOptional({ enum: AnnouncementAudienceScope, default: AnnouncementAudienceScope.CONDO })
+  @ApiPropertyOptional({
+    enum: AnnouncementAudienceScope,
+    default: AnnouncementAudienceScope.CONDO,
+  })
   @IsOptional()
   @IsEnum(AnnouncementAudienceScope)
   audienceScope?: AnnouncementAudienceScope;
@@ -84,7 +87,10 @@ export class CreateAnnouncementDto {
   @IsBoolean()
   pinned?: boolean;
 
-  @ApiPropertyOptional({ description: 'Pre-uploaded attachment ids (PDF memo and/or images)', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Pre-uploaded attachment ids (PDF memo and/or images)',
+    type: [String],
+  })
   @IsOptional()
   @IsArray()
   @IsUUID(undefined, { each: true })

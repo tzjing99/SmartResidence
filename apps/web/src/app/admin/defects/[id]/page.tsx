@@ -3,7 +3,6 @@
 import {
   DefectActivityFeed,
   DefectPhotos,
-  DefectSeverityBadge,
   DefectStatusBadge,
   DefectStatusTimeline,
 } from '@/components/defect-ui';

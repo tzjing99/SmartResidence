@@ -1,5 +1,14 @@
 import { useMe, usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
-import { AlignRow, AppText, Button, Card, Field, Input, palette, spacing } from '@smartresidence/ui-mobile';
+import {
+  AlignRow,
+  AppText,
+  Button,
+  Card,
+  Field,
+  Input,
+  palette,
+  spacing,
+} from '@smartresidence/ui-mobile';
 import { useEffect, useState } from 'react';
 import { Alert, Switch, View } from 'react-native';
 import {
@@ -9,15 +18,16 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
-import { useSignOut } from '../../src/lib/use-sign-out';
 import type { MeResponse } from '../../src/lib/roles';
+import { useSignOut } from '../../src/lib/use-sign-out';
 
 const mapRoleLabel = (role: string | null | undefined): string => {
   if (!role) return 'Resident';
   if (role === 'SECURITY_GUARD') return 'Guard';
   if (role === 'UNIT_OWNER' || role === 'OWNER') return 'Owner';
   if (role === 'TENANT') return 'Tenant';
-  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') return 'Management';
+  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF')
+    return 'Management';
   return 'Resident';
 };
 

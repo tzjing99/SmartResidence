@@ -64,7 +64,12 @@ export function DefectSignOffActions({
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="primary" disabled={disabled || pending} onClick={() => setConfirming(true)}>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={disabled || pending}
+          onClick={() => setConfirming(true)}
+        >
           <ThumbsUp className="size-3.5" />
           {DEFECT_SIGN_OFF_PROMPT_LABEL}
         </Button>

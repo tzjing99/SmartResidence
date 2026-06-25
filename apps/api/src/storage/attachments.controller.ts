@@ -14,7 +14,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { AttachmentOwner, AttachmentStatus, RoleId } from '@prisma/client';
-import { isAllowedImageMime, isPdfMime, MAX_UPLOAD_BYTES, sanitizeFileName } from '@smartresidence/shared-types';
+import {
+  MAX_UPLOAD_BYTES,
+  isAllowedImageMime,
+  isPdfMime,
+  sanitizeFileName,
+} from '@smartresidence/shared-types';
 import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import type { Response } from 'express';
 import { nanoid } from 'nanoid';

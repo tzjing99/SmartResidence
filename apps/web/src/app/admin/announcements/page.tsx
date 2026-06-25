@@ -9,22 +9,22 @@ import {
   AnnouncementListTitle,
   AnnouncementMetaLine,
   AnnouncementSectionLabel,
+  AnnouncementSurface,
   AnnouncementsAdminGrid,
   AnnouncementsPageHeader,
   AnnouncementsPageShell,
-  AnnouncementSurface,
 } from '@/components/announcements-ui';
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
   uploadAttachment,
+  useAnnouncementReadStats,
   useCondoAnnouncements,
   useCondoBlocks,
   useCondoUnitsSearch,
   useCreateAnnouncement,
   useDeleteAnnouncement,
-  useAnnouncementReadStats,
   useMyCondos,
   useUpdateAnnouncement,
 } from '@smartresidence/api-client';
@@ -37,9 +37,9 @@ import type {
 import {
   ANNOUNCEMENT_CATEGORY_LABELS,
   ANNOUNCEMENT_STATUS_LABELS,
-  announcementStatus,
   DOCUMENT_ACCEPT_ATTR,
   MAX_ANNOUNCEMENT_ATTACHMENTS,
+  announcementStatus,
 } from '@smartresidence/shared-types';
 import type { AnnouncementStatus } from '@smartresidence/shared-types';
 import {
@@ -162,14 +162,14 @@ function AdminNoticeRow({
     <button
       type="button"
       onClick={onSelect}
-      className={`ann-list-row ${
-        selected ? 'ann-list-row-active' : 'ann-list-row-idle'
-      }`}
+      className={`ann-list-row ${selected ? 'ann-list-row-active' : 'ann-list-row-idle'}`}
     >
       <div className="flex items-center gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
           <AnnouncementListTitle className="truncate">{notice.title}</AnnouncementListTitle>
-          <AnnouncementMetaLine className="mt-1 truncate">{noticeMetaLine(notice)}</AnnouncementMetaLine>
+          <AnnouncementMetaLine className="mt-1 truncate">
+            {noticeMetaLine(notice)}
+          </AnnouncementMetaLine>
           {statsLine ? <p className="ann-stats-line mt-1.5">{statsLine}</p> : null}
         </div>
         <Badge tone={STATUS_TONE[status]} className="shrink-0 text-[11px]">
@@ -229,7 +229,12 @@ function AdminNoticeDetail({
               <Pencil className="size-3.5" />
               Edit
             </Button>
-            <Button variant="secondary" size="sm" disabled={updatePending} onClick={onTogglePublish}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={updatePending}
+              onClick={onTogglePublish}
+            >
               {toggleLabel}
             </Button>
             <Button
@@ -620,9 +625,7 @@ export default function AdminAnnouncementsPage() {
     } catch (err) {
       const message = (err as Error).message;
       toast.error(
-        message.includes('fetch')
-          ? 'Could not reach the server — is the API running?'
-          : message,
+        message.includes('fetch') ? 'Could not reach the server — is the API running?' : message,
       );
     }
   }
@@ -742,9 +745,8 @@ export default function AdminAnnouncementsPage() {
                         const u = unitItems.find((x) => x.id === id);
                         const label =
                           u?.identifier ??
-                          items
-                            .flatMap((n) => n.audienceUnits ?? [])
-                            .find((x) => x.id === id)?.identifier ??
+                          items.flatMap((n) => n.audienceUnits ?? []).find((x) => x.id === id)
+                            ?.identifier ??
                           id.slice(0, 8);
                         return (
                           <button
@@ -855,7 +857,12 @@ export default function AdminAnnouncementsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium truncate">{pdfMemo.fileName}</div>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setPdfMemo(null)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPdfMemo(null)}
+                      >
                         <X className="size-4" />
                       </Button>
                     </div>
@@ -983,7 +990,8 @@ export default function AdminAnnouncementsPage() {
                     onChange={(e) => setExpiresAt(e.target.value)}
                   />
                   <p className="text-xs sr-muted">
-                    Residents stop seeing the notice after this time. It stays here for your records.
+                    Residents stop seeing the notice after this time. It stays here for your
+                    records.
                   </p>
                 </div>
               ) : null}
@@ -991,7 +999,11 @@ export default function AdminAnnouncementsPage() {
 
             <div className="flex flex-wrap gap-4 text-sm">
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={pinned}
+                  onChange={(e) => setPinned(e.target.checked)}
+                />
                 Pin to top of list
               </label>
               <label className="flex items-center gap-2">

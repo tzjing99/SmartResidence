@@ -1,12 +1,17 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
-import { ForbiddenException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AttachmentOwner,
   AttachmentStatus,
-  type DefectStatus,
   DefectReportKind,
+  type DefectStatus,
   RoleId,
 } from '@prisma/client';
 import {
@@ -185,7 +190,9 @@ export class DefectReportService {
       orderBy: { createdAt: 'asc' },
       include: {
         raisedBy: { select: { id: true, name: true } },
-        unit: { select: { id: true, identifier: true, floor: true, block: { select: { name: true } } } },
+        unit: {
+          select: { id: true, identifier: true, floor: true, block: { select: { name: true } } },
+        },
         _count: { select: { defects: true } },
       },
       take: 500,
@@ -214,8 +221,7 @@ export class DefectReportService {
     if (!unit) throw new NotFoundException('Unit not found');
 
     const allowed =
-      this.isManagement(user, unit.condoId) ||
-      user.roles.some((r) => r.unitId === unitId);
+      this.isManagement(user, unit.condoId) || user.roles.some((r) => r.unitId === unitId);
     if (!allowed) throw new ForbiddenException();
 
     const reports = await this.prisma.defectReport.findMany({
@@ -223,7 +229,9 @@ export class DefectReportService {
       orderBy: { createdAt: 'asc' },
       include: {
         raisedBy: { select: { id: true, name: true } },
-        unit: { select: { id: true, identifier: true, floor: true, block: { select: { name: true } } } },
+        unit: {
+          select: { id: true, identifier: true, floor: true, block: { select: { name: true } } },
+        },
         _count: { select: { defects: true } },
       },
       take: 500,
@@ -256,7 +264,9 @@ export class DefectReportService {
       where: { id },
       include: {
         raisedBy: { select: { id: true, name: true } },
-        unit: { select: { id: true, identifier: true, floor: true, block: { select: { name: true } } } },
+        unit: {
+          select: { id: true, identifier: true, floor: true, block: { select: { name: true } } },
+        },
       },
     });
     if (!report) throw new NotFoundException('Report not found');
@@ -267,10 +277,7 @@ export class DefectReportService {
       (report.unitId ? user.roles.some((r) => r.unitId === report.unitId) : false);
     if (!allowed) throw new ForbiddenException();
 
-    return this.toSummary(
-      { ...report, _count: { defects: itemCount } },
-      { NEW: itemCount },
-    );
+    return this.toSummary({ ...report, _count: { defects: itemCount } }, { NEW: itemCount });
   }
 
   async getOne(user: AuthenticatedUser, id: string): Promise<DefectReportDetail> {
@@ -278,7 +285,9 @@ export class DefectReportService {
       where: { id },
       include: {
         raisedBy: { select: { id: true, name: true } },
-        unit: { select: { id: true, identifier: true, floor: true, block: { select: { name: true } } } },
+        unit: {
+          select: { id: true, identifier: true, floor: true, block: { select: { name: true } } },
+        },
         defects: {
           orderBy: [{ spaceLabel: 'asc' }, { createdAt: 'asc' }],
           include: {
@@ -305,10 +314,7 @@ export class DefectReportService {
     }
 
     return {
-      ...this.toSummary(
-        { ...report, _count: { defects: report.defects.length } },
-        statusCounts,
-      ),
+      ...this.toSummary({ ...report, _count: { defects: report.defects.length } }, statusCounts),
       items: report.defects.map((d) => ({
         id: d.id,
         reportId: d.reportId,
@@ -473,7 +479,12 @@ export class DefectReportService {
       title: string;
       createdAt: Date;
       raisedBy?: { id: string; name: string } | null;
-      unit?: { id: string; identifier: string; floor?: number | null; block: { name: string } | null } | null;
+      unit?: {
+        id: string;
+        identifier: string;
+        floor?: number | null;
+        block: { name: string } | null;
+      } | null;
       _count?: { defects: number };
     },
     statusCounts: Partial<Record<DefectStatus, number>>,

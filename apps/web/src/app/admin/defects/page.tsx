@@ -162,11 +162,13 @@ function DefectBoard({ condoId }: { condoId: string | null }) {
     [triageItems, filters],
   );
   const active = filtered.find((i) => i.id === activeId) ?? filtered[0] ?? null;
-  const staffOptions: StaffOption[] = ((sla.data?.managementStaff ?? []) as Array<{
-    id: string;
-    name: string;
-    email: string | null;
-  }>).map((s) => ({ value: s.id, label: s.name || s.email || s.id }));
+  const staffOptions: StaffOption[] = (
+    (sla.data?.managementStaff ?? []) as Array<{
+      id: string;
+      name: string;
+      email: string | null;
+    }>
+  ).map((s) => ({ value: s.id, label: s.name || s.email || s.id }));
 
   React.useEffect(() => {
     if (activeId && !filtered.some((i) => i.id === activeId)) {
@@ -257,7 +259,10 @@ function DefectBoard({ condoId }: { condoId: string | null }) {
         items={triageItems}
         selectedBlock={heatmapBlock}
         selectedFloor={heatmapFloor}
-        onSelectBlock={(block) => { setHeatmapBlock(block); setHeatmapFloor(ALL); }}
+        onSelectBlock={(block) => {
+          setHeatmapBlock(block);
+          setHeatmapFloor(ALL);
+        }}
         onSelectFloor={setHeatmapFloor}
       />
       <DefectTriageToolbar
@@ -321,8 +326,7 @@ function reportBoardStatus(report: DefectReportSummary): DefectStatus {
 
 function reportProgress(report: DefectReportSummary): { done: number; total: number } {
   const total = report.itemCount;
-  const done =
-    (report.statusCounts.RESOLVED ?? 0) + (report.statusCounts.CLOSED ?? 0);
+  const done = (report.statusCounts.RESOLVED ?? 0) + (report.statusCounts.CLOSED ?? 0);
   return { done, total };
 }
 
@@ -355,8 +359,7 @@ function InspectionsList({ condoId }: { condoId: string | null }) {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-medium">
-                    {unitLabel}{' '}
-                    <span className="text-xs sr-muted">· {defectReference(r.id)}</span>
+                    {unitLabel} <span className="text-xs sr-muted">· {defectReference(r.id)}</span>
                   </div>
                   <div className="text-xs sr-muted mt-0.5">
                     {r.title} · {r.itemCount} defect(s) · by {r.raisedBy?.name ?? 'resident'} ·{' '}

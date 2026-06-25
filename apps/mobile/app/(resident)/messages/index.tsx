@@ -44,9 +44,7 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = 
 export default function MessagesScreen() {
   const router = useRouter();
   const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
-  const { refreshControl } = usePullToRefresh(
-    useCallback(() => threads.refetch(), [threads]),
-  );
+  const { refreshControl } = usePullToRefresh(useCallback(() => threads.refetch(), [threads]));
 
   const items = threads.data?.items ?? [];
 
@@ -57,7 +55,10 @@ export default function MessagesScreen() {
       subtitle="Keep every request, reply, and resolution in one conversation."
       scrollProps={{ refreshControl }}
       headerAction={
-        <Button title="New message" onPress={() => router.push('/(resident)/messages/new' as Href)} />
+        <Button
+          title="New message"
+          onPress={() => router.push('/(resident)/messages/new' as Href)}
+        />
       }
     >
       {threads.isLoading && !threads.data ? (
@@ -65,13 +66,19 @@ export default function MessagesScreen() {
           Loading conversations...
         </AppText>
       ) : items.length === 0 ? (
-        <EmptyState title="No conversations yet" description="Start a message when you need help from management." />
+        <EmptyState
+          title="No conversations yet"
+          description="Start a message when you need help from management."
+        />
       ) : (
         items.map((t, index) => (
           <FadeInView key={t.id} index={index}>
             <AnimatedPressable onPress={() => router.push(`/(resident)/messages/${t.id}` as Href)}>
               <Card style={[residentStyles.card, { padding: 16 }]}>
-                <AlignRow style={{ alignItems: 'flex-start', minHeight: 0, flexWrap: 'wrap' }} gap={12}>
+                <AlignRow
+                  style={{ alignItems: 'flex-start', minHeight: 0, flexWrap: 'wrap' }}
+                  gap={12}
+                >
                   <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
                     <AppText variant="label" numberOfLines={2}>
                       {t.subject}
@@ -94,7 +101,10 @@ export default function MessagesScreen() {
                       maxWidth: '100%',
                     }}
                   >
-                    <Pill tone={PRIORITY_TONE[t.priority] ?? 'neutral'} label={prettyLabel(t.priority)} />
+                    <Pill
+                      tone={PRIORITY_TONE[t.priority] ?? 'neutral'}
+                      label={prettyLabel(t.priority)}
+                    />
                     <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={prettyLabel(t.status)} />
                   </View>
                 </AlignRow>

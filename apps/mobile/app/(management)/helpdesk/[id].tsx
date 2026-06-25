@@ -1,11 +1,11 @@
 import {
+  useCloseAbusiveThread,
   useMe,
-  useThread,
   usePostThreadMessage,
-  useUpdateThread,
   useProposeThreadResolution,
   useRequestThreadResident,
-  useCloseAbusiveThread,
+  useThread,
+  useUpdateThread,
 } from '@smartresidence/api-client';
 import { useThreadRoom } from '@smartresidence/api-client/realtime';
 import {
@@ -16,13 +16,12 @@ import {
   Field,
   Input,
   Pill,
-  Stack,
   palette,
   radius,
 } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View, Alert, Pressable, StyleSheet } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThreadMessageList } from '../../../src/components/thread-message-list';
 import { api } from '../../../src/lib/api';
@@ -77,7 +76,7 @@ const mapPriorityLabel = (priority: string): string => {
 };
 
 export default function ManagementThreadDetailScreen() {
-  const router = useRouter();
+  const _router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { contentMaxWidth, horizontalPadding } = useTabletLayout();
@@ -116,7 +115,14 @@ export default function ManagementThreadDetailScreen() {
 
   if (!t || !threadId) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.bgLight }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: palette.bgLight,
+        }}
+      >
         <AppText variant="meta">Loading ticket details…</AppText>
       </View>
     );
@@ -153,7 +159,7 @@ export default function ManagementThreadDetailScreen() {
       { id: threadId, body: text, internalNote },
       {
         onError: () => setBody(text),
-      }
+      },
     );
   };
 
@@ -187,16 +193,24 @@ export default function ManagementThreadDetailScreen() {
     <>
       {/* Title & Stats */}
       <View style={{ gap: 6 }}>
-        <AppText variant="heading" style={{ fontSize: 20 }}>{t.subject}</AppText>
+        <AppText variant="heading" style={{ fontSize: 20 }}>
+          {t.subject}
+        </AppText>
         <AlignRow gap={8}>
           <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={mapStatusLabel(t.status)} />
-          <Pill tone={PRIORITY_TONE[t.priority] ?? 'neutral'} label={mapPriorityLabel(t.priority)} />
+          <Pill
+            tone={PRIORITY_TONE[t.priority] ?? 'neutral'}
+            label={mapPriorityLabel(t.priority)}
+          />
           {t.slaState && t.slaState !== 'NONE' && (
             <Pill tone={SLA_TONE[t.slaState] ?? 'neutral'} label={`SLA: ${t.slaState}`} />
           )}
         </AlignRow>
         <AppText variant="caption" style={{ color: palette.mutedLight, marginTop: 4 }}>
-          Created by: <AppText variant="caption" style={{ fontWeight: '600' }}>{t.createdBy?.name ?? 'Resident'}</AppText>
+          Created by:{' '}
+          <AppText variant="caption" style={{ fontWeight: '600' }}>
+            {t.createdBy?.name ?? 'Resident'}
+          </AppText>
           {t.unit ? ` (${t.unit.identifier})` : ''} • {new Date(t.createdAt).toLocaleDateString()}
         </AppText>
       </View>
@@ -207,17 +221,32 @@ export default function ManagementThreadDetailScreen() {
         {t.assignedTo ? (
           <AlignRow style={{ justifyContent: 'space-between', minHeight: 0 }}>
             <AppText variant="bodySm">
-              Assigned to: <AppText variant="bodySm" style={{ fontWeight: '600' }}>{t.assignedTo.name}</AppText>
+              Assigned to:{' '}
+              <AppText variant="bodySm" style={{ fontWeight: '600' }}>
+                {t.assignedTo.name}
+              </AppText>
             </AppText>
             {t.assignedTo.id !== myId && (
-              <Pressable onPress={handleClaimTicket} style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.md, backgroundColor: palette.coralPrimary }}>
-                <AppText style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600' }}>Reassign to me</AppText>
+              <Pressable
+                onPress={handleClaimTicket}
+                style={{
+                  paddingVertical: 4,
+                  paddingHorizontal: 10,
+                  borderRadius: radius.md,
+                  backgroundColor: palette.coralPrimary,
+                }}
+              >
+                <AppText style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600' }}>
+                  Reassign to me
+                </AppText>
               </Pressable>
             )}
           </AlignRow>
         ) : (
           <AlignRow style={{ justifyContent: 'space-between', minHeight: 0 }}>
-            <AppText variant="bodySm" style={{ color: palette.mutedLight, fontStyle: 'italic' }}>Unassigned ticket</AppText>
+            <AppText variant="bodySm" style={{ color: palette.mutedLight, fontStyle: 'italic' }}>
+              Unassigned ticket
+            </AppText>
             <Button
               title="Claim Ticket"
               variant="primary"
@@ -235,7 +264,9 @@ export default function ManagementThreadDetailScreen() {
 
           {/* Change Priority Quick Buttons */}
           <View style={{ gap: 6 }}>
-            <AppText variant="caption" style={{ color: palette.mutedLight }}>Update Priority:</AppText>
+            <AppText variant="caption" style={{ color: palette.mutedLight }}>
+              Update Priority:
+            </AppText>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {(['URGENT', 'HIGH', 'NORMAL', 'LOW'] as const).map((p) => {
                 const isActive = t.priority === p;
@@ -247,9 +278,25 @@ export default function ManagementThreadDetailScreen() {
                       flex: 1,
                       paddingVertical: 6,
                       borderRadius: radius.md,
-                      backgroundColor: isActive ? PRIORITY_TONE[p] === 'danger' ? '#FEE2E2' : PRIORITY_TONE[p] === 'warning' ? '#FEF3C7' : PRIORITY_TONE[p] === 'info' ? '#E0F2FE' : '#D1FAE5' : '#F3F4F6',
+                      backgroundColor: isActive
+                        ? PRIORITY_TONE[p] === 'danger'
+                          ? '#FEE2E2'
+                          : PRIORITY_TONE[p] === 'warning'
+                            ? '#FEF3C7'
+                            : PRIORITY_TONE[p] === 'info'
+                              ? '#E0F2FE'
+                              : '#D1FAE5'
+                        : '#F3F4F6',
                       borderWidth: 1,
-                      borderColor: isActive ? PRIORITY_TONE[p] === 'danger' ? '#EF4444' : PRIORITY_TONE[p] === 'warning' ? '#F59E0B' : PRIORITY_TONE[p] === 'info' ? '#0EA5E9' : '#10B981' : 'transparent',
+                      borderColor: isActive
+                        ? PRIORITY_TONE[p] === 'danger'
+                          ? '#EF4444'
+                          : PRIORITY_TONE[p] === 'warning'
+                            ? '#F59E0B'
+                            : PRIORITY_TONE[p] === 'info'
+                              ? '#0EA5E9'
+                              : '#10B981'
+                        : 'transparent',
                       alignItems: 'center',
                     }}
                   >
@@ -257,7 +304,15 @@ export default function ManagementThreadDetailScreen() {
                       style={{
                         fontSize: 12,
                         fontWeight: '600',
-                        color: isActive ? PRIORITY_TONE[p] === 'danger' ? '#991B1B' : PRIORITY_TONE[p] === 'warning' ? '#92400E' : PRIORITY_TONE[p] === 'info' ? '#0369A1' : '#065F46' : palette.mutedLight,
+                        color: isActive
+                          ? PRIORITY_TONE[p] === 'danger'
+                            ? '#991B1B'
+                            : PRIORITY_TONE[p] === 'warning'
+                              ? '#92400E'
+                              : PRIORITY_TONE[p] === 'info'
+                                ? '#0369A1'
+                                : '#065F46'
+                          : palette.mutedLight,
                       }}
                     >
                       {mapPriorityLabel(p)}
@@ -304,7 +359,15 @@ export default function ManagementThreadDetailScreen() {
 
           {/* Collapsible Action Sub-forms */}
           {actionForm && (
-            <View style={{ borderTopWidth: 1, borderTopColor: palette.borderLight, paddingTop: 12, marginTop: 4, gap: 10 }}>
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: palette.borderLight,
+                paddingTop: 12,
+                marginTop: 4,
+                gap: 10,
+              }}
+            >
               <AppText variant="label" style={{ fontSize: 13 }}>
                 {actionForm === 'propose' && 'Propose Resolution to Resident'}
                 {actionForm === 'request' && 'Request Clarification from Resident'}
@@ -318,8 +381,8 @@ export default function ManagementThreadDetailScreen() {
                     actionForm === 'propose'
                       ? 'Describe how this issue was resolved...'
                       : actionForm === 'request'
-                      ? 'What information is needed from the resident?'
-                      : 'Provide a reason for closing as abusive...'
+                        ? 'What information is needed from the resident?'
+                        : 'Provide a reason for closing as abusive...'
                   }
                   multiline
                   style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
@@ -335,7 +398,16 @@ export default function ManagementThreadDetailScreen() {
                 <Button
                   title="Submit Action"
                   variant="primary"
-                  style={{ flex: 1, minHeight: 36, backgroundColor: actionForm === 'abuse' ? '#EF4444' : actionForm === 'propose' ? '#10B981' : palette.coralPrimary }}
+                  style={{
+                    flex: 1,
+                    minHeight: 36,
+                    backgroundColor:
+                      actionForm === 'abuse'
+                        ? '#EF4444'
+                        : actionForm === 'propose'
+                          ? '#10B981'
+                          : palette.coralPrimary,
+                  }}
                   onPress={handleExecuteActionForm}
                 />
               </View>
@@ -352,58 +424,77 @@ export default function ManagementThreadDetailScreen() {
   );
 
   const footer = !finished ? (
-        <Card style={{ padding: 16, gap: 12 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <AppText variant="label">New Reply</AppText>
-            {/* Simple Segmented Toggle for Normal vs Internal */}
-            <View style={{ flexDirection: 'row', backgroundColor: '#F3F4F6', borderRadius: radius.md, padding: 2 }}>
-              <Pressable
-                onPress={() => setInternalNote(false)}
-                style={{
-                  paddingVertical: 4,
-                  paddingHorizontal: 10,
-                  borderRadius: radius.md - 2,
-                  backgroundColor: !internalNote ? '#FFFFFF' : 'transparent',
-                }}
-              >
-                <AppText style={{ fontSize: 11, fontWeight: '600', color: !internalNote ? palette.coralPrimary : palette.mutedLight }}>
-                  Resident
-                </AppText>
-              </Pressable>
-              <Pressable
-                onPress={() => setInternalNote(true)}
-                style={{
-                  paddingVertical: 4,
-                  paddingHorizontal: 10,
-                  borderRadius: radius.md - 2,
-                  backgroundColor: internalNote ? '#FEF3C7' : 'transparent',
-                }}
-              >
-                <AppText style={{ fontSize: 11, fontWeight: '600', color: internalNote ? '#B45309' : palette.mutedLight }}>
-                  Internal Note
-                </AppText>
-              </Pressable>
-            </View>
-          </View>
+    <Card style={{ padding: 16, gap: 12 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <AppText variant="label">New Reply</AppText>
+        {/* Simple Segmented Toggle for Normal vs Internal */}
+        <View
+          style={{
+            flexDirection: 'row',
+            backgroundColor: '#F3F4F6',
+            borderRadius: radius.md,
+            padding: 2,
+          }}
+        >
+          <Pressable
+            onPress={() => setInternalNote(false)}
+            style={{
+              paddingVertical: 4,
+              paddingHorizontal: 10,
+              borderRadius: radius.md - 2,
+              backgroundColor: !internalNote ? '#FFFFFF' : 'transparent',
+            }}
+          >
+            <AppText
+              style={{
+                fontSize: 11,
+                fontWeight: '600',
+                color: !internalNote ? palette.coralPrimary : palette.mutedLight,
+              }}
+            >
+              Resident
+            </AppText>
+          </Pressable>
+          <Pressable
+            onPress={() => setInternalNote(true)}
+            style={{
+              paddingVertical: 4,
+              paddingHorizontal: 10,
+              borderRadius: radius.md - 2,
+              backgroundColor: internalNote ? '#FEF3C7' : 'transparent',
+            }}
+          >
+            <AppText
+              style={{
+                fontSize: 11,
+                fontWeight: '600',
+                color: internalNote ? '#B45309' : palette.mutedLight,
+              }}
+            >
+              Internal Note
+            </AppText>
+          </Pressable>
+        </View>
+      </View>
 
-          <Field>
-            <Input
-              value={body}
-              onChangeText={setBody}
-              placeholder={internalNote ? "Write a private internal note..." : "Reply to resident..."}
-              multiline
-              style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
-            />
-          </Field>
+      <Field>
+        <Input
+          value={body}
+          onChangeText={setBody}
+          placeholder={internalNote ? 'Write a private internal note...' : 'Reply to resident...'}
+          multiline
+          style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }}
+        />
+      </Field>
 
-          <Button
-            title={internalNote ? "Post Internal Note" : "Send Reply"}
-            variant="primary"
-            style={{ backgroundColor: internalNote ? '#F59E0B' : palette.coralPrimary }}
-            onPress={handleSubmitReply}
-            disabled={!body.trim()}
-          />
-        </Card>
+      <Button
+        title={internalNote ? 'Post Internal Note' : 'Send Reply'}
+        variant="primary"
+        style={{ backgroundColor: internalNote ? '#F59E0B' : palette.coralPrimary }}
+        onPress={handleSubmitReply}
+        disabled={!body.trim()}
+      />
+    </Card>
   ) : null;
 
   return (

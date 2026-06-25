@@ -3,7 +3,15 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { type Href, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   GUARD_SOFT_CORAL,
@@ -23,7 +31,8 @@ import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 export default function ScanScreen() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { isTablet, isLandscape, contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
+  const { isTablet, isLandscape, contentMaxWidth, horizontalPadding, twoColumn } =
+    useTabletLayout();
   const [permission, requestPermission] = useCameraPermissions();
   const [permissionPrompted, setPermissionPrompted] = useState(false);
   const [activeScanning, setActiveScanning] = useState(false);
@@ -113,7 +122,10 @@ export default function ScanScreen() {
 
   const permissionDenied = permission && !permission.granted && !permission.canAskAgain;
   const shouldShowPermissionCard =
-    !activeScanning && permission && !permission.granted && (permissionPrompted || permissionDenied);
+    !activeScanning &&
+    permission &&
+    !permission.granted &&
+    (permissionPrompted || permissionDenied);
   const scannerMaxWidth = isTablet ? Math.min(720, contentMaxWidth) : contentMaxWidth;
   const previewWidth = Math.max(280, Math.min(scannerMaxWidth - horizontalPadding * 2, width - 24));
   const previewHeight = isLandscape
@@ -143,7 +155,10 @@ export default function ScanScreen() {
                 Place the QR code inside the frame.
               </Text>
             </View>
-            <Pill tone={pending > 0 ? 'warning' : 'success'} label={pending > 0 ? `${pending} queued` : 'online'} />
+            <Pill
+              tone={pending > 0 ? 'warning' : 'success'}
+              label={pending > 0 ? `${pending} queued` : 'online'}
+            />
           </View>
 
           <View
@@ -189,8 +204,18 @@ export default function ScanScreen() {
               You can stop the camera at any time and use manual entry if the pass is damaged.
             </Text>
             <View style={{ flexDirection: twoColumn ? 'row' : 'column', gap: 10, marginTop: 14 }}>
-              <Button title="Stop scanning" variant="secondary" onPress={stopScanning} style={{ flex: 1 }} />
-              <Button title="Manual entry" variant="soft-primary" onPress={openManualEntry} style={{ flex: 1 }} />
+              <Button
+                title="Stop scanning"
+                variant="secondary"
+                onPress={stopScanning}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Manual entry"
+                variant="soft-primary"
+                onPress={openManualEntry}
+                style={{ flex: 1 }}
+              />
             </View>
           </Card>
         </View>
@@ -219,7 +244,10 @@ export default function ScanScreen() {
           <Text style={{ flex: 1, fontSize: 24, fontWeight: '800', color: palette.textLight }}>
             Guard scan
           </Text>
-          <Pill tone={pending > 0 ? 'warning' : 'success'} label={pending > 0 ? `${pending} queued` : 'online'} />
+          <Pill
+            tone={pending > 0 ? 'warning' : 'success'}
+            label={pending > 0 ? `${pending} queued` : 'online'}
+          />
         </View>
         <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
           Verify visitor passes at the gate when you are ready to use the camera.
@@ -233,7 +261,9 @@ export default function ScanScreen() {
               <Text style={{ fontSize: 22, fontWeight: '800', color: palette.textLight }}>
                 {permissionDenied ? 'Camera access is blocked' : 'Camera permission needed'}
               </Text>
-              <Text style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}>
+              <Text
+                style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}
+              >
                 {permissionDenied
                   ? 'Enable camera access in system settings to scan visitor QR passes.'
                   : 'SmartResidence uses the camera only while you are actively scanning a visitor pass.'}
@@ -241,7 +271,11 @@ export default function ScanScreen() {
               <View style={{ gap: 10, marginTop: 18 }}>
                 <Button
                   title={permissionDenied ? 'Open settings' : 'Grant permission'}
-                  onPress={permissionDenied ? () => void Linking.openSettings() : () => void startScanning()}
+                  onPress={
+                    permissionDenied
+                      ? () => void Linking.openSettings()
+                      : () => void startScanning()
+                  }
                 />
                 <Button title="Use manual entry" variant="secondary" onPress={openManualEntry} />
               </View>
@@ -249,14 +283,18 @@ export default function ScanScreen() {
           ) : (
             <>
               <View style={styles.qrIcon}>
-                <Text style={{ color: palette.coralPrimary, fontSize: 28, fontWeight: '800' }}>QR</Text>
+                <Text style={{ color: palette.coralPrimary, fontSize: 28, fontWeight: '800' }}>
+                  QR
+                </Text>
               </View>
               <Text style={{ fontSize: 24, fontWeight: '800', color: palette.textLight }}>
                 Ready to scan visitor pass
               </Text>
-              <Text style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}>
-                Start the camera only when a visitor is at the guard post. The scanner closes after a
-                valid pass is found.
+              <Text
+                style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}
+              >
+                Start the camera only when a visitor is at the guard post. The scanner closes after
+                a valid pass is found.
               </Text>
               <View style={{ gap: 10, marginTop: 20 }}>
                 <Button title="Start scanning" size="lg" onPress={() => void startScanning()} />
@@ -284,7 +322,8 @@ export default function ScanScreen() {
             <Card style={[guardStyles.card, styles.placeholderCard]}>
               <Text style={styles.placeholderTitle}>Ready when you are</Text>
               <Text style={styles.placeholderCopy}>
-                Tap Start scanning to verify a visitor pass. Details will appear here before check-in.
+                Tap Start scanning to verify a visitor pass. Details will appear here before
+                check-in.
               </Text>
             </Card>
           )}

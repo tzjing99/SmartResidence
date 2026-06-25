@@ -315,11 +315,7 @@ export function usePayInvoice(api: ApiClient) {
   });
 }
 
-export function useCondoInvoices(
-  api: ApiClient,
-  condoId: string | null,
-  status?: string,
-) {
+export function useCondoInvoices(api: ApiClient, condoId: string | null, status?: string) {
   return useQuery({
     queryKey: condoId ? queryKeys.condoInvoices(condoId, status) : ['invoices', 'condo', null],
     queryFn: () =>

@@ -173,7 +173,12 @@ export interface DefectReportSummary {
   title: string;
   createdAt: string;
   raisedBy: { id: string; name: string } | null;
-  unit: { id: string; identifier: string; floor?: number | null; block: { name: string } | null } | null;
+  unit: {
+    id: string;
+    identifier: string;
+    floor?: number | null;
+    block: { name: string } | null;
+  } | null;
   itemCount: number;
   statusCounts: Partial<Record<DefectStatus, number>>;
 }

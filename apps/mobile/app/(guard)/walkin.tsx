@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
   useGuardApproveWalkIn,
   useGuardWalkInPolicy,
@@ -11,7 +12,6 @@ import {
   malaysiaPhoneTelHref,
   pickOwnerPhone,
 } from '@smartresidence/shared-types';
-import { Ionicons } from '@expo/vector-icons';
 import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
@@ -281,7 +281,8 @@ export default function WalkInScreen() {
         <View style={styles.policyCopy}>
           <AppText style={styles.cardTitle}>{condo?.name ?? 'SmartResidence guardhouse'}</AppText>
           <AppText variant="meta" style={styles.cardMeta}>
-            Walk-ins are one-time visits checked at the gate. Overnight visits should be pre-registered by the resident.
+            Walk-ins are one-time visits checked at the gate. Overnight visits should be
+            pre-registered by the resident.
           </AppText>
         </View>
         <Pill
@@ -384,15 +385,15 @@ export default function WalkInScreen() {
                 <View style={styles.fieldGroup}>
                   <AppText style={styles.fieldLabel}>Visitor photo (optional)</AppText>
                   {photoUri ? (
-                    <Image source={{ uri: photoUri }} style={styles.photoPreview} contentFit="cover" />
+                    <Image
+                      source={{ uri: photoUri }}
+                      style={styles.photoPreview}
+                      contentFit="cover"
+                    />
                   ) : null}
                   <Button
                     title={
-                      uploadingPhoto
-                        ? 'Uploading...'
-                        : photoKey
-                          ? 'Retake photo'
-                          : 'Capture photo'
+                      uploadingPhoto ? 'Uploading...' : photoKey ? 'Retake photo' : 'Capture photo'
                     }
                     variant="soft-sky"
                     size="sm"
@@ -516,7 +517,11 @@ function PendingCard({
         <ContactLine
           label="Visitor phone"
           value={visitorPhone ?? 'Not provided'}
-          onPress={visitorPhone ? () => callPhone(visitor.phone ?? '', visitor.name, visitor.phoneCountryCode) : undefined}
+          onPress={
+            visitorPhone
+              ? () => callPhone(visitor.phone ?? '', visitor.name, visitor.phoneCountryCode)
+              : undefined
+          }
         />
         {ownersWithPhone.length > 0 ? (
           ownersWithPhone.map((owner) => (
@@ -569,10 +574,7 @@ function ContactLine({
       <AppText variant="meta" style={styles.contactLabel}>
         {label}
       </AppText>
-      <AppText
-        style={[styles.contactValue, onPress ? styles.contactLink : null]}
-        onPress={onPress}
-      >
+      <AppText style={[styles.contactValue, onPress ? styles.contactLink : null]} onPress={onPress}>
         {value}
       </AppText>
     </View>

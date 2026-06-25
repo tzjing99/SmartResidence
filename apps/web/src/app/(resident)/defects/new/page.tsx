@@ -267,7 +267,8 @@ function HandoverForm({ unitId }: { unitId?: string }) {
   }
 
   const grouped = items.reduce<Record<string, DraftItem[]>>((acc, it) => {
-    (acc[it.spaceLabel] ??= []).push(it);
+    if (!acc[it.spaceLabel]) acc[it.spaceLabel] = [];
+    acc[it.spaceLabel].push(it);
     return acc;
   }, {});
 
@@ -281,7 +282,9 @@ function HandoverForm({ unitId }: { unitId?: string }) {
       <Card>
         <h3 className="font-semibold mb-1 text-sm">Add a defect</h3>
         <p className="text-xs sr-muted mb-4">
-          {data.unitTypeName ? `Layout: ${data.unitTypeName}` : 'Pick a room and the issue you found.'}
+          {data.unitTypeName
+            ? `Layout: ${data.unitTypeName}`
+            : 'Pick a room and the issue you found.'}
         </p>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
@@ -373,7 +376,9 @@ function HandoverForm({ unitId }: { unitId?: string }) {
           </h3>
         </div>
         {items.length === 0 ? (
-          <p className="text-sm sr-muted">No items added yet. Build your list room by room above.</p>
+          <p className="text-sm sr-muted">
+            No items added yet. Build your list room by room above.
+          </p>
         ) : (
           <div className="flex flex-col gap-4">
             {Object.entries(grouped).map(([space, list]) => (
@@ -391,9 +396,7 @@ function HandoverForm({ unitId }: { unitId?: string }) {
                         <div className="text-sm font-medium">{it.displayTitle}</div>
                         {it.note ? <div className="text-xs sr-muted">{it.note}</div> : null}
                         {it.attachmentIds?.length ? (
-                          <div className="text-xs sr-muted">
-                            {it.attachmentIds.length} photo(s)
-                          </div>
+                          <div className="text-xs sr-muted">{it.attachmentIds.length} photo(s)</div>
                         ) : null}
                       </div>
                       <button
@@ -420,9 +423,7 @@ function HandoverForm({ unitId }: { unitId?: string }) {
             onClick={submit}
             disabled={items.length === 0 || submitPhase !== 'idle'}
           >
-            {submitPhase === 'submitting'
-              ? 'Submitting…'
-              : `Submit defects (${items.length})`}
+            {submitPhase === 'submitting' ? 'Submitting…' : `Submit defects (${items.length})`}
           </Button>
         </div>
       </Card>

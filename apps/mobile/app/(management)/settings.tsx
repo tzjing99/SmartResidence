@@ -2,17 +2,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMe } from '@smartresidence/api-client';
 import { AlignRow, AppText, Button, Card, palette } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { Alert, Pressable, ScrollView, View, Linking } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, View } from 'react-native';
 import { api } from '../../src/lib/api';
-import { useSignOut } from '../../src/lib/use-sign-out';
 import type { MeResponse } from '../../src/lib/roles';
+import { useSignOut } from '../../src/lib/use-sign-out';
 
 const mapRoleLabel = (role: string | null | undefined): string => {
   if (!role) return 'Resident';
   if (role === 'SECURITY_GUARD') return 'Guard';
   if (role === 'UNIT_OWNER' || role === 'OWNER') return 'Owner';
   if (role === 'TENANT') return 'Tenant';
-  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') return 'Management';
+  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF')
+    return 'Management';
   return 'Resident';
 };
 
@@ -68,7 +69,16 @@ export default function ManagementSettingsScreen() {
       <AppText variant="title">Settings</AppText>
 
       {/* Account Card */}
-      <Card style={{ padding: 16, marginTop: 4, marginBottom: 4, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      <Card
+        style={{
+          padding: 16,
+          marginTop: 4,
+          marginBottom: 4,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
         <View
           style={{
             width: 52,
@@ -88,9 +98,7 @@ export default function ManagementSettingsScreen() {
             {user?.name ?? 'Loading...'}
           </AppText>
           {user?.email ? (
-            <AppText style={{ fontSize: 13, color: palette.mutedLight }}>
-              {user.email}
-            </AppText>
+            <AppText style={{ fontSize: 13, color: palette.mutedLight }}>{user.email}</AppText>
           ) : null}
           <View style={{ flexDirection: 'row', marginTop: 2 }}>
             <View
@@ -148,7 +156,9 @@ export default function ManagementSettingsScreen() {
             color: palette.textLight,
           }}
         >
-          To keep tools simple and fast on the move, mobile access is restricted. Full management tools like billing, unit configuration, and announcements are available via our web portal.
+          To keep tools simple and fast on the move, mobile access is restricted. Full management
+          tools like billing, unit configuration, and announcements are available via our web
+          portal.
         </AppText>
         <Button
           title="Open Web Admin"
@@ -158,22 +168,22 @@ export default function ManagementSettingsScreen() {
             const webUrl = process.env.EXPO_PUBLIC_WEB_URL || 'http://localhost:3000';
             try {
               await Linking.openURL(webUrl);
-            } catch (err) {
+            } catch (_err) {
               Alert.alert('Cannot open URL', `Failed to open web admin at: ${webUrl}`);
             }
           }}
         />
       </Card>
 
-      <AppText variant="meta" style={{ marginTop: 8, fontWeight: '700', color: palette.mutedLight, fontSize: 11 }}>
+      <AppText
+        variant="meta"
+        style={{ marginTop: 8, fontWeight: '700', color: palette.mutedLight, fontSize: 11 }}
+      >
         ON-THE-GO MODULES
       </AppText>
 
       {ENABLED_MODULES.map((module) => (
-        <Pressable
-          key={module.title}
-          onPress={() => router.push(module.href as Href)}
-        >
+        <Pressable key={module.title} onPress={() => router.push(module.href as Href)}>
           <Card>
             <AlignRow minHeight={44}>
               <Ionicons name={module.icon} size={22} color={palette.coralPrimary} />
@@ -187,7 +197,10 @@ export default function ManagementSettingsScreen() {
         </Pressable>
       ))}
 
-      <AppText variant="meta" style={{ marginTop: 12, fontWeight: '700', color: palette.mutedLight, fontSize: 11 }}>
+      <AppText
+        variant="meta"
+        style={{ marginTop: 12, fontWeight: '700', color: palette.mutedLight, fontSize: 11 }}
+      >
         WEB-ONLY MODULES (DESKTOP)
       </AppText>
 
@@ -196,8 +209,12 @@ export default function ManagementSettingsScreen() {
           <AlignRow minHeight={44}>
             <Ionicons name={module.icon} size={22} color={palette.mutedLight} />
             <View style={{ flex: 1, gap: 4 }}>
-              <AppText variant="label" style={{ color: palette.mutedLight }}>{module.title}</AppText>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>{module.description}</AppText>
+              <AppText variant="label" style={{ color: palette.mutedLight }}>
+                {module.title}
+              </AppText>
+              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                {module.description}
+              </AppText>
             </View>
             <View
               style={{
@@ -207,7 +224,9 @@ export default function ManagementSettingsScreen() {
                 paddingVertical: 2,
               }}
             >
-              <AppText style={{ fontSize: 9, fontWeight: '600', color: palette.mutedLight }}>Web only</AppText>
+              <AppText style={{ fontSize: 9, fontWeight: '600', color: palette.mutedLight }}>
+                Web only
+              </AppText>
             </View>
           </AlignRow>
         </Card>

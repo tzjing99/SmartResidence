@@ -432,7 +432,11 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
             }}
           >
             <View
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
             >
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={{ fontWeight: '700' }}>Enable overnight</Text>
@@ -509,8 +513,8 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
                     </Text>
                     {preview.data.isHolidayAuto && !preview.data.slotsFull ? (
                       <Text style={{ fontWeight: '700', marginTop: 8, color: palette.textLight }}>
-                        {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots left
-                        tonight
+                        {preview.data.remainingSlots} of {preview.data.maxSlots} overnight slots
+                        left tonight
                       </Text>
                     ) : null}
                     {preview.data.slotsFull ? (

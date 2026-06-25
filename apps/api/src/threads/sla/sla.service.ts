@@ -324,7 +324,7 @@ export class SlaService implements OnModuleInit, OnModuleDestroy {
       resolutionProposedByUserId: string | null;
     },
     now: Date,
-    graceDays: number,
+    _graceDays: number,
   ): Promise<void> {
     const systemAuthorId = thread.resolutionProposedByUserId ?? thread.createdByUserId;
     await this.prisma.$transaction(async (tx) => {

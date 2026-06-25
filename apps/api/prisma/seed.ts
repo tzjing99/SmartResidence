@@ -660,7 +660,8 @@ async function main() {
           category: 'Plumbing',
           severity: DefectSeverity.HIGH,
           title: 'Second Bathroom - Floor: Water ponding',
-          description: 'Water accumulates at the floor drain area — floor screed not sloped properly.',
+          description:
+            'Water accumulates at the floor drain area — floor screed not sloped properly.',
           spaceLabel: 'Second Bathroom',
           location: 'Second Bathroom',
           status: DefectStatus.ASSIGNED,
@@ -676,7 +677,8 @@ async function main() {
           category: 'Structural',
           severity: DefectSeverity.MEDIUM,
           title: 'Bedroom 1 - Ceiling: Damp patch',
-          description: 'Visible damp stain on bedroom 1 ceiling near the AC unit, possibly condensation leak.',
+          description:
+            'Visible damp stain on bedroom 1 ceiling near the AC unit, possibly condensation leak.',
           spaceLabel: 'Bedroom 1',
           location: 'Bedroom 1',
           status: DefectStatus.RESOLVED,
@@ -908,7 +910,10 @@ async function main() {
       {
         name: 'Bathroom',
         elements: [
-          { name: 'Tiles', issues: ['Cracked tiles', 'Uneven tiles', 'Hollow tiles', 'Stained grout'] },
+          {
+            name: 'Tiles',
+            issues: ['Cracked tiles', 'Uneven tiles', 'Hollow tiles', 'Stained grout'],
+          },
           { name: 'Tap / Faucet', issues: ['Leaking', 'Loose', 'No water flow', 'Low pressure'] },
           { name: 'Toilet bowl', issues: ['Not flushing', 'Cracked', 'Loose seat', 'Water leak'] },
           { name: 'Door', issues: ['Does not close', 'Misaligned', 'Scratched', 'Faulty lock'] },
@@ -918,7 +923,10 @@ async function main() {
       {
         name: 'Kitchen',
         elements: [
-          { name: 'Cabinets', issues: ['Door misaligned', 'Scratched', 'Loose hinge', 'Missing handle'] },
+          {
+            name: 'Cabinets',
+            issues: ['Door misaligned', 'Scratched', 'Loose hinge', 'Missing handle'],
+          },
           { name: 'Sink', issues: ['Leaking', 'Clogged', 'Scratched', 'Loose tap'] },
           { name: 'Countertop', issues: ['Cracked', 'Stained', 'Uneven', 'Chipped edge'] },
           { name: 'Tiles', issues: ['Cracked tiles', 'Hollow tiles', 'Stained grout'] },
@@ -930,8 +938,14 @@ async function main() {
         elements: [
           { name: 'Wall', issues: ['Crack', 'Uneven paint', 'Stain', 'Dent'] },
           { name: 'Flooring', issues: ['Scratched', 'Uneven', 'Gap between planks', 'Squeaky'] },
-          { name: 'Window', issues: ['Does not close', 'Scratched glass', 'Leaking', 'Faulty lock'] },
-          { name: 'Wardrobe', issues: ['Door misaligned', 'Scratched', 'Loose handle', 'Broken rail'] },
+          {
+            name: 'Window',
+            issues: ['Does not close', 'Scratched glass', 'Leaking', 'Faulty lock'],
+          },
+          {
+            name: 'Wardrobe',
+            issues: ['Door misaligned', 'Scratched', 'Loose handle', 'Broken rail'],
+          },
           { name: 'Power point', issues: ['Not working', 'Loose', 'No cover plate'] },
         ],
       },
@@ -940,7 +954,10 @@ async function main() {
         elements: [
           { name: 'Wall', issues: ['Crack', 'Uneven paint', 'Stain', 'Dent'] },
           { name: 'Flooring', issues: ['Scratched', 'Uneven', 'Gap between planks', 'Squeaky'] },
-          { name: 'Window', issues: ['Does not close', 'Scratched glass', 'Leaking', 'Faulty lock'] },
+          {
+            name: 'Window',
+            issues: ['Does not close', 'Scratched glass', 'Leaking', 'Faulty lock'],
+          },
           { name: 'Ceiling', issues: ['Crack', 'Water stain', 'Uneven paint'] },
           { name: 'Power point', issues: ['Not working', 'Loose', 'No cover plate'] },
         ],

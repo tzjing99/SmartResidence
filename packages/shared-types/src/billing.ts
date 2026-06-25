@@ -6,13 +6,7 @@ export type InvoiceStatus = z.infer<typeof InvoiceStatus>;
 export const PaymentProvider = z.enum(['STRIPE', 'FPX', 'IPAY88', 'RAZER', 'MANUAL']);
 export type PaymentProvider = z.infer<typeof PaymentProvider>;
 
-export const PaymentStatus = z.enum([
-  'PENDING',
-  'SUCCEEDED',
-  'FAILED',
-  'REFUNDED',
-  'CANCELLED',
-]);
+export const PaymentStatus = z.enum(['PENDING', 'SUCCEEDED', 'FAILED', 'REFUNDED', 'CANCELLED']);
 export type PaymentStatus = z.infer<typeof PaymentStatus>;
 
 export const InvoiceLineSchema = z.object({

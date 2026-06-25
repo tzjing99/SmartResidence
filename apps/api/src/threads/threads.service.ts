@@ -901,7 +901,7 @@ export class ThreadsService {
     user: AuthenticatedUser,
     id: string,
   ): Promise<{ buffer: Buffer; filename: string }> {
-    const thread = await this.loadAndAuthorize(user, id);
+    const _thread = await this.loadAndAuthorize(user, id);
     const isMgmt = this.isManagement(user);
     const full = await this.prisma.thread.findUnique({
       where: { id },

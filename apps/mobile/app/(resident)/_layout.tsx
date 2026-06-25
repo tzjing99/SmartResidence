@@ -20,27 +20,21 @@ export default function ResidentTabsLayout() {
           name="home"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="home-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="visitors"
           options={{
             title: 'Visitors',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="people-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="billing"
           options={{
             title: 'Fees',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="card-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="card-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -71,18 +65,14 @@ export default function ResidentTabsLayout() {
           name="settings"
           options={{
             title: 'Settings',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="settings-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="activity"
           options={{
             title: 'Activity',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="time-outline" size={22} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Ionicons name="time-outline" size={22} color={color} />,
           }}
         />
       </Tabs>

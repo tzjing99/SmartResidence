@@ -10,11 +10,7 @@ type PageShellProps = {
   variant?: 'admin' | 'resident';
 };
 
-export function AnnouncementsPageShell({
-  children,
-  className,
-  variant = 'admin',
-}: PageShellProps) {
+export function AnnouncementsPageShell({ children, className, variant = 'admin' }: PageShellProps) {
   return (
     <div
       className={cn(
@@ -35,12 +31,7 @@ type PageHeaderProps = {
   action?: ReactNode;
 };
 
-export function AnnouncementsPageHeader({
-  eyebrow,
-  title,
-  description,
-  action,
-}: PageHeaderProps) {
+export function AnnouncementsPageHeader({ eyebrow, title, description, action }: PageHeaderProps) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 space-y-1">
@@ -67,7 +58,10 @@ export function AnnouncementSurface({
   );
 }
 
-export function AnnouncementHero({ children, className }: { children: ReactNode; className?: string }) {
+export function AnnouncementHero({
+  children,
+  className,
+}: { children: ReactNode; className?: string }) {
   return <div className={cn('ann-hero', className)}>{children}</div>;
 }
 
@@ -150,9 +144,7 @@ export function AnnouncementsAdminGrid({
       )}
     >
       <div className="min-w-0">{list}</div>
-      {detail ? (
-        <div className="min-w-0 lg:sticky lg:top-6 lg:self-start">{detail}</div>
-      ) : null}
+      {detail ? <div className="min-w-0 lg:sticky lg:top-6 lg:self-start">{detail}</div> : null}
     </div>
   );
 }

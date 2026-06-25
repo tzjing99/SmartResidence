@@ -1,12 +1,12 @@
 'use client';
 
+import { DefectSignOffActions } from '@/components/defect-sign-off';
 import {
   DefectActivityFeed,
   DefectPhotos,
   DefectStatusBadge,
   DefectStatusTimeline,
 } from '@/components/defect-ui';
-import { DefectSignOffActions } from '@/components/defect-sign-off';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {

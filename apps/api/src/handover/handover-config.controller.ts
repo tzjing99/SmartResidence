@@ -1,15 +1,6 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { Audit } from '@/common/decorators/audit.decorator';
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
 import {
@@ -69,10 +60,7 @@ export class HandoverConfigController {
 
   @Patch('unit-type-spaces/:id')
   @CheckAbility({ action: 'manage', subject: 'UnitType' })
-  updateSpace(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateUnitTypeSpaceDto,
-  ) {
+  updateSpace(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateUnitTypeSpaceDto) {
     return this.config.updateSpace(id, dto);
   }
 
@@ -120,10 +108,7 @@ export class HandoverConfigController {
 
   @Patch('defect-elements/:id')
   @CheckAbility({ action: 'manage', subject: 'DefectTaxonomy' })
-  updateElement(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateDefectElementDto,
-  ) {
+  updateElement(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateDefectElementDto) {
     return this.config.updateElement(id, dto);
   }
 

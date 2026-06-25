@@ -45,11 +45,15 @@ export class FaqService {
   // -- categories ----------------------------------------------------
 
   listCategories(condoId: string) {
-    return this.cache.wrapNamespaced(this.faqNamespace(condoId), 'categories', FAQ_CATEGORIES_TTL, () =>
-      this.prisma.faqCategory.findMany({
-        where: { condoId },
-        orderBy: [{ position: 'asc' }, { name: 'asc' }],
-      }),
+    return this.cache.wrapNamespaced(
+      this.faqNamespace(condoId),
+      'categories',
+      FAQ_CATEGORIES_TTL,
+      () =>
+        this.prisma.faqCategory.findMany({
+          where: { condoId },
+          orderBy: [{ position: 'asc' }, { name: 'asc' }],
+        }),
     );
   }
 
@@ -91,25 +95,30 @@ export class FaqService {
       limit: dto.limit,
       offset: dto.offset,
     })}`;
-    return this.cache.wrapNamespaced(this.faqNamespace(condoId), keySuffix, FAQ_PUBLISHED_TTL, async () => {
-      const where: Prisma.FaqArticleWhereInput = {
-        condoId,
-        published: true,
-        ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
-        ...(search ? { OR: [{ question: { search } }, { answer: { search } }] } : {}),
-      };
-      const [items, total] = await this.prisma.$transaction([
-        this.prisma.faqArticle.findMany({
-          where,
-          include: { category: true },
-          orderBy: [{ pinned: 'desc' }, { position: 'asc' }, { helpfulCount: 'desc' }],
-          take: dto.limit,
-          skip: dto.offset,
-        }),
-        this.prisma.faqArticle.count({ where }),
-      ]);
-      return { items, total, limit: dto.limit, offset: dto.offset };
-    });
+    return this.cache.wrapNamespaced(
+      this.faqNamespace(condoId),
+      keySuffix,
+      FAQ_PUBLISHED_TTL,
+      async () => {
+        const where: Prisma.FaqArticleWhereInput = {
+          condoId,
+          published: true,
+          ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
+          ...(search ? { OR: [{ question: { search } }, { answer: { search } }] } : {}),
+        };
+        const [items, total] = await this.prisma.$transaction([
+          this.prisma.faqArticle.findMany({
+            where,
+            include: { category: true },
+            orderBy: [{ pinned: 'desc' }, { position: 'asc' }, { helpfulCount: 'desc' }],
+            take: dto.limit,
+            skip: dto.offset,
+          }),
+          this.prisma.faqArticle.count({ where }),
+        ]);
+        return { items, total, limit: dto.limit, offset: dto.offset };
+      },
+    );
   }
 
   async listAll(condoId: string, dto: ListFaqDto) {

@@ -6,10 +6,7 @@ import {
   useUnitDefects,
   useUnitHandoverTemplate,
 } from '@smartresidence/api-client';
-import {
-  defectReference,
-  handoverDefectTitle,
-} from '@smartresidence/shared-types';
+import { defectReference, handoverDefectTitle } from '@smartresidence/shared-types';
 import type {
   DefectReportSummary,
   DefectStatus,
@@ -30,8 +27,8 @@ import {
 import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { PhotoPicker } from '../../../src/components/photo-picker';
 import { DefectSubmissionProgress } from '../../../src/components/defect-submission-progress';
+import { PhotoPicker } from '../../../src/components/photo-picker';
 import {
   RESIDENT_CORAL,
   ResidentScreen,
@@ -52,8 +49,8 @@ export default function DefectsScreen() {
   const [mode, setMode] = useState<Mode>('single');
 
   const items = [
-    ...((reports.data ?? []).map((r) => ({ kind: 'package' as const, data: r }))),
-    ...(((defects.data?.items as any[]) ?? []).map((d) => ({ kind: 'defect' as const, data: d }))),
+    ...(reports.data ?? []).map((r) => ({ kind: 'package' as const, data: r })),
+    ...((defects.data?.items as any[]) ?? []).map((d) => ({ kind: 'defect' as const, data: d })),
   ].sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime());
 
   return (
@@ -140,9 +137,7 @@ function StandaloneDefectCard({
                   ? 'primary'
                   : 'info'
             }
-            label={
-              defect.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(defect.status)
-            }
+            label={defect.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(defect.status)}
           />
         </View>
       </Card>
@@ -285,7 +280,10 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
         value={description}
         onChangeText={setDescription}
         multiline
-        style={[inputStyle, { height: 90, marginTop: 10, textAlignVertical: 'top', paddingTop: 10 }]}
+        style={[
+          inputStyle,
+          { height: 90, marginTop: 10, textAlignVertical: 'top', paddingTop: 10 },
+        ]}
       />
       <PhotoPicker controller={photo} />
       <Button
@@ -428,8 +426,8 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
       <Card style={residentStyles.card}>
         <AppText variant="subheading">No unit layout yet</AppText>
         <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
-          Your unit doesn&apos;t have a type with rooms assigned. Ask management to set your unit type
-          before reporting multiple defects.
+          Your unit doesn&apos;t have a type with rooms assigned. Ask management to set your unit
+          type before reporting multiple defects.
         </AppText>
       </Card>
     );
@@ -518,7 +516,10 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
           value={note}
           onChangeText={setNote}
           multiline
-          style={[inputStyle, { height: 70, marginTop: 4, textAlignVertical: 'top', paddingTop: 10 }]}
+          style={[
+            inputStyle,
+            { height: 70, marginTop: 4, textAlignVertical: 'top', paddingTop: 10 },
+          ]}
         />
 
         <PhotoPicker controller={photo} />

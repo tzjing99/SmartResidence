@@ -20,11 +20,7 @@ export const VALID_TRANSITIONS: Record<DefectStatus, DefectStatus[]> = {
     DefectStatus.RESOLVED,
     DefectStatus.CLOSED,
   ],
-  [DefectStatus.ASSIGNED]: [
-    DefectStatus.IN_PROGRESS,
-    DefectStatus.RESOLVED,
-    DefectStatus.CLOSED,
-  ],
+  [DefectStatus.ASSIGNED]: [DefectStatus.IN_PROGRESS, DefectStatus.RESOLVED, DefectStatus.CLOSED],
   [DefectStatus.IN_PROGRESS]: [DefectStatus.RESOLVED, DefectStatus.CLOSED],
   [DefectStatus.RESOLVED]: [DefectStatus.CLOSED, DefectStatus.REOPENED],
   [DefectStatus.CLOSED]: [DefectStatus.REOPENED],

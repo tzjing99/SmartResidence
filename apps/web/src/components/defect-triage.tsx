@@ -1,7 +1,7 @@
 'use client';
 
 import { AuthImage } from '@/components/auth-image';
-import { DefectSeverityBadge, DefectStatusBadge } from '@/components/defect-ui';
+import { DefectStatusBadge } from '@/components/defect-ui';
 import {
   DEFECT_STATUS_LABELS,
   type DefectSeverity,
@@ -122,7 +122,9 @@ export function applyTriageFilters(items: TriageItem[], filters: TriageFilters) 
       (!q || haystack.includes(q)) &&
       (filters.status === ALL || item.status === filters.status) &&
       (filters.assignee === ALL ||
-        (filters.assignee === UNASSIGNED ? !item.assigneeId : item.assigneeId === filters.assignee)) &&
+        (filters.assignee === UNASSIGNED
+          ? !item.assigneeId
+          : item.assigneeId === filters.assignee)) &&
       (filters.block === ALL || (item.blockName ?? 'Unknown') === filters.block) &&
       (filters.floor === ALL || String(item.floor ?? 'Unknown') === filters.floor)
     );
@@ -148,10 +150,13 @@ export function sortItems(items: TriageItem[], sort: SortOrder): TriageItem[] {
   const clone = [...items];
   switch (sort) {
     case 'newest':
-      return clone.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return clone.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
     case 'oldest':
-      return clone.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    case 'fifo':
+      return clone.sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
     default:
       return clone.sort(fifoSort);
   }
@@ -160,7 +165,9 @@ export function sortItems(items: TriageItem[], sort: SortOrder): TriageItem[] {
 export function DefectTriageSummary({ items }: { items: TriageItem[] }) {
   const weight = (item: TriageItem) => item.itemCount ?? 1;
   const total = items.reduce((sum, i) => sum + weight(i), 0);
-  const active = items.filter((i) => isActiveDefect(i.status)).reduce((sum, i) => sum + weight(i), 0);
+  const active = items
+    .filter((i) => isActiveDefect(i.status))
+    .reduce((sum, i) => sum + weight(i), 0);
   const unassigned = items
     .filter((i) => isActiveDefect(i.status) && !i.assigneeId)
     .reduce((sum, i) => sum + weight(i), 0);
@@ -313,7 +320,10 @@ export function CondoDefectHeatmap({
           Building pressure map
         </div>
         <div className="flex items-center gap-3 text-xs tabular-nums">
-          <span className="flex items-center gap-1" title="Active defects (open or waiting sign-off)">
+          <span
+            className="flex items-center gap-1"
+            title="Active defects (open or waiting sign-off)"
+          >
             <Layers className="size-3.5 text-[rgb(var(--sr-coral))]" />
             <span className="font-semibold">{totalActive}</span>
             <span className="sr-muted">active</span>
@@ -485,7 +495,9 @@ export function DefectTriageToolbar({
   const clearAll = () => onFiltersChange(defaultTriageFilters());
   const activeCount = activeFilterCount(filters);
 
-  const blockOptions = [...new Set(items.map((i) => i.blockName).filter(Boolean) as string[])].sort();
+  const blockOptions = [
+    ...new Set(items.map((i) => i.blockName).filter(Boolean) as string[]),
+  ].sort();
   const floorOptions = [...new Set(items.map((i) => i.floor).filter((f): f is number => f != null))]
     .sort((a, b) => a - b)
     .map((f) => String(f));
@@ -682,7 +694,11 @@ export function DefectTriageTable({
   onMarkFixed?: (id: string) => void;
 }) {
   if (items.length === 0) {
-    return <Card className="!p-6 text-sm sr-muted">{empty ?? 'No defects match the current filters.'}</Card>;
+    return (
+      <Card className="!p-6 text-sm sr-muted">
+        {empty ?? 'No defects match the current filters.'}
+      </Card>
+    );
   }
 
   return (
@@ -731,7 +747,9 @@ export function DefectTriageTable({
                         {item.title}
                       </span>
                       <span className="mt-0.5 flex items-center gap-1.5 text-xs sr-muted">
-                        <span className="font-mono">{item.reference ?? defectReference(item.id)}</span>
+                        <span className="font-mono">
+                          {item.reference ?? defectReference(item.id)}
+                        </span>
                         <span>·</span>
                         <span>{new Date(item.createdAt).toLocaleDateString()}</span>
                         {item.itemCount && item.itemCount > 1 ? (
@@ -739,14 +757,17 @@ export function DefectTriageTable({
                         ) : null}
                         {item.attachmentIds?.length ? (
                           <span className="inline-flex items-center gap-0.5">
-                            <ImageIcon className="size-3" />{item.attachmentIds.length}
+                            <ImageIcon className="size-3" />
+                            {item.attachmentIds.length}
                           </span>
                         ) : null}
                       </span>
                     </button>
                   </td>
                   <td className="px-3 py-2.5 max-w-[160px]">
-                    <div className="font-medium text-sm leading-snug line-clamp-1">{item.unitLabel ?? '—'}</div>
+                    <div className="font-medium text-sm leading-snug line-clamp-1">
+                      {item.unitLabel ?? '—'}
+                    </div>
                     <div className="text-xs sr-muted line-clamp-1">
                       {[item.floor != null ? `L${item.floor}` : null, item.room ?? item.category]
                         .filter(Boolean)
@@ -816,7 +837,8 @@ export function DefectDetailPanel({
       <Card className="sticky top-24 !p-5">
         <div className="text-sm font-semibold">Focused review</div>
         <p className="mt-2 text-sm sr-muted">
-          Select a defect to review resident notes, photos, and next action without leaving the queue.
+          Select a defect to review resident notes, photos, and next action without leaving the
+          queue.
         </p>
       </Card>
     );
@@ -837,11 +859,21 @@ export function DefectDetailPanel({
       <dl className="mt-4 grid gap-2 text-sm">
         <div>
           <dt className="text-xs font-medium sr-muted">Location</dt>
-          <dd>{[item.blockName ? `Block ${item.blockName}` : null, item.floor != null ? `L${item.floor}` : null, item.room].filter(Boolean).join(' · ') || '-'}</dd>
+          <dd>
+            {[
+              item.blockName ? `Block ${item.blockName}` : null,
+              item.floor != null ? `L${item.floor}` : null,
+              item.room,
+            ]
+              .filter(Boolean)
+              .join(' · ') || '-'}
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-medium sr-muted">Contractor note</dt>
-          <dd className="whitespace-pre-wrap leading-relaxed">{item.description || 'No note provided.'}</dd>
+          <dd className="whitespace-pre-wrap leading-relaxed">
+            {item.description || 'No note provided.'}
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-medium sr-muted">Assignee</dt>
@@ -853,7 +885,13 @@ export function DefectDetailPanel({
           <div className="mb-2 text-xs font-medium sr-muted">Resident photos</div>
           <div className="grid grid-cols-2 gap-2">
             {item.attachmentIds.slice(0, 4).map((id) => (
-              <AuthImage key={id} attachmentId={id} variant="thumb" alt="" className="aspect-[4/3] rounded-xl" />
+              <AuthImage
+                key={id}
+                attachmentId={id}
+                variant="thumb"
+                alt=""
+                className="aspect-[4/3] rounded-xl"
+              />
             ))}
           </div>
         </div>
@@ -873,4 +911,3 @@ export function DefectDetailPanel({
     </Card>
   );
 }
-

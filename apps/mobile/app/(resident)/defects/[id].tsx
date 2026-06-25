@@ -1,13 +1,6 @@
-import {
-  useAddDefectUpdate,
-  useDefect,
-  useTransitionDefect,
-} from '@smartresidence/api-client';
-import {
-  DEFECT_SIGN_OFF_PROMPT_LABEL,
-  type DefectStatus,
-} from '@smartresidence/shared-types';
 import { Ionicons } from '@expo/vector-icons';
+import { useAddDefectUpdate, useDefect, useTransitionDefect } from '@smartresidence/api-client';
+import { DEFECT_SIGN_OFF_PROMPT_LABEL, type DefectStatus } from '@smartresidence/shared-types';
 import {
   AnimatedPressable,
   AppText,
@@ -96,9 +89,7 @@ export default function DefectDetailScreen() {
         await transition.mutateAsync({ id, status });
         Alert.alert(
           status === 'CLOSED' ? 'Signed off' : 'Sent back',
-          status === 'CLOSED'
-            ? 'Defect signed off and closed.'
-            : 'Defect sent back for more work.',
+          status === 'CLOSED' ? 'Defect signed off and closed.' : 'Defect sent back for more work.',
         );
       } catch (err) {
         Alert.alert('Could not update', (err as Error).message);
@@ -203,13 +194,8 @@ export default function DefectDetailScreen() {
                 </AppText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {d.attachments!.map((a) => (
-                      <AuthImage
-                        key={a.id}
-                        attachmentId={a.id}
-                        variant="raw"
-                        size={120}
-                      />
+                    {d.attachments?.map((a) => (
+                      <AuthImage key={a.id} attachmentId={a.id} variant="raw" size={120} />
                     ))}
                   </View>
                 </ScrollView>
@@ -248,10 +234,12 @@ export default function DefectDetailScreen() {
                       Status → {prettyLabel(u.statusTo)}
                     </AppText>
                   ) : null}
-                  <AppText style={{ color: palette.textLight, lineHeight: 20 }}>{u.message}</AppText>
+                  <AppText style={{ color: palette.textLight, lineHeight: 20 }}>
+                    {u.message}
+                  </AppText>
                   {(u.attachments?.length ?? 0) > 0 ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                      {u.attachments!.map((a) => (
+                      {u.attachments?.map((a) => (
                         <AuthImage key={a.id} attachmentId={a.id} size={72} />
                       ))}
                     </View>

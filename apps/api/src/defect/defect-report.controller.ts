@@ -17,7 +17,11 @@ export class DefectReportController {
 
   @Post()
   @CheckAbility({ action: 'create', subject: 'DefectReport' })
-  @Audit({ action: AuditAction.CREATE, resourceType: 'DefectReport', resourceIdFrom: 'response.id' })
+  @Audit({
+    action: AuditAction.CREATE,
+    resourceType: 'DefectReport',
+    resourceIdFrom: 'response.id',
+  })
   @ApiOperation({ summary: 'Submit a handover inspection (parent report + N defect items)' })
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateHandoverReportDto) {
     return this.reports.createHandover(user, dto);

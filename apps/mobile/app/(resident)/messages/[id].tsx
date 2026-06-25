@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
   useAppealThread,
   useConfirmThreadResolution,
@@ -6,7 +7,6 @@ import {
   useThread,
 } from '@smartresidence/api-client';
 import { useThreadRoom } from '@smartresidence/api-client/realtime';
-import { Ionicons } from '@expo/vector-icons';
 import {
   AppText,
   Button,
@@ -94,7 +94,14 @@ export default function MessageDetailScreen() {
 
   if (!t || !threadId) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF8F6' }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#FFF8F6',
+        }}
+      >
         <AppText variant="meta">Loading…</AppText>
       </View>
     );
@@ -265,60 +272,61 @@ export default function MessageDetailScreen() {
     </>
   );
 
-  const footer = !pending && !finished ? (
-        <Card style={styles.composerCard}>
-          <View style={styles.composerHeader}>
-            <View>
-              <AppText variant="label">Write a reply</AppText>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                {body.trim()
-                  ? post.isPending
-                    ? 'Sending your reply...'
-                    : 'Tap send when ready.'
-                  : 'Management will see your message here.'}
-              </AppText>
-            </View>
+  const footer =
+    !pending && !finished ? (
+      <Card style={styles.composerCard}>
+        <View style={styles.composerHeader}>
+          <View>
+            <AppText variant="label">Write a reply</AppText>
+            <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              {body.trim()
+                ? post.isPending
+                  ? 'Sending your reply...'
+                  : 'Tap send when ready.'
+                : 'Management will see your message here.'}
+            </AppText>
           </View>
-          <View style={styles.composerBar}>
-            <Input
-              value={body}
-              onChangeText={setBody}
-              placeholder="Write a reply…"
-              multiline
-              blurOnSubmit={false}
-              returnKeyType="default"
-              enablesReturnKeyAutomatically
-              style={styles.replyInput}
-            />
-            <Pressable
-              onPress={sendReply}
-              disabled={!canSendReply}
-              accessibilityRole="button"
-              accessibilityLabel={post.isPending ? 'Sending reply' : 'Send reply'}
-              accessibilityState={{ disabled: !canSendReply, busy: post.isPending }}
-              style={({ pressed }) => [
-                styles.sendButton,
-                post.isPending
-                  ? styles.sendButtonBusy
-                  : !canSendReply
-                    ? styles.sendButtonDisabled
-                    : null,
-                pressed && canSendReply ? styles.sendButtonPressed : null,
-              ]}
-            >
-              {post.isPending ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Ionicons
-                  name="paper-plane"
-                  size={18}
-                  color={canSendReply ? '#FFFFFF' : palette.coralPrimaryDark}
-                />
-              )}
-            </Pressable>
-          </View>
-        </Card>
-  ) : null;
+        </View>
+        <View style={styles.composerBar}>
+          <Input
+            value={body}
+            onChangeText={setBody}
+            placeholder="Write a reply…"
+            multiline
+            blurOnSubmit={false}
+            returnKeyType="default"
+            enablesReturnKeyAutomatically
+            style={styles.replyInput}
+          />
+          <Pressable
+            onPress={sendReply}
+            disabled={!canSendReply}
+            accessibilityRole="button"
+            accessibilityLabel={post.isPending ? 'Sending reply' : 'Send reply'}
+            accessibilityState={{ disabled: !canSendReply, busy: post.isPending }}
+            style={({ pressed }) => [
+              styles.sendButton,
+              post.isPending
+                ? styles.sendButtonBusy
+                : !canSendReply
+                  ? styles.sendButtonDisabled
+                  : null,
+              pressed && canSendReply ? styles.sendButtonPressed : null,
+            ]}
+          >
+            {post.isPending ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Ionicons
+                name="paper-plane"
+                size={18}
+                color={canSendReply ? '#FFFFFF' : palette.coralPrimaryDark}
+              />
+            )}
+          </Pressable>
+        </View>
+      </Card>
+    ) : null;
 
   return (
     <ThreadMessageList

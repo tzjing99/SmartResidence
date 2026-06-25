@@ -1,8 +1,8 @@
+import { resolveAnnouncementRecipientUserIds } from '@/announcement/announcement-audience';
 import { isInQuietHours, parseUserPreferences } from '@/auth/user-preferences';
 import type { AppEnv } from '@/config/env.schema';
 import { PrismaService } from '@/prisma/prisma.service';
 import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
-import { resolveAnnouncementRecipientUserIds } from '@/announcement/announcement-audience';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';

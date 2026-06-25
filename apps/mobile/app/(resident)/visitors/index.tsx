@@ -79,10 +79,7 @@ export default function VisitorsScreen() {
   const handlePreRegisterFavourite = useCallback(
     (fav: FavouriteVisitor) => {
       if (!fav.phone?.trim()) {
-        Alert.alert(
-          'Phone required',
-          'Add a phone number to this favourite for quick passes.',
-        );
+        Alert.alert('Phone required', 'Add a phone number to this favourite for quick passes.');
         return;
       }
       const qs = new URLSearchParams(favouriteToPreRegParams(fav)).toString();
@@ -105,8 +102,8 @@ export default function VisitorsScreen() {
         />
       }
     >
-        <Card style={[residentStyles.card, { padding: 8 }]}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <Card style={[residentStyles.card, { padding: 8 }]}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {tabs.map((t) => {
             const active = tab === t.id;
             return (
@@ -135,24 +132,24 @@ export default function VisitorsScreen() {
               </Pressable>
             );
           })}
-          </View>
-        </Card>
+        </View>
+      </Card>
 
-        {tab === 'favourites' ? (
-          <FavouritesTab
-            unitId={unit?.id}
-            items={(favourites.data?.items ?? []) as FavouriteVisitor[]}
-            onPreRegister={handlePreRegisterFavourite}
-          />
-        ) : (
-          <VisitorsTab
-            tab={tab}
-            unitId={unit?.id}
-            items={(visitors.data?.items ?? []) as Visitor[]}
-            isLoading={listLoading}
-            twoColumn={twoColumn}
-          />
-        )}
+      {tab === 'favourites' ? (
+        <FavouritesTab
+          unitId={unit?.id}
+          items={(favourites.data?.items ?? []) as FavouriteVisitor[]}
+          onPreRegister={handlePreRegisterFavourite}
+        />
+      ) : (
+        <VisitorsTab
+          tab={tab}
+          unitId={unit?.id}
+          items={(visitors.data?.items ?? []) as Visitor[]}
+          isLoading={listLoading}
+          twoColumn={twoColumn}
+        />
+      )}
     </ResidentScreen>
   );
 }
@@ -308,7 +305,12 @@ function VisitorsTab({
                     {v.name}
                   </Text>
                   <Text
-                    style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2, lineHeight: 18 }}
+                    style={{
+                      color: palette.mutedLight,
+                      fontSize: 12,
+                      marginTop: 2,
+                      lineHeight: 18,
+                    }}
                     numberOfLines={2}
                   >
                     {tab === 'live'

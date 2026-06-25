@@ -69,9 +69,7 @@ export function buildDefectListPdf(opts: {
   const pagesObjNum = 2 + pages.length * 2;
   const catalogObjNum = pagesObjNum + 1;
 
-  const objBodies: string[] = [
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-  ];
+  const objBodies: string[] = ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
   const pageObjNums: number[] = [];
 
   pages.forEach((pageLines, p) => {

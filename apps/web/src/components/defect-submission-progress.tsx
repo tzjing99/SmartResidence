@@ -41,10 +41,9 @@ export function DefectSubmissionProgress({
   const showRemaining = !complete && remainingSec >= 4 && progress < 92;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-[2px]"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      open
+      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0 bg-black/45 p-4 backdrop-blur-[2px]"
       aria-labelledby="defect-submit-progress-title"
       aria-busy={!complete}
     >
@@ -84,7 +83,6 @@ export function DefectSubmissionProgress({
 
         <div
           className="h-2 rounded-full bg-[rgb(var(--sr-border))]/60 overflow-hidden"
-          role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(progress)}
@@ -105,6 +103,6 @@ export function DefectSubmissionProgress({
           </p>
         ) : null}
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { DefectStatusBadge } from '@/components/defect-ui';
 import { DefectBulkSignOffButton, DefectSignOffActions } from '@/components/defect-sign-off';
+import { DefectStatusBadge } from '@/components/defect-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -11,7 +11,7 @@ import {
   useTransitionDefect,
 } from '@smartresidence/api-client';
 import { defectReference } from '@smartresidence/shared-types';
-import { Badge, Card, Skeleton, cn } from '@smartresidence/ui-web';
+import { Card, Skeleton, cn } from '@smartresidence/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Clock, PackageOpen } from 'lucide-react';
 import Link from 'next/link';
@@ -32,7 +32,9 @@ export default function ResidentPackageDetailPage() {
     try {
       await transition.mutateAsync({ id: itemId, status });
       qc.invalidateQueries({ queryKey: queryKeys.defectReport(params.id) });
-      toast.success(status === 'CLOSED' ? 'Defect accepted and closed.' : 'Defect sent back for more work.');
+      toast.success(
+        status === 'CLOSED' ? 'Defect accepted and closed.' : 'Defect sent back for more work.',
+      );
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -49,7 +51,10 @@ export default function ResidentPackageDetailPage() {
     const ids = detail.items.filter((i) => i.status === 'RESOLVED').map((i) => i.id);
     if (ids.length === 0) return;
     try {
-      const res = await bulk.mutateAsync({ id: params.id, data: { defectIds: ids, status: 'CLOSED' } });
+      const res = await bulk.mutateAsync({
+        id: params.id,
+        data: { defectIds: ids, status: 'CLOSED' },
+      });
       toast.success(`${res.updated} defect(s) accepted and closed.`);
     } catch (err) {
       toast.error((err as Error).message);
@@ -84,7 +89,8 @@ export default function ResidentPackageDetailPage() {
   const pct = detail.itemCount > 0 ? Math.round((done / detail.itemCount) * 100) : 0;
   const grouped = detail.items.reduce<Record<string, typeof detail.items>>((acc, item) => {
     const key = item.spaceLabel ?? 'Other';
-    (acc[key] ??= []).push(item);
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
     return acc;
   }, {});
 
@@ -102,7 +108,9 @@ export default function ResidentPackageDetailPage() {
           <PackageOpen className="size-6 shrink-0 text-[rgb(var(--sr-coral))] mt-0.5" />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold">Defect Report</h1>
-            <div className="text-sm font-mono text-[rgb(var(--sr-coral))] mt-0.5">{defectReference(detail.id)}</div>
+            <div className="text-sm font-mono text-[rgb(var(--sr-coral))] mt-0.5">
+              {defectReference(detail.id)}
+            </div>
             <p className="text-sm sr-muted mt-1">
               {detail.itemCount} defect(s) · raised{' '}
               {new Date(detail.createdAt).toLocaleDateString()}
@@ -132,8 +140,8 @@ export default function ResidentPackageDetailPage() {
 
         {resolvedCount > 0 ? (
           <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-2">
-            {resolvedCount} defect(s) fixed and waiting for your confirmation — check
-            below and tell management if anything needs revisiting.
+            {resolvedCount} defect(s) fixed and waiting for your confirmation — check below and tell
+            management if anything needs revisiting.
           </p>
         ) : null}
       </Card>

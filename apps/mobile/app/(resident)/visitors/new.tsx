@@ -1,4 +1,4 @@
-import { VisitorPurpose, type VisitorEntryMode } from '@smartresidence/shared-types';
+import { type VisitorEntryMode, VisitorPurpose } from '@smartresidence/shared-types';
 import { palette } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';

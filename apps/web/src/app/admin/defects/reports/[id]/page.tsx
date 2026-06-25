@@ -1,16 +1,15 @@
 'use client';
 
 import {
-  ALL,
   BulkActionBar,
   DefectDetailPanel,
   DefectTriageSummary,
   DefectTriageTable,
   DefectTriageToolbar,
   KEEP,
-  UNASSIGNED,
   type StaffOption,
   type TriageItem,
+  UNASSIGNED,
   applyTriageFilters,
   canMarkFixed,
   defaultTriageFilters,
@@ -18,12 +17,12 @@ import {
 } from '@/components/defect-triage';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { useBulkUpdateReportItems, useDefectReport, useSlaSettings } from '@smartresidence/api-client';
 import {
-  type DefectStatus,
-  defectReference,
-  formatUnitLabel,
-} from '@smartresidence/shared-types';
+  useBulkUpdateReportItems,
+  useDefectReport,
+  useSlaSettings,
+} from '@smartresidence/api-client';
+import { type DefectStatus, defectReference, formatUnitLabel } from '@smartresidence/shared-types';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
 import { ArrowLeft, CheckCircle2, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -44,14 +43,20 @@ export default function ReportTriagePage() {
   const [bulkAssignee, setBulkAssignee] = React.useState(KEEP);
   const [exporting, setExporting] = React.useState(false);
 
-  const staffOptions: StaffOption[] = ((sla.data?.managementStaff ?? []) as Array<{
-    id: string;
-    name: string;
-    email: string | null;
-  }>).map((s) => ({ value: s.id, label: s.name || s.email || s.id }));
+  const staffOptions: StaffOption[] = (
+    (sla.data?.managementStaff ?? []) as Array<{
+      id: string;
+      name: string;
+      email: string | null;
+    }>
+  ).map((s) => ({ value: s.id, label: s.name || s.email || s.id }));
 
   const unitLabel = detail?.unit
-    ? formatUnitLabel({ id: detail.unit.id, identifier: detail.unit.identifier, block: detail.unit.block })
+    ? formatUnitLabel({
+        id: detail.unit.id,
+        identifier: detail.unit.identifier,
+        block: detail.unit.block,
+      })
     : 'Unassigned unit';
 
   const unitMeta = detail?.unit
@@ -59,12 +64,18 @@ export default function ReportTriagePage() {
         detail.unit.block ? `Block ${detail.unit.block.name}` : null,
         detail.unit.floor != null ? `Floor ${detail.unit.floor}` : null,
         `Unit ${detail.unit.identifier}`,
-      ].filter(Boolean).join(' · ')
+      ]
+        .filter(Boolean)
+        .join(' · ')
     : null;
 
   const triageItems = React.useMemo<TriageItem[]>(() => {
     const unit = detail?.unit
-      ? formatUnitLabel({ id: detail.unit.id, identifier: detail.unit.identifier, block: detail.unit.block })
+      ? formatUnitLabel({
+          id: detail.unit.id,
+          identifier: detail.unit.identifier,
+          block: detail.unit.block,
+        })
       : 'Unassigned unit';
     return (detail?.items ?? [])
       .map((item) => ({
@@ -259,9 +270,7 @@ export default function ReportTriagePage() {
           <span className="text-sm sr-muted">
             {done}/{detail.itemCount} fixed or signed off ({pct}%)
           </span>
-          {resolved > 0 ? (
-            <Badge tone="success">{resolved} waiting resident sign-off</Badge>
-          ) : null}
+          {resolved > 0 ? <Badge tone="success">{resolved} waiting resident sign-off</Badge> : null}
         </div>
       </Card>
 
@@ -310,4 +319,3 @@ export default function ReportTriagePage() {
     </div>
   );
 }
-

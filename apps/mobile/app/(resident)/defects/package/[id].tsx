@@ -1,10 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import {
   queryKeys,
   useBulkUpdateReportItems,
   useDefectReport,
   useTransitionDefect,
 } from '@smartresidence/api-client';
-import { defectReference, DEFECT_SIGN_OFF_PROMPT_LABEL } from '@smartresidence/shared-types';
+import { DEFECT_SIGN_OFF_PROMPT_LABEL, defectReference } from '@smartresidence/shared-types';
 import {
   AnimatedPressable,
   AppText,
@@ -13,14 +14,12 @@ import {
   Pill,
   Stack,
   palette,
-  radius,
   spacing,
 } from '@smartresidence/ui-mobile';
-import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   RESIDENT_CORAL,
   ResidentScreen,
@@ -52,9 +51,7 @@ export default function DefectPackageDetailScreen() {
         qc.invalidateQueries({ queryKey: queryKeys.defectReport(id) });
         Alert.alert(
           status === 'CLOSED' ? 'Signed off' : 'Sent back',
-          status === 'CLOSED'
-            ? 'Defect signed off and closed.'
-            : 'Defect sent back for more work.',
+          status === 'CLOSED' ? 'Defect signed off and closed.' : 'Defect sent back for more work.',
         );
       } catch (err) {
         Alert.alert('Could not update', (err as Error).message);
@@ -89,25 +86,24 @@ export default function DefectPackageDetailScreen() {
 
   const resolvedCount = detail?.statusCounts.RESOLVED ?? 0;
   const done = resolvedCount + (detail?.statusCounts.CLOSED ?? 0);
-  const pct =
-    detail && detail.itemCount > 0 ? Math.round((done / detail.itemCount) * 100) : 0;
+  const pct = detail && detail.itemCount > 0 ? Math.round((done / detail.itemCount) * 100) : 0;
 
-  const grouped = (detail?.items ?? []).reduce<
-    Record<string, NonNullable<typeof detail>['items']>
-  >((acc, item) => {
-    const key = item.spaceLabel ?? 'Other';
-    (acc[key] ??= []).push(item);
-    return acc;
-  }, {});
+  const grouped = (detail?.items ?? []).reduce<Record<string, NonNullable<typeof detail>['items']>>(
+    (acc, item) => {
+      const key = item.spaceLabel ?? 'Other';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(item);
+      return acc;
+    },
+    {},
+  );
 
   return (
     <ResidentScreen
       eyebrow="Defect report"
       title={detail ? 'Defect Report' : 'Loading…'}
       subtitle={
-        detail
-          ? `${defectReference(detail.id)} · ${detail.itemCount} defect(s)`
-          : undefined
+        detail ? `${defectReference(detail.id)} · ${detail.itemCount} defect(s)` : undefined
       }
       headerAction={
         <AnimatedPressable onPress={() => router.back()} accessibilityLabel="Go back">
@@ -155,12 +151,9 @@ export default function DefectPackageDetailScreen() {
             </View>
 
             {resolvedCount > 0 ? (
-              <AppText
-                variant="meta"
-                style={{ color: '#047857', marginTop: 10, lineHeight: 18 }}
-              >
-                {resolvedCount} defect(s) fixed and waiting for your confirmation — check below
-                and tell management if anything needs revisiting.
+              <AppText variant="meta" style={{ color: '#047857', marginTop: 10, lineHeight: 18 }}>
+                {resolvedCount} defect(s) fixed and waiting for your confirmation — check below and
+                tell management if anything needs revisiting.
               </AppText>
             ) : null}
           </Card>
@@ -233,9 +226,7 @@ export default function DefectPackageDetailScreen() {
                             : 'info'
                       }
                       label={
-                        item.status === 'RESOLVED'
-                          ? 'Waiting sign-off'
-                          : prettyLabel(item.status)
+                        item.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(item.status)
                       }
                     />
                   </View>

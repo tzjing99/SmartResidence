@@ -118,7 +118,11 @@ export class MlPriorityService {
 
     const threads = await this.prisma.thread.findMany({
       where: { condoId, status: { in: [...CLOSED_THREAD_STATUSES] } },
-      select: { subject: true, priority: true, messages: { take: 1, orderBy: { createdAt: 'asc' }, select: { body: true } } },
+      select: {
+        subject: true,
+        priority: true,
+        messages: { take: 1, orderBy: { createdAt: 'asc' }, select: { body: true } },
+      },
       take: 5000,
       orderBy: { closedAt: 'desc' },
     });

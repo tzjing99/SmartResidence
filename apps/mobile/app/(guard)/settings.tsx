@@ -1,5 +1,5 @@
-import { useMe } from '@smartresidence/api-client';
 import { Ionicons } from '@expo/vector-icons';
+import { useMe } from '@smartresidence/api-client';
 import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { Alert, StyleSheet, View } from 'react-native';
 import {
@@ -11,15 +11,16 @@ import {
   guardStyles,
 } from '../../src/components/guard-screen';
 import { api } from '../../src/lib/api';
-import { useSignOut } from '../../src/lib/use-sign-out';
 import type { MeResponse } from '../../src/lib/roles';
+import { useSignOut } from '../../src/lib/use-sign-out';
 
 const mapRoleLabel = (role: string | null | undefined): string => {
   if (!role) return 'Resident';
   if (role === 'SECURITY_GUARD') return 'Guard';
   if (role === 'UNIT_OWNER' || role === 'OWNER') return 'Owner';
   if (role === 'TENANT') return 'Tenant';
-  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF') return 'Management';
+  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF')
+    return 'Management';
   return 'Resident';
 };
 
@@ -74,7 +75,8 @@ export default function GuardSettingsScreen() {
         <View style={styles.accountCopy}>
           <AppText style={styles.infoTitle}>Ready for gate operations</AppText>
           <AppText variant="meta" style={styles.cardMeta}>
-            Use Scan for QR passes, Manual when a code cannot scan, and Walk-in for visitors already at the guardhouse.
+            Use Scan for QR passes, Manual when a code cannot scan, and Walk-in for visitors already
+            at the guardhouse.
           </AppText>
         </View>
       </Card>

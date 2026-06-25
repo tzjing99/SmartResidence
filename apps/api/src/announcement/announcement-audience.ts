@@ -13,9 +13,7 @@ export type ResidentAudienceContext = {
 };
 
 export function isManagementForCondo(user: AuthenticatedUser, condoId: string): boolean {
-  return user.roles.some(
-    (r) => MANAGEMENT_ROLES.includes(r.roleId) && r.condoId === condoId,
-  );
+  return user.roles.some((r) => MANAGEMENT_ROLES.includes(r.roleId) && r.condoId === condoId);
 }
 
 /** Resident unit + block ids within a condo (from role assignments). */
@@ -25,9 +23,7 @@ export function residentAudienceFromRoles(
   units: Array<{ id: string; blockId: string }>,
 ): ResidentAudienceContext {
   const roleUnitIds = new Set(
-    user.roles
-      .filter((r) => r.condoId === condoId && r.unitId)
-      .map((r) => r.unitId as string),
+    user.roles.filter((r) => r.condoId === condoId && r.unitId).map((r) => r.unitId as string),
   );
   const matched = units.filter((u) => roleUnitIds.has(u.id));
   return {

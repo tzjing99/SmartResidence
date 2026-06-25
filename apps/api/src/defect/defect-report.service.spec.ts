@@ -21,11 +21,12 @@ describe('DefectReportService.createHandover', () => {
     const tx = {
       defectReport: { create: vi.fn(async () => ({ id: 'r1', condoId: 'c1' })) },
       defect: {
-        createManyAndReturn: vi.fn(async (args: { data: Array<{ metadata: { handoverIndex: number } }> }) =>
-          args.data.map((row, i) => ({
-            id: `d-${i}`,
-            metadata: row.metadata,
-          })),
+        createManyAndReturn: vi.fn(
+          async (args: { data: Array<{ metadata: { handoverIndex: number } }> }) =>
+            args.data.map((row, i) => ({
+              id: `d-${i}`,
+              metadata: row.metadata,
+            })),
         ),
       },
       attachment: { updateMany: vi.fn(async () => ({ count: 1 })) },
@@ -93,7 +94,12 @@ describe('DefectReportService.createHandover', () => {
     expect(events.emit).toHaveBeenCalledTimes(1);
     expect(events.emit).toHaveBeenCalledWith(
       'defect.report.created',
-      expect.objectContaining({ reportId: 'r1', condoId: 'c1', itemCount: 3, actorUserId: 'res-1' }),
+      expect.objectContaining({
+        reportId: 'r1',
+        condoId: 'c1',
+        itemCount: 3,
+        actorUserId: 'res-1',
+      }),
     );
 
     expect(result.itemCount).toBe(3);
@@ -112,11 +118,17 @@ describe('DefectReportService.createHandover', () => {
     expect(tx.defect.createManyAndReturn).toHaveBeenCalledTimes(2);
     expect(tx.defect.createManyAndReturn).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ data: expect.arrayContaining([expect.objectContaining({ metadata: { handoverIndex: 0 } })]) }),
+      expect.objectContaining({
+        data: expect.arrayContaining([expect.objectContaining({ metadata: { handoverIndex: 0 } })]),
+      }),
     );
     expect(tx.defect.createManyAndReturn).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ data: expect.arrayContaining([expect.objectContaining({ metadata: { handoverIndex: 100 } })]) }),
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ metadata: { handoverIndex: 100 } }),
+        ]),
+      }),
     );
   });
 });

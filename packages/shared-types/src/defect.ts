@@ -119,3 +119,18 @@ export function isTerminalDefectStatus(status: DefectStatus): boolean {
 export function defectReference(id: string): string {
   return `DF-${id.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
 }
+
+/** Resident sign-off copy — shared across web and mobile. */
+export const DEFECT_SIGN_OFF_TITLE = 'Confirm sign-off';
+
+export const DEFECT_SIGN_OFF_MESSAGE =
+  'By signing off, you confirm this repair is complete and acceptable to you. This action cannot be undone. No physical signature is required — confirming below is your formal acceptance.';
+
+export const DEFECT_SIGN_OFF_CONFIRM_LABEL = 'Confirm sign-off';
+
+export const DEFECT_SIGN_OFF_PROMPT_LABEL = 'Sign off';
+
+export function defectBulkSignOffMessage(count: number): string {
+  const noun = count === 1 ? 'defect' : 'defects';
+  return `You are signing off on ${count} fixed ${noun}. By confirming, you accept that each repair is complete and acceptable. This cannot be undone. No physical signature is required — confirming below is your formal acceptance for all listed items.`;
+}

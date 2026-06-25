@@ -3,13 +3,18 @@
 import {
   DefectActivityFeed,
   DefectPhotos,
-  DefectSeverityBadge,
   DefectStatusBadge,
   DefectStatusTimeline,
 } from '@/components/defect-ui';
+import { DefectSignOffActions } from '@/components/defect-sign-off';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { uploadAttachment, useAddDefectUpdate, useDefect } from '@smartresidence/api-client';
+import {
+  uploadAttachment,
+  useAddDefectUpdate,
+  useDefect,
+  useTransitionDefect,
+} from '@smartresidence/api-client';
 import { MAX_ATTACHMENTS_PER_MESSAGE } from '@smartresidence/shared-types';
 import {
   Button,
@@ -28,6 +33,7 @@ export default function ResidentDefectDetailPage() {
   const params = useParams<{ id: string }>();
   const detail = useDefect(api, params.id);
   const addUpdate = useAddDefectUpdate(api);
+  const transition = useTransitionDefect(api);
   const d = detail.data as any;
 
   const [comment, setComment] = React.useState('');
@@ -47,6 +53,17 @@ export default function ResidentDefectDetailPage() {
       setAttachmentIds([]);
       photoRef.current?.reset();
       toast.success('Comment added');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function signOff(status: 'CLOSED' | 'REOPENED') {
+    try {
+      await transition.mutateAsync({ id: params.id, status });
+      toast.success(
+        status === 'CLOSED' ? 'Defect signed off and closed.' : 'Defect sent back for more work.',
+      );
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -98,6 +115,23 @@ export default function ResidentDefectDetailPage() {
           {d.assignedTo?.name ? ` · handled by ${d.assignedTo.name}` : ''}
         </p>
       </header>
+
+      {d.status === 'RESOLVED' ? (
+        <Card className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30">
+          <h3 className="font-semibold mb-2 text-sm text-emerald-900 dark:text-emerald-100">
+            Ready for your sign-off
+          </h3>
+          <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-3">
+            Management marked this repair as fixed. Please verify the work before signing off.
+          </p>
+          <DefectSignOffActions
+            pending={transition.isPending}
+            onSignOff={() => signOff('CLOSED')}
+            onReject={() => signOff('REOPENED')}
+            hideHint
+          />
+        </Card>
+      ) : null}
 
       <div className="grid gap-5 md:grid-cols-[1fr_280px]">
         <div className="flex flex-col gap-5">

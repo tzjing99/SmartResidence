@@ -3,7 +3,10 @@ import {
   useDefect,
   useTransitionDefect,
 } from '@smartresidence/api-client';
-import type { DefectStatus } from '@smartresidence/shared-types';
+import {
+  DEFECT_SIGN_OFF_PROMPT_LABEL,
+  type DefectStatus,
+} from '@smartresidence/shared-types';
 import { Ionicons } from '@expo/vector-icons';
 import {
   AnimatedPressable,
@@ -28,6 +31,7 @@ import {
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { api } from '../../../src/lib/api';
+import { confirmDefectSignOff } from '../../../src/lib/defect-sign-off';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
 
 type DefectUpdate = {
@@ -87,17 +91,24 @@ export default function DefectDetailScreen() {
 
   async function signOff(status: 'CLOSED' | 'REOPENED') {
     if (!id) return;
-    try {
-      await transition.mutateAsync({ id, status });
-      Alert.alert(
-        status === 'CLOSED' ? 'Accepted' : 'Sent back',
-        status === 'CLOSED'
-          ? 'Defect accepted and closed.'
-          : 'Defect sent back for more work.',
-      );
-    } catch (err) {
-      Alert.alert('Could not update', (err as Error).message);
+    const run = async () => {
+      try {
+        await transition.mutateAsync({ id, status });
+        Alert.alert(
+          status === 'CLOSED' ? 'Signed off' : 'Sent back',
+          status === 'CLOSED'
+            ? 'Defect signed off and closed.'
+            : 'Defect sent back for more work.',
+        );
+      } catch (err) {
+        Alert.alert('Could not update', (err as Error).message);
+      }
+    };
+    if (status === 'CLOSED') {
+      confirmDefectSignOff(run);
+      return;
     }
+    await run();
   }
 
   const visibleUpdates = (d?.updates ?? []).filter((u) => !u.isInternal);
@@ -164,7 +175,7 @@ export default function DefectDetailScreen() {
               </AppText>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 <Button
-                  title="Accept — closed"
+                  title={transition.isPending ? 'Signing off…' : DEFECT_SIGN_OFF_PROMPT_LABEL}
                   size="sm"
                   loading={transition.isPending}
                   onPress={() => signOff('CLOSED')}

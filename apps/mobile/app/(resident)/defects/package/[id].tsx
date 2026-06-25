@@ -4,7 +4,7 @@ import {
   useDefectReport,
   useTransitionDefect,
 } from '@smartresidence/api-client';
-import { defectReference } from '@smartresidence/shared-types';
+import { defectReference, DEFECT_SIGN_OFF_PROMPT_LABEL } from '@smartresidence/shared-types';
 import {
   AnimatedPressable,
   AppText,
@@ -28,6 +28,10 @@ import {
   residentStyles,
 } from '../../../../src/components/resident-screen';
 import { api } from '../../../../src/lib/api';
+import {
+  confirmDefectBulkSignOff,
+  confirmDefectSignOff,
+} from '../../../../src/lib/defect-sign-off';
 
 export default function DefectPackageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -41,37 +45,46 @@ export default function DefectPackageDetailScreen() {
 
   async function signOff(itemId: string, status: 'CLOSED' | 'REOPENED') {
     if (!id) return;
-    setPendingIds((prev) => new Set(prev).add(itemId));
-    try {
-      await transition.mutateAsync({ id: itemId, status });
-      qc.invalidateQueries({ queryKey: queryKeys.defectReport(id) });
-      Alert.alert(
-        status === 'CLOSED' ? 'Accepted' : 'Sent back',
-        status === 'CLOSED'
-          ? 'Defect accepted and closed.'
-          : 'Defect sent back for more work.',
-      );
-    } catch (err) {
-      Alert.alert('Could not update', (err as Error).message);
-    } finally {
-      setPendingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(itemId);
-        return next;
-      });
+    const run = async () => {
+      setPendingIds((prev) => new Set(prev).add(itemId));
+      try {
+        await transition.mutateAsync({ id: itemId, status });
+        qc.invalidateQueries({ queryKey: queryKeys.defectReport(id) });
+        Alert.alert(
+          status === 'CLOSED' ? 'Signed off' : 'Sent back',
+          status === 'CLOSED'
+            ? 'Defect signed off and closed.'
+            : 'Defect sent back for more work.',
+        );
+      } catch (err) {
+        Alert.alert('Could not update', (err as Error).message);
+      } finally {
+        setPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+      }
+    };
+    if (status === 'CLOSED') {
+      confirmDefectSignOff(run);
+      return;
     }
+    await run();
   }
 
-  async function acceptAll() {
+  function acceptAll() {
     if (!detail || !id) return;
     const ids = detail.items.filter((i) => i.status === 'RESOLVED').map((i) => i.id);
     if (ids.length === 0) return;
-    try {
-      const res = await bulk.mutateAsync({ id, data: { defectIds: ids, status: 'CLOSED' } });
-      Alert.alert('Accepted', `${res.updated} defect(s) accepted and closed.`);
-    } catch (err) {
-      Alert.alert('Could not accept all', (err as Error).message);
-    }
+    confirmDefectBulkSignOff(ids.length, async () => {
+      try {
+        const res = await bulk.mutateAsync({ id, data: { defectIds: ids, status: 'CLOSED' } });
+        Alert.alert('Signed off', `${res.updated} defect(s) signed off and closed.`);
+      } catch (err) {
+        Alert.alert('Could not sign off all', (err as Error).message);
+      }
+    });
   }
 
   const resolvedCount = detail?.statusCounts.RESOLVED ?? 0;
@@ -167,7 +180,7 @@ export default function DefectPackageDetailScreen() {
                 {resolvedCount} defect(s) are ready for sign-off
               </AppText>
               <Button
-                title={bulk.isPending ? 'Accepting…' : 'Accept all fixed items'}
+                title={bulk.isPending ? 'Signing off…' : `Sign off all (${resolvedCount})`}
                 loading={bulk.isPending}
                 onPress={acceptAll}
                 size="sm"
@@ -234,7 +247,7 @@ export default function DefectPackageDetailScreen() {
                       </AppText>
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                         <Button
-                          title="Accept — closed"
+                          title={DEFECT_SIGN_OFF_PROMPT_LABEL}
                           size="sm"
                           loading={pendingIds.has(item.id)}
                           disabled={pendingIds.has(item.id) || bulk.isPending}

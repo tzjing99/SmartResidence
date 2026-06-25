@@ -1,6 +1,7 @@
 'use client';
 
 import { DefectStatusBadge } from '@/components/defect-ui';
+import { DefectBulkSignOffButton, DefectSignOffActions } from '@/components/defect-sign-off';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -10,9 +11,9 @@ import {
   useTransitionDefect,
 } from '@smartresidence/api-client';
 import { defectReference } from '@smartresidence/shared-types';
-import { Badge, Button, Card, Skeleton, cn } from '@smartresidence/ui-web';
+import { Badge, Card, Skeleton, cn } from '@smartresidence/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, Clock, PackageOpen, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, PackageOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import * as React from 'react';
@@ -142,14 +143,11 @@ export default function ResidentPackageDetailPage() {
           <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
             {resolvedCount} defect(s) are ready for sign-off
           </p>
-          <Button
-            variant="primary"
-            onClick={acceptAll}
-            disabled={bulk.isPending}
-          >
-            <ThumbsUp className="size-4" />
-            {bulk.isPending ? 'Accepting…' : 'Accept all fixed items'}
-          </Button>
+          <DefectBulkSignOffButton
+            count={resolvedCount}
+            pending={bulk.isPending}
+            onConfirm={acceptAll}
+          />
         </div>
       ) : null}
 
@@ -181,29 +179,12 @@ export default function ResidentPackageDetailPage() {
                     <DefectStatusBadge status={item.status} />
                   </div>
                   {item.status === 'RESOLVED' ? (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                        Fixed by management — please verify and confirm below.
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="primary"
-                          onClick={() => signOff(item.id, 'CLOSED')}
-                          disabled={pendingIds.has(item.id) || bulk.isPending}
-                        >
-                          <ThumbsUp className="size-3.5" />
-                          Accept — mark as closed
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => signOff(item.id, 'REOPENED')}
-                          disabled={pendingIds.has(item.id) || bulk.isPending}
-                        >
-                          <ThumbsDown className="size-3.5" />
-                          Reject — needs more work
-                        </Button>
-                      </div>
+                    <div className="mt-3">
+                      <DefectSignOffActions
+                        pending={pendingIds.has(item.id) || bulk.isPending}
+                        onSignOff={() => signOff(item.id, 'CLOSED')}
+                        onReject={() => signOff(item.id, 'REOPENED')}
+                      />
                     </div>
                   ) : null}
                   {item.attachments.length > 0 ? (

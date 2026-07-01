@@ -1,12 +1,13 @@
 'use client';
 
 import { MobileTabBar } from '@/components/mobile-tab-bar';
+import { GenericPageSkeleton } from '@/components/route-skeletons';
 import { PageFade, prefetchRoute } from '@/components/shell-nav';
 import { api } from '@/lib/api';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useSignOut } from '@/lib/use-sign-out';
 import { useMyCondos } from '@smartresidence/api-client';
-import { cn } from '@smartresidence/ui-web';
+import { Skeleton, cn } from '@smartresidence/ui-web';
 import { LogOut, Settings2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -60,7 +61,19 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center sr-muted text-sm">Loading…</div>
+      <div className="min-h-screen flex flex-col bg-[rgb(var(--sr-bg))]">
+        <header className="sticky top-0 z-20 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          <Skeleton className="h-6 w-40" />
+          <div className="hidden sm:flex items-center gap-2">
+            {['n1', 'n2', 'n3', 'n4'].map((key) => (
+              <Skeleton key={key} className="h-9 w-20 rounded-xl" />
+            ))}
+          </div>
+        </header>
+        <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-10 max-w-5xl w-full mx-auto pb-20 md:pb-10">
+          <GenericPageSkeleton />
+        </main>
+      </div>
     );
   }
 

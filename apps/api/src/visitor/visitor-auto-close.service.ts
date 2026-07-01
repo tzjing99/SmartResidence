@@ -1,3 +1,4 @@
+import { DistributedLockService } from '@/redis/distributed-lock.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { VisitorService } from './visitor.service';
@@ -16,6 +17,7 @@ export class VisitorAutoCloseService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly visitors: VisitorService,
+    private readonly lock: DistributedLockService,
   ) {}
 
   onModuleInit(): void {
@@ -34,15 +36,19 @@ export class VisitorAutoCloseService implements OnModuleInit, OnModuleDestroy {
   }
 
   async sweep(): Promise<number> {
-    const condos = await this.prisma.visitor.findMany({
-      where: { status: 'CHECKED_IN' },
-      select: { condoId: true },
-      distinct: ['condoId'],
+    const closed = await this.lock.withLock('schedule:visitor-auto-close', 840, async () => {
+      const condos = await this.prisma.visitor.findMany({
+        where: { status: 'CHECKED_IN' },
+        select: { condoId: true },
+        distinct: ['condoId'],
+      });
+      let total = 0;
+      for (const { condoId } of condos) {
+        total += await this.visitors.autoCloseStaleVisitors(condoId);
+      }
+      return total;
     });
-    let closed = 0;
-    for (const { condoId } of condos) {
-      closed += await this.visitors.autoCloseStaleVisitors(condoId);
-    }
+    if (closed == null) return 0;
     if (closed > 0) {
       this.logger.log(`Auto-closed ${closed} stale visitor check-in(s)`);
     }

@@ -1,3 +1,4 @@
+import { DistributedLockService } from '@/redis/distributed-lock.service';
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { PatrolService } from './patrol.service';
 
@@ -8,7 +9,10 @@ export class PatrolScheduleService implements OnModuleInit, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private static readonly SWEEP_INTERVAL_MS = 5 * 60_000;
 
-  constructor(private readonly patrol: PatrolService) {}
+  constructor(
+    private readonly patrol: PatrolService,
+    private readonly lock: DistributedLockService,
+  ) {}
 
   onModuleInit(): void {
     if (process.env.NODE_ENV === 'test') return;
@@ -26,7 +30,10 @@ export class PatrolScheduleService implements OnModuleInit, OnModuleDestroy {
   }
 
   async sweep(): Promise<number> {
-    const flagged = await this.patrol.detectOverdue();
+    const flagged = await this.lock.withLock('schedule:patrol-overdue', 270, () =>
+      this.patrol.detectOverdue(),
+    );
+    if (flagged == null) return 0;
     if (flagged > 0) {
       this.logger.log(`Flagged ${flagged} overdue patrol checkpoint(s)`);
     }

@@ -2,8 +2,10 @@ import { resolveAnnouncementRecipientUserIds } from '@/announcement/announcement
 import { isInQuietHours, parseUserPreferences } from '@/auth/user-preferences';
 import type { AppEnv } from '@/config/env.schema';
 import { PrismaService } from '@/prisma/prisma.service';
+import type { NotificationDeliveryJob } from '@/queue/queue.service';
+import { QueueService } from '@/queue/queue.service';
 import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -48,6 +50,7 @@ export class NotificationService {
     private readonly whatsappConfig: WhatsAppConfigService,
     @Inject(WHATSAPP_NOTIFICATION_PROVIDER)
     private readonly whatsappProvider: WhatsAppNotificationProvider,
+    @Optional() private readonly queues?: QueueService,
   ) {
     const key = config.get('RESEND_API_KEY', { infer: true });
     this.resend = key ? new Resend(key) : null;
@@ -112,12 +115,6 @@ export class NotificationService {
   }): Promise<void> {
     if (opts.userIds.length === 0) return;
 
-    const users = await this.prisma.user.findMany({
-      where: { id: { in: opts.userIds } },
-      select: { id: true, email: true, phone: true, phoneVerifiedAt: true, preferences: true },
-    });
-    const userMap = new Map(users.map((u) => [u.id, u]));
-
     await this.prisma.notification.createMany({
       data: opts.userIds.map((userId) => ({
         userId,
@@ -136,6 +133,35 @@ export class NotificationService {
         data: opts.data ?? {},
       });
     }
+
+    await (this.queues?.enqueueNotificationDelivery({
+      userIds: opts.userIds,
+      kind: opts.kind,
+      title: opts.title,
+      body: opts.body,
+      data: opts.data,
+      timeZone: opts.timeZone,
+      condoId: opts.condoId,
+    }) ?? this.processDeliveryJob({
+      userIds: opts.userIds,
+      kind: opts.kind,
+      title: opts.title,
+      body: opts.body,
+      data: opts.data,
+      timeZone: opts.timeZone,
+      condoId: opts.condoId,
+    }));
+  }
+
+  /** Push, email, and WhatsApp delivery — runs on a BullMQ worker when available. */
+  async processDeliveryJob(opts: NotificationDeliveryJob): Promise<void> {
+    if (opts.userIds.length === 0) return;
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: opts.userIds } },
+      select: { id: true, email: true, phone: true, phoneVerifiedAt: true, preferences: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
 
     const pushUserIds: string[] = [];
     const emailTargets: Array<{ email: string; userId: string }> = [];

@@ -1,6 +1,7 @@
 import { SecretEncryptionService } from '@/billing/crypto/secret-encryption.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
+import { QueueService } from '@/queue/queue.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -8,6 +9,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { AuditAction, type EInvoice, type Prisma, RoleId } from '@prisma/client';
@@ -41,6 +43,7 @@ export class EInvoiceService {
     private readonly prisma: PrismaService,
     private readonly encryption: SecretEncryptionService,
     @Inject(MYINVOIS_PROVIDER) private readonly provider: MyInvoisProvider,
+    @Optional() private readonly queues?: QueueService,
   ) {}
 
   // -- Config ---------------------------------------------------------
@@ -266,32 +269,8 @@ export class EInvoiceService {
       if (existing) return;
 
       if (config.autoSubmitOnIssue) {
-        const full = await this.loadInvoiceForSubmit(invoice.id);
-        const document = this.buildDocument(full, config);
-        const credentials = this.resolveCredentials(full.condo.settings) ?? undefined;
-        const result = await this.provider.submit({
-          document,
-          environment: config.environment,
-          credentials,
-        });
-        const now = new Date();
-        await this.prisma.eInvoice.create({
-          data: {
-            invoiceId: invoice.id,
-            condoId: invoice.condoId,
-            status: result.status,
-            environment: config.environment,
-            lhdnUuid: result.uuid,
-            lhdnLongId: result.longId ?? null,
-            submissionUid: result.submissionUid ?? null,
-            qrPayload: result.qrPayload ?? null,
-            validationUrl: result.validationUrl ?? null,
-            documentJson: document as unknown as Prisma.InputJsonValue,
-            errorMessage: result.error ?? null,
-            submittedAt: now,
-            validatedAt: result.status === 'VALID' ? now : null,
-          },
-        });
+        await (this.queues?.enqueueEInvoiceSubmit({ invoiceId: invoice.id }) ??
+          this.processSubmitJob({ invoiceId: invoice.id }));
       } else {
         await this.prisma.eInvoice.create({
           data: {
@@ -305,6 +284,52 @@ export class EInvoiceService {
     } catch (err) {
       this.logger.warn(
         `Auto e-invoice for invoice ${payload.invoiceId} failed: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /** LHDN submission worker — keeps invoice issuance and payment webhooks fast. */
+  async processSubmitJob(payload: { invoiceId: string }): Promise<void> {
+    try {
+      const invoice = await this.loadInvoiceForSubmit(payload.invoiceId);
+      const config = parseEInvoiceConfig(invoice.condo.settings);
+      const existing = await this.prisma.eInvoice.findUnique({
+        where: { invoiceId: payload.invoiceId },
+        select: { id: true, status: true },
+      });
+      if (existing?.status === 'VALID') return;
+
+      const document = this.buildDocument(invoice, config);
+      const credentials = this.resolveCredentials(invoice.condo.settings) ?? undefined;
+      const result = await this.provider.submit({
+        document,
+        environment: config.environment,
+        credentials,
+      });
+      const now = new Date();
+      const data = {
+        condoId: invoice.condoId,
+        status: result.status,
+        environment: config.environment,
+        lhdnUuid: result.uuid,
+        lhdnLongId: result.longId ?? null,
+        submissionUid: result.submissionUid ?? null,
+        qrPayload: result.qrPayload ?? null,
+        validationUrl: result.validationUrl ?? null,
+        documentJson: document as unknown as Prisma.InputJsonValue,
+        errorMessage: result.error ?? null,
+        submittedAt: now,
+        validatedAt: result.status === 'VALID' ? now : null,
+      };
+
+      await this.prisma.eInvoice.upsert({
+        where: { invoiceId: payload.invoiceId },
+        create: { invoiceId: payload.invoiceId, ...data },
+        update: data,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `E-invoice submit job for ${payload.invoiceId} failed: ${(err as Error).message}`,
       );
     }
   }

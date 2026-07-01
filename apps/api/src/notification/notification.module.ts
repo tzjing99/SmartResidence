@@ -1,5 +1,6 @@
 import { BillingModule } from '@/billing/billing.module';
-import { Module } from '@nestjs/common';
+import { QueueModule } from '@/queue/queue.module';
+import { Module, forwardRef } from '@nestjs/common';
 import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
 import { MetaWhatsAppNotificationProvider } from './providers/whatsapp-notification.provider';
@@ -8,7 +9,7 @@ import { WhatsAppConfigController } from './whatsapp-config.controller';
 import { WhatsAppConfigService } from './whatsapp-config.service';
 
 @Module({
-  imports: [BillingModule],
+  imports: [BillingModule, forwardRef(() => QueueModule)],
   providers: [
     NotificationService,
     WhatsAppConfigService,

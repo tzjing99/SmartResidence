@@ -1,3 +1,4 @@
+import { DistributedLockService } from '@/redis/distributed-lock.service';
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { PollsService } from './polls.service';
 
@@ -8,7 +9,10 @@ export class PollScheduleService implements OnModuleInit, OnModuleDestroy {
   private timer: NodeJS.Timeout | null = null;
   private static readonly SWEEP_INTERVAL_MS = 60_000;
 
-  constructor(private readonly polls: PollsService) {}
+  constructor(
+    private readonly polls: PollsService,
+    private readonly lock: DistributedLockService,
+  ) {}
 
   onModuleInit(): void {
     if (process.env.NODE_ENV === 'test') return;
@@ -26,7 +30,10 @@ export class PollScheduleService implements OnModuleInit, OnModuleDestroy {
   }
 
   async sweep(): Promise<number> {
-    const closed = await this.polls.closeExpiredPolls();
+    const closed = await this.lock.withLock('schedule:poll-auto-close', 55, () =>
+      this.polls.closeExpiredPolls(),
+    );
+    if (closed == null) return 0;
     if (closed > 0) {
       this.logger.log(`Auto-closed ${closed} poll(s)`);
     }

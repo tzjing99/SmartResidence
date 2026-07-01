@@ -1089,85 +1089,116 @@ export class BillingService {
     const createdInvoiceIds: string[] = [];
     let skipped = 0;
     let skippedNoRate = 0;
-    for (const unit of units) {
-      const lines = useFeeSchedule
-        ? [
-            ...this.feeSchedule.computeLinesForUnit(unit as never),
-            ...this.feeSchedule.computeExtraLinesForUnit(unit as never, extraScheduleLines),
-          ]
-        : explicitLines.map((l) => ({
-            code: l.code,
-            description: l.description,
-            formula: l.formula,
-            unitPrice: Number(l.unitPrice),
-            quantity: Number(l.quantity ?? 1),
-          }));
+    const CHUNK_SIZE = 75;
 
-      if (lines.length === 0) {
-        skippedNoRate += 1;
-        continue;
+    for (let chunkStart = 0; chunkStart < units.length; chunkStart += CHUNK_SIZE) {
+      const chunk = units.slice(chunkStart, chunkStart + CHUNK_SIZE);
+      const pending: Array<{
+        unit: (typeof units)[number];
+        lines: Array<{
+          code: string;
+          description: string;
+          formula?: string;
+          unitPrice: number;
+          quantity: number;
+        }>;
+        subtotal: number;
+      }> = [];
+
+      for (const unit of chunk) {
+        const lines = useFeeSchedule
+          ? [
+              ...this.feeSchedule.computeLinesForUnit(unit as never),
+              ...this.feeSchedule.computeExtraLinesForUnit(unit as never, extraScheduleLines),
+            ]
+          : explicitLines.map((l) => ({
+              code: l.code,
+              description: l.description,
+              formula: l.formula,
+              unitPrice: Number(l.unitPrice),
+              quantity: Number(l.quantity ?? 1),
+            }));
+
+        if (lines.length === 0) {
+          skippedNoRate += 1;
+          continue;
+        }
+
+        if (existingUnitIds.has(unit.id)) {
+          skipped += 1;
+          continue;
+        }
+
+        pending.push({
+          unit,
+          lines,
+          subtotal: lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0),
+        });
       }
 
-      if (existingUnitIds.has(unit.id)) {
-        skipped += 1;
-        continue;
-      }
+      if (pending.length === 0) continue;
 
       try {
-        const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
-        const invoice = await this.prisma.$transaction(async (tx) => {
-          const number = await this.nextInvoiceNumber(tx, condoId);
-          const created = await tx.invoice.create({
-            data: {
-              condoId,
-              unitId: unit.id,
-              number,
-              periodStart: dto.periodStart,
-              periodEnd: dto.periodEnd,
-              dueDate: dto.dueDate,
-              status: InvoiceStatus.ISSUED,
-              issuedAt: new Date(),
-              subtotal,
-              total: subtotal,
-              currencyCode: 'MYR',
-              lines: {
-                create: lines.map((l, i) => ({
-                  code: l.code,
-                  description: l.description,
-                  formula: l.formula,
-                  quantity: l.quantity,
-                  unitPrice: l.unitPrice,
-                  amount: l.unitPrice * l.quantity,
-                  sortOrder: i,
-                })),
+        const chunkCreated = await this.prisma.$transaction(async (tx) => {
+          const rows: Array<{ invoiceId: string; unitId: string }> = [];
+          for (const row of pending) {
+            const number = await this.nextInvoiceNumber(tx, condoId);
+            const created = await tx.invoice.create({
+              data: {
+                condoId,
+                unitId: row.unit.id,
+                number,
+                periodStart: dto.periodStart,
+                periodEnd: dto.periodEnd,
+                dueDate: dto.dueDate,
+                status: InvoiceStatus.ISSUED,
+                issuedAt: new Date(),
+                subtotal: row.subtotal,
+                total: row.subtotal,
+                currencyCode: 'MYR',
+                lines: {
+                  create: row.lines.map((l, i) => ({
+                    code: l.code,
+                    description: l.description,
+                    formula: l.formula,
+                    quantity: l.quantity,
+                    unitPrice: l.unitPrice,
+                    amount: l.unitPrice * l.quantity,
+                    sortOrder: i,
+                  })),
+                },
+                metadata: {
+                  recurring: true,
+                  fromFeeSchedule: useFeeSchedule,
+                  extraScheduleLineCount: extraScheduleLines.length,
+                  issuedByUserId: actor?.id ?? null,
+                  triggeredByUserId: actorUserId,
+                  ...options.metadata,
+                },
               },
-              metadata: {
-                recurring: true,
-                fromFeeSchedule: useFeeSchedule,
-                extraScheduleLineCount: extraScheduleLines.length,
-                issuedByUserId: actor?.id ?? null,
-                triggeredByUserId: actorUserId,
-                ...options.metadata,
-              },
-            },
-          });
-          await this.ledger.recordInvoiceCharges(
-            tx,
-            { id: created.id, condoId, unitId: unit.id, issuedAt: created.issuedAt },
-            lines.map((l) => ({
-              code: l.code,
-              amount: l.unitPrice * l.quantity,
-              description: l.description,
-            })),
-            actorUserId,
-          );
-          return created;
+            });
+            await this.ledger.recordInvoiceCharges(
+              tx,
+              { id: created.id, condoId, unitId: row.unit.id, issuedAt: created.issuedAt },
+              row.lines.map((l) => ({
+                code: l.code,
+                amount: l.unitPrice * l.quantity,
+                description: l.description,
+              })),
+              actorUserId,
+            );
+            rows.push({ invoiceId: created.id, unitId: row.unit.id });
+          }
+          return rows;
         });
-        createdInvoiceIds.push(invoice.id);
-        await this.applyCreditToInvoice(invoice.id, unit.id, condoId);
+
+        for (const { invoiceId, unitId } of chunkCreated) {
+          createdInvoiceIds.push(invoiceId);
+          await this.applyCreditToInvoice(invoiceId, unitId, condoId);
+        }
       } catch (err) {
         if (this.isActivePeriodDuplicate(err)) {
-          skipped += 1;
+          skipped += pending.length;
           continue;
         }
         throw err;

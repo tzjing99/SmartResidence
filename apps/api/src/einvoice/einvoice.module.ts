@@ -1,5 +1,6 @@
 import { BillingModule } from '@/billing/billing.module';
-import { Module } from '@nestjs/common';
+import { QueueModule } from '@/queue/queue.module';
+import { Module, forwardRef } from '@nestjs/common';
 import { EInvoiceController } from './einvoice.controller';
 import { EInvoiceService } from './einvoice.service';
 import { DelegatingMyInvoisProvider } from './providers/delegating-myinvois.provider';
@@ -15,7 +16,7 @@ import { SandboxMyInvoisProvider } from './providers/sandbox-myinvois.provider';
  * from BillingModule to encrypt LHDN credentials at rest.
  */
 @Module({
-  imports: [BillingModule],
+  imports: [BillingModule, forwardRef(() => QueueModule)],
   providers: [
     EInvoiceService,
     SandboxMyInvoisProvider,

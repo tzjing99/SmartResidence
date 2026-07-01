@@ -30,6 +30,7 @@ import { OwnerModule } from './owner/owner.module';
 import { ParcelModule } from './parcel/parcel.module';
 import { PlatformModule } from './platform/platform.module';
 import { PollsModule } from './polls/polls.module';
+import { QueueModule } from './queue/queue.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SafetyModule } from './safety/safety.module';
 import { SetupModule } from './setup/setup.module';
@@ -54,6 +55,7 @@ import { VisitorModule } from './visitor/visitor.module';
     PrismaModule,
     RedisModule,
     CacheModule,
+    QueueModule,
     HealthModule,
     StorageModule,
     AuthModule,

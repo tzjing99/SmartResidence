@@ -94,6 +94,9 @@ model User {
   formReviews          FormSubmission[] @relation("formReviewer")
   documentVersionsUploaded DocumentVersion[] @relation("documentVersionUploader")
   lostFoundPosts         LostFoundPost[]     @relation("lostFoundAuthor")
+  glJournalEntriesPosted GlJournalEntry[]    @relation("glJournalPoster")
+  bankStatementImports   BankStatementImport[] @relation("bankStatementImporter")
+  vendorBillsApproved    VendorBill[]        @relation("vendorBillApprover")
 
   @@index([email])
   @@index([phone])
@@ -227,6 +230,11 @@ model Condo {
   documentFolders  DocumentFolder[]
   documents        Document[]
   lostFoundPosts   LostFoundPost[]
+  glAccounts       GlAccount[]
+  glJournalEntries GlJournalEntry[]
+  bankStatementImports BankStatementImport[]
+  vendors          Vendor[]
+  vendorBills      VendorBill[]
 
   @@map("condos")
 }
@@ -908,6 +916,8 @@ model FeeScheduleExtraLine {
   code            String
   description     String
   category        String                  @default("OTHER")
+  /// Ledger fund for invoice generation — required for Strata Act fund separation.
+  fund            LedgerFund
   formula         String?
   rateType        FeeScheduleLineRateType @default(FLAT)
   amount          Decimal                 @default(0) @db.Decimal(14, 4)
@@ -1294,6 +1304,7 @@ model Attachment {
   documentVersionId String?       @unique @db.Uuid
   documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
   lostFoundPost     LostFoundPost?
+  vendorBill        VendorBill?
   format               String?
   fallbackKey          String?
   fallbackMimeType     String?
@@ -2388,4 +2399,187 @@ model DocumentVersion {
   @@unique([documentId, versionNumber])
   @@index([documentId])
   @@map("document_versions")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// General ledger (double-entry) & bank reconciliation
+//////////////////////////////////////////////////////////////////////////////
+
+enum GlAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum GlJournalSourceType {
+  INVOICE
+  PAYMENT
+  MANUAL
+  REVERSAL
+  VENDOR_BILL
+  VENDOR_PAYMENT
+}
+
+enum VendorBillStatus {
+  DRAFT
+  APPROVED
+  PAID
+  VOID
+}
+
+/// Supplier / contractor master list for accounts payable.
+model Vendor {
+  id        String   @id @default(uuid()) @db.Uuid
+  condoId   String   @db.Uuid
+  condo     Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name      String
+  contact   String?
+  taxId     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bills VendorBill[]
+
+  @@index([condoId, active])
+  @@map("vendors")
+}
+
+/// Vendor invoice awaiting approval and payment — management-only AP workflow.
+model VendorBill {
+  id                String           @id @default(uuid()) @db.Uuid
+  condoId           String           @db.Uuid
+  condo             Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  vendorId          String           @db.Uuid
+  vendor            Vendor           @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  billNumber        String
+  billDate          DateTime         @db.Date
+  dueDate           DateTime         @db.Date
+  amount            Decimal          @db.Decimal(14, 2)
+  fund              LedgerFund
+  status            VendorBillStatus @default(DRAFT)
+  description       String?
+  attachmentId      String?          @unique @db.Uuid
+  attachment        Attachment?      @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  approvedByUserId  String?          @db.Uuid
+  approvedBy        User?            @relation("vendorBillApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+  paidAt            DateTime?
+  glJournalEntryId  String?          @db.Uuid
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([condoId, billNumber])
+  @@index([condoId, status])
+  @@index([condoId, fund])
+  @@index([condoId, vendorId])
+  @@map("vendor_bills")
+}
+
+/// Chart of accounts — one tree per condo, seeded from Malaysian JMB template.
+model GlAccount {
+  id        String        @id @default(uuid()) @db.Uuid
+  condoId   String        @db.Uuid
+  condo     Condo         @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  type      GlAccountType
+  fund      LedgerFund    @default(GENERAL)
+  parentId  String?       @db.Uuid
+  parent    GlAccount?    @relation("GlAccountHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  GlAccount[]   @relation("GlAccountHierarchy")
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  journalLines         GlJournalLine[]
+  bankStatementImports BankStatementImport[]
+
+  @@unique([condoId, code])
+  @@index([condoId, type])
+  @@index([condoId, fund])
+  @@map("gl_accounts")
+}
+
+/// A balanced double-entry journal voucher.
+model GlJournalEntry {
+  id             String              @id @default(uuid()) @db.Uuid
+  condoId        String              @db.Uuid
+  condo          Condo               @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  entryDate      DateTime            @db.Date
+  description    String
+  sourceType     GlJournalSourceType
+  sourceId       String?
+  postedByUserId String?             @db.Uuid
+  postedBy       User?               @relation("glJournalPoster", fields: [postedByUserId], references: [id], onDelete: SetNull)
+  idempotencyKey String?
+  createdAt      DateTime            @default(now())
+
+  lines GlJournalLine[]
+
+  @@unique([idempotencyKey])
+  @@index([condoId, entryDate])
+  @@index([condoId, sourceType, sourceId])
+  @@map("gl_journal_entries")
+}
+
+/// Debit/credit line within a journal entry. Fund tag keeps maintenance vs
+/// sinking fund separate for Strata Management Act reporting.
+model GlJournalLine {
+  id             String         @id @default(uuid()) @db.Uuid
+  journalEntryId String         @db.Uuid
+  journalEntry   GlJournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String         @db.Uuid
+  account        GlAccount      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  debit          Decimal        @default(0) @db.Decimal(14, 2)
+  credit         Decimal        @default(0) @db.Decimal(14, 2)
+  fund           LedgerFund     @default(GENERAL)
+  memo           String?
+
+  bankStatementMatches BankStatementLine[]
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@index([accountId, fund])
+  @@map("gl_journal_lines")
+}
+
+/// Imported bank statement for reconciliation against the GL cash account.
+model BankStatementImport {
+  id               String    @id @default(uuid()) @db.Uuid
+  condoId          String    @db.Uuid
+  condo            Condo     @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  accountId        String    @db.Uuid
+  account          GlAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  periodStart      DateTime  @db.Date
+  periodEnd        DateTime  @db.Date
+  openingBalance   Decimal   @db.Decimal(14, 2)
+  closingBalance   Decimal   @db.Decimal(14, 2)
+  importedAt       DateTime  @default(now())
+  importedByUserId String?   @db.Uuid
+  importedBy       User?     @relation("bankStatementImporter", fields: [importedByUserId], references: [id], onDelete: SetNull)
+
+  lines BankStatementLine[]
+
+  @@index([condoId, accountId])
+  @@index([condoId, periodStart, periodEnd])
+  @@map("bank_statement_imports")
+}
+
+/// Single line from a bank CSV import, optionally matched to a GL journal line.
+model BankStatementLine {
+  id                   String              @id @default(uuid()) @db.Uuid
+  importId             String              @db.Uuid
+  import               BankStatementImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  date                 DateTime            @db.Date
+  description          String
+  amount               Decimal             @db.Decimal(14, 2)
+  matchedJournalLineId String?             @db.Uuid
+  matchedJournalLine   GlJournalLine?      @relation(fields: [matchedJournalLineId], references: [id], onDelete: SetNull)
+
+  @@index([importId, date])
+  @@index([matchedJournalLineId])
+  @@map("bank_statement_lines")
 }

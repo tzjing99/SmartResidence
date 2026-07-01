@@ -672,6 +672,47 @@ export interface IncomeExpenseReport {
   byCategory: IncomeExpenseCategoryRow[];
 }
 
+/** Malaysian fund labels for AGM / auditor financial statements. */
+export const STATEMENT_FUND_LABELS: Record<LedgerFund, string> = {
+  MAINTENANCE: 'Maintenance fund',
+  SINKING_FUND: 'Sinking fund',
+  DEPOSIT: 'Deposits held',
+  GENERAL: 'General fund',
+};
+
+export interface FinancialStatementLineItem {
+  label: string;
+  code?: string;
+  amount: number;
+}
+
+export interface FinancialStatementSection {
+  title: string;
+  lines: FinancialStatementLineItem[];
+  total: number;
+}
+
+/** Profit & loss (income statement) for a date range, optionally scoped to one fund. */
+export interface ProfitLossReport {
+  from: string;
+  to: string;
+  fund: LedgerFund | 'ALL';
+  fundLabel: string;
+  income: FinancialStatementSection;
+  expenses: FinancialStatementSection;
+  netSurplus: number;
+}
+
+/** Balance sheet as at a single date — assets, liabilities, and fund equity. */
+export interface BalanceSheetReport {
+  asOf: string;
+  assets: FinancialStatementSection;
+  liabilities: FinancialStatementSection;
+  funds: FinancialStatementSection;
+  totalAssets: number;
+  totalLiabilitiesAndFunds: number;
+}
+
 export interface ArrearsAgingBucket {
   bucket: '0-30' | '31-60' | '61-90' | '90+';
   amount: number;

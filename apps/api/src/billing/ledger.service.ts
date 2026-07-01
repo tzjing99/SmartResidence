@@ -1,3 +1,4 @@
+import type { GlPostingService } from '@/accounting/gl-posting.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
@@ -5,17 +6,29 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
-import { InvoiceStatus, LedgerEntryType, LedgerFund, type Prisma, RoleId } from '@prisma/client';
+import {
+  InvoiceStatus,
+  LedgerEntryType,
+  LedgerFund,
+  PaymentStatus,
+  type Prisma,
+  RoleId,
+} from '@prisma/client';
 import {
   type ArrearsAging,
   type ArrearsAgingBucket,
+  type BalanceSheetReport,
   type CollectionsSummary,
+  type FinancialStatementLineItem,
   type FundBalance,
   type FundSummaryReport,
   type FundSummaryRow,
   type IncomeExpenseCategoryRow,
   type IncomeExpenseReport,
+  type ProfitLossReport,
+  STATEMENT_FUND_LABELS,
   type UnitStatement,
   type UnitStatementEntry,
   formatCompactUnitLabel,
@@ -118,7 +131,10 @@ function applyLedgerEntry(
 
 @Injectable()
 export class LedgerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly glPosting?: GlPostingService,
+  ) {}
 
   /** Map an invoice-line code to its accounting fund. */
   static fundOfCode(code: string): LedgerFund {
@@ -159,9 +175,10 @@ export class LedgerService {
       id: string;
       condoId: string;
       unitId: string;
+      number?: string;
       issuedAt?: Date | null;
     },
-    lines: Array<{ code: string; amount: number; description: string }>,
+    lines: Array<{ code: string; amount: number; description: string; fund?: LedgerFund }>,
     actorUserId?: string | null,
   ) {
     if (lines.length === 0) return;
@@ -170,7 +187,7 @@ export class LedgerService {
       data: lines.map((line, i) => ({
         condoId: invoice.condoId,
         unitId: invoice.unitId,
-        fund: LedgerService.fundOfCode(line.code),
+        fund: line.fund ?? LedgerService.fundOfCode(line.code),
         type: LedgerEntryType.CHARGE,
         amount: line.amount,
         idempotencyKey: `invoice:${invoice.id}:charge:${i}`,
@@ -181,6 +198,19 @@ export class LedgerService {
         createdByUserId: actorUserId ?? null,
       })),
       skipDuplicates: true,
+    });
+
+    await this.glPosting?.postInvoiceCharges(client, {
+      invoiceId: invoice.id,
+      condoId: invoice.condoId,
+      number: invoice.number ?? invoice.id.slice(0, 8),
+      issuedAt: invoice.issuedAt,
+      lines: lines.map((l) => ({
+        code: l.code,
+        amount: l.amount,
+        description: l.description,
+      })),
+      actorUserId,
     });
   }
 
@@ -284,6 +314,20 @@ export class LedgerService {
     if (rows.length > 0) {
       await client.ledgerEntry.createMany({ data: rows, skipDuplicates: true });
     }
+
+    const glAllocations = allocations
+      .filter(({ share }) => Math.abs(share) >= 0.005)
+      .map(({ fund, share }) => ({ fund, amount: share }));
+
+    await this.glPosting?.postPayment(client, {
+      paymentId: opts.paymentId,
+      invoiceId: opts.invoiceId,
+      condoId: invoice.condoId,
+      invoiceNumber: invoice.number,
+      allocations: glAllocations,
+      occurredAt,
+      actorUserId: opts.actorUserId,
+    });
   }
 
   // -- Prepayment credit ----------------------------------------------
@@ -484,6 +528,210 @@ export class LedgerService {
           collections: round(row.collections),
         }))
         .sort((a, b) => b.charges + b.collections - (a.charges + a.collections)),
+    };
+  }
+
+  async profitLoss(
+    condoId: string,
+    from: Date,
+    to: Date,
+    fundFilter?: LedgerFund,
+  ): Promise<ProfitLossReport> {
+    const incomeExpense = await this.incomeExpense(condoId, from, to);
+    const adjustments = await this.prisma.ledgerEntry.findMany({
+      where: {
+        condoId,
+        occurredAt: { gte: from, lte: to },
+        type: LedgerEntryType.ADJUSTMENT,
+        ...(fundFilter ? { fund: fundFilter } : {}),
+      },
+      select: { fund: true, amount: true, memo: true },
+    });
+
+    const matchesFund = (fund: LedgerFund) => !fundFilter || fund === fundFilter;
+
+    const incomeLines: FinancialStatementLineItem[] = [];
+    for (const row of incomeExpense.byCategory) {
+      if (!matchesFund(row.fund) || row.collections <= 0) continue;
+      incomeLines.push({
+        label: row.description,
+        code: row.code,
+        amount: row.collections,
+      });
+    }
+
+    const otherIncome = adjustments
+      .filter((a) => Number(a.amount) > 0)
+      .reduce((sum, a) => sum + Number(a.amount), 0);
+    if (otherIncome > 0.005) {
+      incomeLines.push({ label: 'Other income (adjustments)', amount: otherIncome });
+    }
+
+    incomeLines.sort((a, b) => b.amount - a.amount);
+
+    const expenseLines: FinancialStatementLineItem[] = [];
+    for (const row of incomeExpense.byCategory) {
+      if (!matchesFund(row.fund) || row.charges <= 0) continue;
+      expenseLines.push({
+        label: row.description,
+        code: row.code,
+        amount: row.charges,
+      });
+    }
+
+    const negativeAdjustments = adjustments
+      .filter((a) => Number(a.amount) < 0)
+      .reduce((sum, a) => sum + Math.abs(Number(a.amount)), 0);
+    if (negativeAdjustments > 0.005) {
+      expenseLines.push({ label: 'Adjustments (reductions)', amount: negativeAdjustments });
+    }
+
+    expenseLines.sort((a, b) => b.amount - a.amount);
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const incomeTotal = round(incomeLines.reduce((s, l) => s + l.amount, 0));
+    const expenseTotal = round(expenseLines.reduce((s, l) => s + l.amount, 0));
+
+    const fund: ProfitLossReport['fund'] = fundFilter ?? 'ALL';
+    const fundLabel = fund === 'ALL' ? 'All funds' : STATEMENT_FUND_LABELS[fund as LedgerFund];
+
+    return {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      fund,
+      fundLabel,
+      income: {
+        title: 'Income',
+        lines: incomeLines.map((l) => ({ ...l, amount: round(l.amount) })),
+        total: incomeTotal,
+      },
+      expenses: {
+        title: 'Expenditure',
+        lines: expenseLines.map((l) => ({ ...l, amount: round(l.amount) })),
+        total: expenseTotal,
+      },
+      netSurplus: round(incomeTotal - expenseTotal),
+    };
+  }
+
+  async fundBalancesAsOf(condoId: string, asOf: Date): Promise<FundBalance[]> {
+    const grouped = await this.prisma.ledgerEntry.groupBy({
+      by: ['fund'],
+      where: {
+        condoId,
+        type: { not: LedgerEntryType.CHARGE },
+        occurredAt: { lte: asOf },
+      },
+      _sum: { amount: true },
+    });
+    const map = new Map<LedgerFund, number>(
+      grouped.map((g) => [g.fund, Number(g._sum.amount ?? 0)]),
+    );
+    return (Object.values(LedgerFund) as LedgerFund[]).map((fund) => ({
+      fund,
+      balance: Math.round((map.get(fund) ?? 0) * 100) / 100,
+    }));
+  }
+
+  async receivablesAsOf(condoId: string, asOf: Date): Promise<number> {
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        condoId,
+        issuedAt: { lte: asOf },
+        status: { notIn: [InvoiceStatus.DRAFT, InvoiceStatus.VOID] },
+      },
+      include: {
+        payments: {
+          where: { status: PaymentStatus.SUCCEEDED, paidAt: { lte: asOf } },
+          select: { amount: true },
+        },
+      },
+    });
+    let total = 0;
+    for (const inv of invoices) {
+      const paid = inv.payments.reduce((s, p) => s + Number(p.amount), 0);
+      const outstanding = Number(inv.total) - paid;
+      if (outstanding > 0.005) total += outstanding;
+    }
+    return Math.round(total * 100) / 100;
+  }
+
+  async balanceSheet(condoId: string, asOf: Date): Promise<BalanceSheetReport> {
+    const [fundBalances, receivables, unitCredits] = await Promise.all([
+      this.fundBalancesAsOf(condoId, asOf),
+      this.receivablesAsOf(condoId, asOf),
+      this.prisma.unitAccount.aggregate({
+        where: { condoId },
+        _sum: { creditBalance: true },
+      }),
+    ]);
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const balanceOf = (fund: LedgerFund) => fundBalances.find((f) => f.fund === fund)?.balance ?? 0;
+
+    const depositHeld = balanceOf(LedgerFund.DEPOSIT);
+    const creditLiability = Number(unitCredits._sum.creditBalance ?? 0);
+
+    const assetLines: FinancialStatementLineItem[] = [];
+    if (receivables > 0.005) {
+      assetLines.push({
+        label: 'Amount due from proprietors (receivables)',
+        amount: receivables,
+      });
+    }
+    if (depositHeld > 0.005) {
+      assetLines.push({
+        label: `Cash — ${STATEMENT_FUND_LABELS.DEPOSIT}`,
+        amount: depositHeld,
+      });
+    }
+
+    const liabilityLines: FinancialStatementLineItem[] = [];
+    if (depositHeld > 0.005) {
+      liabilityLines.push({
+        label: STATEMENT_FUND_LABELS.DEPOSIT,
+        amount: depositHeld,
+      });
+    }
+    if (creditLiability > 0.005) {
+      liabilityLines.push({
+        label: 'Unit prepayment credits',
+        amount: creditLiability,
+      });
+    }
+
+    const fundLines: FinancialStatementLineItem[] = (
+      ['MAINTENANCE', 'SINKING_FUND', 'GENERAL'] as LedgerFund[]
+    )
+      .map((fund) => ({
+        label: STATEMENT_FUND_LABELS[fund],
+        amount: balanceOf(fund),
+      }))
+      .filter((l) => l.amount !== 0);
+
+    const totalAssets = round(assetLines.reduce((s, l) => s + l.amount, 0));
+    const totalLiabilities = round(liabilityLines.reduce((s, l) => s + l.amount, 0));
+    const totalFunds = round(fundLines.reduce((s, l) => s + l.amount, 0));
+
+    return {
+      asOf: asOf.toISOString(),
+      assets: {
+        title: 'Assets',
+        lines: assetLines.map((l) => ({ ...l, amount: round(l.amount) })),
+        total: totalAssets,
+      },
+      liabilities: {
+        title: 'Liabilities',
+        lines: liabilityLines.map((l) => ({ ...l, amount: round(l.amount) })),
+        total: totalLiabilities,
+      },
+      funds: {
+        title: 'Funds',
+        lines: fundLines.map((l) => ({ ...l, amount: round(l.amount) })),
+        total: totalFunds,
+      },
+      totalAssets,
+      totalLiabilitiesAndFunds: round(totalLiabilities + totalFunds),
     };
   }
 

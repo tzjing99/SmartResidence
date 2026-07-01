@@ -1,10 +1,13 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import type { LedgerFund } from '@prisma/client';
 import {
   COMMON_FEE_SCHEDULE_PRESETS,
-  computeFeeAmount,
   FEE_SCHEDULE_CATEGORY_LABELS,
+  type FeeScheduleExtraLineFund,
+  computeFeeAmount,
+  resolveFeeScheduleExtraLineFund,
 } from '@smartresidence/shared-types';
 import type {
   AddFeeSchedulePresetsDto,
@@ -18,6 +21,7 @@ export interface ComputedFeeLine {
   formula?: string;
   unitPrice: number;
   quantity: number;
+  fund: LedgerFund;
 }
 
 type JsonMap = Record<string, unknown>;
@@ -131,7 +135,9 @@ export class FeeScheduleService {
     const recurring = dto.recurring === true;
     const range = recurring ? { start: null, end: null } : this.monthRange(dto.month);
     const requested = dto.presetCodes?.length
-      ? COMMON_FEE_SCHEDULE_PRESETS.filter((p) => dto.presetCodes?.includes(p.category))
+      ? COMMON_FEE_SCHEDULE_PRESETS.filter(
+          (p) => dto.presetCodes?.includes(p.category) || dto.presetCodes?.includes(p.code),
+        )
       : COMMON_FEE_SCHEDULE_PRESETS;
 
     if (requested.length === 0) throw new BadRequestException('No recognised fee presets selected');
@@ -143,7 +149,7 @@ export class FeeScheduleService {
       const duplicate = await this.prisma.feeScheduleExtraLine.findFirst({
         where: {
           condoId,
-          category: preset.category,
+          code: preset.code,
           recurring,
           effectiveFrom: range.start,
         },
@@ -158,6 +164,7 @@ export class FeeScheduleService {
           code: preset.code,
           description: preset.description,
           category: preset.category,
+          fund: preset.fund,
           formula: preset.formula,
           rateType: 'FLAT',
           amount: 0,
@@ -237,6 +244,7 @@ export class FeeScheduleService {
             : undefined,
         unitPrice: maint,
         quantity: 1,
+        fund: 'MAINTENANCE',
       });
     }
 
@@ -255,6 +263,7 @@ export class FeeScheduleService {
             : undefined,
         unitPrice: sinking,
         quantity: 1,
+        fund: 'SINKING_FUND',
       });
     }
 
@@ -271,6 +280,7 @@ export class FeeScheduleService {
       code: string;
       description: string;
       formula?: string | null;
+      fund: LedgerFund;
       rateType: 'FLAT' | 'PER_SQFT' | 'PER_UNIT_TYPE';
       amount: unknown;
       unitTypeAmounts: unknown;
@@ -289,6 +299,7 @@ export class FeeScheduleService {
         formula: this.extraFormula(extra, sqft, unit.unitType?.name),
         unitPrice: amount,
         quantity: 1,
+        fund: extra.fund,
       });
     }
 
@@ -305,7 +316,7 @@ export class FeeScheduleService {
 
   private buildExtraLineData(dto: UpsertFeeScheduleExtraLineDto) {
     const recurring = dto.recurring === true;
-    let effectiveFrom = dto.effectiveFrom ?? null;
+    const effectiveFrom = dto.effectiveFrom ?? null;
     let effectiveTo = dto.effectiveTo ?? null;
     if (!recurring) {
       if (!effectiveFrom) {
@@ -326,10 +337,18 @@ export class FeeScheduleService {
         .filter(([, value]) => Number.isFinite(value) && value >= 0),
     );
 
+    let fund: FeeScheduleExtraLineFund;
+    try {
+      fund = resolveFeeScheduleExtraLineFund({ fund: dto.fund, category: dto.category });
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
+
     return {
       code: dto.code.trim().toUpperCase(),
       description: dto.description.trim(),
       category: dto.category?.trim() || 'OTHER',
+      fund,
       formula: dto.formula?.trim() || null,
       rateType: dto.rateType,
       amount: dto.amount ?? 0,

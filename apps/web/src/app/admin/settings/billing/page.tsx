@@ -22,6 +22,7 @@ import {
 import type {
   FeeRateType,
   FeeScheduleExtraLine,
+  FeeScheduleExtraLineFund,
   FeeScheduleLineRateType,
   GatewayMode,
   PaymentProvider,
@@ -30,7 +31,9 @@ import type {
 import {
   COMMON_FEE_SCHEDULE_PRESETS,
   CONNECTABLE_PROVIDERS,
+  FEE_SCHEDULE_CATEGORY_FUND,
   FEE_SCHEDULE_CATEGORY_LABELS,
+  FEE_SCHEDULE_EXTRA_LINE_FUND_LABELS,
   GATEWAY_CAPABILITIES,
   GATEWAY_CREDENTIAL_FIELDS,
   GATEWAY_PROVIDER_LABELS,
@@ -98,11 +101,24 @@ const EXTRA_RATE_TYPE_OPTIONS: { value: FeeScheduleLineRateType; label: string; 
   { value: 'PER_UNIT_TYPE', label: 'By unit type', help: 'Set a different amount by layout/type' },
 ];
 
+const EXTRA_LINE_FUND_OPTIONS: { value: FeeScheduleExtraLineFund; label: string }[] = [
+  { value: 'MAINTENANCE', label: FEE_SCHEDULE_EXTRA_LINE_FUND_LABELS.MAINTENANCE },
+  { value: 'SINKING_FUND', label: FEE_SCHEDULE_EXTRA_LINE_FUND_LABELS.SINKING_FUND },
+  { value: 'DEPOSIT', label: FEE_SCHEDULE_EXTRA_LINE_FUND_LABELS.DEPOSIT },
+];
+
+const FEATURED_PRESET_LABELS = new Set([
+  'Fire insurance (sinking)',
+  'Quit rent (maintenance)',
+  'Sinking fund contribution',
+]);
+
 type EditableExtraLine = {
   id?: string;
   code: string;
   description: string;
   category: string;
+  fund: FeeScheduleExtraLineFund;
   formula: string;
   rateType: FeeScheduleLineRateType;
   amount: number;
@@ -137,6 +153,7 @@ const emptyExtraLine = (): EditableExtraLine => ({
   code: 'FEE',
   description: '',
   category: 'OTHER',
+  fund: 'MAINTENANCE',
   formula: '',
   rateType: 'FLAT',
   amount: 0,
@@ -152,6 +169,7 @@ function toEditableExtraLine(line: FeeScheduleExtraLine): EditableExtraLine {
     code: line.code,
     description: line.description,
     category: line.category,
+    fund: line.fund,
     formula: line.formula ?? '',
     rateType: line.rateType,
     amount: Number(line.amount),
@@ -331,6 +349,10 @@ function ExtraFeeLineEditor({
       toast.error('Enter a fee description');
       return;
     }
+    if (!draft.fund) {
+      toast.error('Select a fund for this fee line');
+      return;
+    }
     try {
       await upsert.mutateAsync({
         condoId,
@@ -339,6 +361,7 @@ function ExtraFeeLineEditor({
           code: draft.code.trim() || 'FEE',
           description: draft.description.trim(),
           category: draft.category,
+          fund: draft.fund,
           formula: draft.formula.trim() || undefined,
           rateType: draft.rateType,
           amount: draft.rateType === 'PER_UNIT_TYPE' ? 0 : Number(draft.amount || 0),
@@ -391,9 +414,15 @@ function ExtraFeeLineEditor({
             ) : (
               <Badge tone="warning">One-off</Badge>
             )}
+            <Badge tone="neutral">{FEE_SCHEDULE_EXTRA_LINE_FUND_LABELS[draft.fund]}</Badge>
           </div>
           <p className="text-xs sr-muted mt-0.5">
             {selectedRate?.help}. Zero amounts are saved but skipped during invoice generation.
+          </p>
+          <p className="text-xs sr-muted mt-1">
+            Under the Strata Management Act, maintenance and sinking fund collections must be kept
+            separate. Assign each recurring charge to the correct fund so ledger reports stay
+            accurate.
           </p>
         </div>
         <label className="inline-flex items-center gap-2 rounded-xl border border-[rgb(var(--sr-border))]/70 px-3 py-2 text-sm">
@@ -407,7 +436,7 @@ function ExtraFeeLineEditor({
         </label>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[0.75fr_1.5fr_1fr]">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[0.75fr_1.5fr_1fr_1fr]">
         <div className="flex flex-col gap-1.5">
           <Label>Code</Label>
           <Input
@@ -429,11 +458,35 @@ function ExtraFeeLineEditor({
           <select
             className={selectCls}
             value={draft.category}
-            onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+            onChange={(e) => {
+              const category = e.target.value;
+              const mapped =
+                category in FEE_SCHEDULE_CATEGORY_FUND
+                  ? FEE_SCHEDULE_CATEGORY_FUND[category as keyof typeof FEE_SCHEDULE_CATEGORY_FUND]
+                  : draft.fund;
+              setDraft({ ...draft, category, fund: mapped });
+            }}
           >
             {Object.entries(FEE_SCHEDULE_CATEGORY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Fund (required)</Label>
+          <select
+            className={selectCls}
+            value={draft.fund}
+            required
+            onChange={(e) =>
+              setDraft({ ...draft, fund: e.target.value as FeeScheduleExtraLineFund })
+            }
+          >
+            {EXTRA_LINE_FUND_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </select>
@@ -565,14 +618,14 @@ function ExtraFeeSchedule({ condoId, unitTypes }: { condoId: string; unitTypes: 
     .filter((line) => line.enabled && line.rateType !== 'PER_UNIT_TYPE' && Number(line.amount) > 0)
     .reduce((sum, line) => sum + Number(line.amount), 0);
 
-  async function onAddPresets() {
+  async function onAddPresets(categories?: string[]) {
     try {
       const res = await addPresets.mutateAsync({
         condoId,
         input: {
           month: presetMonth,
           recurring: false,
-          presetCodes: COMMON_FEE_SCHEDULE_PRESETS.map((p) => p.category),
+          presetCodes: categories ?? COMMON_FEE_SCHEDULE_PRESETS.map((p) => p.code),
         },
       });
       const skipped = res.skipped ? ` · ${res.skipped} already existed` : '';
@@ -584,6 +637,10 @@ function ExtraFeeSchedule({ condoId, unitTypes }: { condoId: string; unitTypes: 
     }
   }
 
+  const featuredPresets = COMMON_FEE_SCHEDULE_PRESETS.filter((p) =>
+    FEATURED_PRESET_LABELS.has(p.label),
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto]">
@@ -592,7 +649,8 @@ function ExtraFeeSchedule({ condoId, unitTypes }: { condoId: string; unitTypes: 
           <p className="text-sm sr-muted mt-1">
             Add real-life charges like fire insurance, quit rent, assessment or a special levy.
             Enabled non-zero lines are added automatically when invoices are generated from the fee
-            schedule.
+            schedule. Each line must be assigned to a maintenance or sinking fund — not General — to
+            comply with Strata Act fund separation.
           </p>
           {totalActive > 0 ? (
             <p className="text-xs sr-muted mt-2">
@@ -611,8 +669,26 @@ function ExtraFeeSchedule({ condoId, unitTypes }: { condoId: string; unitTypes: 
                 onChange={(e) => setPresetMonth(e.target.value || currentMonth())}
               />
             </div>
-            <Button size="sm" disabled={addPresets.isPending} onClick={() => void onAddPresets()}>
-              {addPresets.isPending ? 'Adding…' : 'Add common fees'}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {featuredPresets.map((preset) => (
+              <Button
+                key={preset.code}
+                size="sm"
+                variant="secondary"
+                disabled={addPresets.isPending}
+                onClick={() => void onAddPresets([preset.code])}
+              >
+                {preset.label}
+              </Button>
+            ))}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={addPresets.isPending}
+              onClick={() => void onAddPresets()}
+            >
+              {addPresets.isPending ? 'Adding…' : 'Add all presets'}
             </Button>
           </div>
           <button

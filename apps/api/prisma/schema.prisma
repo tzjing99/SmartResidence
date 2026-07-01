@@ -96,6 +96,7 @@ model User {
   lostFoundPosts         LostFoundPost[]     @relation("lostFoundAuthor")
   glJournalEntriesPosted GlJournalEntry[]    @relation("glJournalPoster")
   bankStatementImports   BankStatementImport[] @relation("bankStatementImporter")
+  vendorBillsApproved    VendorBill[]        @relation("vendorBillApprover")
 
   @@index([email])
   @@index([phone])
@@ -232,6 +233,8 @@ model Condo {
   glAccounts       GlAccount[]
   glJournalEntries GlJournalEntry[]
   bankStatementImports BankStatementImport[]
+  vendors          Vendor[]
+  vendorBills      VendorBill[]
 
   @@map("condos")
 }
@@ -913,6 +916,8 @@ model FeeScheduleExtraLine {
   code            String
   description     String
   category        String                  @default("OTHER")
+  /// Ledger fund for invoice generation — required for Strata Act fund separation.
+  fund            LedgerFund
   formula         String?
   rateType        FeeScheduleLineRateType @default(FLAT)
   amount          Decimal                 @default(0) @db.Decimal(14, 4)
@@ -1299,6 +1304,7 @@ model Attachment {
   documentVersionId String?       @unique @db.Uuid
   documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
   lostFoundPost     LostFoundPost?
+  vendorBill        VendorBill?
   format               String?
   fallbackKey          String?
   fallbackMimeType     String?
@@ -2412,8 +2418,67 @@ enum GlJournalSourceType {
   PAYMENT
   MANUAL
   REVERSAL
+  VENDOR_BILL
+  VENDOR_PAYMENT
 }
 
+enum VendorBillStatus {
+  DRAFT
+  APPROVED
+  PAID
+  VOID
+}
+
+/// Supplier / contractor master list for accounts payable.
+model Vendor {
+  id        String   @id @default(uuid()) @db.Uuid
+  condoId   String   @db.Uuid
+  condo     Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name      String
+  contact   String?
+  taxId     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bills VendorBill[]
+
+  @@index([condoId, active])
+  @@map("vendors")
+}
+
+/// Vendor invoice awaiting approval and payment — management-only AP workflow.
+model VendorBill {
+  id                String           @id @default(uuid()) @db.Uuid
+  condoId           String           @db.Uuid
+  condo             Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  vendorId          String           @db.Uuid
+  vendor            Vendor           @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  billNumber        String
+  billDate          DateTime         @db.Date
+  dueDate           DateTime         @db.Date
+  amount            Decimal          @db.Decimal(14, 2)
+  fund              LedgerFund
+  status            VendorBillStatus @default(DRAFT)
+  description       String?
+  attachmentId      String?          @unique @db.Uuid
+  attachment        Attachment?      @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  approvedByUserId  String?          @db.Uuid
+  approvedBy        User?            @relation("vendorBillApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+  paidAt            DateTime?
+  glJournalEntryId  String?          @db.Uuid
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([condoId, billNumber])
+  @@index([condoId, status])
+  @@index([condoId, fund])
+  @@index([condoId, vendorId])
+  @@map("vendor_bills")
+}
+
+/// Chart of accounts — one tree per condo, seeded from Malaysian JMB template.
 model GlAccount {
   id        String        @id @default(uuid()) @db.Uuid
   condoId   String        @db.Uuid
@@ -2438,6 +2503,7 @@ model GlAccount {
   @@map("gl_accounts")
 }
 
+/// A balanced double-entry journal voucher.
 model GlJournalEntry {
   id             String              @id @default(uuid()) @db.Uuid
   condoId        String              @db.Uuid
@@ -2459,6 +2525,8 @@ model GlJournalEntry {
   @@map("gl_journal_entries")
 }
 
+/// Debit/credit line within a journal entry. Fund tag keeps maintenance vs
+/// sinking fund separate for Strata Management Act reporting.
 model GlJournalLine {
   id             String         @id @default(uuid()) @db.Uuid
   journalEntryId String         @db.Uuid
@@ -2478,6 +2546,7 @@ model GlJournalLine {
   @@map("gl_journal_lines")
 }
 
+/// Imported bank statement for reconciliation against the GL cash account.
 model BankStatementImport {
   id               String    @id @default(uuid()) @db.Uuid
   condoId          String    @db.Uuid
@@ -2499,6 +2568,7 @@ model BankStatementImport {
   @@map("bank_statement_imports")
 }
 
+/// Single line from a bank CSV import, optionally matched to a GL journal line.
 model BankStatementLine {
   id                   String              @id @default(uuid()) @db.Uuid
   importId             String              @db.Uuid

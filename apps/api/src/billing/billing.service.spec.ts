@@ -2,7 +2,7 @@ import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
-import { InvoiceStatus, PaymentStatus, RoleId } from '@prisma/client';
+import { InvoiceStatus, PaymentProvider, PaymentStatus, RoleId } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { BillingService } from './billing.service';
 import type { FpxAdapter } from './providers/fpx.adapter';
@@ -54,7 +54,20 @@ function makeService(prisma: Partial<PrismaService>, events: { emit: ReturnType<
     {} as FpxAdapter,
     {} as import('./providers/fiuu.adapter').FiuuAdapter,
     {} as import('./providers/ipay88.adapter').IPay88Adapter,
+    {} as import('./providers/duitnow.adapter').DuitNowAdapter,
   );
+}
+
+function owner(): AuthenticatedUser {
+  return {
+    id: 'owner-1',
+    email: 'o@b.c',
+    name: 'Owner',
+    locale: 'en',
+    activeCondoId: CONDO,
+    activeRole: RoleId.UNIT_OWNER,
+    roles: [{ roleId: RoleId.UNIT_OWNER, condoId: CONDO, unitId: 'unit-1', permissions: [] }],
+  };
 }
 
 function txStub(overrides: Record<string, unknown> = {}) {
@@ -333,7 +346,7 @@ describe('BillingService.generateRecurring', () => {
     const prisma = {
       condo: { findUnique: vi.fn(async () => ({ id: CONDO })) },
       unit: { findMany: vi.fn(async () => units) },
-      invoice: { count },
+      invoice: { count, findMany: vi.fn(async () => [{ unitId: 'unit-1' }]) },
       $transaction: vi.fn(async (cb: (t: unknown) => unknown) => cb(tx)),
     } as unknown as PrismaService;
     const events = { emit: vi.fn() };
@@ -371,7 +384,7 @@ describe('BillingService.generateRecurring', () => {
     const prisma = {
       condo: { findUnique: vi.fn(async () => ({ id: CONDO })) },
       unit: { findMany: vi.fn(async () => units) },
-      invoice: { count: vi.fn(async () => 0) },
+      invoice: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []) },
       $transaction: vi.fn(async (cb: (t: unknown) => unknown) => cb(tx)),
     } as unknown as PrismaService;
     const svc = makeService(prisma, { emit: vi.fn() });
@@ -393,10 +406,16 @@ describe('BillingService.generateRecurring', () => {
     ];
     feeSchedule.feeSchedule.listActiveExtraLinesForPeriod.mockResolvedValue(extraLines);
     feeSchedule.feeSchedule.computeLinesForUnit.mockReturnValue([
-      { code: 'MAINT', description: 'Maintenance', unitPrice: 100, quantity: 1 },
+      { code: 'MAINT', description: 'Maintenance', unitPrice: 100, quantity: 1, fund: 'MAINTENANCE' },
     ]);
     feeSchedule.feeSchedule.computeExtraLinesForUnit.mockReturnValue([
-      { code: 'FIRE', description: 'Fire insurance premium', unitPrice: 25, quantity: 1 },
+      {
+        code: 'FIRE',
+        description: 'Fire insurance premium',
+        unitPrice: 25,
+        quantity: 1,
+        fund: 'SINKING_FUND',
+      },
     ]);
 
     const res = await svc.generateRecurring(admin(), CONDO, {
@@ -429,6 +448,55 @@ describe('BillingService.generateRecurring', () => {
         }),
       }),
     );
+  });
+});
+
+describe('BillingService.createPayment', () => {
+  it('cancels stale pending payments before creating a new gateway attempt', async () => {
+    const invoice = {
+      id: 'inv-1',
+      condoId: CONDO,
+      unitId: 'unit-1',
+      total: 100,
+      amountPaid: 0,
+      status: InvoiceStatus.ISSUED,
+      currencyCode: 'MYR',
+      metadata: {},
+    };
+    const updateMany = vi.fn(async () => ({ count: 2 }));
+    const paymentCreate = vi.fn(async () => ({ id: 'pay-new', amount: 100 }));
+    const paymentUpdate = vi.fn(async () => ({}));
+    const prisma = {
+      invoice: { findUnique: vi.fn(async () => invoice) },
+      payment: { updateMany, create: paymentCreate, update: paymentUpdate },
+    } as unknown as PrismaService;
+    const svc = makeService(prisma, { emit: vi.fn() });
+    const gateways = svc as unknown as {
+      gateways: { resolveCredentials: ReturnType<typeof vi.fn> };
+    };
+    gateways.gateways.resolveCredentials = vi.fn(async () => ({
+      credentials: { secretKey: 'sk' },
+      mode: 'TEST',
+      publicConfig: {},
+    }));
+    const duitnow = {
+      createIntent: vi.fn(async () => ({ providerRef: 'ref-1', redirectUrl: null })),
+    };
+    (svc as unknown as { providers: Map<unknown, unknown> }).providers.set(
+      PaymentProvider.DUITNOW_QR,
+      duitnow,
+    );
+
+    await svc.createPayment(owner(), 'inv-1', { provider: PaymentProvider.DUITNOW_QR });
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { invoiceId: 'inv-1', status: PaymentStatus.PENDING },
+        data: { status: PaymentStatus.CANCELLED },
+      }),
+    );
+    expect(paymentCreate).toHaveBeenCalled();
+    expect(duitnow.createIntent).toHaveBeenCalled();
   });
 });
 

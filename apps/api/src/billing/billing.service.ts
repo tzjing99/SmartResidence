@@ -181,6 +181,7 @@ export class BillingService {
           id: created.id,
           condoId: created.condoId,
           unitId: created.unitId,
+          number: created.number,
           issuedAt: created.issuedAt,
         },
         created.lines.map((l) => ({
@@ -256,6 +257,7 @@ export class BillingService {
         id: created.id,
         condoId: created.condoId,
         unitId: created.unitId,
+        number: created.number,
         issuedAt: created.issuedAt,
       },
       created.lines.map((l) => ({
@@ -1101,6 +1103,7 @@ export class BillingService {
           formula?: string;
           unitPrice: number;
           quantity: number;
+          fund?: import('@prisma/client').LedgerFund;
         }>;
         subtotal: number;
       }> = [];
@@ -1179,11 +1182,18 @@ export class BillingService {
             });
             await this.ledger.recordInvoiceCharges(
               tx,
-              { id: created.id, condoId, unitId: row.unit.id, issuedAt: created.issuedAt },
+              {
+                id: created.id,
+                condoId,
+                unitId: row.unit.id,
+                number: created.number,
+                issuedAt: created.issuedAt,
+              },
               row.lines.map((l) => ({
                 code: l.code,
                 amount: l.unitPrice * l.quantity,
                 description: l.description,
+                fund: l.fund,
               })),
               actorUserId,
             );

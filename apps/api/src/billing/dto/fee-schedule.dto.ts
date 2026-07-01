@@ -1,11 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { FeeRateType, FeeScheduleLineRateType } from '@prisma/client';
+import { FeeRateType, FeeScheduleLineRateType, LedgerFund } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
   IsDate,
   IsEnum,
+  IsIn,
   IsInt,
   IsNumber,
   IsObject,
@@ -57,6 +58,13 @@ export class UpsertFeeScheduleExtraLineDto {
   @IsOptional()
   @IsString()
   category?: string;
+
+  @ApiProperty({
+    enum: [LedgerFund.MAINTENANCE, LedgerFund.SINKING_FUND, LedgerFund.DEPOSIT],
+    description: 'Ledger fund for invoice generation (Strata Act fund separation).',
+  })
+  @IsIn([LedgerFund.MAINTENANCE, LedgerFund.SINKING_FUND, LedgerFund.DEPOSIT])
+  fund!: LedgerFund;
 
   @ApiPropertyOptional({ description: 'Shown on invoice for resident transparency.' })
   @IsOptional()

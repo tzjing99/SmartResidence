@@ -164,6 +164,27 @@ describe('LedgerService.recordInvoiceCharges', () => {
     expect(created.find((e) => e.fund === 'MAINTENANCE')?.amount).toBe(300);
     expect(created.find((e) => e.fund === 'SINKING_FUND')?.amount).toBe(50);
   });
+
+  it('uses explicit fund on extra lines when code does not imply a fund', async () => {
+    const created: Array<{ fund: string; amount: number }> = [];
+    const tx = {
+      ledgerEntry: {
+        createMany: vi.fn(async ({ data }: { data: Array<{ fund: string; amount: number }> }) => {
+          created.push(...data);
+          return { count: data.length };
+        }),
+      },
+    };
+    const svc = new LedgerService({} as PrismaService);
+
+    await svc.recordInvoiceCharges(tx as never, { id: 'inv-2', condoId: 'c', unitId: 'u' }, [
+      { code: 'FIRE', amount: 25, description: 'Fire insurance premium', fund: 'SINKING_FUND' },
+      { code: 'QUIT', amount: 10, description: 'Quit rent', fund: 'MAINTENANCE' },
+    ]);
+
+    expect(created.find((e) => e.fund === 'SINKING_FUND')?.amount).toBe(25);
+    expect(created.find((e) => e.fund === 'MAINTENANCE')?.amount).toBe(10);
+  });
 });
 
 describe('LedgerService.fundSummary', () => {

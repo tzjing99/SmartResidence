@@ -1,5 +1,5 @@
 import type { PrismaService } from '@/prisma/prisma.service';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FeeScheduleService } from './fee-schedule.service';
 
 const svc = new FeeScheduleService({} as PrismaService);
@@ -45,13 +45,14 @@ describe('FeeScheduleService.computeLinesForUnit', () => {
 });
 
 describe('FeeScheduleService.computeExtraLinesForUnit', () => {
-  it('computes flat and per-sqft extra fee lines', () => {
+  it('computes flat and per-sqft extra fee lines with fund tags', () => {
     const lines = svc.computeExtraLinesForUnit(
       { sqft: 1000, unitTypeId: 'type-a', unitType: { id: 'type-a', name: 'Type A' } },
       [
         {
           code: 'FIRE',
           description: 'Fire insurance premium',
+          fund: 'SINKING_FUND',
           rateType: 'FLAT',
           amount: 25,
           unitTypeAmounts: {},
@@ -59,6 +60,7 @@ describe('FeeScheduleService.computeExtraLinesForUnit', () => {
         {
           code: 'SEC',
           description: 'Security charge',
+          fund: 'MAINTENANCE',
           rateType: 'PER_SQFT',
           amount: 0.02,
           unitTypeAmounts: {},
@@ -67,8 +69,17 @@ describe('FeeScheduleService.computeExtraLinesForUnit', () => {
     );
 
     expect(lines).toHaveLength(2);
-    expect(lines[0]).toMatchObject({ code: 'FIRE', unitPrice: 25, quantity: 1 });
-    expect(lines[1]).toMatchObject({ code: 'SEC', unitPrice: 20, quantity: 1 });
+    expect(lines[0]).toMatchObject({
+      code: 'FIRE',
+      unitPrice: 25,
+      quantity: 1,
+      fund: 'SINKING_FUND',
+    });
+    expect(lines[1]).toMatchObject({
+      code: 'SEC',
+      unitPrice: 20,
+      fund: 'MAINTENANCE',
+    });
   });
 
   it('uses per-unit-type amounts and skips zero or missing amounts', () => {
@@ -78,6 +89,7 @@ describe('FeeScheduleService.computeExtraLinesForUnit', () => {
         {
           code: 'ASSESS',
           description: 'Local council assessment',
+          fund: 'MAINTENANCE',
           rateType: 'PER_UNIT_TYPE',
           amount: 0,
           unitTypeAmounts: { 'type-a': 12, 'type-b': 18 },
@@ -85,6 +97,7 @@ describe('FeeScheduleService.computeExtraLinesForUnit', () => {
         {
           code: 'LEVY',
           description: 'Special levy',
+          fund: 'SINKING_FUND',
           rateType: 'PER_UNIT_TYPE',
           amount: 0,
           unitTypeAmounts: { 'type-a': 50 },
@@ -96,7 +109,71 @@ describe('FeeScheduleService.computeExtraLinesForUnit', () => {
     expect(lines[0]).toMatchObject({
       code: 'ASSESS',
       unitPrice: 18,
+      fund: 'MAINTENANCE',
       formula: 'Configured rate for Type B',
     });
+  });
+});
+
+describe('FeeScheduleService.upsertExtraLine fund validation', () => {
+  it('rejects create without a valid fund', async () => {
+    const prisma = {
+      condo: { findUnique: vi.fn(async () => ({ id: 'c1' })) },
+      feeScheduleExtraLine: {
+        findFirst: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
+    } as unknown as PrismaService;
+    const service = new FeeScheduleService(prisma);
+
+    await expect(
+      service.upsertExtraLine('c1', {
+        code: 'MISC',
+        description: 'Misc charge',
+        rateType: 'FLAT',
+        recurring: true,
+      } as never),
+    ).rejects.toThrow(/Select a fund/);
+  });
+
+  it('persists fund on create', async () => {
+    const create = vi.fn(async (args: { data: { fund: string } }) => ({
+      ...args.data,
+      id: 'line-1',
+      amount: 0,
+      unitTypeAmounts: {},
+      effectiveFrom: null,
+      effectiveTo: null,
+      enabled: true,
+      sortOrder: 100,
+      metadata: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+    const prisma = {
+      condo: { findUnique: vi.fn(async () => ({ id: 'c1' })) },
+      feeScheduleExtraLine: {
+        findFirst: vi.fn(),
+        create,
+        update: vi.fn(),
+      },
+    } as unknown as PrismaService;
+    const service = new FeeScheduleService(prisma);
+
+    await service.upsertExtraLine('c1', {
+      code: 'FIRE',
+      description: 'Fire insurance premium',
+      category: 'FIRE_INSURANCE',
+      fund: 'SINKING_FUND',
+      rateType: 'FLAT',
+      recurring: true,
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ fund: 'SINKING_FUND', code: 'FIRE' }),
+      }),
+    );
   });
 });

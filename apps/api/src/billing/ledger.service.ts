@@ -178,7 +178,7 @@ export class LedgerService {
       number?: string;
       issuedAt?: Date | null;
     },
-    lines: Array<{ code: string; amount: number; description: string }>,
+    lines: Array<{ code: string; amount: number; description: string; fund?: LedgerFund }>,
     actorUserId?: string | null,
   ) {
     if (lines.length === 0) return;
@@ -187,7 +187,7 @@ export class LedgerService {
       data: lines.map((line, i) => ({
         condoId: invoice.condoId,
         unitId: invoice.unitId,
-        fund: LedgerService.fundOfCode(line.code),
+        fund: line.fund ?? LedgerService.fundOfCode(line.code),
         type: LedgerEntryType.CHARGE,
         amount: line.amount,
         idempotencyKey: `invoice:${invoice.id}:charge:${i}`,
@@ -205,7 +205,11 @@ export class LedgerService {
       condoId: invoice.condoId,
       number: invoice.number ?? invoice.id.slice(0, 8),
       issuedAt: invoice.issuedAt,
-      lines,
+      lines: lines.map((l) => ({
+        code: l.code,
+        amount: l.amount,
+        description: l.description,
+      })),
       actorUserId,
     });
   }

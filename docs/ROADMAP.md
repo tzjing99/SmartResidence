@@ -70,15 +70,20 @@ role-differentiated navigation already implemented in
 
 ### 2.1 Visitor approval rule (CONFIRMED — correction pending)
 
-> **Only RESIDENTS (owner / tenant) approve or reject visitors for their own
-> unit.** Management can **READ / AUDIT** the visitor log but **cannot**
-> approve or reject. Guards perform **physical check-in / check-out only**.
+> **Residents (owner / tenant) are the primary approvers** for walk-ins to
+> their unit. Management can **READ / AUDIT** the visitor log but **cannot**
+> approve or reject on behalf of a unit.
 
-⚠️ **Current code does not yet match this.** Today `ability.factory.ts` grants
-`MANAGEMENT_ADMIN` `manage Visitor` and `MANAGEMENT_STAFF` `approve Visitor`.
-This is the corrected rule to apply in the visitor-management milestone
-(post-threads): remove management approve/reject, keep read/audit, keep guard
-check-in/out, and keep resident approve/reject as the only approval path.
+> **Guard on-site admit (product decision — kept):** guards may **admit a
+> walk-in immediately** (`admitNow` / guard discretion) with full audit trail
+> (`admittedByGuardUserId`, owner notified for transparency). This is
+> intentional on-site discretion — not a management override.
+
+⚠️ **Management approve/reject RBAC correction still pending.** Today
+`ability.factory.ts` grants `MANAGEMENT_ADMIN` `manage Visitor` and
+`MANAGEMENT_STAFF` `approve Visitor`. Target: remove management approve/reject,
+keep read/audit, keep resident approve/reject as the default path, keep guard
+check-in/out + documented guard-admit flow.
 
 ---
 
@@ -99,7 +104,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Deposits + configurable receipts + unit-type fee schedule** | ✅ | `Deposit`/`Receipt`/`UnitTypeFeeRate`; auto-issued receipt PDFs (no deps); admin `/admin/deposits` + `/admin/settings/billing`; recurring invoices auto-computed from unit-type rate |
 | **Accounting ledger + reports** | ✅ | Append-only `LedgerEntry` (fund-tagged) + `UnitAccount` credit; fund balances, collections, arrears aging, unit statement; prepayment auto-apply; `/admin/accounting` |
 | **Self-serve payment gateways (Stripe / Fiuu / iPay88)** | ✅ (core) | Per-condo `PaymentGatewayConnection` with AES-256-GCM envelope-encrypted secrets; Stripe live + Fiuu/iPay88 sandbox-ready (signed redirect + callback verify); condo-aware webhooks; resident Pay-now method picker |
-| **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) dedicated channels** | ⬜ | Reachable today via Fiuu/iPay88 aggregators; dedicated per-rail adapters & statement/CSV exports still pending |
+| **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) dedicated channels** | ✅ (DuitNow QR) | **DuitNow QR** first-class adapter + admin gateway toggles/capabilities UI (`/admin/settings/billing`); TNG / Boost / GrabPay still reachable via Fiuu/iPay88 aggregators; dedicated per-rail adapters & statement/CSV exports still pending |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |
 | **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic send, socket cache, live inbox); priority-change reassignment (`assignOnPriorityChange`) + **C6** ML-assignment scaffold now shipped (seam + 200-thread gate + opt-in toggle + stub provider). Still deferred: a real trained ML model (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
 | **FAQ knowledge base** | ✅ | `FaqModule` shipped (`apps/api/src/faq/**`): controller/service, admin authoring (`/admin/faq`), resident browse (`/(resident)/faq`) + mobile FAQ, and thread-compose deflection (`POST /faq/deflect-match`) |
@@ -109,16 +114,21 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Governance-lite polls (owner-verified MC voting)** | ✅ | `PollsModule` (`polls/**`); active-ownership-verified voting; admin `/admin/polls` + resident/mobile polls; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM e-voting (§4.8, still ⬜) |
 | **MCP integrations (admin)** | ✅ | Per-condo `McpServerConnection` (`integrations/**`); admin `/admin/settings/integrations`; CASL `McpServer` subject; migration `20260701180000_mcp_server_connections` |
 | **Mobile resident + guard parity** | ✅ | New resident screens (notifications, advance/prepaid payment, polls, recurring passes, FAQ, delegated access) + guard recurring-pass check-in & blacklist alerts |
-| **WhatsApp notifications** | ⬜ | Twilio is in the stack/README but no WhatsApp channel implemented |
+| **WhatsApp notifications** | ✅ | Per-condo WhatsApp config + `WhatsAppNotificationProvider` (Twilio-backed seam); templates for key flows; admin settings + dispatch fan-out alongside push/email |
 | **Storage / attachments** | ✅ | S3-compatible (`storage.service`, `attachments.controller`), MinIO in dev |
 | **Realtime** | ✅ | Socket.IO `realtime.gateway`; thread room join/leave; **H2** client wiring — `RealtimeProvider` patches TanStack Query caches on `thread:message` / `thread:update` / `thread:sla` (web + mobile helpdesk); also forwards enriched `notification:new` to per-user rooms (web toast + bell) |
 | **Web perf (lite HSR)** | ✅ | **U1** — route-level `loading.tsx` skeletons, nav prefetch, shell retention during auth, `keepPreviousData` on thread lists (commits `ce33631`–`32cd37e`) |
-| **Facility booking** | ⬜ | Not in schema or code |
-| **Parcels / deliveries** | ⬜ | Not in schema or code |
+| **Facility booking** | ✅ | `Facility`/`Booking` module; admin `/admin/facilities`; resident booking with deposits → Billing; migration `20260701190000_facility_booking` |
+| **Parcels / deliveries** | ✅ | `Parcel`/`ParcelEvent`; guard logging + resident collection sign-off + reminders; admin `/admin/parcels`; migration `20260702120000_parcels` |
 | **Governance (AGM/EGM, e-voting, financial transparency, minutes)** | ⬜ | Not in schema or code |
-| **Forms & workflows (move-in/out, renovation permit, vehicle sticker)** | ⬜ | Not in schema or code |
-| **Community (marketplace, polls, lost & found)** | 🟡 | **Polls ✅** (governance-lite owner-verified voting — see row above); marketplace + lost & found still ⬜ |
-| **Documents vault** | ⬜ | Not in schema or code (attachments exist as primitive) |
+| **Forms & workflows (move-in/out, renovation permit, vehicle sticker)** | ✅ | `FormTemplate`/`FormSubmission` with approval routing; admin `/admin/forms`; migration `20260702130000_forms_workflows` |
+| **Community (marketplace, polls, lost & found)** | 🟡 | **Polls ✅** (governance-lite owner-verified voting - see row above); **marketplace cancelled** (product decision — code removed); lost & found still ⬜ |
+| **Documents vault** | ✅ | `Document`/`DocumentVersion` with role-scoped visibility; admin `/admin/documents`; migration `20260702140000_documents_vault` |
+
+| **First-time setup wizard** | ✅ | Resumable `/admin/setup` with `setupCompletedAt` / dismiss; dashboard banner + **Finish setup** nav — **no forced redirect** (admins can reach settings/invoices anytime) |
+| **Safety / SOS + guard patrol** | ✅ | `SafetyModule` — SOS alerts + patrol rounds/checkpoints; admin `/admin/safety` + `/admin/patrol`; migration `20260701210000_safety_patrol` |
+| **Delivery / e-hailing visitor passes** | ✅ | Lighter delivery & e-hailing passes (ties to Visitor + parcels); shipped with visitor module updates in `6dd4f00` / `a4baa2a` |
+| **MY e-Invoice (MyInvois)** | ✅ | Production **MyInvois** provider seam + sandbox delegation; admin `/admin/settings/einvoice`; migration `20260701200000_einvoice_myinvois` |
 | **Admin / platform (multi-condo super-admin)** | 🟡 | `SUPER_ADMIN` role + `manage all` ability exist; no dedicated cross-condo console UI yet |
 | **i18n (BM / EN / 中文 / Tamil)** | 🟡 | `locale` fields on `User` & `Condo`; UI string externalization not complete |
 
@@ -159,9 +169,11 @@ Dependencies are noted per module. "→" means "depends on / builds atop".
     secrets never returned to the client); **Stripe** live + **Fiuu (Razer)** and
     **iPay88** sandbox-ready adapters (signed redirect + callback/`skey`/SHA256
     verification); condo-aware webhook routing; idempotent settlement that
-    auto-issues a receipt and writes the ledger; resident Pay-now method picker.
-- **MY rails (remaining):** dedicated **DuitNow QR / TNG / Boost / GrabPay**
-  channels (reachable today via Fiuu/iPay88 aggregators); statement/CSV export.
+    auto-issues a receipt and writes the ledger; resident Pay-now method picker;
+    admin **gateway capabilities/toggles UI** for per-condo method enablement.
+- **MyInvois e-Invoice ✅:** production provider seam (`production-myinvois.provider.ts`)
+  with OAuth + document mapping; sandbox delegation; admin `/admin/settings/einvoice`.
+- **MY rails:** **DuitNow QR ✅** (dedicated adapter + gateway UI toggles); **TNG / Boost / GrabPay** still via Fiuu/iPay88 aggregators; statement/CSV export remains pending.
 - **Transparency:** unit-level statement view + audit entry on every charge
   adjustment (owner empowerment).
 - **Deps:** Identity, Multi-tenancy. **Enables:** Governance financial
@@ -193,8 +205,10 @@ The flagship resident-empowerment flow. Two explicit paths:
 - **Correction to apply:** management = **read/audit only**; residents =
   **only** approvers; guards = check-in/out only (see §2.1).
 - **Shipped:** **blacklist** (`VisitorBlacklistService` + web `visitor-blacklist-panel.tsx` + guard blacklist alerts on scan/manual) and **recurring passes** (`RecurringPassService` + resident `visitors/recurring.tsx` + guard recurring-pass check-in); migration `20260701120000_visitor_blacklist_recurring_passes`.
-- **Future:** vehicle **plate / ANPR** field (already a `vehiclePlate`
-  column), lighter **deliveries / e-hailing** flow.
+- **Shipped:** lighter **delivery / e-hailing visitor passes** (fast-lane passes
+  for couriers/rideshare); **guard on-site admit** for walk-ins (owner notified,
+  audited — kept per product decision, see §2.1).
+- **Future:** vehicle **plate / ANPR** field (already a `vehiclePlate` column).
 - **Deps:** Identity, Notifications (push for approval prompts), Realtime
   (live gate status), Audit. **Strongly pairs with** Communication threads
   (resident↔guard/management context).
@@ -245,14 +259,14 @@ The flagship resident-empowerment flow. Two explicit paths:
   (audience JSON exists), required-ack reporting, multilingual bodies.
 - **Deps:** Notifications, i18n.
 
-### 4.6 Facility booking  *(⬜)*
+### 4.6 Facility booking  *(✅)*
 - Bookable amenities: **function hall, BBQ pits, gym, pool, courts, surau**.
 - Availability calendar, slot rules, deposits/fees (→ Billing), approval
   policy per facility, cancellation, no-show tracking.
 - **Deps:** Billing (deposits), Notifications, Threads (queries about a
   booking). **Sequenced after** Visitor + Threads.
 
-### 4.7 Parcels / deliveries  *(⬜)*
+### 4.7 Parcels / deliveries  *(✅)*
 - Guardhouse/concierge logs incoming parcels against a unit; resident gets
   notified; collection sign-off; overdue reminders. Lighter "delivery"
   visitor flow ties in (§4.2 future).
@@ -266,7 +280,7 @@ The flagship resident-empowerment flow. Two explicit paths:
   budgets), Identity (eligibility = active ownership). **High-trust — late
   milestone.**
 
-### 4.9 Forms & workflows  *(⬜)*
+### 4.9 Forms & workflows  *(✅)*
 - Structured **move-in / move-out**, **renovation permit**, **vehicle
   sticker** applications with approval routing and status tracking.
 - **Deps:** Storage (uploads), Notifications, Threads (clarifications),
@@ -282,7 +296,7 @@ The flagship resident-empowerment flow. Two explicit paths:
   **No ads** — community utility only.
 - **Deps:** Identity, Storage, Notifications.
 
-### 4.11 Notifications (push / email / WhatsApp)  *(✅ push+email+realtime → ⬜ WhatsApp)*
+### 4.11 Notifications (push / email / WhatsApp)  *(✅)*
 - Channel fan-out per `NotificationKind`; user preferences; quiet hours.
 - **Real-time delivery ✅ shipped:** dispatch emits an enriched
   `notification.created` (title/body/data) that `realtime.gateway` forwards as
@@ -290,8 +304,8 @@ The flagship resident-empowerment flow. Two explicit paths:
   (`realtime-provider.tsx`) + notification bell with unread badge/dropdown
   (`notification-bell.tsx`); mobile push registers via the authenticated
   `api.registerPushToken`.
-- **WhatsApp** channel (huge MY reach) via Twilio/provider behind the same
-  dispatch interface; `sentChannels` already tracked on `Notification`.
+- **WhatsApp ✅ shipped:** per-condo provider config + Twilio-backed seam;
+  fan-out via the same dispatch interface; `sentChannels` tracked on `Notification`.
 - **Deps:** every module emits into it. Cross-cutting.
 
 ### 4.12 Access control / security  *(✅ core → harden)*
@@ -300,10 +314,21 @@ The flagship resident-empowerment flow. Two explicit paths:
   guard-device hardening.
 - **Deps:** Identity, Audit.
 
-### 4.13 Documents vault  *(⬜)*
+### 4.13 Documents vault  *(✅)*
 - Condo-level document library (bylaws, financials, minutes, house rules)
   with role-scoped visibility, versioning, multilingual.
 - **Deps:** Storage, RBAC. **Enables:** Governance.
+
+### 4.15 First-time setup wizard  *(✅)*
+- Guided `/admin/setup` for fresh deployments: condo profile, structure, billing
+  basics, operations toggles, review & finish (`setupCompletedAt` / dismiss).
+- **No redirect trap:** incomplete setup surfaces a dashboard banner and **Finish
+  setup** nav item; admins can reach settings, invoices, and dismiss the wizard
+  without being forced off other admin pages (`admin-shell.tsx`).
+
+### 4.16 Safety / SOS + guard patrol  *(✅)*
+- SOS alerts from residents/guards; patrol rounds with checkpoints; admin
+  `/admin/safety` and `/admin/patrol`; notifications + audit.
 
 ### 4.14 Admin / platform (multi-condo super-admin)  *(🟡)*
 - `SUPER_ADMIN` + `manage all` exist. **Target:** cross-condo console —
@@ -461,7 +486,9 @@ flowchart LR
 - **Shipped (visitor polish — V3):** share pass (replaces regenerate); holiday
   auto-approve toggle + MY public holidays in settings; guard unit search picker
   (web + mobile); visitor/helpdesk i18n wiring (en/ms/zh-Hans); admin overnight
-  queue filters; Windows `db:migrate` fix. **Still ⬜:** MY payment rails.
+  queue filters; Windows `db:migrate` fix. **Shipped (MY rails):** DuitNow QR
+  adapter + gateway UI; TNG/Boost/GrabPay via aggregators. **Still ⬜:** dedicated
+  TNG/Boost/GrabPay adapters + statement/CSV export polish.
 - **Deps:** Threads (context), Notifications, Audit, Billing core.
   **Acceptance:** walk-in cannot enter without owner approval; no
   guard/supervisor override path exists; management office visitor allowed &

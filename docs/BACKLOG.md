@@ -8,6 +8,7 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
+- ✅ **Ops batch (`6dd4f00`) + follow-on (`a4baa2a`)** — DuitNow QR + gateway UI, facility booking, parcels, forms/workflows, safety/SOS + guard patrol, first-time setup wizard (no forced redirect), delivery/e-hailing passes, documents vault, WhatsApp notifications, production MyInvois e-Invoice seam; **community marketplace cancelled** (product decision). **Guard on-site admit kept** (see ROADMAP §2.1).
 - ✅ **N1 — Real-time notifications (web toast + bell + mobile push fix)** — notification dispatch now emits an enriched `notification.created` event (title/body/data) that `realtime.gateway` forwards as `notification:new` to the recipient's `user:*` room. Web shows an in-app toast (`realtime-provider.tsx`) plus a notification bell with unread badge + dropdown (`notification-bell.tsx`) wired into `app-shell` and `admin-shell`; api-client gains `useNotifications`/`useMarkNotificationsRead` (+ `listNotifications`/`markNotificationsRead`/`registerPushToken`). Mobile push now registers via the authenticated `api.registerPushToken` (`src/lib/push.ts`, `use-push-registration.ts`, `push-navigation.ts`, `push-navigation-bridge.tsx`).
 - ✅ **GP1 — Governance-lite polls (owner-verified MC voting)** — `PollsModule` (`apps/api/src/polls/**`) with active-ownership-verified voting (only unit owners may vote; ownership + condo checked at vote time); admin authoring `/admin/polls` + resident `/(resident)/polls` on web, mobile `(resident)/polls.tsx`; `packages/shared-types/src/polls.ts`; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM e-voting (still future).
 - ✅ **MI1 — MCP integrations (admin)** — per-condo `McpServerConnection` (`apps/api/src/integrations/**`, `mcp-client.ts`) with admin UI `/admin/settings/integrations`; `packages/shared-types/src/mcp.ts`; CASL subject `McpServer` (manage for admin, read for staff); migration `20260701180000_mcp_server_connections`.
@@ -379,7 +380,7 @@ When a resident opens a thread, the system should assign it to the right managem
 
 ### F4 — First-time setup / onboarding wizard
 
-> **Status:** 🟡 In progress (real-time notifications shipped; wizard now being implemented) · **Priority:** P1 · **Area:** api + web
+> **Status:** ✅ Done · shipped in 6dd4f00; redirect trap removed in 4baa2a (banner + **Finish setup** nav only) · **Priority:** P1 · **Area:** api + web
 
 When SmartResidence is deployed for a brand-new JMB/MC with an empty database (no demo seed), an admin needs a guided, foolproof way to stand the building up — today this only happens via the seed script. Build a **first-time setup wizard** that detects a fresh/unconfigured condo and walks the first admin through the essentials, in order, with validation and the ability to resume.
 
@@ -396,7 +397,7 @@ When SmartResidence is deployed for a brand-new JMB/MC with an empty database (n
 
 **Design notes / open questions:**
 
-- **Detection:** a condo/instance-level `setupCompletedAt` (or `settings.setup`) flag; unconfigured condos redirect the first admin into `/admin/setup`.
+- **Detection:** a condo/instance-level `setupCompletedAt` (or `settings.setup`) flag; incomplete setup surfaces banner + **Finish setup** nav (no forced redirect off other admin pages).
 - **Resumable:** persist progress per step so setup can be paused and continued; each step is independently editable later from normal settings.
 - **Idempotent & safe:** re-running a step must not duplicate data; guard against partial/abandoned setups.
 - **Bootstrapping the very first admin** on a truly empty instance (no users) — how is that account created (env-seeded owner, install token, CLI)? Ties into `SUPER_ADMIN`/multi-condo (F2).
@@ -413,7 +414,7 @@ Two-path flow:
 - Every attempt (approved / rejected / no-response) is logged to the owner's unit activity.
 - Offline-tolerant at the gate.
 
-Future sub-items: vehicle plate / ANPR field, ~~blacklist~~ ✅ (shipped, V4), ~~recurring passes~~ ✅ (shipped, V4), lighter flow for deliveries / e-hailing (still remaining).
+Future sub-items: vehicle plate / ANPR field, ~~blacklist~~ ✅ (shipped, V4), ~~recurring passes~~ ✅ (shipped, V4), ~~delivery / e-hailing passes~~ ✅ (shipped, `6dd4f00`/`a4baa2a`). **Guard on-site admit** ✅ kept per product decision (audited + owner notified).
 
 ### F2 — Dedicated SUPER_ADMIN platform / multi-condo view
 

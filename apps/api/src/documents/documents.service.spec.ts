@@ -184,4 +184,37 @@ describe('DocumentsService', () => {
       service.publishVersion(manager(), DOC_ID, { attachmentId: 'att-1' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('creates a folder for management', async () => {
+    const { service, prisma } = makeService();
+    const folder = await service.createFolder(manager(), {
+      condoId: CONDO,
+      name: 'AGM minutes',
+      audience: DocumentFolderAudience.OWNERS,
+    });
+    expect(folder.name).toBe('AGM minutes');
+    expect(prisma.documentFolder.create).toHaveBeenCalled();
+  });
+
+  it('updates folder metadata', async () => {
+    const { service, prisma } = makeService();
+    await service.updateFolder(manager(), FOLDER_ID, { name: 'Updated rules' });
+    expect(prisma.documentFolder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ name: 'Updated rules' }),
+      }),
+    );
+  });
+
+  it('soft-deletes folders that still contain documents', async () => {
+    const { service, prisma } = makeService();
+    vi.mocked(prisma.documentFolder.findUnique).mockResolvedValueOnce({
+      ...FOLDER,
+      _count: { documents: 2 },
+    } as never);
+    await service.deleteFolder(manager(), FOLDER_ID);
+    expect(prisma.documentFolder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { active: false } }),
+    );
+  });
 });

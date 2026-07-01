@@ -7,6 +7,7 @@
 #   pnpm ci:test:shared-types
 #   pnpm ci:test:web
 #   pnpm ci:test:api          # needs Postgres + Redis (see apps/api/.env.example)
+#   pnpm ci:test:regression   # integration + regression (@requires-db)
 #   pnpm --filter @smartresidence/web test:e2e   # needs API + DB seeded
 #   pnpm build
 name: CI
@@ -129,6 +130,59 @@ jobs:
       - run: pnpm --filter @smartresidence/api exec prisma generate
       - run: pnpm --filter @smartresidence/api exec prisma migrate deploy
       - run: pnpm ci:test:api
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: vitest-report
+          path: apps/api/vitest-report
+          retention-days: 7
+
+  api-regression:
+    name: Test (API integration + regression)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: smartresidence
+          POSTGRES_PASSWORD: smartresidence
+          POSTGRES_DB: smartresidence_regression
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://smartresidence:smartresidence@localhost:5432/smartresidence_regression
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @smartresidence/shared-types build
+      - run: pnpm --filter @smartresidence/api exec prisma generate
+      - run: pnpm --filter @smartresidence/api exec prisma migrate deploy
+      - run: pnpm ci:test:regression
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: vitest-regression-report
+          path: apps/api/vitest-report
+          retention-days: 7
 
   build:
     name: Build
@@ -211,3 +265,4 @@ jobs:
         with:
           name: playwright-report
           path: apps/web/playwright-report
+          retention-days: 7

@@ -107,7 +107,7 @@ describe('ReceiptService.getPdf', () => {
     expect(pdf).toContain('Renovation deposit');
     expect(pdf).toContain('Bank transfer');
     expect(pdf).toContain('TXN-123');
-    expect(pdf).toContain('Held');
+    expect(pdf).toContain('Still held by management');
     expect(pdf).toContain('(A-04-3)');
     expect(pdf).not.toContain('PAYMENT DETAILS');
     expect(pdf).not.toContain('AMOUNT RECEIVED');

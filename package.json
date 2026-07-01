@@ -27,6 +27,7 @@
     "test:e2e": "turbo run test:e2e",
     "ci:typecheck": "pnpm --filter @smartresidence/shared-types build && pnpm --filter @smartresidence/api exec prisma generate && pnpm typecheck",
     "ci:test:api": "pnpm --filter @smartresidence/api exec vitest run",
+    "ci:test:regression": "pnpm --filter @smartresidence/api exec vitest run test/regression test/integration",
     "ci:test:shared-types": "pnpm --filter @smartresidence/shared-types test",
     "ci:test:web": "pnpm --filter @smartresidence/web test",
     "clean": "turbo run clean && rimraf node_modules .turbo",

@@ -155,4 +155,25 @@ describe('LostFoundService', () => {
     const result = await service.moderateRemove(manager(), 'post-1');
     expect(result.status).toBe(LostFoundStatus.REMOVED);
   });
+
+  it('lists open posts for residents by default', async () => {
+    const { service, prisma } = makeService();
+    vi.mocked(prisma.lostFoundPost.findMany).mockImplementation(async (args) => {
+      expect(args?.where).toMatchObject({ condoId: CONDO, status: LostFoundStatus.OPEN });
+      return [makePost()];
+    });
+    vi.mocked(prisma.lostFoundPost.count).mockResolvedValue(1);
+    const result = await service.listForCondo(resident(), CONDO, {});
+    expect(result.items).toHaveLength(1);
+    expect(result.total).toBe(1);
+  });
+
+  it('lets management filter by status in manage mode', async () => {
+    const { service, prisma } = makeService();
+    vi.mocked(prisma.lostFoundPost.findMany).mockImplementation(async (args) => {
+      expect(args?.where).toMatchObject({ condoId: CONDO, status: LostFoundStatus.REMOVED });
+      return [];
+    });
+    await service.listForCondo(manager(), CONDO, { manage: true, status: LostFoundStatus.REMOVED });
+  });
 });

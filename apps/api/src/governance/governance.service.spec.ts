@@ -195,4 +195,42 @@ describe('GovernanceService', () => {
       optionId: 'opt-1',
     });
   });
+
+  it('opens resolution voting by creating a poll and emitting event', async () => {
+    const { service, events, meetingResolution, prisma } = buildService();
+    meetingResolution.findUnique.mockResolvedValueOnce({
+      id: 'res-1',
+      title: 'Approve budget',
+      description: 'FY2026 budget',
+      pollId: null,
+      meetingId: MEETING_ID,
+      meeting: { id: MEETING_ID, condoId: CONDO, status: GeneralMeetingStatus.NOTICE_PUBLISHED },
+    });
+    vi.mocked(prisma.meetingResolution.update).mockResolvedValueOnce({
+      id: 'res-1',
+      pollId: 'poll-1',
+      votingOpensAt: new Date(),
+      votingClosesAt: null,
+      poll: { id: 'poll-1', status: 'OPEN', opensAt: new Date(), closesAt: null },
+    } as never);
+
+    const result = await service.openResolutionVoting(manager(), 'res-1', {});
+    expect(result.poll?.id).toBe('poll-1');
+    expect(events.emit).toHaveBeenCalledWith(
+      'governance.resolution.opened',
+      expect.objectContaining({ resolutionId: 'res-1', pollId: 'poll-1' }),
+    );
+  });
+
+  it('rejects opening voting when a poll already exists', async () => {
+    const { service, meetingResolution } = buildService();
+    meetingResolution.findUnique.mockResolvedValueOnce({
+      id: 'res-1',
+      pollId: 'poll-existing',
+      meeting: { condoId: CONDO, status: GeneralMeetingStatus.IN_PROGRESS },
+    });
+    await expect(service.openResolutionVoting(manager(), 'res-1', {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
 });

@@ -99,8 +99,8 @@ export default function SignUpPage() {
               <p className="text-xs sr-muted">10+ chars, mix of upper/lower/digit.</p>
             )}
           </div>
-          <Button type="submit" disabled={form.formState.isSubmitting} className="mt-2">
-            {form.formState.isSubmitting ? 'Creating…' : 'Create account'}
+          <Button type="submit" loading={form.formState.isSubmitting} className="mt-2">
+            Create account
           </Button>
         </form>
         <p className="mt-6 text-sm sr-muted">

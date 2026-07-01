@@ -170,8 +170,12 @@ export default function ResidentDefectDetailPage() {
                 }
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={addUpdate.isPending || !comment.trim()}>
-                  {addUpdate.isPending ? 'Sending…' : 'Add comment'}
+                <Button
+                  type="submit"
+                  disabled={addUpdate.isPending || !comment.trim()}
+                  loading={addUpdate.isPending}
+                >
+                  Add comment
                 </Button>
               </div>
             </form>

@@ -154,8 +154,8 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
           <Button type="button" variant="ghost" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? 'Submitting…' : 'Submit defect'}
+          <Button type="submit" loading={form.formState.isSubmitting}>
+            Submit defect
           </Button>
         </div>
       </form>

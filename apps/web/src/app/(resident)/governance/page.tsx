@@ -21,7 +21,7 @@ import type {
 } from '@smartresidence/shared-types';
 import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { ChevronRight, Gavel, Loader2 } from 'lucide-react';
+import { ChevronRight, Gavel } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<GeneralMeetingStatus, 'neutral' | 'success' | 'warning' | 'info'> = {
@@ -130,8 +130,8 @@ function ProxyForm({
           <Button
             type="submit"
             disabled={submitProxy.isPending || !unitId || holderName.length < 2}
+            loading={submitProxy.isPending}
           >
-            {submitProxy.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Submit proxy
           </Button>
         </>
@@ -244,8 +244,11 @@ function ResolutionVotePanel({
               ))}
             </div>
           </div>
-          <Button type="submit" disabled={castVote.isPending || !unitId || !optionId}>
-            {castVote.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          <Button
+            type="submit"
+            disabled={castVote.isPending || !unitId || !optionId}
+            loading={castVote.isPending}
+          >
             Cast vote
           </Button>
         </form>

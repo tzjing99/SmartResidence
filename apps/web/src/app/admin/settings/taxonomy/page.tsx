@@ -60,8 +60,8 @@ export default function AdminTaxonomyPage() {
               aria-label="Space type name"
             />
           </div>
-          <Button type="submit" disabled={createSpaceType.isPending}>
-            {createSpaceType.isPending ? 'Adding…' : 'Add space type'}
+          <Button type="submit" loading={createSpaceType.isPending}>
+            Add space type
           </Button>
         </form>
       </Card>

@@ -113,8 +113,8 @@ export default function SignInPage() {
               <Input id="totp" inputMode="numeric" maxLength={6} {...form.register('totp')} />
             </div>
           ) : null}
-          <Button type="submit" disabled={form.formState.isSubmitting} className="mt-2">
-            {form.formState.isSubmitting ? 'Signing in…' : 'Sign in'}
+          <Button type="submit" loading={form.formState.isSubmitting} className="mt-2">
+            Sign in
           </Button>
         </form>
         <p className="mt-6 text-sm sr-muted">

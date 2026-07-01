@@ -25,7 +25,7 @@ import {
   Skeleton,
   Textarea,
 } from '@smartresidence/ui-web';
-import { Loader2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import * as React from 'react';
 
 const KIND_TONE: Record<LostFoundKind, 'warning' | 'success'> = {
@@ -207,8 +207,8 @@ function CreatePostForm({ condoId, unitId }: { condoId: string; unitId: string }
             maxLength={200}
           />
         </div>
-        <Button type="submit" disabled={createPost.isPending}>
-          {createPost.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Post to board'}
+        <Button type="submit" loading={createPost.isPending}>
+          Post to board
         </Button>
       </form>
     </Card>

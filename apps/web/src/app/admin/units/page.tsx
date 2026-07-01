@@ -254,8 +254,8 @@ export default function AdminUnitsPage() {
                   <Button type="button" variant="ghost" onClick={() => setSelectedResident(null)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={updateContact.isPending}>
-                    {updateContact.isPending ? 'Saving...' : 'Save resident'}
+                  <Button type="submit" loading={updateContact.isPending}>
+                    Save resident
                   </Button>
                 </div>
               </form>

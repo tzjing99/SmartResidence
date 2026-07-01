@@ -86,8 +86,8 @@ export default function AdminUnitTypesPage() {
               placeholder="e.g. ~1,100 sqft"
             />
           </div>
-          <Button type="submit" disabled={createType.isPending}>
-            {createType.isPending ? 'Adding…' : 'Add'}
+          <Button type="submit" loading={createType.isPending}>
+            Add
           </Button>
         </form>
       </Card>

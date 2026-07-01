@@ -169,8 +169,8 @@ function PrepaymentForm({ condoId }: { condoId: string }) {
             onChange={(e) => setAmount(e.target.value)}
           />
         </div>
-        <Button type="submit" disabled={record.isPending}>
-          {record.isPending ? 'Recording…' : 'Record prepayment'}
+        <Button type="submit" loading={record.isPending}>
+          Record prepayment
         </Button>
       </form>
     </Card>

@@ -294,8 +294,8 @@ function FeeRateEditor({ condoId, row }: { condoId: string; row: FeeRateRow }) {
         </div>
       </div>
       <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[rgb(var(--sr-border))]/70 pt-3">
-        <Button size="sm" disabled={upsert.isPending} onClick={() => void save()}>
-          {upsert.isPending ? 'Saving…' : 'Save rate'}
+        <Button size="sm" loading={upsert.isPending} onClick={() => void save()}>
+          Save rate
         </Button>
         {rate ? (
           <Button
@@ -594,8 +594,8 @@ function ExtraFeeLineEditor({
       </div>
 
       <div className="flex flex-col-reverse gap-2 border-t border-[rgb(var(--sr-border))]/70 pt-3 sm:flex-row sm:justify-end">
-        <Button size="sm" disabled={upsert.isPending} onClick={() => void save()}>
-          {upsert.isPending ? 'Saving…' : 'Save fee line'}
+        <Button size="sm" loading={upsert.isPending} onClick={() => void save()}>
+          Save fee line
         </Button>
         <Button
           size="sm"
@@ -686,10 +686,10 @@ function ExtraFeeSchedule({ condoId, unitTypes }: { condoId: string; unitTypes: 
             <Button
               size="sm"
               variant="ghost"
-              disabled={addPresets.isPending}
+              loading={addPresets.isPending}
               onClick={() => void onAddPresets()}
             >
-              {addPresets.isPending ? 'Adding…' : 'Add all presets'}
+              Add all presets
             </Button>
           </div>
           <button
@@ -799,8 +799,8 @@ function ReceiptTemplateForm({ condoId }: { condoId: string }) {
         ))}
       </div>
       <div className="flex justify-end border-t border-[rgb(var(--sr-border))]/70 pt-4">
-        <Button type="submit" disabled={update.isPending}>
-          {update.isPending ? 'Saving…' : 'Save template'}
+        <Button type="submit" loading={update.isPending}>
+          Save template
         </Button>
       </div>
     </form>

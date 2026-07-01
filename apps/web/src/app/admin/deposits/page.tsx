@@ -308,8 +308,8 @@ function RecordDepositForm({ condoId, onDone }: { condoId: string; onDone: () =>
           <Button type="button" variant="ghost" onClick={onDone}>
             Cancel
           </Button>
-          <Button type="submit" disabled={record.isPending}>
-            {record.isPending ? 'Recording...' : 'Record deposit'}
+          <Button type="submit" loading={record.isPending}>
+            Record deposit
           </Button>
         </div>
       </form>
@@ -424,8 +424,8 @@ function DepositActionForm({ deposit, onDone }: { deposit: DepositListItem; onDo
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" size="sm" disabled={refund.isPending}>
-          {refund.isPending ? 'Saving...' : isForfeit ? 'Record forfeit' : 'Record refund'}
+        <Button type="submit" size="sm" loading={refund.isPending}>
+          {isForfeit ? 'Record forfeit' : 'Record refund'}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onDone}>
           Cancel

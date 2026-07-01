@@ -16,7 +16,7 @@ import {
 import type { VendorBill, VendorBillFund, VendorBillStatus } from '@smartresidence/shared-types';
 import { VENDOR_BILL_FUND_LABELS, VENDOR_BILL_STATUS_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { Loader2, Receipt } from 'lucide-react';
+import { Receipt } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<VendorBillStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
@@ -98,8 +98,8 @@ function VendorList({ condoId }: { condoId: string }) {
               placeholder="Phone / email"
             />
           </div>
-          <Button type="submit" disabled={createVendor.isPending}>
-            {createVendor.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add vendor'}
+          <Button type="submit" loading={createVendor.isPending}>
+            Add vendor
           </Button>
         </form>
       </Card>
@@ -304,8 +304,8 @@ function BillQueue({ condoId }: { condoId: string }) {
             />
           </div>
           <div>
-            <Button type="submit" disabled={createBill.isPending}>
-              {createBill.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save draft'}
+            <Button type="submit" loading={createBill.isPending}>
+              Save draft
             </Button>
           </div>
         </form>
@@ -390,8 +390,8 @@ function BillQueue({ condoId }: { condoId: string }) {
             <Label>To</Label>
             <Input type="date" value={reportTo} onChange={(e) => setReportTo(e.target.value)} />
           </div>
-          <Button variant="secondary" onClick={exportCsv} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Download CSV'}
+          <Button variant="secondary" onClick={exportCsv} loading={exporting}>
+            Download CSV
           </Button>
         </div>
       </Card>

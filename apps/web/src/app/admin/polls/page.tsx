@@ -22,7 +22,7 @@ import {
   Skeleton,
   Textarea,
 } from '@smartresidence/ui-web';
-import { ChevronRight, Loader2, Plus, Trash2, Vote, X } from 'lucide-react';
+import { ChevronRight, Plus, Trash2, Vote, X } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<PollStatus, 'neutral' | 'success' | 'warning'> = {
@@ -151,15 +151,8 @@ function PollDetailPanel({
 
       <div className="mt-6 flex flex-wrap gap-2">
         {pollStatus(poll) === 'DRAFT' ? (
-          <Button onClick={openPoll} disabled={updatePoll.isPending}>
-            {updatePoll.isPending ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-1.5" />
-                Opening…
-              </>
-            ) : (
-              'Open for voting'
-            )}
+          <Button onClick={openPoll} loading={updatePoll.isPending}>
+            Open for voting
           </Button>
         ) : null}
         {pollStatus(poll) === 'OPEN' ? (
@@ -325,15 +318,8 @@ export default function AdminPollsPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button type="submit" disabled={createPoll.isPending}>
-                {createPoll.isPending ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin mr-1.5" />
-                    Saving…
-                  </>
-                ) : (
-                  'Save draft'
-                )}
+              <Button type="submit" loading={createPoll.isPending}>
+                Save draft
               </Button>
               <Button type="button" variant="ghost" onClick={resetForm}>
                 Cancel

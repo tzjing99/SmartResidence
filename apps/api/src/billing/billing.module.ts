@@ -1,9 +1,10 @@
+import { AccountingModule } from '@/accounting/accounting.module';
 import { Module } from '@nestjs/common';
 import { AutomationStatusController } from './automation-status.controller';
 import { AutomationStatusService } from './automation-status.service';
-import { BillingExportsService } from './billing-exports.service';
 import { BillingAutomationScheduleService } from './billing-automation-schedule.service';
 import { BillingAutomationService } from './billing-automation.service';
+import { BillingExportsService } from './billing-exports.service';
 import { BillingSettingsController } from './billing-settings.controller';
 import { BillingSettingsService } from './billing-settings.service';
 import { BillingController, PaymentWebhookController } from './billing.controller';
@@ -26,6 +27,7 @@ import { ReceiptService } from './receipt.service';
 import { ReportsController } from './reports.controller';
 
 @Module({
+  imports: [AccountingModule],
   providers: [
     BillingService,
     AutomationStatusService,

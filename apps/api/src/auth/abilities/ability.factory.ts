@@ -37,6 +37,7 @@ export type Subject =
   | 'BillingSettings'
   | 'EInvoice'
   | 'Ledger'
+  | 'GeneralLedger'
   | 'Defect'
   | 'DefectUpdate'
   | 'DefectReport'
@@ -69,6 +70,8 @@ export type Subject =
   | 'Document'
   | 'DocumentVersion'
   | 'LostFoundPost'
+  | 'Vendor'
+  | 'VendorBill'
   | 'Platform';
 
 export type Action =
@@ -163,6 +166,7 @@ export class AbilityFactory {
         can('manage', 'BillingSettings', { condoId: scope.condoId ?? '' });
         can('manage', 'EInvoice', { condoId: scope.condoId ?? '' });
         can('manage', 'Ledger', { condoId: scope.condoId ?? '' });
+        can('manage', 'GeneralLedger', { condoId: scope.condoId ?? '' });
         can('manage', 'Defect', { condoId: scope.condoId ?? '' });
         can('manage', 'DefectReport', { condoId: scope.condoId ?? '' });
         // Handover config (unit types + defect taxonomy): admin-managed like FAQ.
@@ -194,6 +198,9 @@ export class AbilityFactory {
         can('manage', 'Document', { condoId: scope.condoId ?? '' });
         can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
         can('manage', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('manage', 'Vendor', { condoId: scope.condoId ?? '' });
+        can('manage', 'VendorBill', { condoId: scope.condoId ?? '' });
+        can('export', 'VendorBill', { condoId: scope.condoId ?? '' });
         can('manage', 'Notification', { condoId: scope.condoId ?? '' });
         can('read', 'AuditLog', { condoId: scope.condoId ?? '' });
         can('read', 'User');
@@ -219,6 +226,7 @@ export class AbilityFactory {
         can('read', 'BillingSettings', { condoId: scope.condoId ?? '' });
         can('read', 'EInvoice', { condoId: scope.condoId ?? '' });
         can('read', 'Ledger', { condoId: scope.condoId ?? '' });
+        can('read', 'GeneralLedger', { condoId: scope.condoId ?? '' });
         can('publish', 'Announcement', { condoId: scope.condoId ?? '' });
         can('read', 'Poll', { condoId: scope.condoId ?? '' });
         can('read', 'GeneralMeeting', { condoId: scope.condoId ?? '' });
@@ -251,6 +259,10 @@ export class AbilityFactory {
         can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
         can('read', 'LostFoundPost', { condoId: scope.condoId ?? '' });
         can('manage', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('read', 'Vendor', { condoId: scope.condoId ?? '' });
+        can('read', 'VendorBill', { condoId: scope.condoId ?? '' });
+        can('create', 'VendorBill', { condoId: scope.condoId ?? '' });
+        can('update', 'VendorBill', { condoId: scope.condoId ?? '' });
         can('read', 'Notification', { condoId: scope.condoId ?? '' });
         return;
 

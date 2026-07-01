@@ -10,11 +10,13 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 
+import { AccountingModule } from './accounting/accounting.module';
 import { AnnouncementModule } from './announcement/announcement.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { CacheModule } from './cache/cache.module';
+import { CobModule } from './cob/cob.module';
 import { DefectModule } from './defect/defect.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EInvoiceModule } from './einvoice/einvoice.module';
@@ -25,12 +27,12 @@ import { GovernanceModule } from './governance/governance.module';
 import { HandoverModule } from './handover/handover.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { LostFoundModule } from './lost-found/lost-found.module';
-import { CobModule } from './cob/cob.module';
 import { NotificationModule } from './notification/notification.module';
 import { OwnerModule } from './owner/owner.module';
 import { ParcelModule } from './parcel/parcel.module';
 import { PlatformModule } from './platform/platform.module';
 import { PollsModule } from './polls/polls.module';
+import { ProcurementModule } from './procurement/procurement.module';
 import { QueueModule } from './queue/queue.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SafetyModule } from './safety/safety.module';
@@ -85,7 +87,9 @@ import { VisitorModule } from './visitor/visitor.module';
     FormsModule,
     DocumentsModule,
     LostFoundModule,
+    AccountingModule,
     CobModule,
+    ProcurementModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

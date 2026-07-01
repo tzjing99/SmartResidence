@@ -22,6 +22,8 @@ import type {
   CreatePollInput,
   CreateUnitTypeInput,
   CreateUnitTypeSpaceInput,
+  CreateVendorBillInput,
+  CreateVendorInput,
   CreateVisitorInput,
   OpenResolutionVotingInput,
   PatrolScanInput,
@@ -117,6 +119,15 @@ export const queryKeys = {
     ['cob', 'templates', condoId, from ?? '', to ?? ''] as const,
   paymentIssues: (condoId: string) => ['accounting', 'payment-issues', condoId] as const,
   unitStatement: (unitId: string) => ['accounting', 'statement', unitId] as const,
+  chartOfAccounts: (condoId: string) => ['gl', 'coa', condoId] as const,
+  glJournals: (condoId: string, from?: string, to?: string) =>
+    ['gl', 'journals', condoId, from ?? '', to ?? ''] as const,
+  glJournal: (condoId: string, entryId: string) => ['gl', 'journal', condoId, entryId] as const,
+  glBankAccounts: (condoId: string) => ['gl', 'bank-accounts', condoId] as const,
+  bankImports: (condoId: string, accountId?: string) =>
+    ['gl', 'bank-imports', condoId, accountId ?? ''] as const,
+  bankWorksheet: (condoId: string, importId: string) =>
+    ['gl', 'bank-worksheet', condoId, importId] as const,
   unitDefects: (unitId: string) => ['defects', 'unit', unitId] as const,
   condoDefects: (condoId: string) => ['defects', 'condo', condoId] as const,
   defect: (id: string) => ['defects', id] as const,
@@ -171,6 +182,12 @@ export const queryKeys = {
     ['lost-found', 'condo', condoId, params ?? {}] as const,
   myLostFound: (params?: Record<string, unknown>) => ['lost-found', 'mine', params ?? {}] as const,
   lostFoundPost: (id: string) => ['lost-found', id] as const,
+  condoVendors: (condoId: string, params?: Record<string, unknown>) =>
+    ['procurement', 'vendors', condoId, params ?? {}] as const,
+  vendor: (id: string) => ['procurement', 'vendor', id] as const,
+  condoVendorBills: (condoId: string, params?: Record<string, unknown>) =>
+    ['procurement', 'bills', condoId, params ?? {}] as const,
+  vendorBill: (id: string) => ['procurement', 'bill', id] as const,
   condoFormTemplates: (condoId: string, includeInactive?: boolean) =>
     ['forms', 'templates', condoId, includeInactive ? 'all' : 'active'] as const,
   formTemplate: (id: string) => ['forms', 'template', id] as const,
@@ -1168,6 +1185,103 @@ export function useUnitStatement(api: ApiClient, unitId: string | null) {
     queryFn: () => (unitId ? api.unitStatement(unitId) : Promise.resolve(null)),
     enabled: Boolean(unitId),
     staleTime: REPORT_VIEW_MS,
+  });
+}
+
+export function useChartOfAccounts(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.chartOfAccounts(condoId) : ['gl', 'coa', null],
+    queryFn: () => (condoId ? api.chartOfAccounts(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+    staleTime: REPORT_VIEW_MS,
+  });
+}
+
+export function useGlJournals(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { from?: string; to?: string },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.glJournals(condoId, params?.from, params?.to)
+      : ['gl', 'journals', null],
+    queryFn: () => (condoId ? api.glJournals(condoId, params ?? {}) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useGlJournalDetail(api: ApiClient, condoId: string | null, entryId: string | null) {
+  return useQuery({
+    queryKey: condoId && entryId ? queryKeys.glJournal(condoId, entryId) : ['gl', 'journal', null],
+    queryFn: () =>
+      condoId && entryId ? api.glJournalDetail(condoId, entryId) : Promise.resolve(null),
+    enabled: Boolean(condoId && entryId),
+  });
+}
+
+export function useGlBankAccounts(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.glBankAccounts(condoId) : ['gl', 'bank-accounts', null],
+    queryFn: () => (condoId ? api.glBankAccounts(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useBankStatementImports(
+  api: ApiClient,
+  condoId: string | null,
+  accountId?: string,
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.bankImports(condoId, accountId) : ['gl', 'bank-imports', null],
+    queryFn: () => (condoId ? api.bankStatementImports(condoId, accountId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useBankReconciliationWorksheet(
+  api: ApiClient,
+  condoId: string | null,
+  importId: string | null,
+) {
+  return useQuery({
+    queryKey:
+      condoId && importId
+        ? queryKeys.bankWorksheet(condoId, importId)
+        : ['gl', 'bank-worksheet', null],
+    queryFn: () =>
+      condoId && importId
+        ? api.bankReconciliationWorksheet(condoId, importId)
+        : Promise.resolve(null),
+    enabled: Boolean(condoId && importId),
+  });
+}
+
+export function useImportBankStatement(api: ApiClient, condoId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').ImportBankStatementInput) =>
+      condoId ? api.importBankStatement(condoId, input) : Promise.reject(new Error('No condo')),
+    onSuccess: () => {
+      if (condoId) qc.invalidateQueries({ queryKey: ['gl', 'bank-imports', condoId] });
+    },
+  });
+}
+
+export function useMatchBankLine(api: ApiClient, condoId: string | null, importId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { lineId: string; journalLineId: string | null }) =>
+      condoId
+        ? api.matchBankStatementLine(condoId, vars.lineId, vars.journalLineId)
+        : Promise.reject(new Error('No condo')),
+    onSuccess: () => {
+      if (condoId && importId) {
+        qc.invalidateQueries({ queryKey: queryKeys.bankWorksheet(condoId, importId) });
+      }
+    },
   });
 }
 
@@ -3005,5 +3119,73 @@ export function useModerateRemoveLostFoundPost(api: ApiClient) {
   return useMutation({
     mutationFn: (id: string) => api.moderateRemoveLostFoundPost(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lost-found'] }),
+  });
+}
+
+export function useCondoVendors(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { activeOnly?: boolean; limit?: number; offset?: number },
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoVendors(condoId, params) : ['procurement', 'vendors', null],
+    queryFn: () =>
+      condoId ? api.vendorsForCondo(condoId, params) : Promise.reject(new Error('No condo')),
+    enabled: !!condoId,
+  });
+}
+
+export function useCreateVendor(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateVendorInput) => api.createVendor(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'vendors'] }),
+  });
+}
+
+export function useCondoVendorBills(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { status?: string; fund?: string; vendorId?: string },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.condoVendorBills(condoId, params)
+      : ['procurement', 'bills', null],
+    queryFn: () =>
+      condoId ? api.vendorBillsForCondo(condoId, params) : Promise.reject(new Error('No condo')),
+    enabled: !!condoId,
+  });
+}
+
+export function useCreateVendorBill(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateVendorBillInput) => api.createVendorBill(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'bills'] }),
+  });
+}
+
+export function useApproveVendorBill(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.approveVendorBill(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'bills'] }),
+  });
+}
+
+export function usePayVendorBill(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.payVendorBill(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'bills'] }),
+  });
+}
+
+export function useVoidVendorBill(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.voidVendorBill(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['procurement', 'bills'] }),
   });
 }

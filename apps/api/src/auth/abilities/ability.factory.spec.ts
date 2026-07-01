@@ -140,4 +140,57 @@ describe('AbilityFactory', () => {
     expect(ability.can('reject', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
     expect(ability.can('approve', subject('Visitor', { unitId: 'unit-2' }))).toBe(false);
   });
+
+  it('lets residents create and resolve their own lost & found posts', () => {
+    const ability = factory.build(
+      user({
+        id: 'owner-1',
+        roles: [
+          { roleId: RoleId.UNIT_OWNER, condoId: 'condo-1', unitId: 'unit-1', permissions: [] },
+        ],
+      }),
+    );
+    expect(ability.can('create', subject('LostFoundPost', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('resolve', subject('LostFoundPost', { userId: 'owner-1' }))).toBe(true);
+    expect(ability.can('manage', subject('LostFoundPost', { condoId: 'condo-1' }))).toBe(false);
+  });
+
+  it('lets management manage governance meetings and documents', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.MANAGEMENT_ADMIN, condoId: 'condo-1', unitId: null, permissions: [] },
+        ],
+        activeRole: RoleId.MANAGEMENT_ADMIN,
+      }),
+    );
+    expect(ability.can('manage', subject('GeneralMeeting', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('manage', subject('Document', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('manage', subject('VendorBill', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('export', subject('VendorBill', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('read', 'Platform')).toBe(false);
+  });
+
+  it('denies residents access to vendor bills (no marketplace)', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.UNIT_OWNER, condoId: 'condo-1', unitId: 'unit-1', permissions: [] },
+        ],
+      }),
+    );
+    expect(ability.can('read', subject('VendorBill', { condoId: 'condo-1' }))).toBe(false);
+    expect(ability.can('read', subject('Vendor', { condoId: 'condo-1' }))).toBe(false);
+  });
+
+  it('lets tenants read documents but not manage folders', () => {
+    const ability = factory.build(
+      user({
+        roles: [{ roleId: RoleId.TENANT, condoId: 'condo-1', unitId: 'unit-1', permissions: [] }],
+        activeRole: RoleId.TENANT,
+      }),
+    );
+    expect(ability.can('read', subject('Document', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('manage', subject('DocumentFolder', { condoId: 'condo-1' }))).toBe(false);
+  });
 });

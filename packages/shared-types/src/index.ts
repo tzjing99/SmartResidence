@@ -21,6 +21,8 @@ export * from './setup';
 export * from './forms';
 export * from './documents';
 export * from './lost-found';
+export * from './accounting';
+export * from './procurement';
 export * from './whatsapp';
 export * from './platform';
 export * from './cob';

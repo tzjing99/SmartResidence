@@ -27,6 +27,7 @@ import {
   MapPin,
   Megaphone,
   Package,
+  Receipt,
   Rocket,
   Search,
   Settings2,
@@ -93,6 +94,12 @@ const NAV: Array<{
     label: 'Accounting',
     icon: Landmark,
     can: { action: 'read', subject: 'Ledger' },
+  },
+  {
+    href: '/admin/procurement',
+    label: 'Procurement',
+    icon: Receipt,
+    can: { action: 'read', subject: 'VendorBill' },
   },
   {
     href: '/admin/compliance/cob',

@@ -12,6 +12,7 @@ export default function VisitorsStackLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="[id]" options={{ headerShown: true, title: 'Visitor pass' }} />
       <Stack.Screen name="new" options={{ headerShown: true, title: 'Pre-register visitor' }} />
+      <Stack.Screen name="recurring" options={{ headerShown: true, title: 'Recurring passes' }} />
     </Stack>
   );
 }

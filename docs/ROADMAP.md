@@ -96,21 +96,28 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Visitor — pre-register & QR** | ✅ | `visitor.service`: create + `nanoid` QR + QR PNG; guard check-in/out; mobile guard `scan` / `expected` / `manual` screens |
 | **Visitor — two-path / owner approval / access code / offline** | ✅ | Pre-reg fast lane (6-char code + `condoId:visitorId:code` QR), walk-in unit (`PENDING_OWNER_APPROVAL`, 15 min timeout), office immediate check-in; guard offline queue on mobile; management read-only |
 | **Billing & payments** | ✅ (core) | `Invoice / InvoiceLine / Payment`; invoice numbering; partial-payment reconciliation; **Stripe + FPX adapters**; pluggable `PaymentProviderAdapter` |
-| **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) + receipts/statements** | ⬜ | `PaymentProvider` enum has STRIPE/FPX/IPAY88/RAZER/MANUAL; e-wallet adapters & itemized statement/receipt PDFs not built |
+| **Deposits + configurable receipts + unit-type fee schedule** | ✅ | `Deposit`/`Receipt`/`UnitTypeFeeRate`; auto-issued receipt PDFs (no deps); admin `/admin/deposits` + `/admin/settings/billing`; recurring invoices auto-computed from unit-type rate |
+| **Accounting ledger + reports** | ✅ | Append-only `LedgerEntry` (fund-tagged) + `UnitAccount` credit; fund balances, collections, arrears aging, unit statement; prepayment auto-apply; `/admin/accounting` |
+| **Self-serve payment gateways (Stripe / Fiuu / iPay88)** | ✅ (core) | Per-condo `PaymentGatewayConnection` with AES-256-GCM envelope-encrypted secrets; Stripe live + Fiuu/iPay88 sandbox-ready (signed redirect + callback verify); condo-aware webhooks; resident Pay-now method picker |
+| **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) dedicated channels** | ⬜ | Reachable today via Fiuu/iPay88 aggregators; dedicated per-rail adapters & statement/CSV exports still pending |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |
-| **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic send, socket cache, live inbox). Still deferred: ML phase 2 (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
-| **FAQ knowledge base** | 🟡 | Schema (`FaqCategory / FaqArticle`) present; **no FAQ controller/service/module yet** |
+| **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic send, socket cache, live inbox); priority-change reassignment (`assignOnPriorityChange`) + **C6** ML-assignment scaffold now shipped (seam + 200-thread gate + opt-in toggle + stub provider). Still deferred: a real trained ML model (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
+| **FAQ knowledge base** | ✅ | `FaqModule` shipped (`apps/api/src/faq/**`): controller/service, admin authoring (`/admin/faq`), resident browse (`/(resident)/faq`) + mobile FAQ, and thread-compose deflection (`POST /faq/deflect-match`) |
 | **Announcements** | ✅ | `Announcement` + `AnnouncementAck`; importance, audience JSON, pinned, requiresAck; web admin + resident views |
 | **Notifications (push/email)** | ✅ (core) | `Notification` + `PushSubscription` (Expo & Web); notification dispatch in services |
+| **Real-time notifications (web toast + bell, mobile push)** | ✅ | Dispatch emits enriched `notification.created` (title/body/data) → gateway forwards `notification:new` to the user room; web in-app toast (`realtime-provider.tsx`) + notification bell w/ unread badge & dropdown (`notification-bell.tsx`) in `app-shell`/`admin-shell`; mobile push registers via authenticated `api.registerPushToken` |
+| **Governance-lite polls (owner-verified MC voting)** | ✅ | `PollsModule` (`polls/**`); active-ownership-verified voting; admin `/admin/polls` + resident/mobile polls; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM e-voting (§4.8, still ⬜) |
+| **MCP integrations (admin)** | ✅ | Per-condo `McpServerConnection` (`integrations/**`); admin `/admin/settings/integrations`; CASL `McpServer` subject; migration `20260701180000_mcp_server_connections` |
+| **Mobile resident + guard parity** | ✅ | New resident screens (notifications, advance/prepaid payment, polls, recurring passes, FAQ, delegated access) + guard recurring-pass check-in & blacklist alerts |
 | **WhatsApp notifications** | ⬜ | Twilio is in the stack/README but no WhatsApp channel implemented |
 | **Storage / attachments** | ✅ | S3-compatible (`storage.service`, `attachments.controller`), MinIO in dev |
-| **Realtime** | ✅ | Socket.IO `realtime.gateway`; thread room join/leave; **H2** client wiring — `RealtimeProvider` patches TanStack Query caches on `thread:message` / `thread:update` / `thread:sla` (web + mobile helpdesk) |
+| **Realtime** | ✅ | Socket.IO `realtime.gateway`; thread room join/leave; **H2** client wiring — `RealtimeProvider` patches TanStack Query caches on `thread:message` / `thread:update` / `thread:sla` (web + mobile helpdesk); also forwards enriched `notification:new` to per-user rooms (web toast + bell) |
 | **Web perf (lite HSR)** | ✅ | **U1** — route-level `loading.tsx` skeletons, nav prefetch, shell retention during auth, `keepPreviousData` on thread lists (commits `ce33631`–`32cd37e`) |
 | **Facility booking** | ⬜ | Not in schema or code |
 | **Parcels / deliveries** | ⬜ | Not in schema or code |
 | **Governance (AGM/EGM, e-voting, financial transparency, minutes)** | ⬜ | Not in schema or code |
 | **Forms & workflows (move-in/out, renovation permit, vehicle sticker)** | ⬜ | Not in schema or code |
-| **Community (marketplace, polls, lost & found)** | ⬜ | Not in schema or code |
+| **Community (marketplace, polls, lost & found)** | 🟡 | **Polls ✅** (governance-lite owner-verified voting — see row above); marketplace + lost & found still ⬜ |
 | **Documents vault** | ⬜ | Not in schema or code (attachments exist as primitive) |
 | **Admin / platform (multi-condo super-admin)** | 🟡 | `SUPER_ADMIN` role + `manage all` ability exist; no dedicated cross-condo console UI yet |
 | **i18n (BM / EN / 中文 / Tamil)** | 🟡 | `locale` fields on `User` & `Condo`; UI string externalization not complete |
@@ -132,14 +139,29 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 
 Dependencies are noted per module. "→" means "depends on / builds atop".
 
-### 4.1 Billing & payments  *(core ✅ → MY rails ⬜)*
+### 4.1 Billing & payments  *(core ✅ → deposits/accounting/gateways ✅ → MY e-wallet rails ⬜)*
 - **Target:** maintenance fee + **sinking fund** invoicing per Strata Act;
   itemized, transparent statements; downloadable **receipts**; arrears &
   late-fee formulas (`feeFormulaConfig` on `Condo`, `formula` on
   `InvoiceLine` already exist).
-- **MY rails:** add adapters for **DuitNow QR**, **TNG eWallet**, **Boost**,
-  **GrabPay** behind the existing `PaymentProviderAdapter`; webhook
-  reconciliation already modeled via `markPaymentSucceeded(providerRef)`.
+- **Shipped (billing v2 — 3 phases):**
+  - **Deposits + receipts + fee schedule:** `Deposit` (renovation/delivery/etc.
+    with refund + forfeit), `Receipt` with admin-configurable template
+    (`Condo.settings.billing.receipt`) and dependency-free PDF rendering, and a
+    per-`UnitType` `UnitTypeFeeRate` that drives `generateRecurring`
+    (maintenance + sinking-fund lines computed from unit type × sqft).
+  - **Accounting ledger + reports:** append-only fund-tagged `LedgerEntry` +
+    `UnitAccount` prepayment credit; advance maintenance auto-applied to invoices;
+    fund balances (maintenance/sinking/deposit), collections summary, arrears
+    aging, and per-unit statement with running balance (`/admin/accounting`).
+  - **Self-serve gateways:** per-condo `PaymentGatewayConnection` with
+    **AES-256-GCM envelope-encrypted** credentials (`BILLING_ENCRYPTION_KEY`,
+    secrets never returned to the client); **Stripe** live + **Fiuu (Razer)** and
+    **iPay88** sandbox-ready adapters (signed redirect + callback/`skey`/SHA256
+    verification); condo-aware webhook routing; idempotent settlement that
+    auto-issues a receipt and writes the ledger; resident Pay-now method picker.
+- **MY rails (remaining):** dedicated **DuitNow QR / TNG / Boost / GrabPay**
+  channels (reachable today via Fiuu/iPay88 aggregators); statement/CSV export.
 - **Transparency:** unit-level statement view + audit entry on every charge
   adjustment (owner empowerment).
 - **Deps:** Identity, Multi-tenancy. **Enables:** Governance financial
@@ -170,9 +192,9 @@ The flagship resident-empowerment flow. Two explicit paths:
   when connectivity returns.
 - **Correction to apply:** management = **read/audit only**; residents =
   **only** approvers; guards = check-in/out only (see §2.1).
+- **Shipped:** **blacklist** (`VisitorBlacklistService` + web `visitor-blacklist-panel.tsx` + guard blacklist alerts on scan/manual) and **recurring passes** (`RecurringPassService` + resident `visitors/recurring.tsx` + guard recurring-pass check-in); migration `20260701120000_visitor_blacklist_recurring_passes`.
 - **Future:** vehicle **plate / ANPR** field (already a `vehiclePlate`
-  column), **blacklist**, **recurring passes**, lighter **deliveries /
-  e-hailing** flow.
+  column), lighter **deliveries / e-hailing** flow.
 - **Deps:** Identity, Notifications (push for approval prompts), Realtime
   (live gate status), Audit. **Strongly pairs with** Communication threads
   (resident↔guard/management context).
@@ -192,9 +214,10 @@ The flagship resident-empowerment flow. Two explicit paths:
   suggests priority; `SlaService` sets first-response/resolution due dates
   and computes live SLA state + escalation
   (`THREAD_SLA_ESCALATION` notification kind exists).
-- **Management FAQ** knowledge base (`FaqCategory / FaqArticle`): build the
-  controller/service/module + admin authoring UI + resident browse/search
-  (Prisma `fullTextSearch` preview is enabled).
+- **Management FAQ** knowledge base (`FaqCategory / FaqArticle`) ✅ **shipped**:
+  `FaqModule` controller/service, admin authoring UI (`/admin/faq`), resident
+  browse/search (`/(resident)/faq`) + mobile FAQ, and thread-compose deflection
+  (`POST /faq/deflect-match`).
 - **Pluggable local-AI seam:** keep `AI_ASSIST_PROVIDER` abstract; future
   local model can answer from FAQ and draft replies — **not built, seam only**.
 - **Shipped (v0.2 — partial):** **S1** management-only helpdesk settings on web
@@ -208,8 +231,13 @@ The flagship resident-empowerment flow. Two explicit paths:
   **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic
   send, socket → TanStack Query cache, live inbox, assigned-to badge, shared
   `RealtimeProvider` on web + mobile).
-- **Deferred follow-ons** (see [docs/BACKLOG.md](./BACKLOG.md)): ML phase 2 at
-  200+ closed threads (**C6**); FAQ module + admin authoring UI still ⬜.
+- **Also shipped:** priority-change reassignment (`ThreadAssignmentService.assignOnPriorityChange`
+  re-routes the assignee on reprioritisation) and the **C6** ML-assignment
+  scaffold/seam (`AssignmentAssistProvider` + `ml/ml-assignment.service.ts`
+  gated by `ML_ASSIGNMENT_MIN_CLOSED_THREADS = 200` + an opt-in admin toggle on
+  `/admin/settings/helpdesk`; stub provider, deterministic rules remain fallback).
+- **Deferred follow-ons** (see [docs/BACKLOG.md](./BACKLOG.md)): a real **trained**
+  ML assignment model (**C6** — only the seam/stub is shipped).
 - **Deps:** Identity, Notifications, Storage, Realtime.
 
 ### 4.5 Announcements  *(✅, iterate)*
@@ -244,13 +272,24 @@ The flagship resident-empowerment flow. Two explicit paths:
 - **Deps:** Storage (uploads), Notifications, Threads (clarifications),
   Billing (fees/deposits).
 
-### 4.10 Community (marketplace, polls, lost & found)  *(⬜)*
-- Resident-to-resident marketplace, lightweight polls (distinct from formal
-  e-voting), lost & found board. **No ads** — community utility only.
+### 4.10 Community (marketplace, polls, lost & found)  *(polls ✅ → rest ⬜)*
+- **Shipped:** **governance-lite polls** — `PollsModule` with owner-verified MC
+  voting (only active unit owners may vote; ownership + condo checked at vote
+  time), admin authoring `/admin/polls`, resident `/(resident)/polls` + mobile
+  polls; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM
+  e-voting (§4.8, still ⬜).
+- **Still ⬜:** resident-to-resident marketplace, lost & found board.
+  **No ads** — community utility only.
 - **Deps:** Identity, Storage, Notifications.
 
-### 4.11 Notifications (push / email / WhatsApp)  *(✅ push+email → ⬜ WhatsApp)*
+### 4.11 Notifications (push / email / WhatsApp)  *(✅ push+email+realtime → ⬜ WhatsApp)*
 - Channel fan-out per `NotificationKind`; user preferences; quiet hours.
+- **Real-time delivery ✅ shipped:** dispatch emits an enriched
+  `notification.created` (title/body/data) that `realtime.gateway` forwards as
+  `notification:new` to the user's room — web renders an in-app toast
+  (`realtime-provider.tsx`) + notification bell with unread badge/dropdown
+  (`notification-bell.tsx`); mobile push registers via the authenticated
+  `api.registerPushToken`.
 - **WhatsApp** channel (huge MY reach) via Twilio/provider behind the same
   dispatch interface; `sentChannels` already tracked on `Notification`.
 - **Deps:** every module emits into it. Cross-cutting.
@@ -270,6 +309,10 @@ The flagship resident-empowerment flow. Two explicit paths:
 - `SUPER_ADMIN` + `manage all` exist. **Target:** cross-condo console —
   provisioning condos, plan/usage, feature flags, support impersonation
   (audited), aggregate health.
+- **Shipped (admin capability):** **MCP integrations** — per-condo
+  `McpServerConnection` (`integrations/**`, `mcp-client.ts`) managed from
+  `/admin/settings/integrations`, gated by the CASL `McpServer` subject
+  (admin manage / staff read); migration `20260701180000_mcp_server_connections`.
 - **Deps:** everything; thin orchestration layer.
 
 ---
@@ -393,14 +436,17 @@ flowchart LR
     abusive-thread close (D7), email opt-in (E1).
   - **M2** ✅ (phase 1) — category → assignee pool, triage pool, recategorise
     reassign, repeat complainant routing, duplicate suggestions, inbox sort (F3),
-    FAQ deflection (F4), PDF export (G2). Deferred: ML phase 2 (C6).
+    FAQ deflection (F4), PDF export (G2), plus priority-change reassignment
+    (`assignOnPriorityChange`). ML phase 2 (**C6**) scaffold/seam shipped
+    (200-thread gate + opt-in toggle + stub provider); trained model deferred.
   - **H2** ✅ — optimistic message send, Socket.IO cache patches, live inbox,
     assigned-to badge; `RealtimeProvider` on web + mobile. **Shipped:** `299531f`.
   - **U1** ✅ — **lite HSR**: route `loading.tsx` skeletons, nav prefetch,
     shell retention, `keepPreviousData` on thread lists. **Shipped:** `ce33631`
     (+ CI `f92d6ae`, `32cd37e`; green run `27017382927`).
-- **Still ⬜ from original v0.2 scope:** FAQ module + admin authoring + resident
-  search (schema exists; controller/service not shipped).
+- **FAQ (original v0.2 scope) ✅ now shipped:** `FaqModule` + admin authoring
+  (`/admin/faq`) + resident/mobile browse (`/(resident)/faq`) + compose-time
+  deflection (`POST /faq/deflect-match`).
 - **Deps:** Identity, Notifications. **Acceptance:** resident opens a thread,
   management replies (with internal notes hidden from residents), priority
   auto-suggested, SLA due dates computed, escalation fires; FAQ searchable;

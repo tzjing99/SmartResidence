@@ -46,6 +46,11 @@ export class SignUpDto {
 }
 
 export class UpdateProfileDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @ApiPropertyOptional({ minLength: 2, maxLength: 120 })
   @IsOptional()
   @IsString()

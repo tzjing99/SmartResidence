@@ -296,6 +296,8 @@
       "noOwnerPhone": "Tiada telefon pemilik — hubungi pengurusan",
       "awaitingOwner": "Menunggu pemilik",
       "waitingOwnerApproval": "Menunggu pemilik unit meluluskan dalam aplikasi. Hubungi mereka jika belum membalas.",
+      "guardCannotOverrideHint": "Pengawal tidak boleh meluluskan walk-in — hanya pemilik unit boleh meluluskan dalam aplikasi. Daftar masuk selepas mereka meluluskan.",
+      "ownerApprovedReadyCheckIn": "Pemilik meluluskan dalam aplikasi — akui kemasukan apabila pelawat berada di pintu pagar.",
       "ownerApprovedByPhone": "Pemilik luluskan melalui telefon",
       "approveVerified": "Luluskan (pelawat disahkan)",
       "guardApproveHint": "Kedua-dua pilihan membuka pintu sekarang dan menambah pelawat ke papan langsung — tanpa menunggu aplikasi.",

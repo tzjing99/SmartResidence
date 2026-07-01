@@ -131,6 +131,7 @@ export class ThreadsService {
         createdByUserId: user.id,
         category: dto.category,
         subject: dto.subject,
+        body: dto.body,
       }),
     ]);
 
@@ -394,6 +395,7 @@ export class ThreadsService {
     const now = new Date();
     const data: Prisma.ThreadUpdateInput = {};
     const systemLines: string[] = [];
+    let priorityAutoAssigneeId: string | null = null;
 
     // Resolution is resident-driven (D2): management cannot unilaterally mark a
     // thread RESOLVED/CLOSED via a status edit. They must use the explicit
@@ -416,6 +418,21 @@ export class ThreadsService {
       data.resolutionDueAt = due.resolutionDueAt;
       if (due.slaPolicyId) data.slaPolicy = { connect: { id: due.slaPolicyId } };
       systemLines.push(`Priority changed to ${dto.priority}`);
+
+      const meta = (thread.metadata as Record<string, unknown> | null) ?? {};
+      const repeat = Boolean(meta.repeatComplainant);
+      const newAssignee = await this.assignment.assignOnPriorityChange(
+        thread.condoId,
+        dto.priority,
+        repeat,
+        thread.category,
+        thread.assignedToUserId,
+      );
+      if (newAssignee && newAssignee !== thread.assignedToUserId) {
+        priorityAutoAssigneeId = newAssignee;
+        data.assignedTo = { connect: { id: newAssignee } };
+        systemLines.push('Auto-reassigned after priority change');
+      }
     }
 
     if (dto.category && dto.category !== thread.category) {
@@ -427,6 +444,7 @@ export class ThreadsService {
         thread.condoId,
         dto.category,
         repeat,
+        thread.subject,
       );
       if (newAssignee && newAssignee !== thread.assignedToUserId) {
         data.assignedTo = { connect: { id: newAssignee } };
@@ -470,6 +488,14 @@ export class ThreadsService {
     if (dto.assignedToUserId && dto.assignedToUserId !== thread.assignedToUserId) {
       await this.notifications.dispatch({
         userIds: [dto.assignedToUserId],
+        kind: NotificationKind.THREAD_ASSIGNED,
+        title: 'Thread assigned to you',
+        body: thread.subject,
+        data: { threadId: id },
+      });
+    } else if (priorityAutoAssigneeId) {
+      await this.notifications.dispatch({
+        userIds: [priorityAutoAssigneeId],
         kind: NotificationKind.THREAD_ASSIGNED,
         title: 'Thread assigned to you',
         body: thread.subject,

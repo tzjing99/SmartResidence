@@ -1,28 +1,25 @@
 /**
- * Dependency-free, multi-page PDF builder for the defect contractor export.
- *
- * Mirrors the approach used by the thread transcript export but adds pagination
- * so a long defect schedule isn't truncated to a single page. No external PDF
- * library is pulled in — we emit a minimal but valid PDF 1.4 document.
+ * Defect contractor exports (schedule list + handover report), rendered through
+ * the shared modern PDF layout engine. Multi-page pagination, a branded header,
+ * aligned metadata and per-item detail blocks — all dependency-free.
  */
-function escapePdfText(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+import { PDF_COLORS, PdfDocument } from '../common/pdf/pdf-document';
+
+function splitMeta(line: string): { label?: string; value: string } {
+  const idx = line.indexOf(': ');
+  if (idx > 0 && idx < 24) {
+    return { label: line.slice(0, idx), value: line.slice(idx + 2) };
+  }
+  return { value: line };
 }
 
-function wrapLines(text: string, maxLen = 98): string[] {
-  const lines: string[] = [];
-  for (const paragraph of text.split('\n')) {
-    let rest = paragraph;
-    while (rest.length > maxLen) {
-      let breakAt = rest.lastIndexOf(' ', maxLen);
-      if (breakAt < maxLen * 0.5) breakAt = maxLen;
-      lines.push(rest.slice(0, breakAt).trim());
-      rest = rest.slice(breakAt).trim();
-    }
-    if (rest) lines.push(rest);
-    if (!paragraph) lines.push('');
+function renderMeta(doc: PdfDocument, meta: string[]): void {
+  doc.spacer(2);
+  for (const raw of meta) {
+    const { label, value } = splitMeta(raw);
+    if (label) doc.labelValue(label, value, { labelWidth: 108 });
+    else doc.paragraph(value, { size: 9.5, color: PDF_COLORS.muted });
   }
-  return lines;
 }
 
 export interface DefectExportRow {
@@ -40,76 +37,33 @@ export function buildDefectListPdf(opts: {
   meta: string[];
   rows: DefectExportRow[];
 }): Buffer {
-  const lines: string[] = [opts.title, ...opts.meta, ''];
+  const doc = new PdfDocument({
+    header: { brand: opts.title || 'Defect Schedule', title: 'Defect Schedule' },
+    footerCaption: 'This is a computer-generated defect schedule.',
+  });
+
+  renderMeta(doc, opts.meta);
+  doc.sectionTitle(`Defects (${opts.rows.length})`);
+
   if (opts.rows.length === 0) {
-    lines.push('No defects match the current filters.');
+    doc.paragraph('No defects match the current filters.', { color: PDF_COLORS.muted });
+    return doc.build();
   }
+
   opts.rows.forEach((row, idx) => {
-    lines.push(`${idx + 1}. [${row.reference}] ${row.title}`);
-    lines.push(
-      `   Unit: ${row.unitLabel}  |  Category: ${row.category}  |  Severity: ${row.severity}  |  Status: ${row.status}`,
+    if (idx > 0) doc.divider();
+    doc.paragraph(`${idx + 1}.  [${row.reference}]  ${row.title}`, { size: 10.5, bold: true });
+    doc.paragraph(
+      `Unit: ${row.unitLabel}   ·   Category: ${row.category}   ·   Severity: ${row.severity}   ·   Status: ${row.status}`,
+      { size: 9, color: PDF_COLORS.muted },
     );
-    for (const d of wrapLines(row.description, 92)) lines.push(`   ${d}`);
-    lines.push('');
+    if (row.description) {
+      doc.spacer(2);
+      doc.paragraph(row.description, { size: 9.5 });
+    }
   });
 
-  const wrapped = lines.flatMap((l) => wrapLines(l, 98));
-
-  const lineHeight = 14;
-  const startY = 780;
-  const bottomMargin = 48;
-  const linesPerPage = Math.max(1, Math.floor((startY - bottomMargin) / lineHeight));
-  const pages: string[][] = [];
-  for (let i = 0; i < wrapped.length; i += linesPerPage) {
-    pages.push(wrapped.slice(i, i + linesPerPage));
-  }
-  if (pages.length === 0) pages.push([]);
-
-  // Object layout: 1 = font; then per page (content, page); then Pages; then Catalog.
-  const pagesObjNum = 2 + pages.length * 2;
-  const catalogObjNum = pagesObjNum + 1;
-
-  const objBodies: string[] = ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
-  const pageObjNums: number[] = [];
-
-  pages.forEach((pageLines, p) => {
-    const textOps = pageLines
-      .map((line, i) => {
-        const y = startY - i * lineHeight;
-        return `1 0 0 1 50 ${y} Tm (${escapePdfText(line.slice(0, 200))}) Tj`;
-      })
-      .join('\n');
-    const stream = `BT\n/F1 10 Tf\n${textOps}\nET`;
-    const streamLen = Buffer.byteLength(stream, 'utf8');
-    const contentObjNum = 2 + p * 2;
-    const pageObjNum = 3 + p * 2;
-    pageObjNums.push(pageObjNum);
-    objBodies.push(`<< /Length ${streamLen} >>\nstream\n${stream}\nendstream`);
-    objBodies.push(
-      `<< /Type /Page /Parent ${pagesObjNum} 0 R /MediaBox [0 0 612 792] /Contents ${contentObjNum} 0 R /Resources << /Font << /F1 1 0 R >> >> >>`,
-    );
-  });
-
-  objBodies.push(
-    `<< /Type /Pages /Kids [${pageObjNums.map((n) => `${n} 0 R`).join(' ')}] /Count ${pages.length} >>`,
-  );
-  objBodies.push(`<< /Type /Catalog /Pages ${pagesObjNum} 0 R >>`);
-
-  const parts: string[] = ['%PDF-1.4\n'];
-  const offs: number[] = [0];
-  for (let i = 0; i < objBodies.length; i++) {
-    offs.push(Buffer.byteLength(parts.join(''), 'utf8'));
-    parts.push(`${i + 1} 0 obj\n${objBodies[i]}\nendobj\n`);
-  }
-  const body = parts.join('');
-  const xrefOffset = Buffer.byteLength(body, 'utf8');
-  const objCount = objBodies.length + 1;
-  let xref = `xref\n0 ${objCount}\n0000000000 65535 f \n`;
-  for (let i = 1; i < offs.length; i++) {
-    xref += `${String(offs[i]).padStart(10, '0')} 00000 n \n`;
-  }
-  const trailer = `trailer\n<< /Size ${objCount} /Root ${catalogObjNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  return Buffer.from(body + xref + trailer, 'utf8');
+  return doc.build();
 }
 
 export interface HandoverReportRow {
@@ -127,84 +81,47 @@ export interface HandoverReportGroup {
 }
 
 /**
- * Contractor schedule for a handover report, grouped by space (room). Reuses
- * the same dependency-free, multi-page text PDF as the defect list export.
+ * Contractor schedule for a handover report, grouped by space (room). Shares
+ * the same modern layout engine and branded header as the defect list export.
  */
 export function buildHandoverReportPdf(opts: {
   title: string;
   meta: string[];
   groups: HandoverReportGroup[];
 }): Buffer {
-  const lines: string[] = [opts.title, ...opts.meta, ''];
-  if (opts.groups.length === 0) {
-    lines.push('No items in this report.');
-  }
-  let n = 0;
-  for (const group of opts.groups) {
-    lines.push(`== ${group.space} (${group.rows.length}) ==`);
-    for (const row of group.rows) {
-      n++;
-      lines.push(`${n}. [${row.reference}] ${row.element} — ${row.issue}`);
-      lines.push(`   Status: ${row.status}  |  Assignee: ${row.assignee}`);
-      for (const d of wrapLines(row.note, 92)) lines.push(`   ${d}`);
-    }
-    lines.push('');
-  }
-
-  const wrapped = lines.flatMap((l) => wrapLines(l, 98));
-
-  const lineHeight = 14;
-  const startY = 780;
-  const bottomMargin = 48;
-  const linesPerPage = Math.max(1, Math.floor((startY - bottomMargin) / lineHeight));
-  const pages: string[][] = [];
-  for (let i = 0; i < wrapped.length; i += linesPerPage) {
-    pages.push(wrapped.slice(i, i + linesPerPage));
-  }
-  if (pages.length === 0) pages.push([]);
-
-  const pagesObjNum = 2 + pages.length * 2;
-  const catalogObjNum = pagesObjNum + 1;
-
-  const objBodies: string[] = ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
-  const pageObjNums: number[] = [];
-
-  pages.forEach((pageLines, p) => {
-    const textOps = pageLines
-      .map((line, i) => {
-        const y = startY - i * lineHeight;
-        return `1 0 0 1 50 ${y} Tm (${escapePdfText(line.slice(0, 200))}) Tj`;
-      })
-      .join('\n');
-    const stream = `BT\n/F1 10 Tf\n${textOps}\nET`;
-    const streamLen = Buffer.byteLength(stream, 'utf8');
-    const contentObjNum = 2 + p * 2;
-    const pageObjNum = 3 + p * 2;
-    pageObjNums.push(pageObjNum);
-    objBodies.push(`<< /Length ${streamLen} >>\nstream\n${stream}\nendstream`);
-    objBodies.push(
-      `<< /Type /Page /Parent ${pagesObjNum} 0 R /MediaBox [0 0 612 792] /Contents ${contentObjNum} 0 R /Resources << /Font << /F1 1 0 R >> >> >>`,
-    );
+  const doc = new PdfDocument({
+    header: { brand: opts.title || 'Handover Report', title: 'Handover Defect Schedule' },
+    footerCaption: 'This is a computer-generated handover schedule.',
   });
 
-  objBodies.push(
-    `<< /Type /Pages /Kids [${pageObjNums.map((m) => `${m} 0 R`).join(' ')}] /Count ${pages.length} >>`,
-  );
-  objBodies.push(`<< /Type /Catalog /Pages ${pagesObjNum} 0 R >>`);
+  renderMeta(doc, opts.meta);
 
-  const parts: string[] = ['%PDF-1.4\n'];
-  const offs: number[] = [0];
-  for (let i = 0; i < objBodies.length; i++) {
-    offs.push(Buffer.byteLength(parts.join(''), 'utf8'));
-    parts.push(`${i + 1} 0 obj\n${objBodies[i]}\nendobj\n`);
+  if (opts.groups.length === 0) {
+    doc.sectionTitle('Items');
+    doc.paragraph('No items in this report.', { color: PDF_COLORS.muted });
+    return doc.build();
   }
-  const body = parts.join('');
-  const xrefOffset = Buffer.byteLength(body, 'utf8');
-  const objCount = objBodies.length + 1;
-  let xref = `xref\n0 ${objCount}\n0000000000 65535 f \n`;
-  for (let i = 1; i < offs.length; i++) {
-    xref += `${String(offs[i]).padStart(10, '0')} 00000 n \n`;
+
+  let n = 0;
+  for (const group of opts.groups) {
+    doc.sectionTitle(`${group.space} (${group.rows.length})`);
+    group.rows.forEach((row, idx) => {
+      n++;
+      if (idx > 0) doc.divider();
+      doc.paragraph(`${n}.  [${row.reference}]  ${row.element} — ${row.issue}`, {
+        size: 10.5,
+        bold: true,
+      });
+      doc.paragraph(`Status: ${row.status}   ·   Assignee: ${row.assignee}`, {
+        size: 9,
+        color: PDF_COLORS.muted,
+      });
+      if (row.note) {
+        doc.spacer(2);
+        doc.paragraph(row.note, { size: 9.5 });
+      }
+    });
   }
-  const trailer = `trailer\n<< /Size ${objCount} /Root ${catalogObjNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  return Buffer.from(body + xref + trailer, 'utf8');
+
+  return doc.build();
 }

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMe, usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
 import {
   AlignRow,
@@ -9,10 +10,12 @@ import {
   palette,
   spacing,
 } from '@smartresidence/ui-mobile';
-import { useEffect, useState } from 'react';
-import { Alert, Switch, View } from 'react-native';
+import { type Href, useRouter } from 'expo-router';
+import { type ComponentProps, useEffect, useState } from 'react';
+import { Alert, Pressable, Switch, View } from 'react-native';
 import {
   RESIDENT_CORAL,
+  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   residentStyles,
@@ -31,7 +34,60 @@ const mapRoleLabel = (role: string | null | undefined): string => {
   return 'Resident';
 };
 
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+function MoreLink({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  isLast,
+}: {
+  icon: IoniconName;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  isLast?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        paddingVertical: 12,
+        borderBottomWidth: isLast ? 0 : 1,
+        borderBottomColor: palette.borderLight,
+      }}
+    >
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: RESIDENT_SOFT_CORAL,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name={icon} size={20} color={RESIDENT_CORAL} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={1}>
+          {title}
+        </AppText>
+        <AppText variant="meta" style={{ color: palette.mutedLight }} numberOfLines={1}>
+          {subtitle}
+        </AppText>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={palette.mutedLight} />
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
+  const router = useRouter();
   const me = useMe(api);
   const user = (me.data as MeResponse | undefined)?.user;
   const prefs = usePreferences(api);
@@ -166,6 +222,51 @@ export default function SettingsScreen() {
             </Field>
           </View>
         ) : null}
+      </Card>
+
+      <ResidentSectionHeader
+        title="More"
+        subtitle="Everything else your resident account can do."
+      />
+
+      <Card style={[residentStyles.card, { paddingVertical: 4 }]}>
+        <MoreLink
+          icon="notifications-outline"
+          title="Notifications"
+          subtitle="Alerts, approvals, and updates"
+          onPress={() => router.push('/(resident)/notifications' as Href)}
+        />
+        <MoreLink
+          icon="podium-outline"
+          title="MC polls"
+          subtitle="Vote in owner consultations"
+          onPress={() => router.push('/(resident)/polls' as Href)}
+        />
+        <MoreLink
+          icon="calendar-outline"
+          title="Facilities"
+          subtitle="Book shared amenities"
+          onPress={() => router.push('/(resident)/facilities' as Href)}
+        />
+        <MoreLink
+          icon="repeat-outline"
+          title="Recurring visitor passes"
+          subtitle="Repeat access for regular guests"
+          onPress={() => router.push('/(resident)/visitors/recurring' as Href)}
+        />
+        <MoreLink
+          icon="help-circle-outline"
+          title="Help & FAQ"
+          subtitle="Answers from your management office"
+          onPress={() => router.push('/(resident)/faq' as Href)}
+        />
+        <MoreLink
+          icon="key-outline"
+          title="Who has access to my unit"
+          subtitle="Review and revoke delegated access"
+          onPress={() => router.push('/(resident)/access' as Href)}
+          isLast
+        />
       </Card>
 
       <View style={{ gap: spacing.sm }}>

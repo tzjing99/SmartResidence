@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { isVisitorBlacklistError } from '@smartresidence/shared-types';
 import { AppText, Button, Card, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -68,6 +69,40 @@ export default function ManualScreen() {
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
+  function showBlocked(message: string) {
+    setError(message);
+    setVisitor(null);
+    setCode('');
+    Alert.alert('Visitor blocked', message);
+  }
+
+  /** Fall back to a recurring pass when the code is not a one-off visitor pass. */
+  async function tryRecurringCheckIn(pass: string): Promise<boolean> {
+    try {
+      const recurring = await api.verifyRecurringPass(pass);
+      if (!recurring.withinSchedule) {
+        const message = recurring.scheduleMessage ?? 'This recurring pass is not valid right now.';
+        setError(message);
+        setCode('');
+        Alert.alert('Outside schedule', message);
+        return true;
+      }
+      await api.checkInRecurringPass(pass, { gateLocation: 'Main gate (manual)', notes });
+      setSuccess(`${recurring.guestName} checked in.`);
+      Alert.alert('Checked in', `${recurring.guestName} (recurring pass) is now on-site.`);
+      setCode('');
+      setNotes('');
+      return true;
+    } catch (err) {
+      const message = (err as Error).message;
+      if (isVisitorBlacklistError(message)) {
+        showBlocked(message);
+        return true;
+      }
+      return false;
+    }
+  }
+
   async function verifyAndCheckIn(pass: string) {
     if (busy || pass.length !== ACCESS_CODE_LENGTH) return;
     setBusy(true);
@@ -86,7 +121,18 @@ export default function ManualScreen() {
       setCode('');
       setNotes('');
     } catch (err) {
+      const message = (err as Error).message;
+
+      // Blacklisted visitors are blocked at the gate regardless of pass type.
+      if (isVisitorBlacklistError(message)) {
+        showBlocked(message);
+        return;
+      }
+
       if (!verifiedVisitor) {
+        // Not a one-off pass — it may be a recurring pass access code.
+        const handled = await tryRecurringCheckIn(pass);
+        if (handled) return;
         setError('Access code not valid. Please check the visitor pass and try again.');
         setCode('');
         setVisitor(null);
@@ -106,7 +152,7 @@ export default function ManualScreen() {
         return;
       }
 
-      setError((err as Error).message);
+      setError(message);
       setCode('');
       setVisitor(null);
     } finally {

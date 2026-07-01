@@ -136,7 +136,7 @@ export default function AdminDefectDetailPage() {
         className="inline-flex items-center gap-1.5 text-sm font-medium text-[rgb(var(--sr-coral))] hover:underline"
       >
         <ArrowLeft className="size-4" />
-        Defect board
+        Defects
       </Link>
 
       <header className="flex flex-col gap-3">

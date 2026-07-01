@@ -210,9 +210,9 @@ export default function ReportTriagePage() {
           href="/admin/defects"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-[rgb(var(--sr-coral))] hover:underline"
         >
-          <ArrowLeft className="size-4" /> Defect packages
+          <ArrowLeft className="size-4" /> Handover reports
         </Link>
-        <p className="sr-muted">This defect package could not be found.</p>
+        <p className="sr-muted">This handover report could not be found.</p>
       </div>
     );
   }
@@ -228,14 +228,14 @@ export default function ReportTriagePage() {
         href="/admin/defects"
         className="inline-flex items-center gap-1.5 text-sm font-medium text-[rgb(var(--sr-coral))] hover:underline"
       >
-        <ArrowLeft className="size-4" /> Defect packages
+        <ArrowLeft className="size-4" /> Handover reports
       </Link>
 
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="primary">Unit package</Badge>
+              <Badge tone="primary">Handover report</Badge>
               <span className="text-xs sr-muted">{defectReference(detail.id)}</span>
             </div>
             <h1 className="mt-2 text-2xl font-bold tracking-tight">{unitLabel}</h1>
@@ -312,7 +312,7 @@ export default function ReportTriagePage() {
           onAssign={(id, userId) => applyToIds([id], { assignedToUserId: userId })}
           onStatus={(id, status) => applyToIds([id], { status })}
           onMarkFixed={markFixed}
-          empty="No defects match this package view. Clear filters to return to the FIFO list."
+          empty="No defects match this handover report view. Clear filters to return to the full list."
         />
         <DefectDetailPanel item={active} onMarkFixed={markFixed} />
       </div>

@@ -6,7 +6,6 @@ import { type Href, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { api } from '../src/lib/api';
-import { registerForPush } from '../src/lib/push';
 import { getActiveRole, roleToHomePath } from '../src/lib/roles';
 import { setCached, writeSession } from '../src/lib/session';
 
@@ -34,7 +33,8 @@ export default function SignInScreen() {
       };
       await writeSession(session);
       setCached(session);
-      void registerForPush();
+      // Push registration is handled by PushNavigationBridge, which reacts to
+      // this session change via subscribeSession.
 
       let home: Href = '/(resident)/home';
       try {

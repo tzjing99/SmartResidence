@@ -84,6 +84,12 @@ export class UpdateMlPriorityDto {
   enabled!: boolean;
 }
 
+export class UpdateMlAssignmentDto {
+  @ApiProperty({ description: 'Enable ML assignee suggestions (C6 phase 2, opt-in).' })
+  @IsBoolean()
+  enabled!: boolean;
+}
+
 export class UpdateAutoAssignmentDto {
   @ApiProperty({ type: [String] })
   @IsArray()

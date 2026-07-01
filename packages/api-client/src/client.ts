@@ -11,42 +11,132 @@
  * `@smartresidence/shared-types`.
  */
 import type {
+  AddFeeSchedulePresetsInput,
   Announcement,
   AnnouncementCategory,
   AnnouncementReadStats,
+  ArrearsAging,
+  AutomationStatusResponse,
+  BillingAutomationPreview,
+  BillingAutomationRunResult,
+  BillingAutomationSettings,
+  Booking,
   BulkUpdateReportItemsInput,
+  CancelEInvoiceInput,
+  CastPollVoteInput,
+  CollectParcelInput,
+  CollectionsSummary,
+  CreateAdvancePaymentInput,
   CreateAnnouncementInput,
+  CreateBookingInput,
   CreateDefectElementInput,
   CreateDefectInput,
   CreateDefectIssueInput,
   CreateDefectSpaceTypeInput,
+  CreateFacilityInput,
   CreateFavouriteVisitorInput,
+  CreateFormSubmissionInput,
+  CreateFormTemplateInput,
   CreateHandoverReportInput,
+  CreateParcelInput,
+  CreatePatrolCheckpointInput,
+  CreatePollInput,
+  CreateRecurringPassInput,
   CreateUnitTypeInput,
   CreateUnitTypeSpaceInput,
+  CreateVisitorBlacklistInput,
   CreateVisitorInput,
   DefectReportDetail,
   DefectReportSummary,
   DefectSpaceTypeTree,
+  Deposit,
+  EInvoiceConfigView,
+  EInvoiceView,
+  Facility,
+  FacilityAvailability,
   FavouriteVisitor,
+  FeeScheduleExtraLine,
+  FormSubmission,
+  FormTemplate,
+  FundBalance,
+  GatewayConnectionView,
   HandoverTemplate,
   Invoice,
+  McpConnectionTestResult,
+  McpServerConnectionView,
+  Parcel,
+  PatrolCheckpoint,
+  PatrolCheckpointStatus,
+  PatrolScan,
+  PatrolScanInput,
+  PayableMethod,
+  PaymentIntentResponse,
+  PaymentIssue,
+  Poll,
+  PollMyVote,
+  RaiseSosInput,
+  Receipt,
+  ReceiptTemplateConfig,
+  RecordDepositInput,
+  RecordPrepaymentInput,
+  RecurringPass,
+  RecurringPassVerify,
+  RefundDepositInput,
+  RejectFormSubmissionInput,
+  ResolveSosInput,
+  SetupStatus,
+  SosAlert,
+  SosCondoResponse,
+  UnitStatement,
   UnitType,
+  UnitTypeFeeRate,
   UpdateAnnouncementInput,
   UpdateDefectElementInput,
   UpdateDefectIssueInput,
   UpdateDefectSpaceTypeInput,
+  UpdateEInvoiceConfigInput,
+  UpdateFacilityInput,
   UpdateFavouriteVisitorInput,
+  UpdateFormSubmissionInput,
+  UpdateFormTemplateInput,
+  UpdatePatrolCheckpointInput,
+  UpdatePollInput,
+  UpdateRecurringPassInput,
+  UpdateSetupStepInput,
   UpdateUnitTypeInput,
   UpdateUnitTypeSpaceInput,
+  UpdateVisitorBlacklistInput,
   UploadResponse,
   UploadedAttachment,
+  UpsertFeeRateInput,
+  UpsertFeeScheduleExtraLineInput,
+  UpsertGatewayInput,
+  UpsertMcpServerInput,
   Visitor,
+  VisitorBlacklist,
   VisitorListView,
 } from '@smartresidence/shared-types';
 
 export interface ApiResponse<T> {
   data: T;
+}
+
+export interface DepositListItem extends Deposit {
+  unit?: { id: string; identifier: string; block?: { name: string } | null } | null;
+  user?: { id: string; name: string } | null;
+  receipt?: { id: string; number: string } | null;
+}
+
+export interface ReceiptListItem extends Receipt {
+  unit?: { id: string; identifier: string } | null;
+  issuedTo?: { id: string; name: string } | null;
+}
+
+export interface FeeRateRow {
+  unitTypeId: string;
+  unitTypeName: string;
+  unitCount: number;
+  feeRate: UnitTypeFeeRate | null;
 }
 
 // -- Communication threads + FAQ types --------------------------------
@@ -92,6 +182,14 @@ export interface MlPriorityStats {
   active: boolean;
 }
 
+export interface MlAssignmentStats {
+  enabled: boolean;
+  closedThreadCount: number;
+  minRequired: number;
+  ready: boolean;
+  active: boolean;
+}
+
 export interface SlaSettingsResponse {
   condoId: string;
   unitCount: number;
@@ -103,14 +201,34 @@ export interface SlaSettingsResponse {
     generalTriagePool: string[];
     categoryPools: Array<{ category: ThreadCategory; userIds: string[] }>;
     seniorStaffPool: string[];
+    mlEnabled?: boolean;
   };
   managementStaff?: Array<{ id: string; name: string; email: string | null }>;
   mlPriority?: MlPriorityStats;
+  mlAssignment?: MlAssignmentStats;
 }
 
 export interface UserPreferences {
   emailNotifications: boolean;
   quietHours: { enabled: boolean; start: string; end: string };
+}
+
+export interface NotificationItem {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationListResponse {
+  items: NotificationItem[];
+  total: number;
+  limit: number;
+  offset: number;
+  unreadOnly?: boolean;
 }
 
 export interface FaqDeflectMatch {
@@ -298,7 +416,7 @@ export class ApiClient {
       locale: string;
     }>('GET', '/api/auth/profile');
   }
-  updateProfile(input: { name?: string; phone?: string }) {
+  updateProfile(input: { name?: string; email?: string; phone?: string }) {
     return this.request<{
       id: string;
       email: string | null;
@@ -340,6 +458,30 @@ export class ApiClient {
       'GET',
       `/api/condos/${condoId}/units?${qs.toString()}`,
     );
+  }
+  residentContact(unitId: string, userId: string) {
+    return this.request<{
+      id: string;
+      name: string;
+      email: string | null;
+      phone: string | null;
+      locale: string;
+      unit: { id: string; identifier: string; block?: { name: string } | null };
+    }>('GET', `/api/units/${unitId}/residents/${userId}`);
+  }
+  updateResidentContact(
+    unitId: string,
+    userId: string,
+    input: { name?: string; email?: string; phone?: string },
+  ) {
+    return this.request<{
+      id: string;
+      name: string;
+      email: string | null;
+      phone: string | null;
+      locale: string;
+      unit: { id: string; identifier: string; block?: { name: string } | null };
+    }>('PATCH', `/api/units/${unitId}/residents/${userId}`, input);
   }
   listBlocks(condoId: string) {
     return this.request<Array<{ id: string; name: string; position: number }>>(
@@ -421,6 +563,7 @@ export class ApiClient {
   approveVisitor(visitorId: string) {
     return this.request<Visitor>('POST', `/api/visitors/${visitorId}/approve`);
   }
+
   guardApproveWalkIn(
     visitorId: string,
     method: import('@smartresidence/shared-types').GuardApprovalMethod,
@@ -501,6 +644,7 @@ export class ApiClient {
   createWalkInUnit(input: import('@smartresidence/shared-types').CreateWalkInUnitInput) {
     return this.request<Visitor>('POST', '/api/visitors/walk-in/unit', input);
   }
+
   /**
    * Guard admits a unit walk-in on the spot (on-site discretion): the visitor is
    * checked in immediately without owner pre-registration/approval. Recorded
@@ -543,6 +687,73 @@ export class ApiClient {
     return this.request('POST', `/api/visitors/${encodeURIComponent(visitorId)}/check-out`);
   }
 
+  visitorBlacklist(condoId: string) {
+    return this.request<{ items: VisitorBlacklist[]; total: number }>(
+      'GET',
+      `/api/visitors/admin/blacklist/${condoId}`,
+    );
+  }
+  createVisitorBlacklist(condoId: string, input: CreateVisitorBlacklistInput) {
+    return this.request<VisitorBlacklist>(
+      'POST',
+      `/api/visitors/admin/blacklist/${condoId}`,
+      input,
+    );
+  }
+  updateVisitorBlacklist(id: string, input: UpdateVisitorBlacklistInput) {
+    return this.request<VisitorBlacklist>('PATCH', `/api/visitors/admin/blacklist/${id}`, input);
+  }
+  deleteVisitorBlacklist(id: string) {
+    return this.request<void>('DELETE', `/api/visitors/admin/blacklist/${id}`);
+  }
+  guardBlacklistCheck(input: {
+    name?: string;
+    phone?: string;
+    vehiclePlate?: string;
+    idNumber?: string;
+  }) {
+    return this.request<{ blocked: boolean; reason?: string; entryId?: string }>(
+      'POST',
+      '/api/visitors/guard/blacklist-check',
+      input,
+    );
+  }
+
+  recurringPassesForUnit(unitId: string) {
+    return this.request<{ items: RecurringPass[]; total: number }>(
+      'GET',
+      `/api/visitors/recurring-passes/unit/${unitId}`,
+    );
+  }
+  recurringPassesForCondo(condoId: string) {
+    return this.request<{ items: RecurringPass[]; total: number }>(
+      'GET',
+      `/api/visitors/recurring-passes/condo/${condoId}`,
+    );
+  }
+  createRecurringPass(input: CreateRecurringPassInput) {
+    return this.request<RecurringPass>('POST', '/api/visitors/recurring-passes', input);
+  }
+  updateRecurringPass(id: string, input: UpdateRecurringPassInput) {
+    return this.request<RecurringPass>('PATCH', `/api/visitors/recurring-passes/${id}`, input);
+  }
+  deleteRecurringPass(id: string) {
+    return this.request<void>('DELETE', `/api/visitors/recurring-passes/${id}`);
+  }
+  verifyRecurringPass(pass: string) {
+    return this.request<RecurringPassVerify>(
+      'POST',
+      `/api/visitors/recurring-passes/verify/${encodeURIComponent(pass)}`,
+    );
+  }
+  checkInRecurringPass(pass: string, body: { gateLocation?: string; notes?: string } = {}) {
+    return this.request(
+      'POST',
+      `/api/visitors/recurring-passes/check-in/${encodeURIComponent(pass)}`,
+      body,
+    );
+  }
+
   // Billing ----------------------------------------------------------
   invoicesForUnit(unitId: string, params: { limit?: number; offset?: number } = {}) {
     return this.request<{ items: Invoice[]; total: number }>(
@@ -567,11 +778,22 @@ export class ApiClient {
     return this.request<Invoice>('GET', `/api/invoices/${id}`);
   }
   payInvoice(id: string, body: { provider: string; returnUrl?: string }) {
-    return this.request<{ paymentId: string; clientSecret?: string; redirectUrl?: string }>(
-      'POST',
-      `/api/invoices/${id}/payments`,
-      body,
+    return this.request<PaymentIntentResponse>('POST', `/api/invoices/${id}/payments`, body);
+  }
+  pollDuitNowInvoiceStatus(paymentId: string) {
+    return this.request<import('@smartresidence/shared-types').DuitNowQrPollResponse>(
+      'GET',
+      `/api/invoices/payments/${paymentId}/duitnow-status`,
     );
+  }
+  pollDuitNowAdvanceStatus(advancePaymentId: string) {
+    return this.request<import('@smartresidence/shared-types').DuitNowQrPollResponse>(
+      'GET',
+      `/api/invoices/advance-payments/${advancePaymentId}/duitnow-status`,
+    );
+  }
+  createAdvancePayment(input: CreateAdvancePaymentInput) {
+    return this.request<PaymentIntentResponse>('POST', '/api/invoices/prepayment/intent', input);
   }
   recordManualPayment(
     id: string,
@@ -586,17 +808,318 @@ export class ApiClient {
     condoId: string,
     body: import('@smartresidence/shared-types').GenerateRecurringInput,
   ) {
-    return this.request<{ created: number; skipped: number; units: number }>(
-      'POST',
-      `/api/invoices/condo/${condoId}/generate-recurring`,
-      body,
-    );
+    return this.request<{
+      created: number;
+      skipped: number;
+      skippedNoRate: number;
+      units: number;
+    }>('POST', `/api/invoices/condo/${condoId}/generate-recurring`, body);
   }
   runInvoiceDueSweep(condoId: string) {
     return this.request<{ overdue: number; dueSoonNotified: number; sweptAt: string }>(
       'POST',
       `/api/invoices/condo/${condoId}/run-due-sweep`,
     );
+  }
+
+  // Deposits & receipts ----------------------------------------------
+  depositsForCondo(
+    condoId: string,
+    params: { status?: string; unitId?: string; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.unitId) qs.set('unitId', params.unitId);
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    return this.request<{ items: DepositListItem[]; total: number }>(
+      'GET',
+      `/api/deposits/condo/${condoId}${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  depositsForUnit(unitId: string, params: { limit?: number; offset?: number } = {}) {
+    return this.request<{ items: DepositListItem[]; total: number }>(
+      'GET',
+      `/api/deposits/unit/${unitId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
+    );
+  }
+  recordDeposit(input: RecordDepositInput) {
+    return this.request<DepositListItem>('POST', '/api/deposits', input);
+  }
+  refundDeposit(id: string, input: RefundDepositInput) {
+    return this.request<DepositListItem>('POST', `/api/deposits/${id}/refund`, input);
+  }
+  receiptsForCondo(
+    condoId: string,
+    params: { kind?: string; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.kind) qs.set('kind', params.kind);
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    return this.request<{ items: ReceiptListItem[]; total: number }>(
+      'GET',
+      `/api/receipts/condo/${condoId}${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  receiptsForUnit(unitId: string, params: { limit?: number; offset?: number } = {}) {
+    return this.request<{ items: ReceiptListItem[]; total: number }>(
+      'GET',
+      `/api/receipts/unit/${unitId}?${new URLSearchParams(params as Record<string, string>).toString()}`,
+    );
+  }
+  async downloadReceiptPdf(id: string): Promise<Blob> {
+    const headers: Record<string, string> = { Accept: 'application/pdf' };
+    const token = await this.cfg.getAccessToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const condoId = await this.cfg.getActiveCondoId?.();
+    if (condoId) headers['x-condo-id'] = condoId;
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const res = await fetchImpl(`${this.cfg.baseUrl}/api/receipts/${id}/pdf`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = await res.json();
+      } catch {
+        /* ignore */
+      }
+      const message =
+        (parsed as { message?: string } | null)?.message ?? `HTTP ${res.status} ${res.statusText}`;
+      throw new ApiError(res.status, parsed, message);
+    }
+    return res.blob();
+  }
+
+  // Billing settings (fee schedule + receipt template) ---------------
+  feeRates(condoId: string) {
+    return this.request<FeeRateRow[]>('GET', `/api/settings/condo/${condoId}/billing/fee-rates`);
+  }
+  upsertFeeRate(condoId: string, input: UpsertFeeRateInput) {
+    return this.request<UnitTypeFeeRate>(
+      'PUT',
+      `/api/settings/condo/${condoId}/billing/fee-rates`,
+      input,
+    );
+  }
+  deleteFeeRate(condoId: string, unitTypeId: string) {
+    return this.request<{ deleted: boolean }>(
+      'DELETE',
+      `/api/settings/condo/${condoId}/billing/fee-rates/${unitTypeId}`,
+    );
+  }
+  feeExtraLines(condoId: string) {
+    return this.request<FeeScheduleExtraLine[]>(
+      'GET',
+      `/api/settings/condo/${condoId}/billing/fee-extra-lines`,
+    );
+  }
+  upsertFeeExtraLine(condoId: string, input: UpsertFeeScheduleExtraLineInput) {
+    return this.request<FeeScheduleExtraLine>(
+      'PUT',
+      `/api/settings/condo/${condoId}/billing/fee-extra-lines`,
+      input,
+    );
+  }
+  addFeeExtraLinePresets(condoId: string, input: AddFeeSchedulePresetsInput) {
+    return this.request<{
+      created: number;
+      skipped: number;
+      items: FeeScheduleExtraLine[];
+    }>('POST', `/api/settings/condo/${condoId}/billing/fee-extra-lines/presets`, input);
+  }
+  deleteFeeExtraLine(condoId: string, id: string) {
+    return this.request<{ deleted: boolean }>(
+      'DELETE',
+      `/api/settings/condo/${condoId}/billing/fee-extra-lines/${id}`,
+    );
+  }
+  receiptTemplate(condoId: string) {
+    return this.request<ReceiptTemplateConfig>(
+      'GET',
+      `/api/settings/condo/${condoId}/billing/receipt-template`,
+    );
+  }
+  updateReceiptTemplate(condoId: string, input: Partial<ReceiptTemplateConfig>) {
+    return this.request<ReceiptTemplateConfig>(
+      'PATCH',
+      `/api/settings/condo/${condoId}/billing/receipt-template`,
+      input,
+    );
+  }
+  billingAutomation(condoId: string) {
+    return this.request<BillingAutomationSettings>(
+      'GET',
+      `/api/settings/condo/${condoId}/billing/automation`,
+    );
+  }
+  updateBillingAutomation(condoId: string, input: Partial<BillingAutomationSettings>) {
+    return this.request<BillingAutomationSettings>(
+      'PATCH',
+      `/api/settings/condo/${condoId}/billing/automation`,
+      input,
+    );
+  }
+  previewBillingAutomation(condoId: string) {
+    return this.request<BillingAutomationPreview>(
+      'GET',
+      `/api/settings/condo/${condoId}/billing/automation/preview`,
+    );
+  }
+  runBillingAutomation(condoId: string, input: { dryRun?: boolean } = {}) {
+    return this.request<BillingAutomationRunResult>(
+      'POST',
+      `/api/settings/condo/${condoId}/billing/automation/run`,
+      input,
+    );
+  }
+  automationStatus(condoId: string) {
+    return this.request<AutomationStatusResponse>(
+      'GET',
+      `/api/automations/condo/${condoId}/status`,
+    );
+  }
+
+  // First-time setup / onboarding (F4) -------------------------------
+  getSetupStatus(condoId: string) {
+    return this.request<SetupStatus>('GET', `/api/setup/condo/${condoId}`);
+  }
+  updateSetupStep(condoId: string, input: UpdateSetupStepInput) {
+    return this.request<SetupStatus>('PATCH', `/api/setup/condo/${condoId}`, input);
+  }
+  completeSetup(condoId: string) {
+    return this.request<SetupStatus>('POST', `/api/setup/condo/${condoId}/complete`);
+  }
+  dismissSetup(condoId: string) {
+    return this.request<SetupStatus>('POST', `/api/setup/condo/${condoId}/dismiss`);
+  }
+
+  // Accounting reports & prepayments ---------------------------------
+  recordPrepayment(input: RecordPrepaymentInput) {
+    return this.request<{ credit: number; receiptId: string }>(
+      'POST',
+      '/api/billing/prepayment',
+      input,
+    );
+  }
+  fundBalances(condoId: string) {
+    return this.request<FundBalance[]>(
+      'GET',
+      `/api/billing/reports/condo/${condoId}/fund-balances`,
+    );
+  }
+  collectionsSummary(condoId: string, params: { from?: string; to?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.request<CollectionsSummary>(
+      'GET',
+      `/api/billing/reports/condo/${condoId}/collections${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  arrearsAging(condoId: string) {
+    return this.request<ArrearsAging>('GET', `/api/billing/reports/condo/${condoId}/arrears`);
+  }
+  paymentIssues(condoId: string) {
+    return this.request<PaymentIssue[]>('GET', `/api/billing/payments/condo/${condoId}/issues`);
+  }
+  dismissPayment(paymentId: string) {
+    return this.request<{ id: string }>('POST', `/api/billing/payments/${paymentId}/dismiss`);
+  }
+  approveReviewedPayment(paymentId: string) {
+    return this.request<{ id: string }>(
+      'POST',
+      `/api/billing/payments/${paymentId}/approve-review`,
+    );
+  }
+  unitStatement(unitId: string) {
+    return this.request<UnitStatement>('GET', `/api/billing/statements/unit/${unitId}`);
+  }
+
+  // Payment gateways -------------------------------------------------
+  listGateways(condoId: string) {
+    return this.request<GatewayConnectionView[]>(
+      'GET',
+      `/api/settings/condo/${condoId}/billing/gateways`,
+    );
+  }
+  upsertGateway(condoId: string, input: UpsertGatewayInput) {
+    return this.request<GatewayConnectionView>(
+      'PUT',
+      `/api/settings/condo/${condoId}/billing/gateways`,
+      input,
+    );
+  }
+  setGatewayEnabled(condoId: string, id: string, enabled: boolean) {
+    return this.request<GatewayConnectionView>(
+      'POST',
+      `/api/settings/condo/${condoId}/billing/gateways/${id}/enabled`,
+      { enabled },
+    );
+  }
+  deleteGateway(condoId: string, id: string) {
+    return this.request<{ deleted: boolean }>(
+      'DELETE',
+      `/api/settings/condo/${condoId}/billing/gateways/${id}`,
+    );
+  }
+
+  // E-invoice (LHDN MyInvois) ----------------------------------------
+  eInvoiceConfig(condoId: string) {
+    return this.request<EInvoiceConfigView>('GET', `/api/einvoice/condo/${condoId}/config`);
+  }
+  updateEInvoiceConfig(condoId: string, input: UpdateEInvoiceConfigInput) {
+    return this.request<EInvoiceConfigView>('PUT', `/api/einvoice/condo/${condoId}/config`, input);
+  }
+  eInvoiceForInvoice(invoiceId: string) {
+    return this.request<EInvoiceView | null>('GET', `/api/einvoice/invoice/${invoiceId}`);
+  }
+  submitEInvoice(invoiceId: string) {
+    return this.request<EInvoiceView>('POST', `/api/einvoice/invoice/${invoiceId}/submit`);
+  }
+  cancelEInvoice(invoiceId: string, input: CancelEInvoiceInput = {}) {
+    return this.request<EInvoiceView>('POST', `/api/einvoice/invoice/${invoiceId}/cancel`, input);
+  }
+
+  // MCP integrations -------------------------------------------------
+  listMcpServers(condoId: string) {
+    return this.request<McpServerConnectionView[]>(
+      'GET',
+      `/api/settings/condo/${condoId}/integrations/mcp`,
+    );
+  }
+  upsertMcpServer(condoId: string, input: UpsertMcpServerInput) {
+    return this.request<McpServerConnectionView>(
+      'PUT',
+      `/api/settings/condo/${condoId}/integrations/mcp`,
+      input,
+    );
+  }
+  testMcpServer(condoId: string, id: string) {
+    return this.request<McpConnectionTestResult>(
+      'POST',
+      `/api/settings/condo/${condoId}/integrations/mcp/${id}/test`,
+    );
+  }
+  setMcpServerEnabled(condoId: string, id: string, enabled: boolean) {
+    return this.request<McpServerConnectionView>(
+      'POST',
+      `/api/settings/condo/${condoId}/integrations/mcp/${id}/enabled`,
+      { enabled },
+    );
+  }
+  deleteMcpServer(condoId: string, id: string) {
+    return this.request<{ deleted: boolean }>(
+      'DELETE',
+      `/api/settings/condo/${condoId}/integrations/mcp/${id}`,
+    );
+  }
+
+  payableMethods(condoId: string) {
+    return this.request<PayableMethod[]>('GET', `/api/billing/condo/${condoId}/payment-methods`);
   }
 
   // Defects ----------------------------------------------------------
@@ -710,6 +1233,296 @@ export class ApiClient {
   }
   ackAnnouncement(id: string) {
     return this.request<{ ok: boolean }>('POST', `/api/announcements/${id}/ack`);
+  }
+
+  // Polls (owner-verified governance) --------------------------------
+  pollsForCondo(
+    condoId: string,
+    params: { limit?: number; offset?: number; manage?: boolean } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    if (params.manage) qs.set('manage', 'true');
+    const query = qs.toString();
+    return this.request<{ items: Poll[]; total: number }>(
+      'GET',
+      `/api/polls/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
+  }
+  poll(id: string) {
+    return this.request<Poll>('GET', `/api/polls/${id}`);
+  }
+  createPoll(input: CreatePollInput) {
+    return this.request<Poll>('POST', '/api/polls', input);
+  }
+  updatePoll(id: string, body: UpdatePollInput) {
+    return this.request<Poll>('PATCH', `/api/polls/${id}`, body);
+  }
+  castPollVote(id: string, body: CastPollVoteInput) {
+    return this.request<PollMyVote[]>('POST', `/api/polls/${id}/vote`, body);
+  }
+  myPollVotes(id: string) {
+    return this.request<PollMyVote[]>('GET', `/api/polls/${id}/my-votes`);
+  }
+
+  // Facility / amenity booking (§4.6) --------------------------------
+  facilitiesForCondo(condoId: string, params: { includeInactive?: boolean } = {}) {
+    const qs = params.includeInactive ? '?includeInactive=true' : '';
+    return this.request<Facility[]>('GET', `/api/facilities/condo/${condoId}${qs}`);
+  }
+  facility(id: string) {
+    return this.request<Facility>('GET', `/api/facilities/${id}`);
+  }
+  facilityAvailability(id: string, date: string) {
+    return this.request<FacilityAvailability>(
+      'GET',
+      `/api/facilities/${id}/availability?date=${encodeURIComponent(date)}`,
+    );
+  }
+  createFacility(input: CreateFacilityInput) {
+    return this.request<Facility>('POST', '/api/facilities', input);
+  }
+  updateFacility(id: string, body: UpdateFacilityInput) {
+    return this.request<Facility>('PATCH', `/api/facilities/${id}`, body);
+  }
+  deleteFacility(id: string) {
+    return this.request<{ ok: boolean } | Facility>('DELETE', `/api/facilities/${id}`);
+  }
+  createBooking(input: CreateBookingInput) {
+    return this.request<Booking>('POST', '/api/bookings', input);
+  }
+  myBookings(params: { limit?: number; offset?: number } = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: Booking[]; total: number }>(
+      'GET',
+      `/api/bookings/mine${query ? `?${query}` : ''}`,
+    );
+  }
+  condoBookings(
+    condoId: string,
+    params: {
+      status?: string;
+      facilityId?: string;
+      upcoming?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.facilityId) qs.set('facilityId', params.facilityId);
+    if (params.upcoming) qs.set('upcoming', 'true');
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: Booking[]; total: number }>(
+      'GET',
+      `/api/bookings/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
+  }
+  cancelBooking(id: string, reason?: string) {
+    return this.request<Booking>('POST', `/api/bookings/${id}/cancel`, { reason });
+  }
+  approveBooking(id: string) {
+    return this.request<Booking>('POST', `/api/bookings/${id}/approve`);
+  }
+  rejectBooking(id: string, reason?: string) {
+    return this.request<Booking>('POST', `/api/bookings/${id}/reject`, { reason });
+  }
+
+  // Condo forms & workflows -------------------------------------------
+  formTemplatesForCondo(condoId: string, params: { includeInactive?: boolean } = {}) {
+    const qs = params.includeInactive ? '?includeInactive=true' : '';
+    return this.request<FormTemplate[]>('GET', `/api/form-templates/condo/${condoId}${qs}`);
+  }
+  formTemplate(id: string) {
+    return this.request<FormTemplate>('GET', `/api/form-templates/${id}`);
+  }
+  createFormTemplate(input: CreateFormTemplateInput) {
+    return this.request<FormTemplate>('POST', '/api/form-templates', input);
+  }
+  updateFormTemplate(id: string, body: UpdateFormTemplateInput) {
+    return this.request<FormTemplate>('PATCH', `/api/form-templates/${id}`, body);
+  }
+  deleteFormTemplate(id: string) {
+    return this.request<FormTemplate | { ok: boolean }>('DELETE', `/api/form-templates/${id}`);
+  }
+  createFormSubmission(input: CreateFormSubmissionInput) {
+    return this.request<FormSubmission>('POST', '/api/form-submissions', input);
+  }
+  updateFormSubmission(id: string, body: UpdateFormSubmissionInput) {
+    return this.request<FormSubmission>('PATCH', `/api/form-submissions/${id}`, body);
+  }
+  myFormSubmissions(params: { limit?: number; offset?: number } = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: FormSubmission[]; total: number }>(
+      'GET',
+      `/api/form-submissions/mine${query ? `?${query}` : ''}`,
+    );
+  }
+  condoFormSubmissions(
+    condoId: string,
+    params: { status?: string; templateId?: string; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.templateId) qs.set('templateId', params.templateId);
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: FormSubmission[]; total: number }>(
+      'GET',
+      `/api/form-submissions/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
+  }
+  formSubmission(id: string) {
+    return this.request<FormSubmission>('GET', `/api/form-submissions/${id}`);
+  }
+  cancelFormSubmission(id: string) {
+    return this.request<FormSubmission>('POST', `/api/form-submissions/${id}/cancel`);
+  }
+  approveFormSubmission(id: string) {
+    return this.request<FormSubmission>('POST', `/api/form-submissions/${id}/approve`);
+  }
+  rejectFormSubmission(id: string, body: RejectFormSubmissionInput = {}) {
+    return this.request<FormSubmission>('POST', `/api/form-submissions/${id}/reject`, body);
+  }
+
+  // Guard safety: panic / SOS -----------------------------------------
+  raiseSos(input: RaiseSosInput) {
+    return this.request<SosAlert>('POST', '/api/sos', input);
+  }
+  mySosAlerts(params: { limit?: number; offset?: number } = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit !== undefined) qs.set('limit', String(params.limit));
+    if (params.offset !== undefined) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: SosAlert[]; total: number }>(
+      'GET',
+      `/api/sos/mine${query ? `?${query}` : ''}`,
+    );
+  }
+  condoSosAlerts(condoId: string) {
+    return this.request<SosCondoResponse>('GET', `/api/sos/condo/${condoId}`);
+  }
+  sosAlert(id: string) {
+    return this.request<SosAlert>('GET', `/api/sos/${id}`);
+  }
+  acknowledgeSos(id: string) {
+    return this.request<SosAlert>('POST', `/api/sos/${id}/acknowledge`);
+  }
+  resolveSos(id: string, input: ResolveSosInput = {}) {
+    return this.request<SosAlert>('POST', `/api/sos/${id}/resolve`, input);
+  }
+  cancelSos(id: string) {
+    return this.request<SosAlert>('POST', `/api/sos/${id}/cancel`);
+  }
+
+  // Guard safety: patrol checkpoints + scans --------------------------
+  patrolCheckpoints(condoId: string, params: { includeInactive?: boolean } = {}) {
+    const qs = params.includeInactive ? '?includeInactive=true' : '';
+    return this.request<PatrolCheckpointStatus[]>(
+      'GET',
+      `/api/patrol/condo/${condoId}/checkpoints${qs}`,
+    );
+  }
+  patrolScans(
+    condoId: string,
+    params: {
+      checkpointId?: string;
+      guardUserId?: string;
+      from?: string;
+      to?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null) qs.set(k, String(v));
+    }
+    const query = qs.toString();
+    return this.request<{ items: PatrolScan[]; total: number }>(
+      'GET',
+      `/api/patrol/condo/${condoId}/scans${query ? `?${query}` : ''}`,
+    );
+  }
+  createPatrolCheckpoint(input: CreatePatrolCheckpointInput) {
+    return this.request<PatrolCheckpoint>('POST', '/api/patrol/checkpoints', input);
+  }
+  updatePatrolCheckpoint(id: string, input: UpdatePatrolCheckpointInput) {
+    return this.request<PatrolCheckpoint>('PATCH', `/api/patrol/checkpoints/${id}`, input);
+  }
+  regeneratePatrolCode(id: string) {
+    return this.request<PatrolCheckpoint>('POST', `/api/patrol/checkpoints/${id}/regenerate-code`);
+  }
+  deletePatrolCheckpoint(id: string) {
+    return this.request<{ ok: boolean } | PatrolCheckpoint>(
+      'DELETE',
+      `/api/patrol/checkpoints/${id}`,
+    );
+  }
+  scanPatrolCheckpoint(input: PatrolScanInput) {
+    return this.request<PatrolScan>('POST', '/api/patrol/scan', input);
+  }
+
+  // Parcels / deliveries --------------------------------------------
+  parcelsForCondo(
+    condoId: string,
+    params: {
+      status?: string;
+      unitId?: string;
+      pendingOnly?: boolean;
+      limit?: number;
+      offset?: number;
+      from?: string;
+      to?: string;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.unitId) qs.set('unitId', params.unitId);
+    if (params.pendingOnly) qs.set('pendingOnly', 'true');
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    const query = qs.toString();
+    return this.request<{ items: Parcel[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/parcels/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
+  }
+  parcelsForUnit(
+    unitId: string,
+    params: { status?: string; pendingOnly?: boolean; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    if (params.pendingOnly) qs.set('pendingOnly', 'true');
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: Parcel[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/parcels/unit/${unitId}${query ? `?${query}` : ''}`,
+    );
+  }
+  parcel(id: string) {
+    return this.request<Parcel>('GET', `/api/parcels/${id}`);
+  }
+  createParcel(input: CreateParcelInput) {
+    return this.request<Parcel>('POST', '/api/parcels', input);
+  }
+  collectParcel(id: string, input: CollectParcelInput = {}) {
+    return this.request<Parcel>('POST', `/api/parcels/${id}/collect`, input);
   }
 
   // Audit / transparency --------------------------------------------
@@ -876,6 +1689,33 @@ export class ApiClient {
       `/api/sla/condo/${condoId}/ml-priority`,
       body,
     );
+  }
+  updateMlAssignment(condoId: string, body: { enabled: boolean }) {
+    return this.request<{ ok: boolean; mlAssignment: MlAssignmentStats }>(
+      'PUT',
+      `/api/sla/condo/${condoId}/ml-assignment`,
+      body,
+    );
+  }
+
+  // Notifications ----------------------------------------------------
+  listNotifications(params: { limit?: number; offset?: number; unreadOnly?: boolean } = {}) {
+    const qs = new URLSearchParams();
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    if (params.unreadOnly) qs.set('unreadOnly', 'true');
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<NotificationListResponse>('GET', `/api/notifications${suffix}`);
+  }
+  markNotificationsRead(ids: string[]) {
+    return this.request<void>('PATCH', '/api/notifications/read', { ids });
+  }
+  registerPushToken(body: {
+    kind: 'EXPO' | 'WEB';
+    token: string;
+    deviceInfo?: Record<string, unknown>;
+  }) {
+    return this.request<{ id: string }>('POST', '/api/notifications/push-tokens', body);
   }
 
   // User preferences (E1/E5) ----------------------------------------

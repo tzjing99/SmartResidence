@@ -9,7 +9,11 @@ import {
   useUnitInvoices,
   useUnitVisitors,
 } from '@smartresidence/api-client';
-import { ANNOUNCEMENT_CATEGORY_LABELS, formatMoney } from '@smartresidence/shared-types';
+import {
+  ANNOUNCEMENT_CATEGORY_LABELS,
+  formatMoney,
+  invoiceOutstanding,
+} from '@smartresidence/shared-types';
 import {
   AnimatedPressable,
   AppText,
@@ -137,7 +141,7 @@ export default function HomeScreen() {
         {openInvoice ? (
           <>
             <AppText style={styles.heroAmount}>
-              {formatMoney(openInvoice.total, openInvoice.currencyCode ?? 'MYR')}
+              {formatMoney(invoiceOutstanding(openInvoice), openInvoice.currencyCode ?? 'MYR')}
             </AppText>
             <AppText variant="meta" style={styles.cardSubcopy}>
               {openInvoice.number} · due {formatDate(openInvoice.dueDate)}
@@ -160,6 +164,22 @@ export default function HomeScreen() {
           </AppText>
         </AnimatedPressable>
       </Card>
+
+      <AnimatedPressable
+        onPress={() => router.push('/(resident)/sos' as Href)}
+        contentStyle={styles.sosCard}
+      >
+        <View style={styles.sosIcon}>
+          <Ionicons name="warning-outline" size={22} color="#FFFFFF" />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AppText style={styles.sosTitle}>Emergency SOS</AppText>
+          <AppText numberOfLines={2} style={styles.sosSubtitle}>
+            Alert guards and management instantly in a real emergency.
+          </AppText>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.9)" />
+      </AnimatedPressable>
 
       <View style={styles.sectionHeader}>
         <AppText variant="subheading">What do you need?</AppText>
@@ -215,6 +235,58 @@ export default function HomeScreen() {
           detail={openDefects === 1 ? 'open report' : 'open reports'}
           width={actionWidth}
           onPress={() => router.push('/(resident)/defects' as Href)}
+        />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <AppText variant="subheading">Quick links</AppText>
+        <AppText variant="meta" style={styles.sectionCopy}>
+          More resident tools, one tap away.
+        </AppText>
+      </View>
+
+      <View style={styles.actionGrid}>
+        <ActionTile
+          icon="notifications-outline"
+          title="Notifications"
+          subtitle="Alerts and updates"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/notifications' as Href)}
+        />
+        <ActionTile
+          icon="podium-outline"
+          title="MC polls"
+          subtitle="Owner voting"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/polls' as Href)}
+        />
+        <ActionTile
+          icon="calendar-outline"
+          title="Facilities"
+          subtitle="Book amenities"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/facilities' as Href)}
+        />
+        <ActionTile
+          icon="document-text-outline"
+          title="Forms"
+          subtitle="Move-in & permits"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/forms' as Href)}
+        />
+        <ActionTile
+          icon="help-circle-outline"
+          title="Help & FAQ"
+          subtitle="Find answers"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/faq' as Href)}
+        />
+        <ActionTile
+          icon="key-outline"
+          title="Unit access"
+          subtitle="Who has access"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/access' as Href)}
         />
       </View>
 
@@ -461,6 +533,40 @@ const styles = StyleSheet.create({
   heroButtonText: {
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  sosCard: {
+    borderRadius: radius['2xl'],
+    backgroundColor: '#DC2626',
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    shadowColor: '#DC2626',
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  sosIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sosTitle: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '800',
+  },
+  sosSubtitle: {
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+    marginTop: 2,
   },
   sectionHeader: {
     gap: 2,

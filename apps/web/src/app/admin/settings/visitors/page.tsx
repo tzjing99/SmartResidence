@@ -1,5 +1,6 @@
 'use client';
 
+import { VisitorBlacklistPanel } from '@/components/visitor-blacklist-panel';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -668,6 +669,8 @@ export default function VisitorSettingsPage() {
           }
         />
       </SectionCard>
+
+      <VisitorBlacklistPanel />
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))]/95 backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--sr-card))]/80">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 px-5 py-3 sm:px-0">

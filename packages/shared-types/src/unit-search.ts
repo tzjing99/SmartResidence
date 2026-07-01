@@ -6,6 +6,11 @@ export type UnitSearchItem = {
   ownerships?: Array<{ user?: { name?: string | null } | null }>;
 };
 
+export type UnitLabelInput = {
+  identifier?: string | null;
+  block?: { name?: string | null } | null;
+};
+
 /** Parse "Block-Floor-Unit" style labels (e.g. "A-01-1" → block A, rest 01-1). */
 export function parseCompositeUnitLabel(term: string): { block: string; rest: string } | null {
   const match = term.match(/^([A-Za-z0-9]+)[-·\s]+(.+)$/);
@@ -43,6 +48,16 @@ export function formatUnitLabel(unit: UnitSearchItem): string {
   }
 
   return owners ? `${base} — ${owners}` : base;
+}
+
+/** Compact money-document label: "A-04-3", without repeating an embedded block prefix. */
+export function formatCompactUnitLabel(unit: UnitLabelInput): string {
+  const block = unit.block?.name?.trim();
+  const identifier = unit.identifier?.trim() ?? '';
+
+  if (!identifier) return block ?? '';
+  if (!block || identifierIncludesBlock(block, identifier)) return identifier;
+  return `${block}-${identifier}`;
 }
 
 /** Normalize picker/display input before querying (e.g. "A-01-1 — Owner" → "A-01-1"). */

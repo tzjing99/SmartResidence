@@ -6,6 +6,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   SlaAuditQueryDto,
   UpdateAutoAssignmentDto,
+  UpdateMlAssignmentDto,
   UpdateMlPriorityDto,
   UpdateSlaPoliciesDto,
 } from './dto/sla.dto';
@@ -47,6 +48,17 @@ export class SlaPolicyController {
     @Body() dto: UpdateMlPriorityDto,
   ) {
     return this.slaPolicy.updateMlPriority(user, condoId, dto);
+  }
+
+  @Put('condo/:condoId/ml-assignment')
+  @CheckAbility({ action: 'update', subject: 'SlaPolicy' })
+  @ApiOperation({ summary: 'Enable/disable ML assignee suggestions (C6 phase 2)' })
+  updateMlAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Body() dto: UpdateMlAssignmentDto,
+  ) {
+    return this.slaPolicy.updateMlAssignment(user, condoId, dto);
   }
 
   @Put('condo/:condoId/auto-assignment')

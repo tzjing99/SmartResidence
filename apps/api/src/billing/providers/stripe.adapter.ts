@@ -2,32 +2,44 @@ import type { AppEnv } from '@/config/env.schema';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
-import type { PaymentIntentResult, PaymentProviderAdapter } from './payment-provider.interface';
+import type {
+  PaymentIntentOptions,
+  PaymentIntentResult,
+  PaymentProviderAdapter,
+  WebhookVerifyOptions,
+} from './payment-provider.interface';
+
+const API_VERSION = '2024-11-20.acacia' as Stripe.LatestApiVersion;
 
 @Injectable()
 export class StripeAdapter implements PaymentProviderAdapter {
   readonly id = 'STRIPE';
   private readonly logger = new Logger(StripeAdapter.name);
-  private readonly stripe: Stripe | null;
-  private readonly webhookSecret: string | undefined;
+  private readonly envStripe: Stripe | null;
+  private readonly envWebhookSecret: string | undefined;
 
   constructor(config: ConfigService<AppEnv, true>) {
     const key = config.get('STRIPE_SECRET_KEY', { infer: true });
-    this.webhookSecret = config.get('STRIPE_WEBHOOK_SECRET', { infer: true });
-    this.stripe = key
-      ? new Stripe(key, { apiVersion: '2024-11-20.acacia' as Stripe.LatestApiVersion })
-      : null;
+    this.envWebhookSecret = config.get('STRIPE_WEBHOOK_SECRET', { infer: true });
+    this.envStripe = key ? new Stripe(key, { apiVersion: API_VERSION }) : null;
   }
 
-  async createIntent(
-    opts: Parameters<PaymentProviderAdapter['createIntent']>[0],
-  ): Promise<PaymentIntentResult> {
-    if (!this.stripe) {
+  /** Resolve a Stripe client from per-condo credentials, falling back to env. */
+  private clientFor(credentials?: Record<string, string>): Stripe | null {
+    if (credentials?.secretKey) {
+      return new Stripe(credentials.secretKey, { apiVersion: API_VERSION });
+    }
+    return this.envStripe;
+  }
+
+  async createIntent(opts: PaymentIntentOptions): Promise<PaymentIntentResult> {
+    const stripe = this.clientFor(opts.credentials);
+    if (!stripe) {
       this.logger.warn('Stripe not configured; returning mock client secret for dev.');
       return { clientSecret: 'pi_mock_client_secret', providerRef: `mock_${opts.payment.id}` };
     }
-    const intent = await this.stripe.paymentIntents.create({
-      amount: Math.round(Number(opts.invoice.total) * 100),
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(Number(opts.payment.amount) * 100),
       currency: opts.invoice.currencyCode.toLowerCase(),
       automatic_payment_methods: { enabled: true },
       metadata: {
@@ -39,10 +51,12 @@ export class StripeAdapter implements PaymentProviderAdapter {
     return { clientSecret: intent.client_secret ?? undefined, providerRef: intent.id };
   }
 
-  async verifyWebhook(opts: Parameters<PaymentProviderAdapter['verifyWebhook']>[0]) {
-    if (!this.stripe || !this.webhookSecret) return null;
+  async verifyWebhook(opts: WebhookVerifyOptions) {
+    const stripe = this.clientFor(opts.credentials);
+    const webhookSecret = opts.credentials?.webhookSecret ?? this.envWebhookSecret;
+    if (!stripe || !webhookSecret) return null;
     const sig = (opts.headers['stripe-signature'] as string | undefined) ?? '';
-    const event = this.stripe.webhooks.constructEvent(opts.payload, sig, this.webhookSecret);
+    const event = stripe.webhooks.constructEvent(opts.payload, sig, webhookSecret);
     if (
       event.type === 'payment_intent.succeeded' ||
       event.type === 'payment_intent.payment_failed'

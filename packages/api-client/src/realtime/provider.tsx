@@ -13,11 +13,21 @@ import {
 } from './socket';
 import { type ThreadSocketPayload, syncThreadFromSocket } from './thread-cache';
 
+export interface NotificationSocketPayload {
+  userId: string;
+  kind: string;
+  title?: string;
+  body?: string;
+  data?: Record<string, unknown>;
+}
+
 export interface RealtimeProviderProps {
   api: ApiClient;
   baseUrl: string;
   /** Return false when there is no session (e.g. sign-in page). */
   enabled?: boolean;
+  /** Called on every incoming realtime notification (for toasts / prompts). */
+  onNotification?: (payload: NotificationSocketPayload) => void;
   children: React.ReactNode;
 }
 
@@ -31,6 +41,7 @@ function attachThreadListeners(
   qc: QueryClient,
   api: ApiClient,
   socket: ReturnType<typeof connectRealtime>,
+  onNotification?: (payload: NotificationSocketPayload) => void,
 ) {
   const pendingInvalidations = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -62,11 +73,30 @@ function attachThreadListeners(
       scheduleVisitorInvalidation(payload.condoId);
     }
   };
+  const onNotificationEvent = (payload: NotificationSocketPayload) => {
+    qc.invalidateQueries({ queryKey: ['notifications'] });
+    qc.invalidateQueries({ queryKey: queryKeys.whoViewedMe });
+    qc.invalidateQueries({ queryKey: queryKeys.myActivity });
+    onNotification?.(payload);
+  };
+  const onSosUpdate = () => {
+    qc.invalidateQueries({ queryKey: ['sos'] });
+  };
+  const onPatrolUpdate = () => {
+    qc.invalidateQueries({ queryKey: ['patrol'] });
+  };
+  const onFormUpdate = () => {
+    qc.invalidateQueries({ queryKey: ['forms'] });
+  };
 
   socket.on('thread:message', onMessage);
   socket.on('thread:update', onUpdate);
   socket.on('thread:sla', onSla);
   socket.on('visitor:update', onVisitorUpdate);
+  socket.on('notification:new', onNotificationEvent);
+  socket.on('sos:update', onSosUpdate);
+  socket.on('patrol:update', onPatrolUpdate);
+  socket.on('form:update', onFormUpdate);
 
   return () => {
     for (const timer of pendingInvalidations.values()) {
@@ -77,6 +107,10 @@ function attachThreadListeners(
     socket.off('thread:update', onUpdate);
     socket.off('thread:sla', onSla);
     socket.off('visitor:update', onVisitorUpdate);
+    socket.off('notification:new', onNotificationEvent);
+    socket.off('sos:update', onSosUpdate);
+    socket.off('patrol:update', onPatrolUpdate);
+    socket.off('form:update', onFormUpdate);
   };
 }
 
@@ -88,6 +122,7 @@ export function RealtimeProvider({
   api,
   baseUrl,
   enabled = true,
+  onNotification,
   children,
 }: RealtimeProviderProps) {
   const qc = useQueryClient();
@@ -97,6 +132,12 @@ export function RealtimeProvider({
 
   const userId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
   const condoId = condos.data?.[0]?.id as string | undefined;
+
+  // Keep the latest callback without re-subscribing the socket on each render.
+  const onNotificationRef = React.useRef(onNotification);
+  React.useEffect(() => {
+    onNotificationRef.current = onNotification;
+  }, [onNotification]);
 
   React.useEffect(() => {
     if (!enabled || !userId || !condoId) {
@@ -108,7 +149,9 @@ export function RealtimeProvider({
     const socket = connectRealtime(cfg);
     setReady(true);
 
-    const detach = attachThreadListeners(qc, api, socket);
+    const detach = attachThreadListeners(qc, api, socket, (payload) =>
+      onNotificationRef.current?.(payload),
+    );
 
     return () => {
       detach();

@@ -1,9 +1,9 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ListUnitsQueryDto } from './dto/tenant.dto';
+import { ListUnitsQueryDto, UpdateResidentContactDto } from './dto/tenant.dto';
 import { TenantService } from './tenant.service';
 
 @ApiTags('Tenancy')
@@ -47,5 +47,28 @@ export class UnitController {
   @ApiOperation({ summary: 'List units the current user owns or rents' })
   myUnits(@CurrentUser() user: AuthenticatedUser) {
     return this.tenant.getMyUnits(user);
+  }
+
+  @Get(':unitId/residents/:userId')
+  @CheckAbility({ action: 'read', subject: 'User' })
+  @ApiOperation({ summary: 'Management view of a resident contact record (audited)' })
+  residentContact(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+  ) {
+    return this.tenant.viewResidentContact(user, unitId, userId);
+  }
+
+  @Patch(':unitId/residents/:userId')
+  @CheckAbility({ action: 'update', subject: 'User' })
+  @ApiOperation({ summary: 'Management correction of resident name/email/phone' })
+  updateResidentContact(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+    @Body() dto: UpdateResidentContactDto,
+  ) {
+    return this.tenant.updateResidentContact(user, unitId, userId, dto);
   }
 }

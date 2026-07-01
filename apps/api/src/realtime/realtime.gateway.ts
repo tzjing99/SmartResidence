@@ -78,6 +78,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.server.to(`condo:${payload.condoId}`).emit('announcement:new', payload);
   }
 
+  @OnEvent('booking.*')
+  bookingEvent(payload: { condoId: string; bookingId: string; userId?: string }) {
+    this.server.to(`condo:${payload.condoId}`).emit('booking:update', payload);
+    if (payload.userId) {
+      this.server.to(`user:${payload.userId}`).emit('booking:update', payload);
+    }
+  }
+
   @OnEvent('thread.created')
   threadCreated(payload: { condoId: string; threadId: string }) {
     this.server.to(`condo:${payload.condoId}`).emit('thread:update', payload);
@@ -108,5 +116,49 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   @OnEvent('thread.sla.escalation')
   threadSlaEscalation(payload: { condoId: string; threadId: string }) {
     this.server.to(`condo:${payload.condoId}`).emit('thread:sla', payload);
+  }
+
+  @OnEvent('sos.*')
+  sosEvent(payload: { condoId: string; sosId: string; raisedByUserId?: string }) {
+    // Fan the SOS event to every management/guard dashboard in the condo, plus
+    // the raiser's own devices so their alert status updates live.
+    this.server.to(`condo:${payload.condoId}`).emit('sos:update', payload);
+    if (payload.raisedByUserId) {
+      this.server.to(`user:${payload.raisedByUserId}`).emit('sos:update', payload);
+    }
+  }
+
+  @OnEvent('patrol.*')
+  patrolEvent(payload: { condoId: string; checkpointId?: string; scanId?: string }) {
+    this.server.to(`condo:${payload.condoId}`).emit('patrol:update', payload);
+  }
+
+  @OnEvent('parcel.*')
+  parcelEvent(payload: { condoId: string; parcelId: string; unitId?: string }) {
+    this.server.to(`condo:${payload.condoId}`).emit('parcel:update', payload);
+  }
+
+  @OnEvent('form.*')
+  formEvent(payload: {
+    condoId: string;
+    submissionId: string;
+    userId?: string;
+    status?: string;
+  }) {
+    this.server.to(`condo:${payload.condoId}`).emit('form:update', payload);
+    if (payload.userId) {
+      this.server.to(`user:${payload.userId}`).emit('form:update', payload);
+    }
+  }
+
+  @OnEvent('notification.created')
+  notificationCreated(payload: {
+    userId: string;
+    kind: string;
+    title?: string;
+    body?: string;
+    data?: Record<string, unknown>;
+  }) {
+    this.server.to(`user:${payload.userId}`).emit('notification:new', payload);
   }
 }

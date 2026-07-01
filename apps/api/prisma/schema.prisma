@@ -50,12 +50,15 @@ model User {
   sessions           Session[]
   passkeys           PasskeyCredential[]
   hostedVisitors     Visitor[]            @relation("hostUser")
+  recurringPasses    RecurringPass[]      @relation("recurringPassHost")
+  blacklistEntries   VisitorBlacklist[]   @relation("blacklistCreatedBy")
   visitorPolicies    UnitVisitorPolicy[]
   approvedVisitors   Visitor[]            @relation("approverUser")
   admittedWalkIns    Visitor[]            @relation("admittedByGuard")
   guardCheckIns      VisitorCheckIn[]     @relation("checkInGuard")
   guardCheckOuts     VisitorCheckIn[]     @relation("checkOutGuard")
   payments           Payment[]
+  advancePayments    AdvancePayment[]
   raisedDefects      Defect[]             @relation("raisedBy")
   assignedDefects    Defect[]             @relation("assignedTo")
   raisedDefectReports DefectReport[]      @relation("reportRaisedBy")
@@ -74,6 +77,19 @@ model User {
   threadParticipations ThreadParticipant[] @relation("threadParticipant")
   faqArticles          FaqArticle[]        @relation("faqAuthor")
   favouriteVisitors    FavouriteVisitor[]
+  deposits             Deposit[]
+  receipts             Receipt[]
+  pollsCreated         Poll[]     @relation("pollAuthor")
+  pollVotes            PollVote[]
+  bookings             Booking[]
+  sosRaised            SosAlert[] @relation("sosRaisedBy")
+  sosAcknowledged      SosAlert[] @relation("sosAcknowledgedBy")
+  sosResolved          SosAlert[] @relation("sosResolvedBy")
+  patrolScans          PatrolScan[] @relation("patrolScanGuard")
+  parcelsReceived      Parcel[]     @relation("parcelReceivedByGuard")
+  parcelsCollected     Parcel[]     @relation("parcelCollectedBy")
+  formSubmissions      FormSubmission[] @relation("formSubmitter")
+  formReviews          FormSubmission[] @relation("formReviewer")
 
   @@index([email])
   @@index([phone])
@@ -165,6 +181,8 @@ model Condo {
   blocks          Block[]
   units           Unit[]
   visitors        Visitor[]
+  visitorBlacklist VisitorBlacklist[]
+  recurringPasses RecurringPass[]
   unitVisitorPolicies UnitVisitorPolicy[]
   invoices        Invoice[]
   defects         Defect[]
@@ -180,6 +198,27 @@ model Condo {
   defectElements   DefectElement[]
   defectIssues     DefectIssue[]
   defectReports    DefectReport[]
+  unitTypeFeeRates UnitTypeFeeRate[]
+  feeScheduleExtraLines FeeScheduleExtraLine[]
+  deposits         Deposit[]
+  receipts         Receipt[]
+  ledgerEntries    LedgerEntry[]
+  unitAccounts     UnitAccount[]
+  gatewayConnections PaymentGatewayConnection[]
+  billingNumberSequences BillingNumberSequence[]
+  advancePayments  AdvancePayment[]
+  automationRuns   AutomationRun[]
+  polls            Poll[]
+  mcpServerConnections McpServerConnection[]
+  facilities       Facility[]
+  bookings         Booking[]
+  eInvoices        EInvoice[]
+  sosAlerts        SosAlert[]
+  patrolCheckpoints PatrolCheckpoint[]
+  patrolScans      PatrolScan[]
+  parcels          Parcel[]
+  formTemplates    FormTemplate[]
+  formSubmissions  FormSubmission[]
 
   @@map("condos")
 }
@@ -231,6 +270,7 @@ model Unit {
   householdMembers HouseholdMember[]
   visitors         Visitor[]
   favouriteVisitors FavouriteVisitor[]
+  recurringPasses  RecurringPass[]
   visitorPolicies  UnitVisitorPolicy[]
   invoices         Invoice[]
   defects          Defect[]
@@ -239,6 +279,16 @@ model Unit {
   auditLogs        AuditLog[]
   threads          Thread[]
   announcementUnits AnnouncementUnit[]
+  deposits         Deposit[]
+  receipts         Receipt[]
+  ledgerEntries    LedgerEntry[]
+  unitAccount      UnitAccount?
+  advancePayments  AdvancePayment[]
+  pollVotes        PollVote[]
+  bookings         Booking[]
+  sosAlerts        SosAlert[]
+  parcels          Parcel[]
+  formSubmissions  FormSubmission[]
 
   @@unique([condoId, identifier])
   @@index([blockId])
@@ -267,6 +317,7 @@ model Ownership {
   updatedAt    DateTime        @updatedAt
 
   tenancies Tenancy[]
+  pollVotes PollVote[]
 
   @@unique([unitId, userId, startDate])
   @@index([unitId])
@@ -519,6 +570,58 @@ model UnitVisitorPolicy {
   @@map("unit_visitor_policies")
 }
 
+model VisitorBlacklist {
+  id              String    @id @default(uuid()) @db.Uuid
+  condoId         String    @db.Uuid
+  condo           Condo     @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name            String?
+  phone           String?
+  vehiclePlate    String?
+  idNumber        String?
+  reason          String
+  createdByUserId String    @db.Uuid
+  createdBy       User      @relation("blacklistCreatedBy", fields: [createdByUserId], references: [id])
+  expiresAt       DateTime?
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([condoId])
+  @@index([condoId, vehiclePlate])
+  @@index([condoId, phone])
+  @@map("visitor_blacklist")
+}
+
+model RecurringPass {
+  id           String   @id @default(uuid()) @db.Uuid
+  condoId      String   @db.Uuid
+  condo        Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId       String   @db.Uuid
+  unit         Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  hostUserId   String   @db.Uuid
+  host         User     @relation("recurringPassHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  guestName    String
+  guestPhone   String?
+  vehiclePlate String?
+  schedule     Json
+  validFrom    DateTime
+  validUntil   DateTime
+  accessCode   String?
+  qrPayload    String?  @unique
+  qrCode       String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([condoId, accessCode])
+  @@index([condoId])
+  @@index([unitId])
+  @@index([hostUserId])
+  @@index([condoId, vehiclePlate])
+  @@index([condoId, guestPhone])
+  @@map("recurring_passes")
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Billing
 //////////////////////////////////////////////////////////////////////////////
@@ -530,6 +633,15 @@ enum InvoiceStatus {
   PAID
   VOID
   OVERDUE
+}
+
+/// Lifecycle of a Malaysian LHDN MyInvois e-invoice for an Invoice.
+enum EInvoiceStatus {
+  NOT_SUBMITTED
+  PENDING
+  VALID
+  INVALID
+  CANCELLED
 }
 
 model Invoice {
@@ -558,6 +670,7 @@ model Invoice {
 
   lines    InvoiceLine[]
   payments Payment[]
+  eInvoice EInvoice?
 
   @@unique([condoId, number])
   @@index([condoId, status])
@@ -595,7 +708,91 @@ enum PaymentProvider {
   FPX
   IPAY88
   RAZER
+  DUITNOW_QR
   MANUAL
+}
+
+enum FeeRateType {
+  PER_SQFT
+  FLAT
+}
+
+enum FeeScheduleLineRateType {
+  FLAT
+  PER_SQFT
+  PER_UNIT_TYPE
+}
+
+enum DepositType {
+  RENOVATION
+  RENOVATION_DELIVERY
+  ACCESS_CARD
+  KEY
+  MOVE_IN_OUT
+  OTHER
+}
+
+enum DepositStatus {
+  HELD
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FORFEITED
+}
+
+enum ReceiptKind {
+  PAYMENT
+  DEPOSIT
+  REFUND
+}
+
+enum LedgerFund {
+  MAINTENANCE
+  SINKING_FUND
+  DEPOSIT
+  GENERAL
+}
+
+enum LedgerEntryType {
+  CHARGE
+  PAYMENT
+  DEPOSIT
+  REFUND
+  PREPAYMENT
+  PREPAYMENT_APPLIED
+  ADJUSTMENT
+}
+
+enum GatewayMode {
+  TEST
+  LIVE
+}
+
+enum AutomationJobKey {
+  BILLING_GENERATION
+  DUE_SWEEP
+  PAYMENT_RECONCILIATION
+  PAYMENT_REVIEW
+  REMINDERS
+}
+
+enum AutomationRunStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+enum McpTransport {
+  STREAMABLE_HTTP
+  HTTP_SSE
+  STDIO
+}
+
+enum McpConnectionTestStatus {
+  UNTESTED
+  OK
+  FAILED
 }
 
 model Payment {
@@ -615,10 +812,321 @@ model Payment {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
+  receipt Receipt?
+
   @@index([invoiceId])
   @@index([providerRef])
   @@index([status])
   @@map("payments")
+}
+
+/// Resident-initiated advance maintenance payments. These are gateway-backed
+/// prepayments that become unit credit only after a verified successful callback.
+model AdvancePayment {
+  id           String          @id @default(uuid()) @db.Uuid
+  condoId      String          @db.Uuid
+  condo        Condo           @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId       String          @db.Uuid
+  unit         Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId       String?         @db.Uuid
+  user         User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  amount       Decimal         @db.Decimal(14, 2)
+  currencyCode String          @default("MYR")
+  status       PaymentStatus   @default(PENDING)
+  provider     PaymentProvider
+  providerRef  String?
+  paidAt       DateTime?
+  metadata     Json            @default("{}")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([condoId, status])
+  @@index([unitId])
+  @@index([userId])
+  @@index([providerRef])
+  @@map("advance_payments")
+}
+
+/// Per-unit-type monthly fee config. Drives automatic invoice generation:
+/// maintenance + sinking-fund lines computed from the unit's type & sqft.
+model UnitTypeFeeRate {
+  id                  String      @id @default(uuid()) @db.Uuid
+  condoId             String      @db.Uuid
+  condo               Condo       @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitTypeId          String      @unique @db.Uuid
+  unitType            UnitType    @relation(fields: [unitTypeId], references: [id], onDelete: Cascade)
+  maintenanceRateType FeeRateType @default(PER_SQFT)
+  maintenanceAmount   Decimal     @default(0) @db.Decimal(14, 4)
+  sinkingFundRateType FeeRateType @default(PER_SQFT)
+  sinkingFundAmount   Decimal     @default(0) @db.Decimal(14, 4)
+  currencyCode        String      @default("MYR")
+  effectiveFrom       DateTime    @default(now())
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([condoId])
+  @@map("unit_type_fee_rates")
+}
+
+/// Additional monthly fee schedule lines beyond maintenance and sinking fund
+/// (e.g. fire insurance, quit rent, assessment, special levy). These are
+/// automatically included in scheduled billing cycles when active for a period.
+model FeeScheduleExtraLine {
+  id              String                  @id @default(uuid()) @db.Uuid
+  condoId         String                  @db.Uuid
+  condo           Condo                   @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  code            String
+  description     String
+  category        String                  @default("OTHER")
+  formula         String?
+  rateType        FeeScheduleLineRateType @default(FLAT)
+  amount          Decimal                 @default(0) @db.Decimal(14, 4)
+  unitTypeAmounts Json                    @default("{}")
+  recurring       Boolean                 @default(false)
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  enabled         Boolean                 @default(true)
+  sortOrder       Int                     @default(100)
+  metadata        Json                    @default("{}")
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([condoId, enabled])
+  @@index([condoId, code])
+  @@index([condoId, effectiveFrom, effectiveTo])
+  @@map("fee_schedule_extra_lines")
+}
+
+/// A refundable deposit held against a unit (renovation, delivery, access card,
+/// etc.). Recording one auto-issues an official Receipt.
+model Deposit {
+  id                String        @id @default(uuid()) @db.Uuid
+  condoId           String        @db.Uuid
+  condo             Condo         @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId            String        @db.Uuid
+  unit              Unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId            String?       @db.Uuid
+  user              User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type              DepositType
+  amount            Decimal       @db.Decimal(14, 2)
+  currencyCode      String        @default("MYR")
+  status            DepositStatus @default(HELD)
+  method            String?
+  reference         String?
+  refundedAmount    Decimal       @default(0) @db.Decimal(14, 2)
+  forfeitedAmount   Decimal       @default(0) @db.Decimal(14, 2)
+  paidAt            DateTime      @default(now())
+  refundedAt        DateTime?
+  notes             String?
+  recordedByUserId  String?       @db.Uuid
+  metadata          Json          @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  receipt Receipt?
+
+  @@index([condoId, status])
+  @@index([unitId])
+  @@index([userId])
+  @@map("deposits")
+}
+
+/// An official receipt, auto-generated on payment success or deposit recording.
+/// templateSnapshot freezes the condo's receipt template at issue time so a
+/// reprinted receipt always matches what was originally issued.
+model Receipt {
+  id               String      @id @default(uuid()) @db.Uuid
+  condoId          String      @db.Uuid
+  condo            Condo       @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  number           String
+  kind             ReceiptKind
+  amount           Decimal     @db.Decimal(14, 2)
+  currencyCode     String      @default("MYR")
+  issuedToUserId   String?     @db.Uuid
+  issuedTo         User?       @relation(fields: [issuedToUserId], references: [id], onDelete: SetNull)
+  unitId           String?     @db.Uuid
+  unit             Unit?       @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  paymentId        String?     @unique @db.Uuid
+  payment          Payment?    @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  depositId        String?     @unique @db.Uuid
+  deposit          Deposit?    @relation(fields: [depositId], references: [id], onDelete: SetNull)
+  description      String?
+  templateSnapshot Json        @default("{}")
+  pdfKey           String?
+  issuedAt         DateTime    @default(now())
+  voidedAt         DateTime?
+  createdAt        DateTime    @default(now())
+
+  @@unique([condoId, number])
+  @@index([condoId, kind])
+  @@index([unitId])
+  @@index([issuedToUserId])
+  @@map("receipts")
+}
+
+/// Append-only accounting ledger. Charges, payments, deposits and prepayments
+/// are recorded here, fund-tagged (maintenance vs sinking fund), to drive
+/// fund-balance and collections reporting. `amount` is signed: positive for
+/// money collected into / owed to a fund.
+model LedgerEntry {
+  id               String          @id @default(uuid()) @db.Uuid
+  condoId          String          @db.Uuid
+  condo            Condo           @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId           String?         @db.Uuid
+  unit             Unit?           @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  fund             LedgerFund      @default(GENERAL)
+  type             LedgerEntryType
+  amount           Decimal         @db.Decimal(14, 2)
+  idempotencyKey   String?
+  sourceType       String
+  sourceId         String?
+  memo             String?
+  createdByUserId  String?         @db.Uuid
+  occurredAt       DateTime        @default(now())
+  createdAt        DateTime        @default(now())
+
+  @@index([condoId, fund, occurredAt])
+  @@index([condoId, type, occurredAt])
+  @@index([unitId, occurredAt])
+  @@unique([idempotencyKey])
+  @@map("ledger_entries")
+}
+
+/// Atomic per-condo/year counters for externally visible billing numbers.
+/// Keeps invoice and receipt numbers race-safe under concurrent operations.
+model BillingNumberSequence {
+  id         String   @id @default(uuid()) @db.Uuid
+  condoId    String   @db.Uuid
+  condo      Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  kind       String
+  year       Int
+  lastNumber Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([condoId, kind, year])
+  @@index([condoId])
+  @@map("billing_number_sequences")
+}
+
+/// Per-unit cached account balance — currently the prepayment (advance
+/// maintenance) credit available to offset future invoices.
+model UnitAccount {
+  id            String   @id @default(uuid()) @db.Uuid
+  condoId       String   @db.Uuid
+  condo         Condo    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId        String   @unique @db.Uuid
+  unit          Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  creditBalance Decimal  @default(0) @db.Decimal(14, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([condoId])
+  @@map("unit_accounts")
+}
+
+/// Per-condo payment gateway connection. Secret credentials are stored as an
+/// AES-256-GCM envelope (ciphertext + iv + auth tag) and never returned to the
+/// client; only non-secret `publicConfig` (e.g. merchant code) is exposed.
+model PaymentGatewayConnection {
+  id              String          @id @default(uuid()) @db.Uuid
+  condoId         String          @db.Uuid
+  condo           Condo           @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  provider        PaymentProvider
+  mode            GatewayMode     @default(TEST)
+  enabled         Boolean         @default(false)
+  displayName     String?
+  publicConfig    Json            @default("{}")
+  encryptedSecret Bytes?
+  secretIv        Bytes?
+  secretAuthTag   Bytes?
+  keyVersion      Int             @default(1)
+  createdByUserId String?         @db.Uuid
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([condoId, provider, mode])
+  @@index([condoId])
+  @@map("payment_gateway_connections")
+}
+
+/// Malaysian LHDN MyInvois e-invoice tracking for an Invoice (1:1). Stores the
+/// generated UBL/JSON payload snapshot plus the identifiers + validation state
+/// returned by LHDN (or the sandbox adapter). The verification QR / URL is
+/// surfaced on the receipt/invoice PDF once the document is VALID.
+model EInvoice {
+  id            String         @id @default(uuid()) @db.Uuid
+  invoiceId     String         @unique @db.Uuid
+  invoice       Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  condoId       String         @db.Uuid
+  condo         Condo          @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  status        EInvoiceStatus @default(NOT_SUBMITTED)
+  environment   String         @default("SANDBOX")
+  lhdnUuid      String?
+  lhdnLongId    String?
+  submissionUid String?
+  qrPayload     String?
+  validationUrl String?
+  documentJson  Json           @default("{}")
+  validatedAt   DateTime?
+  submittedAt   DateTime?
+  cancelledAt   DateTime?
+  errorMessage  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([condoId, status])
+  @@index([lhdnUuid])
+  @@map("einvoices")
+}
+
+/// Per-condo Model Context Protocol (MCP) server connections for AI assistants
+/// and automation. Secrets are envelope-encrypted; never returned to clients.
+model McpServerConnection {
+  id              String                  @id @default(uuid()) @db.Uuid
+  condoId         String                  @db.Uuid
+  condo           Condo                   @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  displayName     String
+  transport       McpTransport            @default(STREAMABLE_HTTP)
+  serverUrl       String?
+  publicConfig    Json                    @default("{}")
+  encryptedSecret Bytes?
+  secretIv        Bytes?
+  secretAuthTag   Bytes?
+  keyVersion      Int                     @default(1)
+  enabled         Boolean                 @default(false)
+  lastTestStatus  McpConnectionTestStatus @default(UNTESTED)
+  lastTestMessage String?
+  lastTestedAt    DateTime?
+  createdByUserId String?                 @db.Uuid
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([condoId])
+  @@map("mcp_server_connections")
+}
+
+/// Generic admin-visible automation history. Each scheduled/manual job writes
+/// a run row so management can see what happened and what is currently running.
+model AutomationRun {
+  id                String              @id @default(uuid()) @db.Uuid
+  condoId           String              @db.Uuid
+  condo             Condo               @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  jobKey            AutomationJobKey
+  stageName         String
+  status            AutomationRunStatus @default(PENDING)
+  scheduledFor      DateTime?
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  summary           Json                @default("{}")
+  errorMessage      String?
+  triggeredByUserId String?             @db.Uuid
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([condoId, jobKey, createdAt])
+  @@index([condoId, status, scheduledFor])
+  @@map("automation_runs")
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -896,6 +1404,11 @@ enum NotificationKind {
   THREAD_ASSIGNED
   THREAD_STATUS
   THREAD_SLA_ESCALATION
+  PARCEL_RECEIVED
+  PARCEL_OVERDUE
+  FORM_SUBMITTED
+  FORM_APPROVED
+  FORM_REJECTED
   SYSTEM
 }
 
@@ -1176,8 +1689,9 @@ model UnitType {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  spaces UnitTypeSpace[]
-  units  Unit[]
+  spaces  UnitTypeSpace[]
+  units   Unit[]
+  feeRate UnitTypeFeeRate?
 
   @@index([condoId])
   @@map("unit_types")
@@ -1276,4 +1790,369 @@ model DefectReport {
   @@index([condoId, createdAt])
   @@index([unitId])
   @@map("defect_reports")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Owner-verified governance polls (MC consultation)
+//////////////////////////////////////////////////////////////////////////////
+
+enum PollStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum PollAudienceScope {
+  ALL_OWNERS
+  BLOCK
+}
+
+model Poll {
+  id              String            @id @default(uuid()) @db.Uuid
+  condoId         String            @db.Uuid
+  condo           Condo             @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  title           String
+  description     String            @default("")
+  status          PollStatus        @default(DRAFT)
+  opensAt         DateTime?
+  closesAt        DateTime?
+  createdByUserId String            @db.Uuid
+  createdBy       User              @relation("pollAuthor", fields: [createdByUserId], references: [id])
+  audienceScope   PollAudienceScope @default(ALL_OWNERS)
+  /// When audienceScope is BLOCK, JSON array of block UUID strings.
+  blockIds        Json              @default("[]")
+  settings        Json              @default("{}")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  options PollOption[]
+  votes   PollVote[]
+
+  @@index([condoId, status])
+  @@index([condoId, createdAt])
+  @@map("polls")
+}
+
+model PollOption {
+  id       String @id @default(uuid()) @db.Uuid
+  pollId   String @db.Uuid
+  poll     Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  label    String
+  position Int    @default(0)
+
+  votes PollVote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model PollVote {
+  id          String    @id @default(uuid()) @db.Uuid
+  pollId      String    @db.Uuid
+  poll        Poll      @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId    String    @db.Uuid
+  option      PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  unitId      String    @db.Uuid
+  unit        Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId      String    @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ownershipId String    @db.Uuid
+  ownership   Ownership @relation(fields: [ownershipId], references: [id], onDelete: Cascade)
+  /// Snapshot of sharePercent at vote time for future weighted AGM results.
+  weight      Decimal   @db.Decimal(6, 3)
+  createdAt   DateTime  @default(now())
+
+  @@unique([pollId, unitId])
+  @@index([pollId])
+  @@index([userId])
+  @@map("poll_votes")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Facility / amenity booking (§4.6)
+//////////////////////////////////////////////////////////////////////////////
+
+/// A bookable shared amenity (function hall, BBQ pit, gym, pool, court, surau…).
+/// Availability is a simple daily window (openTime→closeTime) split into
+/// fixed-length slots; `maxConcurrent` allows N simultaneous bookings per slot
+/// (e.g. multiple BBQ pits under one facility record).
+model Facility {
+  id               String    @id @default(uuid()) @db.Uuid
+  condoId          String    @db.Uuid
+  condo            Condo     @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  capacity         Int?
+  requiresApproval Boolean   @default(false)
+  /// Per-slot fee invoiced on confirmation (null/0 = free).
+  bookingFee       Decimal?  @db.Decimal(14, 2)
+  /// Refundable deposit held on confirmation (null/0 = none).
+  depositAmount    Decimal?  @db.Decimal(14, 2)
+  /// Daily availability window in 24h HH:mm local time.
+  openTime         String    @default("08:00")
+  closeTime        String    @default("22:00")
+  slotMinutes      Int       @default(60)
+  maxConcurrent    Int       @default(1)
+  active           Boolean   @default(true)
+  position         Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  bookings Booking[]
+
+  @@index([condoId, active])
+  @@map("facilities")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+model Booking {
+  id               String        @id @default(uuid()) @db.Uuid
+  facilityId       String        @db.Uuid
+  facility         Facility      @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  condoId          String        @db.Uuid
+  condo            Condo         @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId           String?       @db.Uuid
+  unit             Unit?         @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  userId           String        @db.Uuid
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startAt          DateTime
+  endAt            DateTime
+  status           BookingStatus @default(PENDING)
+  /// Fee/deposit amounts snapshotted at confirmation time.
+  fee              Decimal       @default(0) @db.Decimal(14, 2)
+  depositHeld      Decimal       @default(0) @db.Decimal(14, 2)
+  /// Loose links into the billing system (no FK to keep billing models lean).
+  invoiceId        String?       @db.Uuid
+  depositId        String?       @db.Uuid
+  notes            String?
+  reviewedByUserId String?       @db.Uuid
+  reviewedAt       DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([facilityId, startAt])
+  @@index([condoId, status])
+  @@index([userId])
+  @@index([unitId])
+  @@map("bookings")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Guard safety: panic / SOS + patrol checkpoint tours
+//////////////////////////////////////////////////////////////////////////////
+
+enum SosKind {
+  MEDICAL
+  SECURITY
+  FIRE
+  GENERAL
+}
+
+enum SosStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+  CANCELLED
+}
+
+/// A panic / SOS alert raised by a resident (or any condo member). Fans out to
+/// management + guards instantly (realtime + push) so help can be dispatched.
+model SosAlert {
+  id                   String    @id @default(uuid()) @db.Uuid
+  condoId              String    @db.Uuid
+  condo                Condo     @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  raisedByUserId       String    @db.Uuid
+  raisedBy             User      @relation("sosRaisedBy", fields: [raisedByUserId], references: [id], onDelete: Cascade)
+  unitId               String?   @db.Uuid
+  unit                 Unit?     @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  kind                 SosKind   @default(GENERAL)
+  status               SosStatus @default(ACTIVE)
+  locationNote         String?
+  lat                  Float?
+  lng                  Float?
+  acknowledgedByUserId String?   @db.Uuid
+  acknowledgedBy       User?     @relation("sosAcknowledgedBy", fields: [acknowledgedByUserId], references: [id], onDelete: SetNull)
+  acknowledgedAt       DateTime?
+  resolvedByUserId     String?   @db.Uuid
+  resolvedBy           User?     @relation("sosResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  resolvedAt           DateTime?
+  resolutionNote       String?
+  cancelledAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([condoId, status])
+  @@index([condoId, createdAt])
+  @@index([raisedByUserId])
+  @@map("sos_alerts")
+}
+
+/// A physical patrol checkpoint identified by a QR token (`code`). Guards scan
+/// the code during rounds; management CRUDs checkpoints and monitors coverage.
+model PatrolCheckpoint {
+  id                      String        @id @default(uuid()) @db.Uuid
+  condoId                 String        @db.Uuid
+  condo                   Condo         @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name                    String
+  description             String?
+  /// Opaque QR token scanned by guards; unique per condo scope (globally unique).
+  code                    String        @unique
+  active                  Boolean       @default(true)
+  position                Int           @default(0)
+  /// Expected max minutes between scans; null disables overdue detection.
+  expectedIntervalMinutes Int?
+  /// De-dupes overdue notifications so management isn't spammed each sweep.
+  lastOverdueNotifiedAt   DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  scans PatrolScan[]
+
+  @@index([condoId, active])
+  @@map("patrol_checkpoints")
+}
+
+enum PatrolScanSource {
+  ONLINE
+  OFFLINE
+}
+
+/// A recorded checkpoint scan by a guard during a patrol round.
+model PatrolScan {
+  id           String           @id @default(uuid()) @db.Uuid
+  checkpointId String           @db.Uuid
+  checkpoint   PatrolCheckpoint @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+  condoId      String           @db.Uuid
+  condo        Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  guardUserId  String           @db.Uuid
+  guard        User             @relation("patrolScanGuard", fields: [guardUserId], references: [id], onDelete: Cascade)
+  scannedAt    DateTime         @default(now())
+  lat          Float?
+  lng          Float?
+  note         String?
+  source       PatrolScanSource @default(ONLINE)
+  createdAt    DateTime         @default(now())
+
+  @@index([condoId, scannedAt])
+  @@index([checkpointId, scannedAt])
+  @@index([guardUserId, scannedAt])
+  @@map("patrol_scans")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Parcels / deliveries (guard log → resident notify → collection sign-off)
+//////////////////////////////////////////////////////////////////////////////
+
+enum ParcelStatus {
+  RECEIVED
+  NOTIFIED
+  COLLECTED
+  OVERDUE
+}
+
+/// Incoming parcel logged by a guard at the lobby. Residents are notified to
+/// collect; uncollected parcels are flagged overdue by a scheduled sweep.
+model Parcel {
+  id                    String       @id @default(uuid()) @db.Uuid
+  condoId               String       @db.Uuid
+  condo                 Condo        @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId                String       @db.Uuid
+  unit                  Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  recipientName         String
+  carrier               String?
+  trackingRef           String?
+  status                ParcelStatus @default(RECEIVED)
+  receivedAt            DateTime     @default(now())
+  collectedAt           DateTime?
+  receivedByGuardId     String       @db.Uuid
+  receivedByGuard       User         @relation("parcelReceivedByGuard", fields: [receivedByGuardId], references: [id], onDelete: Cascade)
+  collectedByUserId     String?      @db.Uuid
+  collectedBy           User?        @relation("parcelCollectedBy", fields: [collectedByUserId], references: [id], onDelete: SetNull)
+  photoUrl              String?
+  notes                 String?
+  /// De-dupes overdue reminder notifications (daily re-nudge at most).
+  lastOverdueNotifiedAt DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([condoId, status])
+  @@index([unitId, status])
+  @@index([condoId, receivedAt])
+  @@map("parcels")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Condo forms & workflows (move-in/out, renovation, vehicle sticker…)
+//////////////////////////////////////////////////////////////////////////////
+
+enum FormTemplateKind {
+  MOVE_IN
+  MOVE_OUT
+  RENOVATION
+  VEHICLE_STICKER
+  CUSTOM
+}
+
+enum FormSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// Management-configurable form template with a JSON field schema.
+model FormTemplate {
+  id        String           @id @default(uuid()) @db.Uuid
+  condoId   String           @db.Uuid
+  condo     Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  kind      FormTemplateKind
+  title     String
+  /// JSON schema: { fields: [{ id, type, label, required?, options? }] }
+  fields    Json             @default("{}")
+  active    Boolean          @default(true)
+  position  Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  submissions FormSubmission[]
+
+  @@index([condoId, active])
+  @@map("form_templates")
+}
+
+/// A resident's filled-in form awaiting management review.
+model FormSubmission {
+  id               String               @id @default(uuid()) @db.Uuid
+  templateId       String               @db.Uuid
+  template         FormTemplate         @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  condoId          String               @db.Uuid
+  condo            Condo                @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId           String               @db.Uuid
+  unit             Unit                 @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId           String               @db.Uuid
+  user             User                 @relation("formSubmitter", fields: [userId], references: [id], onDelete: Cascade)
+  status           FormSubmissionStatus @default(DRAFT)
+  answers          Json                 @default("{}")
+  reviewedByUserId String?              @db.Uuid
+  reviewedBy       User?                @relation("formReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedAt       DateTime?
+  reviewNote       String?
+  submittedAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([condoId, status])
+  @@index([userId])
+  @@index([unitId])
+  @@index([templateId])
+  @@map("form_submissions")
 }

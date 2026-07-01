@@ -1,6 +1,7 @@
 import { AnnouncementService } from '@/announcement/announcement.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
+import { MlAssignmentService } from '@/threads/ml/ml-assignment.service';
 import { MlPriorityService } from '@/threads/ml/ml-priority.service';
 import { SlaService } from '@/threads/sla/sla.service';
 import {
@@ -20,6 +21,7 @@ import {
 } from '@prisma/client';
 import type {
   UpdateAutoAssignmentDto,
+  UpdateMlAssignmentDto,
   UpdateMlPriorityDto,
   UpdateSlaPoliciesDto,
 } from './dto/sla.dto';
@@ -64,6 +66,7 @@ export class SlaPolicyService {
     private readonly prisma: PrismaService,
     private readonly sla: SlaService,
     private readonly mlPriority: MlPriorityService,
+    private readonly mlAssignment: MlAssignmentService,
     private readonly announcements: AnnouncementService,
     private readonly events: EventEmitter2,
   ) {}
@@ -133,7 +136,53 @@ export class SlaPolicyService {
       },
       managementStaff: await this.listManagementStaff(condoId),
       mlPriority: await this.mlPriority.getStats(condoId),
+      mlAssignment: await this.mlAssignment.getStats(condoId),
     };
+  }
+
+  async updateMlAssignment(user: AuthenticatedUser, condoId: string, dto: UpdateMlAssignmentDto) {
+    if (!this.isAdmin(user, condoId)) {
+      throw new ForbiddenException('Only management admins can edit ML assignment settings');
+    }
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+
+    if (dto.enabled) {
+      const stats = await this.mlAssignment.getStats(condoId);
+      if (!stats.ready) {
+        throw new BadRequestException(
+          `Smart assignment needs at least ${stats.minRequired} closed threads (currently ${stats.closedThreadCount})`,
+        );
+      }
+    }
+
+    const helpdesk = parseHelpdeskSettings(condo.settings);
+    const autoAssignment: AutoAssignmentSettings = {
+      generalTriagePool: helpdesk.autoAssignment?.generalTriagePool ?? [],
+      categoryPools: helpdesk.autoAssignment?.categoryPools ?? [],
+      seniorStaffPool: helpdesk.autoAssignment?.seniorStaffPool ?? [],
+      priorityPools: helpdesk.autoAssignment?.priorityPools,
+      mlEnabled: dto.enabled,
+    };
+    const newSettings = mergeHelpdeskSettings(condo.settings, { autoAssignment });
+    await this.prisma.condo.update({
+      where: { id: condoId },
+      data: { settings: newSettings as Prisma.InputJsonValue },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        condoId,
+        actorUserId: user.id,
+        actorRole: user.activeRole,
+        action: AuditAction.UPDATE,
+        resourceType: 'HelpdeskMlAssignment',
+        resourceId: condoId,
+        metadata: { enabled: dto.enabled } as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return { ok: true, mlAssignment: await this.mlAssignment.getStats(condoId) };
   }
 
   async updateMlPriority(user: AuthenticatedUser, condoId: string, dto: UpdateMlPriorityDto) {
@@ -221,10 +270,13 @@ export class SlaPolicyService {
       }
     }
 
+    const helpdesk = parseHelpdeskSettings(condo.settings);
     const autoAssignment: AutoAssignmentSettings = {
       generalTriagePool: dto.generalTriagePool,
       categoryPools: dto.categoryPools,
       seniorStaffPool: dto.seniorStaffPool,
+      priorityPools: helpdesk.autoAssignment?.priorityPools,
+      mlEnabled: helpdesk.autoAssignment?.mlEnabled ?? false,
     };
     const newSettings = mergeHelpdeskSettings(condo.settings, { autoAssignment });
     await this.prisma.condo.update({

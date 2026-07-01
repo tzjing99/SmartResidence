@@ -296,6 +296,8 @@
       "noOwnerPhone": "No owner phone on file — contact management",
       "awaitingOwner": "Awaiting owner",
       "waitingOwnerApproval": "Waiting for the unit owner to approve in the app. Call them if they have not replied.",
+      "guardCannotOverrideHint": "Guards cannot approve walk-ins — only the unit owner can approve in the app. Check in after they approve.",
+      "ownerApprovedReadyCheckIn": "Owner approved in the app — acknowledge entry when the visitor is at the gate.",
       "ownerApprovedByPhone": "Owner approved by phone",
       "approveVerified": "Approve (verified visitor)",
       "guardApproveHint": "Both options open the gate now and add the visitor to the live board — no waiting on the app.",

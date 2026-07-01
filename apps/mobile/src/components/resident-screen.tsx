@@ -1,3 +1,10 @@
+import {
+  DEFECT_SEVERITY_LABELS,
+  DEFECT_STATUS_LABELS,
+  INVOICE_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
+  VISITOR_STATUS_LABELS,
+} from '@smartresidence/shared-types';
 import { AppText, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { type ReactNode } from 'react';
 import {
@@ -107,8 +114,18 @@ export function ResidentSectionHeader({
   );
 }
 
-export function prettyLabel(value: string | null | undefined) {
+const PRETTY_LABEL_MAP: Record<string, string> = {
+  ...INVOICE_STATUS_LABELS,
+  ...PAYMENT_STATUS_LABELS,
+  ...VISITOR_STATUS_LABELS,
+  ...DEFECT_STATUS_LABELS,
+  ...DEFECT_SEVERITY_LABELS,
+};
+
+export function prettyLabel(value: string | null | undefined): string {
   if (!value) return '';
+  const mapped = PRETTY_LABEL_MAP[value];
+  if (mapped) return mapped;
   return value
     .toLowerCase()
     .split('_')

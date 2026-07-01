@@ -296,6 +296,8 @@
       "noOwnerPhone": "业主未登记电话——请联系管理处",
       "awaitingOwner": "等待业主",
       "waitingOwnerApproval": "等待单元业主在应用中批准。如未回复可致电业主。",
+      "guardCannotOverrideHint": "门卫不能批准现场登记——仅单元业主可在应用中批准。业主批准后请登记入场。",
+      "ownerApprovedReadyCheckIn": "业主已在应用中批准——访客到达门岗时请确认入场。",
       "ownerApprovedByPhone": "业主已电话批准",
       "approveVerified": "批准（已核实访客）",
       "guardApproveHint": "两种方式都会立即开闸并将访客加入实时看板——无需等待应用。",

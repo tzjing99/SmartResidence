@@ -14,17 +14,27 @@ import {
   Post,
   Query,
   RawBody,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuditAction, type InvoiceStatus } from '@prisma/client';
+import {
+  AuditAction,
+  AutomationJobKey,
+  AutomationRunStatus,
+  type InvoiceStatus,
+  PaymentProvider,
+} from '@prisma/client';
+import type { Response } from 'express';
+import { AutomationStatusService } from './automation-status.service';
 import { BillingService } from './billing.service';
 import {
+  CreateAdvancePaymentDto,
   CreateInvoiceDto,
   CreatePaymentDto,
   GenerateRecurringDto,
   RecordManualPaymentDto,
+  RecordPrepaymentDto,
 } from './dto/billing.dto';
-import { StripeAdapter } from './providers/stripe.adapter';
 
 @ApiTags('Billing')
 @ApiBearerAuth('access')
@@ -32,29 +42,34 @@ import { StripeAdapter } from './providers/stripe.adapter';
 export class BillingController {
   constructor(
     private readonly billing: BillingService,
-    private readonly stripe: StripeAdapter,
+    private readonly automations: AutomationStatusService,
   ) {}
 
   @Get('unit/:unitId')
   @CheckAbility({ action: 'read', subject: 'Invoice' })
-  forUnit(@Param('unitId', new ParseUUIDPipe()) unitId: string, @Query() page: PaginationDto) {
-    return this.billing.listForUnit(unitId, page);
+  forUnit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Query() page: PaginationDto,
+  ) {
+    return this.billing.listForUnit(user, unitId, page);
   }
 
   @Get('condo/:condoId')
   @CheckAbility({ action: 'read', subject: 'Invoice' })
   forCondo(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query() page: PaginationDto,
     @Query('status') status?: InvoiceStatus,
   ) {
-    return this.billing.listForCondo(condoId, { ...page, status });
+    return this.billing.listForCondo(user, condoId, { ...page, status });
   }
 
   @Get(':id')
   @CheckAbility({ action: 'read', subject: 'Invoice' })
-  getOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.billing.getInvoice(id);
+  getOne(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.billing.getInvoice(id, user);
   }
 
   @Post()
@@ -108,24 +123,129 @@ export class BillingController {
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Body() dto: GenerateRecurringDto,
   ) {
-    return this.billing.generateRecurring(user, condoId, dto);
+    return this.trackBillingGeneration(user, condoId, dto);
   }
 
   @Post('condo/:condoId/run-due-sweep')
   @CheckAbility({ action: 'manage', subject: 'Invoice' })
   @ApiOperation({ summary: 'Flag overdue invoices and emit upcoming-due reminders for a condo' })
-  runDueSweep(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
-    return this.billing.runDueSweep(condoId);
+  runDueSweep(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    return this.trackDueSweep(user, condoId);
+  }
+
+  @Post('prepayment')
+  @CheckAbility({ action: 'manage', subject: 'Payment' })
+  @Audit({ action: AuditAction.PAYMENT, resourceType: 'Prepayment' })
+  @ApiOperation({ summary: 'Record an advance maintenance prepayment as a unit credit' })
+  recordPrepayment(@CurrentUser() user: AuthenticatedUser, @Body() dto: RecordPrepaymentDto) {
+    return this.billing.recordPrepayment(user, dto);
+  }
+
+  @Post('prepayment/intent')
+  @CheckAbility({ action: 'pay', subject: 'Invoice' })
+  @Audit({ action: AuditAction.CREATE, resourceType: 'AdvancePayment' })
+  @ApiOperation({ summary: 'Create a gateway intent for resident advance maintenance credit' })
+  createAdvancePayment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateAdvancePaymentDto,
+  ) {
+    return this.billing.createAdvancePayment(user, dto);
+  }
+
+  @Get('payments/:paymentId/duitnow-status')
+  @CheckAbility({ action: 'pay', subject: 'Invoice' })
+  @ApiOperation({ summary: 'Poll DuitNow QR status for a pending invoice payment' })
+  pollDuitNowInvoiceStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('paymentId', new ParseUUIDPipe()) paymentId: string,
+  ) {
+    return this.billing.pollDuitNowQrStatus(user, paymentId, 'invoice');
+  }
+
+  @Get('advance-payments/:advancePaymentId/duitnow-status')
+  @CheckAbility({ action: 'pay', subject: 'Invoice' })
+  @ApiOperation({ summary: 'Poll DuitNow QR status for a pending advance payment' })
+  pollDuitNowAdvanceStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('advancePaymentId', new ParseUUIDPipe()) advancePaymentId: string,
+  ) {
+    return this.billing.pollDuitNowQrStatus(user, advancePaymentId, 'advance');
+  }
+
+  private async trackBillingGeneration(
+    user: AuthenticatedUser,
+    condoId: string,
+    dto: GenerateRecurringDto,
+  ) {
+    const run = await this.automations.startRun(user, {
+      condoId,
+      jobKey: AutomationJobKey.BILLING_GENERATION,
+      stageName: 'Creating monthly invoices',
+      summary: {
+        trigger: 'manual_invoice_page',
+        periodStart: new Date(dto.periodStart).toISOString(),
+        periodEnd: new Date(dto.periodEnd).toISOString(),
+        dueDate: new Date(dto.dueDate).toISOString(),
+      },
+    });
+    try {
+      const result = await this.billing.generateRecurring(user, condoId, dto, {
+        metadata: { automationRunId: run.id, automationTrigger: 'manual_invoice_page' },
+      });
+      await this.automations.finishRun(
+        run.id,
+        result.created > 0 ? AutomationRunStatus.SUCCESS : AutomationRunStatus.SKIPPED,
+        {
+          trigger: 'manual_invoice_page',
+          created: result.created,
+          skipped: result.skipped,
+          skippedNoRate: result.skippedNoRate,
+          units: result.units,
+        },
+      );
+      return result;
+    } catch (err) {
+      await this.automations.failRun(run.id, err);
+      throw err;
+    }
+  }
+
+  private async trackDueSweep(user: AuthenticatedUser, condoId: string) {
+    const run = await this.automations.startRun(user, {
+      condoId,
+      jobKey: AutomationJobKey.DUE_SWEEP,
+      stageName: 'Checking for overdue invoices',
+      summary: { trigger: 'manual_invoice_page' },
+    });
+    try {
+      const result = await this.billing.runDueSweep(user, condoId);
+      await this.automations.finishRun(
+        run.id,
+        result.overdue > 0 || result.dueSoonNotified > 0
+          ? AutomationRunStatus.SUCCESS
+          : AutomationRunStatus.SKIPPED,
+        {
+          trigger: 'manual_invoice_page',
+          overdue: result.overdue,
+          dueSoonNotified: result.dueSoonNotified,
+          sweptAt: result.sweptAt,
+        },
+      );
+      return result;
+    } catch (err) {
+      await this.automations.failRun(run.id, err);
+      throw err;
+    }
   }
 }
 
 @ApiTags('Billing')
 @Controller('webhooks/payments')
 export class PaymentWebhookController {
-  constructor(
-    private readonly billing: BillingService,
-    private readonly stripe: StripeAdapter,
-  ) {}
+  constructor(private readonly billing: BillingService) {}
 
   @Public()
   @Post('stripe')
@@ -133,19 +253,76 @@ export class PaymentWebhookController {
     @RawBody() body: Buffer,
     @Headers() headers: Record<string, string | string[]>,
   ) {
-    const verified = await this.stripe.verifyWebhook({ payload: body, headers });
-    if (verified?.succeeded) {
-      await this.billing.markPaymentSucceeded(verified.providerRef);
-    }
-    return { received: true };
+    return this.billing.handleStripeCallback(body, headers);
   }
 
   @Public()
   @Post('fpx')
-  async fpxWebhook(@Body() body: { providerRef?: string; status?: string }) {
-    if (body.status === 'success' && body.providerRef) {
-      await this.billing.markPaymentSucceeded(body.providerRef);
-    }
-    return { received: true };
+  async fpxWebhook() {
+    // Bare FPX is intentionally not self-settling. Real FPX is handled through
+    // signed Fiuu / iPay88 callbacks so public callers cannot forge a payment.
+    return { received: true, ignored: true };
+  }
+
+  @Public()
+  @Post('fiuu')
+  async fiuuWebhook(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: Record<string, string | string[]>,
+  ) {
+    return this.billing.handleGatewayCallback(PaymentProvider.RAZER, body, headers);
+  }
+
+  /** Browser return from Fiuu hosted page (POST). Settles then redirects the resident. */
+  @Public()
+  @Post('fiuu/return')
+  async fiuuReturn(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: Record<string, string | string[]>,
+    @Query('next') next: string | undefined,
+    @Res() res: Response,
+  ) {
+    await this.billing.handleGatewayCallback(PaymentProvider.RAZER, body, headers);
+    const fallback = 'http://localhost:3000/billing';
+    const target = next?.startsWith('http') ? next : fallback;
+    res.redirect(302, target);
+  }
+
+  @Public()
+  @Post('ipay88')
+  async ipay88Webhook(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: Record<string, string | string[]>,
+  ) {
+    return this.billing.handleGatewayCallback(PaymentProvider.IPAY88, body, headers);
+  }
+
+  @Public()
+  @Post('duitnow-qr')
+  @ApiOperation({ summary: 'DuitNow QR payment notification (server-to-server)' })
+  async duitnowQrWebhook(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: Record<string, string | string[]>,
+  ) {
+    return this.billing.handleGatewayCallback(PaymentProvider.DUITNOW_QR, body, headers);
+  }
+
+  /**
+   * Sandbox seam: simulate DuitNow QR settlement in TEST when no webhook secret is
+   * configured (same pattern as MyInvois sandbox — no real PayNet call).
+   */
+  @Public()
+  @Post('duitnow-qr/sandbox/settle')
+  @ApiOperation({ summary: '[SANDBOX] Simulate DuitNow QR payment success' })
+  async duitnowSandboxSettle(@Body() body: Record<string, unknown>) {
+    return this.billing.handleGatewayCallback(
+      PaymentProvider.DUITNOW_QR,
+      {
+        ...body,
+        status: body.status ?? 'SUCCESS',
+        sandbox: true,
+      },
+      {},
+    );
   }
 }

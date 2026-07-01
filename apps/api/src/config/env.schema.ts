@@ -46,6 +46,12 @@ export const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
+  // 32-byte key (base64 or hex) used to envelope-encrypt per-condo payment
+  // gateway credentials at rest (AES-256-GCM). Optional in dev: when unset a
+  // deterministic dev key is derived so local setup works, but production MUST
+  // set a strong random value.
+  BILLING_ENCRYPTION_KEY: z.string().optional(),
+
   DEFAULT_CONDO_LOCALE: z.string().default('en'),
   DEFAULT_CONDO_CURRENCY: z.string().default('MYR'),
   DEFAULT_CONDO_TIMEZONE: z.string().default('Asia/Kuala_Lumpur'),

@@ -16,11 +16,19 @@ import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { CacheModule } from './cache/cache.module';
 import { DefectModule } from './defect/defect.module';
+import { EInvoiceModule } from './einvoice/einvoice.module';
+import { FacilityModule } from './facility/facility.module';
 import { FaqModule } from './faq/faq.module';
 import { HandoverModule } from './handover/handover.module';
+import { IntegrationsModule } from './integrations/integrations.module';
 import { NotificationModule } from './notification/notification.module';
 import { OwnerModule } from './owner/owner.module';
+import { PollsModule } from './polls/polls.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { SafetyModule } from './safety/safety.module';
+import { ParcelModule } from './parcel/parcel.module';
+import { FormsModule } from './forms/forms.module';
+import { SetupModule } from './setup/setup.module';
 import { SlaModule } from './sla/sla.module';
 import { StorageModule } from './storage/storage.module';
 import { TenantModule } from './tenant/tenant.module';
@@ -48,8 +56,10 @@ import { VisitorModule } from './visitor/visitor.module';
     TenantModule,
     VisitorModule,
     BillingModule,
+    EInvoiceModule,
     DefectModule,
     AnnouncementModule,
+    PollsModule,
     NotificationModule,
     AuditModule,
     RealtimeModule,
@@ -57,7 +67,13 @@ import { VisitorModule } from './visitor/visitor.module';
     ThreadsModule,
     SlaModule,
     FaqModule,
+    FacilityModule,
     HandoverModule,
+    IntegrationsModule,
+    SetupModule,
+    SafetyModule,
+    ParcelModule,
+    FormsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

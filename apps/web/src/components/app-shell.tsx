@@ -1,6 +1,7 @@
 'use client';
 
 import { MobileTabBar } from '@/components/mobile-tab-bar';
+import { NotificationBell } from '@/components/notification-bell';
 import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { NavLinks, PageFade } from '@/components/shell-nav';
 import { api } from '@/lib/api';
@@ -10,8 +11,9 @@ import { useRoleGuard } from '@/lib/use-role-guard';
 import { useSignOut } from '@/lib/use-sign-out';
 import { useMyCondos } from '@smartresidence/api-client';
 import {
-  Bell,
   CalendarClock,
+  CalendarDays,
+  ClipboardList,
   CreditCard,
   Eye,
   HelpCircle,
@@ -21,7 +23,9 @@ import {
   LogOut,
   Megaphone,
   MessageSquare,
+  Package,
   Settings2,
+  Vote,
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -50,6 +54,12 @@ const NAV_ITEMS: Array<{
     can: { action: 'read', subject: 'Visitor' },
   },
   {
+    href: '/parcels',
+    label: 'Parcels',
+    icon: Package,
+    can: { action: 'read', subject: 'Parcel' },
+  },
+  {
     href: '/billing',
     label: 'Fees',
     icon: CreditCard,
@@ -67,6 +77,24 @@ const NAV_ITEMS: Array<{
     label: 'Announcements',
     icon: Megaphone,
     can: { action: 'read', subject: 'Announcement' },
+  },
+  {
+    href: '/polls',
+    label: 'MC polls',
+    icon: Vote,
+    can: { action: 'read', subject: 'Poll' },
+  },
+  {
+    href: '/facilities',
+    label: 'Facilities',
+    icon: CalendarDays,
+    can: { action: 'read', subject: 'Facility' },
+  },
+  {
+    href: '/forms',
+    label: 'Forms',
+    icon: ClipboardList,
+    can: { action: 'read', subject: 'FormTemplate' },
   },
   { href: '/faq', label: 'Help & FAQ', icon: HelpCircle, can: { action: 'read', subject: 'Faq' } },
   { href: '/settings', label: 'Settings', icon: Settings2 },
@@ -157,12 +185,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )?.label ?? 'SmartResidence'}
           </h1>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="p-2 rounded-xl touch-manipulation transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/40"
-            >
-              <Bell className="size-5" />
-            </button>
+            <NotificationBell />
           </div>
         </header>
         <div className="p-4 sm:p-6 md:p-10 max-w-5xl pb-20 md:pb-10">

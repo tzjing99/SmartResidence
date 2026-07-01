@@ -31,6 +31,24 @@ export default function GuardLayout() {
           }}
         />
         <Tabs.Screen
+          name="patrol"
+          options={{
+            title: 'Patrol',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="shield-checkmark-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="alerts"
+          options={{
+            title: 'Alerts',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="alert-circle-outline" size={22} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="expected"
           options={{
             title: 'Expected',
@@ -51,6 +69,13 @@ export default function GuardLayout() {
             tabBarIcon: ({ color }) => (
               <Ionicons name="person-add-outline" size={22} color={color} />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="parcels"
+          options={{
+            title: 'Parcels',
+            tabBarIcon: ({ color }) => <Ionicons name="cube-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen

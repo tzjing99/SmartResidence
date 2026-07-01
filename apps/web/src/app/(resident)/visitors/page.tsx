@@ -1,6 +1,7 @@
 'use client';
 
 import { PillTabs } from '@/components/pill-tabs';
+import { RecurringPassesPanel } from '@/components/recurring-passes-panel';
 import { ResidentConfirmDialog } from '@/components/resident-confirm-dialog';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
@@ -43,7 +44,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
-type VisitorTab = VisitorListView | 'favourites';
+type VisitorTab = VisitorListView | 'favourites' | 'recurring';
 
 const SKELETON_KEYS = ['s1', 's2', 's3'];
 
@@ -69,6 +70,7 @@ export default function VisitorsPage() {
           liveCount > 0 ? `${t('visitors.tabs.live')} (${liveCount})` : t('visitors.tabs.live'),
       },
       { id: 'history', label: t('visitors.tabs.history') },
+      { id: 'recurring', label: 'Recurring' },
       { id: 'favourites', label: t('visitors.tabs.favourites') },
     ],
     [t, liveCount],
@@ -103,6 +105,8 @@ export default function VisitorsPage() {
           items={(favourites.data?.items ?? []) as FavouriteVisitor[]}
           isLoading={favourites.isLoading}
         />
+      ) : tab === 'recurring' ? (
+        <RecurringPassesPanel unitId={unit?.id} />
       ) : (
         <VisitorListPanel
           tab={tab}
@@ -240,8 +244,8 @@ function VisitorListPanel({
   return (
     <ul className="grid gap-3 md:grid-cols-2">
       {items.map((v) => (
-        <Card key={v.id}>
-          <div className="flex items-start justify-between gap-4">
+        <Card key={v.id} className="flex h-full flex-col">
+          <div className="flex flex-1 items-start justify-between gap-4">
             <div className="flex-1">
               <div className="font-medium">{v.name}</div>
               <div className="text-xs sr-muted mt-0.5">
@@ -289,7 +293,7 @@ function VisitorListPanel({
             <Badge tone={visitorStatusTone(v.status)}>{t(visitorStatusLabelKey(v.status))}</Badge>
           </div>
           {showInviteAgain(tab, v) || (tab === 'upcoming' && canOwnerCancelVisitor(v)) ? (
-            <CardFooter className="justify-end gap-2">
+            <CardFooter className="mt-auto justify-end gap-2">
               {tab === 'upcoming' && canOwnerCancelVisitor(v) ? (
                 <Button
                   size="sm"

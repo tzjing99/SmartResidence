@@ -10,6 +10,7 @@ import {
   useSlaAudit,
   useSlaSettings,
   useUpdateAutoAssignment,
+  useUpdateMlAssignment,
   useUpdateMlPriority,
   useUpdateSlaSettings,
 } from '@smartresidence/api-client';
@@ -106,6 +107,7 @@ export default function HelpdeskSettingsPage() {
   const save = useUpdateSlaSettings(api);
   const savePools = useUpdateAutoAssignment(api);
   const saveMlPriority = useUpdateMlPriority(api);
+  const saveMlAssignment = useUpdateMlAssignment(api);
 
   const abilities = ((me.data as { abilities?: AbilityRule[] } | undefined)?.abilities ??
     []) as AbilityRule[];
@@ -225,6 +227,7 @@ export default function HelpdeskSettingsPage() {
 
   const policies = settings.data?.policies ?? [];
   const mlPriority = settings.data?.mlPriority;
+  const mlAssignment = settings.data?.mlAssignment;
   const hasRisky = policies.some((p) => bandForMins(p, resolutionMins[p.priority]) === 'risky');
 
   async function toggleMlPriority(enabled: boolean) {
@@ -232,6 +235,16 @@ export default function HelpdeskSettingsPage() {
     try {
       await saveMlPriority.mutateAsync({ condoId: condo.id, enabled });
       toast.success(enabled ? 'Smart priority enabled' : 'Smart priority disabled');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function toggleMlAssignment(enabled: boolean) {
+    if (!condo?.id) return;
+    try {
+      await saveMlAssignment.mutateAsync({ condoId: condo.id, enabled });
+      toast.success(enabled ? 'Smart assignment enabled' : 'Smart assignment disabled');
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -279,8 +292,8 @@ export default function HelpdeskSettingsPage() {
           <Settings2 className="size-5" /> Helpdesk & SLA
         </h2>
         <p className="sr-muted text-sm mt-1">
-          Configure response windows per priority. First-response targets are auto-derived at 40% of
-          resolution. AT_RISK threshold is fixed at 20% of window remaining.
+          Set how quickly management should reply and resolve helpdesk messages for each priority
+          level. First-reply targets are set to 40% of the resolution time.
         </p>
         {settings.data ? (
           <p className="text-xs sr-muted mt-1">
@@ -322,7 +335,7 @@ export default function HelpdeskSettingsPage() {
         {canEdit ? (
           <Button onClick={handleSave} disabled={save.isPending}>
             <Save className="size-4" />
-            Save SLA settings
+            Save response-time settings
           </Button>
         ) : (
           <p className="text-sm sr-muted">Read-only — contact a management admin to edit.</p>
@@ -368,7 +381,7 @@ export default function HelpdeskSettingsPage() {
             {!mlPriority.ready ? (
               <p className="text-xs sr-muted">
                 Need {mlPriority.minRequired - mlPriority.closedThreadCount} more closed tickets
-                before ML can be enabled. Rules-based priority is used in the meantime.
+                before smart priority can be turned on. Standard rules are used in the meantime.
               </p>
             ) : null}
           </>
@@ -377,23 +390,73 @@ export default function HelpdeskSettingsPage() {
         )}
       </Card>
 
+      <Card className="p-5 flex flex-col gap-4">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2">
+            <Sparkles className="size-4" /> Smart assignment (beta)
+          </h2>
+          <p className="text-xs sr-muted mt-1">
+            Learns from closed tickets to suggest who should handle new messages. Needs at least
+            200 closed tickets. Falls back to category-based assignment when off or not enough
+            history.
+          </p>
+        </div>
+        {mlAssignment ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span>
+                Closed tickets: {mlAssignment.closedThreadCount} / {mlAssignment.minRequired}
+              </span>
+              {mlAssignment.active ? (
+                <Badge tone="success">Active</Badge>
+              ) : mlAssignment.ready ? (
+                <Badge tone="warning">Ready — off</Badge>
+              ) : (
+                <Badge tone="neutral">Collecting data</Badge>
+              )}
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={mlAssignment.enabled}
+                disabled={
+                  !canEdit ||
+                  saveMlAssignment.isPending ||
+                  (!mlAssignment.ready && !mlAssignment.enabled)
+                }
+                onChange={(e) => void toggleMlAssignment(e.target.checked)}
+              />
+              Enable smart assignment suggestions
+            </label>
+            {!mlAssignment.ready ? (
+              <p className="text-xs sr-muted">
+                Need {mlAssignment.minRequired - mlAssignment.closedThreadCount} more closed tickets
+                before smart assignment can be enabled. Rules-based pools are used in the meantime.
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className="text-sm sr-muted">Assignment stats unavailable.</p>
+        )}
+      </Card>
+
       <Card className="p-5 flex flex-col gap-5">
         <div>
           <h2 className="font-semibold flex items-center gap-2">
-            <Users className="size-4" /> Assignee pools
+            <Users className="size-4" /> Staff assignment lists
           </h2>
           <p className="text-xs sr-muted mt-1">
-            Round-robin auto-assignment per category (M2). GENERAL uses the triage pool; repeat
-            complainants route to senior staff.
+            Choose which staff members can be auto-assigned to new helpdesk messages by category.
+            General messages use the main team; repeat complainants can go to senior staff.
           </p>
         </div>
         {staff.length === 0 ? (
           <p className="text-sm sr-muted">No management staff found for this condo.</p>
         ) : (
           <>
-            <PoolPicker label="General / triage pool" pool={generalPool} setPool={setGeneralPool} />
+            <PoolPicker label="General team" pool={generalPool} setPool={setGeneralPool} />
             <PoolPicker
-              label="Senior staff pool (repeat complainants)"
+              label="Senior staff (repeat complainants)"
               pool={seniorPool}
               setPool={setSeniorPool}
             />
@@ -408,7 +471,7 @@ export default function HelpdeskSettingsPage() {
             {canEdit ? (
               <Button onClick={savePoolSettings} disabled={savePools.isPending}>
                 <Save className="size-4" />
-                Save assignee pools
+                Save staff lists
               </Button>
             ) : null}
           </>

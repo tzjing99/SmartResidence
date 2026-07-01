@@ -103,6 +103,57 @@ export class RecordManualPaymentDto {
   note?: string;
 }
 
+export class RecordPrepaymentDto {
+  @ApiProperty()
+  @IsUUID()
+  unitId!: string;
+
+  @ApiPropertyOptional({ description: 'Owner/payer the prepayment is attributed to.' })
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+
+  @ApiProperty({ minimum: 0, description: 'Advance maintenance amount to credit the unit.' })
+  @IsNumber()
+  @Min(0)
+  amount!: number;
+
+  @ApiPropertyOptional({ description: 'e.g. CASH, BANK_TRANSFER, CHEQUE' })
+  @IsOptional()
+  @IsString()
+  method?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  reference?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class CreateAdvancePaymentDto {
+  @ApiProperty()
+  @IsUUID()
+  unitId!: string;
+
+  @ApiProperty({ minimum: 1, description: 'Advance maintenance amount to pay via gateway.' })
+  @IsNumber()
+  @Min(1)
+  amount!: number;
+
+  @ApiProperty({ enum: PaymentProvider })
+  @IsEnum(PaymentProvider)
+  provider!: PaymentProvider;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  returnUrl?: string;
+}
+
 export class GenerateRecurringDto {
   @ApiProperty({ type: String, format: 'date-time' })
   @Type(() => Date)
@@ -119,11 +170,16 @@ export class GenerateRecurringDto {
   @IsDate()
   dueDate!: Date;
 
-  @ApiProperty({ type: [InvoiceLineDto] })
+  @ApiPropertyOptional({
+    type: [InvoiceLineDto],
+    description:
+      'Explicit fee lines billed to every unit. Omit to auto-compute from unit-type fee rates.',
+  })
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => InvoiceLineDto)
-  lines!: InvoiceLineDto[];
+  lines?: InvoiceLineDto[];
 
   @ApiPropertyOptional({
     type: [String],

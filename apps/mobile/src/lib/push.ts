@@ -1,5 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
+import { Platform } from 'react-native';
+import { api } from './api';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 
@@ -38,12 +40,18 @@ export async function registerForPush(): Promise<string | null> {
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   try {
-    await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/notifications/push-tokens`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Use the authenticated api client so the token is associated with the
+    // signed-in user; a raw fetch has no Authorization header and the token
+    // would never be linked, so pushes would never arrive.
+    await api.registerPushToken({
+      kind: 'EXPO',
+      token,
+      deviceInfo: {
+        platform: Platform.OS,
+        deviceName: Device.deviceName ?? undefined,
+        modelName: Device.modelName ?? undefined,
+        osVersion: Device.osVersion ?? undefined,
       },
-      body: JSON.stringify({ kind: 'EXPO', token }),
     });
   } catch {
     /* offline-tolerant: try again on next app open */

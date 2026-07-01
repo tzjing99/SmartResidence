@@ -13,6 +13,8 @@ import {
   DefectSeverity,
   DefectStatus,
   InvoiceStatus,
+  LedgerEntryType,
+  LedgerFund,
   PrismaClient,
   RoleId,
   RoleScope,
@@ -371,6 +373,52 @@ async function main() {
       },
     },
   });
+
+  // Record the matching accounting ledger CHARGE entries so fund balances and
+  // the unit statement are consistent with the issued invoice (the app does
+  // this automatically; the seed writes the invoice directly so we mirror it).
+  const existingCharges = await prisma.ledgerEntry.count({
+    where: { sourceType: 'Invoice', sourceId: invoice.id },
+  });
+  if (existingCharges === 0) {
+    await prisma.ledgerEntry.createMany({
+      data: [
+        {
+          condoId: condo.id,
+          unitId: ownerUnit.id,
+          fund: LedgerFund.MAINTENANCE,
+          type: LedgerEntryType.CHARGE,
+          amount: maintenanceFee,
+          sourceType: 'Invoice',
+          sourceId: invoice.id,
+          memo: 'Monthly maintenance fee',
+          occurredAt: invoice.issuedAt ?? new Date(),
+        },
+        {
+          condoId: condo.id,
+          unitId: ownerUnit.id,
+          fund: LedgerFund.SINKING_FUND,
+          type: LedgerEntryType.CHARGE,
+          amount: sinkingFund,
+          sourceType: 'Invoice',
+          sourceId: invoice.id,
+          memo: 'Sinking fund contribution',
+          occurredAt: invoice.issuedAt ?? new Date(),
+        },
+        {
+          condoId: condo.id,
+          unitId: ownerUnit.id,
+          fund: LedgerFund.GENERAL,
+          type: LedgerEntryType.CHARGE,
+          amount: garbage,
+          sourceType: 'Invoice',
+          sourceId: invoice.id,
+          memo: 'Garbage collection',
+          occurredAt: invoice.issuedAt ?? new Date(),
+        },
+      ],
+    });
+  }
 
   const preRegExpected = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const preRegVisitorId = randomUUID();
@@ -1070,6 +1118,94 @@ async function main() {
         data: { unitTypeId: typeAId },
       });
     }
+
+    // Per-unit-type monthly fee schedule (drives auto-generated invoices).
+    for (const id of unitTypeIds) {
+      await prisma.unitTypeFeeRate.upsert({
+        where: { unitTypeId: id },
+        update: {},
+        create: {
+          condoId: condo.id,
+          unitTypeId: id,
+          maintenanceRateType: 'PER_SQFT',
+          maintenanceAmount: 0.3,
+          sinkingFundRateType: 'PER_SQFT',
+          sinkingFundAmount: 0.05,
+        },
+      });
+    }
+  }
+
+  // --- Billing: receipt template + demo deposit ---------------------
+  await prisma.condo.update({
+    where: { id: condo.id },
+    data: {
+      settings: {
+        ...((condo.settings as Record<string, unknown>) ?? {}),
+        billing: {
+          receipt: {
+            numberPrefix: 'RCPT',
+            organizationName: 'Acacia Heights JMB',
+            registrationNo: 'JMB-WP-2021-0098',
+            addressLines: '12 Jalan Acacia, Bukit Bintang\n55100 Kuala Lumpur',
+            footerNote: 'This is a computer-generated receipt. Thank you.',
+            signatoryName: 'Management Office',
+            signatoryTitle: 'Authorised Signatory',
+            logoUrl: '',
+          },
+        },
+      },
+    },
+  });
+
+  const depositCount = await prisma.deposit.count({ where: { condoId: condo.id } });
+  if (depositCount === 0) {
+    const deposit = await prisma.deposit.create({
+      data: {
+        condoId: condo.id,
+        unitId: ownerUnit.id,
+        userId: owner.id,
+        type: 'RENOVATION',
+        amount: 2000,
+        currencyCode: 'MYR',
+        status: 'HELD',
+        method: 'BANK_TRANSFER',
+        reference: 'TXN-RENO-0001',
+        recordedByUserId: admin.id,
+      },
+    });
+    await prisma.receipt.create({
+      data: {
+        condoId: condo.id,
+        number: `RCPT-${new Date().getFullYear()}-000001`,
+        kind: 'DEPOSIT',
+        amount: 2000,
+        currencyCode: 'MYR',
+        issuedToUserId: owner.id,
+        unitId: ownerUnit.id,
+        depositId: deposit.id,
+        description: 'Renovation deposit',
+        templateSnapshot: {
+          numberPrefix: 'RCPT',
+          organizationName: 'Acacia Heights JMB',
+        },
+      },
+    });
+    // Mirror the deposit liability in the accounting ledger (the app records
+    // this automatically when a deposit is taken).
+    await prisma.ledgerEntry.create({
+      data: {
+        condoId: condo.id,
+        unitId: ownerUnit.id,
+        fund: LedgerFund.DEPOSIT,
+        type: LedgerEntryType.DEPOSIT,
+        amount: 2000,
+        sourceType: 'Deposit',
+        sourceId: deposit.id,
+        memo: 'Renovation deposit',
+        createdByUserId: admin.id,
+      },
+    });
   }
 
   // --- Demo communication threads -----------------------------------

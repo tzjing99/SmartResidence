@@ -2,20 +2,31 @@
 
 import type {
   BulkUpdateReportItemsInput,
+  CastPollVoteInput,
   CreateAnnouncementInput,
+  CreateBookingInput,
   CreateDefectElementInput,
   CreateDefectInput,
   CreateDefectIssueInput,
   CreateDefectSpaceTypeInput,
+  CreateFacilityInput,
   CreateFavouriteVisitorInput,
   CreateHandoverReportInput,
+  CreateParcelInput,
+  CreatePatrolCheckpointInput,
+  CreatePollInput,
   CreateUnitTypeInput,
   CreateUnitTypeSpaceInput,
   CreateVisitorInput,
+  PatrolScanInput,
+  RaiseSosInput,
   UpdateAnnouncementInput,
   UpdateDefectElementInput,
   UpdateDefectIssueInput,
   UpdateDefectSpaceTypeInput,
+  UpdateFacilityInput,
+  UpdatePatrolCheckpointInput,
+  UpdatePollInput,
   UpdateUnitTypeInput,
   UpdateUnitTypeSpaceInput,
 } from '@smartresidence/shared-types';
@@ -56,11 +67,37 @@ export const queryKeys = {
   ) => ['visitors', 'condo', condoId, params ?? {}] as const,
   visitorAdminStats: (condoId: string) => ['visitors', 'admin', 'stats', condoId] as const,
   guardLiveVisitors: (condoId: string) => ['visitors', 'guard', 'live', condoId] as const,
+  visitorBlacklist: (condoId: string) => ['visitors', 'blacklist', condoId] as const,
+  unitRecurringPasses: (unitId: string) => ['visitors', 'recurring-passes', unitId] as const,
   unitFavouriteVisitors: (unitId: string) => ['visitors', 'favourites', unitId] as const,
   unitInvoices: (unitId: string) => ['invoices', 'unit', unitId] as const,
   condoInvoices: (condoId: string, status?: string) =>
     ['invoices', 'condo', condoId, status ?? 'all'] as const,
   invoice: (id: string) => ['invoices', id] as const,
+  condoDeposits: (condoId: string, status?: string, unitId?: string) =>
+    ['deposits', 'condo', condoId, status ?? 'all', unitId ?? 'all'] as const,
+  unitDeposits: (unitId: string) => ['deposits', 'unit', unitId] as const,
+  condoReceipts: (condoId: string, kind?: string) =>
+    ['receipts', 'condo', condoId, kind ?? 'all'] as const,
+  unitReceipts: (unitId: string) => ['receipts', 'unit', unitId] as const,
+  feeRates: (condoId: string) => ['fee-rates', condoId] as const,
+  receiptTemplate: (condoId: string) => ['receipt-template', condoId] as const,
+  billingAutomation: (condoId: string) => ['billing-automation', condoId] as const,
+  billingAutomationPreview: (condoId: string) => ['billing-automation-preview', condoId] as const,
+  automationStatus: (condoId: string) => ['automations', 'status', condoId] as const,
+  setupStatus: (condoId: string) => ['setup', 'status', condoId] as const,
+  gateways: (condoId: string) => ['gateways', condoId] as const,
+  eInvoiceConfig: (condoId: string) => ['einvoice', 'config', condoId] as const,
+  eInvoice: (invoiceId: string) => ['einvoice', 'invoice', invoiceId] as const,
+  mcpServers: (condoId: string) => ['integrations', 'mcp', condoId] as const,
+  payableMethods: (condoId: string) => ['payment-methods', condoId] as const,
+  feeExtraLines: (condoId: string) => ['fee-extra-lines', condoId] as const,
+  fundBalances: (condoId: string) => ['accounting', 'fund-balances', condoId] as const,
+  collections: (condoId: string, from?: string, to?: string) =>
+    ['accounting', 'collections', condoId, from ?? '', to ?? ''] as const,
+  arrears: (condoId: string) => ['accounting', 'arrears', condoId] as const,
+  paymentIssues: (condoId: string) => ['accounting', 'payment-issues', condoId] as const,
+  unitStatement: (unitId: string) => ['accounting', 'statement', unitId] as const,
   unitDefects: (unitId: string) => ['defects', 'unit', unitId] as const,
   condoDefects: (condoId: string) => ['defects', 'condo', condoId] as const,
   defect: (id: string) => ['defects', id] as const,
@@ -71,6 +108,16 @@ export const queryKeys = {
   unitDefectReports: (unitId: string) => ['defect-reports', 'unit', unitId] as const,
   defectReport: (id: string) => ['defect-reports', id] as const,
   condoAnnouncements: (condoId: string) => ['announcements', 'condo', condoId] as const,
+  condoPolls: (condoId: string) => ['polls', 'condo', condoId] as const,
+  poll: (id: string) => ['polls', id] as const,
+  condoFacilities: (condoId: string, includeInactive?: boolean) =>
+    ['facilities', 'condo', condoId, includeInactive ? 'all' : 'active'] as const,
+  facility: (id: string) => ['facilities', id] as const,
+  facilityAvailability: (id: string, date: string) =>
+    ['facilities', id, 'availability', date] as const,
+  myBookings: ['bookings', 'mine'] as const,
+  condoBookings: (condoId: string, params?: Record<string, unknown>) =>
+    ['bookings', 'condo', condoId, params ?? {}] as const,
   myActivity: ['audit', 'me', 'activity'] as const,
   whoViewedMe: ['audit', 'me', 'who-viewed'] as const,
   threads: (params: ListThreadsParams) => ['threads', params] as const,
@@ -85,6 +132,27 @@ export const queryKeys = {
   overnightUnitSummary: (condoId: string, month?: string) =>
     ['visitors', 'overnight-summary', condoId, month ?? 'current'] as const,
   preferences: ['auth', 'preferences'] as const,
+  notifications: (unreadOnly?: boolean) =>
+    ['notifications', { unreadOnly: unreadOnly ?? false }] as const,
+  condoSosAlerts: (condoId: string) => ['sos', 'condo', condoId] as const,
+  mySosAlerts: ['sos', 'mine'] as const,
+  sosAlert: (id: string) => ['sos', id] as const,
+  patrolCheckpoints: (condoId: string, includeInactive?: boolean) =>
+    ['patrol', 'checkpoints', condoId, includeInactive ? 'all' : 'active'] as const,
+  patrolScans: (condoId: string, params?: Record<string, unknown>) =>
+    ['patrol', 'scans', condoId, params ?? {}] as const,
+  condoParcels: (condoId: string, params?: Record<string, unknown>) =>
+    ['parcels', 'condo', condoId, params ?? {}] as const,
+  unitParcels: (unitId: string, params?: Record<string, unknown>) =>
+    ['parcels', 'unit', unitId, params ?? {}] as const,
+  parcel: (id: string) => ['parcels', id] as const,
+  condoFormTemplates: (condoId: string, includeInactive?: boolean) =>
+    ['forms', 'templates', condoId, includeInactive ? 'all' : 'active'] as const,
+  formTemplate: (id: string) => ['forms', 'template', id] as const,
+  myFormSubmissions: ['forms', 'mine'] as const,
+  condoFormSubmissions: (condoId: string, params?: Record<string, unknown>) =>
+    ['forms', 'submissions', condoId, params ?? {}] as const,
+  formSubmission: (id: string) => ['forms', 'submission', id] as const,
 };
 
 function syncThreadAfterMutation(
@@ -219,6 +287,7 @@ export function useApproveVisitor(api: ApiClient) {
   });
 }
 
+
 export function useGuardApproveWalkIn(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
@@ -309,9 +378,60 @@ export function useUnitInvoices(api: ApiClient, unitId: string | null) {
 }
 
 export function usePayInvoice(api: ApiClient) {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { id: string; provider: string; returnUrl?: string }) =>
       api.payInvoice(vars.id, { provider: vars.provider, returnUrl: vars.returnUrl }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.invoice(vars.id) });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+  });
+}
+
+export function usePollDuitNowInvoiceStatus(
+  api: ApiClient,
+  paymentId: string | null,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ['duitnow-status', 'invoice', paymentId],
+    queryFn: () => (paymentId ? api.pollDuitNowInvoiceStatus(paymentId) : Promise.reject()),
+    enabled: Boolean(paymentId) && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data as { settled?: boolean; pending?: boolean } | undefined;
+      return enabled && data && !data.settled ? 3000 : false;
+    },
+  });
+}
+
+export function usePollDuitNowAdvanceStatus(
+  api: ApiClient,
+  advancePaymentId: string | null,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ['duitnow-status', 'advance', advancePaymentId],
+    queryFn: () =>
+      advancePaymentId ? api.pollDuitNowAdvanceStatus(advancePaymentId) : Promise.reject(),
+    enabled: Boolean(advancePaymentId) && enabled,
+    refetchInterval: (query) => {
+      const data = query.state.data as { settled?: boolean; pending?: boolean } | undefined;
+      return enabled && data && !data.settled ? 3000 : false;
+    },
+  });
+}
+
+export function useCreateAdvancePayment(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').CreateAdvancePaymentInput) =>
+      api.createAdvancePayment(input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.unitStatement(vars.unitId) });
+      qc.invalidateQueries({ queryKey: ['accounting', 'statement'] });
+      qc.invalidateQueries({ queryKey: ['receipts'] });
+    },
   });
 }
 
@@ -357,8 +477,9 @@ export function useGenerateRecurringInvoices(api: ApiClient) {
       condoId: string;
       input: import('@smartresidence/shared-types').GenerateRecurringInput;
     }) => api.generateRecurringInvoices(vars.condoId, vars.input),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: queryKeys.automationStatus(vars.condoId) });
     },
   });
 }
@@ -367,8 +488,543 @@ export function useRunInvoiceDueSweep(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: { condoId: string }) => api.runInvoiceDueSweep(vars.condoId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: queryKeys.automationStatus(vars.condoId) });
+    },
+  });
+}
+
+// -- Deposits & receipts ---------------------------------------------
+
+export function useCondoDeposits(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { status?: string; unitId?: string },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.condoDeposits(condoId, params?.status, params?.unitId)
+      : ['deposits', 'condo', null],
+    queryFn: () =>
+      condoId
+        ? api.depositsForCondo(condoId, params ?? {})
+        : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useUnitDeposits(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId ? queryKeys.unitDeposits(unitId) : ['deposits', 'unit', null],
+    queryFn: () =>
+      unitId ? api.depositsForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(unitId),
+  });
+}
+
+export function useRecordDeposit(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').RecordDepositInput) =>
+      api.recordDeposit(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['deposits'] });
+      qc.invalidateQueries({ queryKey: ['receipts'] });
+    },
+  });
+}
+
+export function useRefundDeposit(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      input: import('@smartresidence/shared-types').RefundDepositInput;
+    }) => api.refundDeposit(vars.id, vars.input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['deposits'] });
+      qc.invalidateQueries({ queryKey: ['receipts'] });
+    },
+  });
+}
+
+export function useCondoReceipts(api: ApiClient, condoId: string | null, kind?: string) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoReceipts(condoId, kind) : ['receipts', 'condo', null],
+    queryFn: () =>
+      condoId
+        ? api.receiptsForCondo(condoId, kind ? { kind } : {})
+        : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useUnitReceipts(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId ? queryKeys.unitReceipts(unitId) : ['receipts', 'unit', null],
+    queryFn: () =>
+      unitId ? api.receiptsForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(unitId),
+  });
+}
+
+// -- Billing settings (fee schedule + receipt template) --------------
+
+export function useFeeRates(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.feeRates(condoId) : ['fee-rates', null],
+    queryFn: () => (condoId ? api.feeRates(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpsertFeeRate(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').UpsertFeeRateInput;
+    }) => api.upsertFeeRate(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.feeRates(vars.condoId) });
+    },
+  });
+}
+
+export function useDeleteFeeRate(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; unitTypeId: string }) =>
+      api.deleteFeeRate(vars.condoId, vars.unitTypeId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.feeRates(vars.condoId) });
+    },
+  });
+}
+
+export function useFeeExtraLines(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.feeExtraLines(condoId) : ['fee-extra-lines', null],
+    queryFn: () => (condoId ? api.feeExtraLines(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpsertFeeExtraLine(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').UpsertFeeScheduleExtraLineInput;
+    }) => api.upsertFeeExtraLine(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.feeExtraLines(vars.condoId) });
+    },
+  });
+}
+
+export function useAddFeeExtraLinePresets(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').AddFeeSchedulePresetsInput;
+    }) => api.addFeeExtraLinePresets(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.feeExtraLines(vars.condoId) });
+    },
+  });
+}
+
+export function useDeleteFeeExtraLine(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; id: string }) =>
+      api.deleteFeeExtraLine(vars.condoId, vars.id),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.feeExtraLines(vars.condoId) });
+    },
+  });
+}
+
+export function useReceiptTemplate(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.receiptTemplate(condoId) : ['receipt-template', null],
+    queryFn: () => (condoId ? api.receiptTemplate(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpdateReceiptTemplate(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: Partial<import('@smartresidence/shared-types').ReceiptTemplateConfig>;
+    }) => api.updateReceiptTemplate(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.receiptTemplate(vars.condoId) });
+    },
+  });
+}
+
+export function useBillingAutomation(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.billingAutomation(condoId) : ['billing-automation', null],
+    queryFn: () => (condoId ? api.billingAutomation(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useBillingAutomationPreview(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.billingAutomationPreview(condoId)
+      : ['billing-automation-preview', null],
+    queryFn: () => (condoId ? api.previewBillingAutomation(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpdateBillingAutomation(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: Partial<import('@smartresidence/shared-types').BillingAutomationSettings>;
+    }) => api.updateBillingAutomation(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.billingAutomation(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.billingAutomationPreview(vars.condoId) });
+    },
+  });
+}
+
+export function useRunBillingAutomation(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; dryRun?: boolean }) =>
+      api.runBillingAutomation(vars.condoId, { dryRun: vars.dryRun }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: queryKeys.billingAutomation(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.billingAutomationPreview(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.automationStatus(vars.condoId) });
+    },
+  });
+}
+
+export function useAutomationStatus(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.automationStatus(condoId) : ['automations', 'status', null],
+    queryFn: () =>
+      condoId ? api.automationStatus(condoId) : Promise.reject(new Error('no condo')),
+    enabled: Boolean(condoId),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+}
+
+// -- First-time setup / onboarding (F4) ------------------------------
+
+export function useSetupStatus(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.setupStatus(condoId) : ['setup', 'status', null],
+    queryFn: () => (condoId ? api.getSetupStatus(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpdateSetupStep(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').UpdateSetupStepInput;
+    }) => api.updateSetupStep(vars.condoId, vars.input),
+    onSuccess: (data, vars) => {
+      qc.setQueryData(queryKeys.setupStatus(vars.condoId), data);
+    },
+  });
+}
+
+export function useCompleteSetup(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string }) => api.completeSetup(vars.condoId),
+    onSuccess: (data, vars) => {
+      qc.setQueryData(queryKeys.setupStatus(vars.condoId), data);
+    },
+  });
+}
+
+export function useDismissSetup(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string }) => api.dismissSetup(vars.condoId),
+    onSuccess: (data, vars) => {
+      qc.setQueryData(queryKeys.setupStatus(vars.condoId), data);
+    },
+  });
+}
+
+// -- Payment gateways ------------------------------------------------
+
+export function useGateways(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.gateways(condoId) : ['gateways', null],
+    queryFn: () => (condoId ? api.listGateways(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpsertGateway(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').UpsertGatewayInput;
+    }) => api.upsertGateway(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.gateways(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.payableMethods(vars.condoId) });
+    },
+  });
+}
+
+export function useSetGatewayEnabled(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; id: string; enabled: boolean }) =>
+      api.setGatewayEnabled(vars.condoId, vars.id, vars.enabled),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.gateways(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.payableMethods(vars.condoId) });
+    },
+  });
+}
+
+export function useDeleteGateway(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; id: string }) => api.deleteGateway(vars.condoId, vars.id),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.gateways(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.payableMethods(vars.condoId) });
+    },
+  });
+}
+
+// -- E-invoice (LHDN MyInvois) --------------------------------------
+
+export function useEInvoiceConfig(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.eInvoiceConfig(condoId) : ['einvoice', 'config', null],
+    queryFn: () => (condoId ? api.eInvoiceConfig(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpdateEInvoiceConfig(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').UpdateEInvoiceConfigInput;
+    }) => api.updateEInvoiceConfig(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.eInvoiceConfig(vars.condoId) });
+    },
+  });
+}
+
+export function useEInvoice(api: ApiClient, invoiceId: string | null) {
+  return useQuery({
+    queryKey: invoiceId ? queryKeys.eInvoice(invoiceId) : ['einvoice', 'invoice', null],
+    queryFn: () => (invoiceId ? api.eInvoiceForInvoice(invoiceId) : Promise.resolve(null)),
+    enabled: Boolean(invoiceId),
+  });
+}
+
+export function useSubmitEInvoice(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { invoiceId: string }) => api.submitEInvoice(vars.invoiceId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.eInvoice(vars.invoiceId) });
+    },
+  });
+}
+
+export function useCancelEInvoice(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      invoiceId: string;
+      input?: import('@smartresidence/shared-types').CancelEInvoiceInput;
+    }) => api.cancelEInvoice(vars.invoiceId, vars.input ?? {}),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.eInvoice(vars.invoiceId) });
+    },
+  });
+}
+
+// -- MCP integrations -----------------------------------------------
+
+export function useMcpServers(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.mcpServers(condoId) : ['integrations', 'mcp', null],
+    queryFn: () => (condoId ? api.listMcpServers(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpsertMcpServer(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').UpsertMcpServerInput;
+    }) => api.upsertMcpServer(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.mcpServers(vars.condoId) });
+    },
+  });
+}
+
+export function useTestMcpServer(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; id: string }) => api.testMcpServer(vars.condoId, vars.id),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.mcpServers(vars.condoId) });
+    },
+  });
+}
+
+export function useSetMcpServerEnabled(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; id: string; enabled: boolean }) =>
+      api.setMcpServerEnabled(vars.condoId, vars.id, vars.enabled),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.mcpServers(vars.condoId) });
+    },
+  });
+}
+
+export function useDeleteMcpServer(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; id: string }) =>
+      api.deleteMcpServer(vars.condoId, vars.id),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.mcpServers(vars.condoId) });
+    },
+  });
+}
+
+export function usePayableMethods(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.payableMethods(condoId) : ['payment-methods', null],
+    queryFn: () => (condoId ? api.payableMethods(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+// -- Accounting reports & prepayments --------------------------------
+
+export function useFundBalances(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.fundBalances(condoId) : ['accounting', 'fund-balances', null],
+    queryFn: () => (condoId ? api.fundBalances(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCollectionsSummary(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { from?: string; to?: string },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.collections(condoId, params?.from, params?.to)
+      : ['accounting', 'collections', null],
+    queryFn: () =>
+      condoId ? api.collectionsSummary(condoId, params ?? {}) : Promise.resolve(null),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useArrearsAging(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.arrears(condoId) : ['accounting', 'arrears', null],
+    queryFn: () => (condoId ? api.arrearsAging(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function usePaymentIssues(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.paymentIssues(condoId) : ['accounting', 'payment-issues', null],
+    queryFn: () => (condoId ? api.paymentIssues(condoId) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useDismissPayment(api: ApiClient, condoId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId: string) => api.dismissPayment(paymentId),
+    onSuccess: () => {
+      if (condoId) {
+        qc.invalidateQueries({ queryKey: queryKeys.paymentIssues(condoId) });
+        qc.invalidateQueries({ queryKey: ['invoices'] });
+      }
+    },
+  });
+}
+
+export function useApproveReviewedPayment(api: ApiClient, condoId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId: string) => api.approveReviewedPayment(paymentId),
+    onSuccess: () => {
+      if (condoId) {
+        qc.invalidateQueries({ queryKey: queryKeys.paymentIssues(condoId) });
+        qc.invalidateQueries({ queryKey: queryKeys.fundBalances(condoId) });
+        qc.invalidateQueries({ queryKey: ['accounting', 'collections'] });
+        qc.invalidateQueries({ queryKey: ['invoices'] });
+      }
+    },
+  });
+}
+
+export function useUnitStatement(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId ? queryKeys.unitStatement(unitId) : ['accounting', 'statement', null],
+    queryFn: () => (unitId ? api.unitStatement(unitId) : Promise.resolve(null)),
+    enabled: Boolean(unitId),
+  });
+}
+
+export function useRecordPrepayment(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').RecordPrepaymentInput) =>
+      api.recordPrepayment(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: ['receipts'] });
+      qc.invalidateQueries({ queryKey: ['accounting'] });
     },
   });
 }
@@ -552,6 +1208,295 @@ export function useAckAnnouncement(api: ApiClient) {
   });
 }
 
+export function useCondoPolls(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { manage?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId
+      ? [...queryKeys.condoPolls(condoId), opts.manage ? 'manage' : 'resident']
+      : ['polls', 'condo', null],
+    queryFn: () =>
+      condoId
+        ? api.pollsForCondo(condoId, { manage: opts.manage })
+        : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function usePoll(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? queryKeys.poll(id) : ['polls', null],
+    queryFn: () => (id ? api.poll(id) : Promise.reject(new Error('No id'))),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreatePoll(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreatePollInput) => api.createPoll(input),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['polls'] });
+      if (data.id) qc.setQueryData(queryKeys.poll(data.id), data);
+    },
+  });
+}
+
+export function useUpdatePoll(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdatePollInput }) => api.updatePoll(vars.id, vars.data),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['polls'] });
+      if (data?.id) qc.setQueryData(queryKeys.poll(data.id), data);
+    },
+  });
+}
+
+export function useCastPollVote(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { pollId: string; data: CastPollVoteInput }) =>
+      api.castPollVote(vars.pollId, vars.data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['polls'] });
+      qc.invalidateQueries({ queryKey: queryKeys.poll(vars.pollId) });
+    },
+  });
+}
+
+// Facility / amenity booking (§4.6) ----------------------------------
+
+export function useFacilities(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { includeInactive?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.condoFacilities(condoId, opts.includeInactive)
+      : ['facilities', 'condo', null],
+    queryFn: () =>
+      condoId
+        ? api.facilitiesForCondo(condoId, { includeInactive: opts.includeInactive })
+        : Promise.resolve([]),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useFacilityAvailability(
+  api: ApiClient,
+  facilityId: string | null,
+  date: string | null,
+) {
+  return useQuery({
+    queryKey:
+      facilityId && date
+        ? queryKeys.facilityAvailability(facilityId, date)
+        : ['facilities', 'availability', null],
+    queryFn: () =>
+      facilityId && date
+        ? api.facilityAvailability(facilityId, date)
+        : Promise.reject(new Error('No facility/date')),
+    enabled: Boolean(facilityId && date),
+  });
+}
+
+export function useCreateFacility(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateFacilityInput) => api.createFacility(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['facilities'] }),
+  });
+}
+
+export function useUpdateFacility(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateFacilityInput }) =>
+      api.updateFacility(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['facilities'] }),
+  });
+}
+
+export function useDeleteFacility(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteFacility(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['facilities'] }),
+  });
+}
+
+export function useMyBookings(api: ApiClient, opts: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: queryKeys.myBookings,
+    queryFn: () => api.myBookings(),
+    enabled: opts.enabled ?? true,
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCondoBookings(
+  api: ApiClient,
+  condoId: string | null,
+  params: { status?: string; facilityId?: string; upcoming?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoBookings(condoId, params) : ['bookings', 'condo', null],
+    queryFn: () =>
+      condoId ? api.condoBookings(condoId, params) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreateBooking(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateBookingInput) => api.createBooking(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['facilities'] });
+    },
+  });
+}
+
+export function useCancelBooking(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; reason?: string }) => api.cancelBooking(vars.id, vars.reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['facilities'] });
+    },
+  });
+}
+
+export function useApproveBooking(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.approveBooking(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+  });
+}
+
+export function useRejectBooking(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; reason?: string }) => api.rejectBooking(vars.id, vars.reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+  });
+}
+
+// Condo forms & workflows --------------------------------------------
+
+export function useFormTemplates(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { includeInactive?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.condoFormTemplates(condoId, opts.includeInactive)
+      : ['forms', 'templates', null],
+    queryFn: () =>
+      condoId
+        ? api.formTemplatesForCondo(condoId, { includeInactive: opts.includeInactive })
+        : Promise.resolve([]),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useMyFormSubmissions(api: ApiClient) {
+  return useQuery({
+    queryKey: queryKeys.myFormSubmissions,
+    queryFn: () => api.myFormSubmissions(),
+  });
+}
+
+export function useCondoFormSubmissions(
+  api: ApiClient,
+  condoId: string | null,
+  params: { status?: string; templateId?: string } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoFormSubmissions(condoId, params) : ['forms', 'submissions', null],
+    queryFn: () => (condoId ? api.condoFormSubmissions(condoId, params) : Promise.resolve({ items: [], total: 0 })),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useCreateFormSubmission(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').CreateFormSubmissionInput) =>
+      api.createFormSubmission(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
+export function useUpdateFormSubmission(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: import('@smartresidence/shared-types').UpdateFormSubmissionInput }) =>
+      api.updateFormSubmission(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
+export function useCancelFormSubmission(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.cancelFormSubmission(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
+export function useApproveFormSubmission(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.approveFormSubmission(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
+export function useRejectFormSubmission(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; reviewNote?: string }) =>
+      api.rejectFormSubmission(vars.id, { reviewNote: vars.reviewNote }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
+export function useCreateFormTemplate(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').CreateFormTemplateInput) =>
+      api.createFormTemplate(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
+export function useUpdateFormTemplate(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: import('@smartresidence/shared-types').UpdateFormTemplateInput }) =>
+      api.updateFormTemplate(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
+export function useDeleteFormTemplate(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteFormTemplate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
+  });
+}
+
 export function useCondoBlocks(api: ApiClient, condoId: string | null) {
   return useQuery({
     queryKey: condoId ? ['blocks', condoId] : ['blocks', null],
@@ -571,6 +1516,31 @@ export function useCondoUnitsSearch(
     queryFn: () =>
       api.listUnits(condoId!, { limit: 50, offset: 0, search: search.trim() || undefined }),
     enabled: Boolean(condoId) && enabled,
+  });
+}
+
+export function useResidentContact(api: ApiClient, unitId: string | null, userId: string | null) {
+  return useQuery({
+    queryKey: unitId && userId ? ['resident-contact', unitId, userId] : ['resident-contact', null],
+    queryFn: () =>
+      unitId && userId ? api.residentContact(unitId, userId) : Promise.reject(new Error('no user')),
+    enabled: Boolean(unitId && userId),
+  });
+}
+
+export function useUpdateResidentContact(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      unitId: string;
+      userId: string;
+      input: { name?: string; email?: string; phone?: string };
+    }) => api.updateResidentContact(vars.unitId, vars.userId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['resident-contact', vars.unitId, vars.userId] });
+      qc.invalidateQueries({ queryKey: ['units'] });
+      qc.invalidateQueries({ queryKey: ['admin', 'units'] });
+    },
   });
 }
 
@@ -997,6 +1967,16 @@ export function useUpdateMlPriority(api: ApiClient) {
   });
 }
 
+export function useUpdateMlAssignment(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; enabled: boolean }) =>
+      api.updateMlAssignment(vars.condoId, { enabled: vars.enabled }),
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: queryKeys.slaSettings(vars.condoId) }),
+  });
+}
+
 export function useGuardLiveVisitors(api: ApiClient, condoId: string | undefined) {
   return useQuery({
     queryKey: condoId ? queryKeys.guardLiveVisitors(condoId) : ['visitors', 'guard', 'live', null],
@@ -1015,6 +1995,120 @@ export function useCheckOutVisitor(api: ApiClient) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['visitors'] });
     },
+  });
+}
+
+export function useVisitorBlacklist(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.visitorBlacklist(condoId) : ['visitors', 'blacklist', null],
+    queryFn: () =>
+      condoId ? api.visitorBlacklist(condoId) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreateVisitorBlacklist(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      data: import('@smartresidence/shared-types').CreateVisitorBlacklistInput;
+    }) => api.createVisitorBlacklist(vars.condoId, vars.data),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.visitorBlacklist(vars.condoId) });
+    },
+  });
+}
+
+export function useUpdateVisitorBlacklist(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      condoId: string;
+      data: import('@smartresidence/shared-types').UpdateVisitorBlacklistInput;
+    }) => api.updateVisitorBlacklist(vars.id, vars.data),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.visitorBlacklist(vars.condoId) });
+    },
+  });
+}
+
+export function useDeleteVisitorBlacklist(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; condoId: string }) => api.deleteVisitorBlacklist(vars.id),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.visitorBlacklist(vars.condoId) });
+    },
+  });
+}
+
+export function useUnitRecurringPasses(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId
+      ? queryKeys.unitRecurringPasses(unitId)
+      : ['visitors', 'recurring-passes', null],
+    queryFn: () =>
+      unitId ? api.recurringPassesForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(unitId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreateRecurringPass(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').CreateRecurringPassInput) =>
+      api.createRecurringPass(input),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.unitRecurringPasses(vars.unitId) });
+    },
+  });
+}
+
+export function useUpdateRecurringPass(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      unitId: string;
+      data: import('@smartresidence/shared-types').UpdateRecurringPassInput;
+    }) => api.updateRecurringPass(vars.id, vars.data),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.unitRecurringPasses(vars.unitId) });
+    },
+  });
+}
+
+export function useDeleteRecurringPass(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; unitId: string }) => api.deleteRecurringPass(vars.id),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.unitRecurringPasses(vars.unitId) });
+    },
+  });
+}
+
+export function useNotifications(
+  api: ApiClient,
+  opts: { limit?: number; unreadOnly?: boolean; enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: queryKeys.notifications(opts.unreadOnly),
+    queryFn: () => api.listNotifications({ limit: opts.limit ?? 20, unreadOnly: opts.unreadOnly }),
+    enabled: opts.enabled ?? true,
+    staleTime: 15_000,
+  });
+}
+
+export function useMarkNotificationsRead(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => api.markNotificationsRead(ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }
 
@@ -1261,5 +2355,190 @@ export function useBulkUpdateReportItems(api: ApiClient) {
       qc.invalidateQueries({ queryKey: ['defect-reports'] });
       qc.invalidateQueries({ queryKey: ['defects'] });
     },
+  });
+}
+
+// -- Guard safety: panic / SOS ---------------------------------------
+
+/** Active + recent SOS alerts for a condo (management/guard dashboards). */
+export function useCondoSosAlerts(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoSosAlerts(condoId) : ['sos', 'condo', null],
+    queryFn: () =>
+      condoId ? api.condoSosAlerts(condoId) : Promise.resolve({ active: [], recent: [] }),
+    enabled: (opts.enabled ?? true) && Boolean(condoId),
+    // SOS is time-critical: poll frequently; realtime `sos:update` also invalidates.
+    staleTime: 5_000,
+    refetchInterval: 15_000,
+  });
+}
+
+/** The current user's own raised SOS alerts (resident status view). */
+export function useMySosAlerts(api: ApiClient, opts: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: queryKeys.mySosAlerts,
+    queryFn: () => api.mySosAlerts({ limit: 20 }),
+    enabled: opts.enabled ?? true,
+    staleTime: 10_000,
+    refetchInterval: 20_000,
+  });
+}
+
+export function useRaiseSos(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RaiseSosInput) => api.raiseSos(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sos'] });
+    },
+  });
+}
+
+export function useAcknowledgeSos(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.acknowledgeSos(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sos'] }),
+  });
+}
+
+export function useResolveSos(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; resolutionNote?: string }) =>
+      api.resolveSos(vars.id, { resolutionNote: vars.resolutionNote }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sos'] }),
+  });
+}
+
+export function useCancelSos(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.cancelSos(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sos'] }),
+  });
+}
+
+// -- Guard safety: patrol checkpoints + scans ------------------------
+
+export function usePatrolCheckpoints(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { includeInactive?: boolean; enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.patrolCheckpoints(condoId, opts.includeInactive)
+      : ['patrol', 'checkpoints', null],
+    queryFn: () =>
+      condoId
+        ? api.patrolCheckpoints(condoId, { includeInactive: opts.includeInactive })
+        : Promise.resolve([]),
+    enabled: (opts.enabled ?? true) && Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function usePatrolScans(
+  api: ApiClient,
+  condoId: string | null,
+  params: { checkpointId?: string; guardUserId?: string; from?: string; to?: string } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.patrolScans(condoId, params) : ['patrol', 'scans', null],
+    queryFn: () =>
+      condoId ? api.patrolScans(condoId, params) : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreatePatrolCheckpoint(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreatePatrolCheckpointInput) => api.createPatrolCheckpoint(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patrol'] }),
+  });
+}
+
+export function useUpdatePatrolCheckpoint(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdatePatrolCheckpointInput }) =>
+      api.updatePatrolCheckpoint(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patrol'] }),
+  });
+}
+
+export function useRegeneratePatrolCode(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.regeneratePatrolCode(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patrol'] }),
+  });
+}
+
+export function useDeletePatrolCheckpoint(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deletePatrolCheckpoint(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patrol'] }),
+  });
+}
+
+export function useScanPatrolCheckpoint(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PatrolScanInput) => api.scanPatrolCheckpoint(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patrol'] }),
+  });
+}
+
+export function useCondoParcels(
+  api: ApiClient,
+  condoId: string | null,
+  params: { status?: string; unitId?: string; pendingOnly?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoParcels(condoId, params) : ['parcels', 'condo', null],
+    queryFn: () =>
+      condoId ? api.parcelsForCondo(condoId, params) : Promise.resolve({ items: [], total: 0, limit: 0, offset: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useUnitParcels(
+  api: ApiClient,
+  unitId: string | null,
+  params: { status?: string; pendingOnly?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: unitId ? queryKeys.unitParcels(unitId, params) : ['parcels', 'unit', null],
+    queryFn: () =>
+      unitId ? api.parcelsForUnit(unitId, params) : Promise.resolve({ items: [], total: 0, limit: 0, offset: 0 }),
+    enabled: Boolean(unitId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreateParcel(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateParcelInput) => api.createParcel(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['parcels'] }),
+  });
+}
+
+export function useCollectParcel(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; notes?: string }) =>
+      api.collectParcel(vars.id, { notes: vars.notes }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['parcels'] }),
   });
 }

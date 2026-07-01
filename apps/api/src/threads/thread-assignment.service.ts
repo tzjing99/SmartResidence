@@ -1,7 +1,12 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { parseHelpdeskSettings } from '@/sla/helpdesk-settings';
-import { Injectable } from '@nestjs/common';
-import { RoleId, type ThreadCategory, ThreadStatus } from '@prisma/client';
+import { Inject, Injectable } from '@nestjs/common';
+import { RoleId, type ThreadCategory, type ThreadPriority, ThreadStatus } from '@prisma/client';
+import {
+  ASSIGNMENT_ASSIST_PROVIDER,
+  type AssignmentAssistProvider,
+  resolvePriorityPool,
+} from './ai/assignment-assist.provider';
 
 export interface AssignmentResult {
   assignedToUserId: string | null;
@@ -11,7 +16,11 @@ export interface AssignmentResult {
 
 @Injectable()
 export class ThreadAssignmentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(ASSIGNMENT_ASSIST_PROVIDER)
+    private readonly assignmentAssist: AssignmentAssistProvider,
+  ) {}
 
   async assignOnCreate(input: {
     condoId: string;
@@ -19,13 +28,13 @@ export class ThreadAssignmentService {
     createdByUserId: string;
     category: ThreadCategory;
     subject: string;
+    body?: string;
   }): Promise<AssignmentResult> {
     const condo = await this.prisma.condo.findUnique({
       where: { id: input.condoId },
       select: { settings: true },
     });
     const helpdesk = parseHelpdeskSettings(condo?.settings);
-    const auto = helpdesk.autoAssignment;
 
     const repeatComplainant = await this.isRepeatComplainant(
       input.condoId,
@@ -33,17 +42,15 @@ export class ThreadAssignmentService {
       input.unitId,
     );
 
-    let pool: string[] = [];
-    if (repeatComplainant && auto?.seniorStaffPool?.length) {
-      pool = auto.seniorStaffPool;
-    } else if (auto) {
-      const catPool = auto.categoryPools?.find((p) => p.category === input.category);
-      if (catPool?.userIds?.length) {
-        pool = catPool.userIds;
-      } else if (input.category === 'GENERAL' && auto.generalTriagePool?.length) {
-        pool = auto.generalTriagePool;
-      }
-    }
+    const suggestion = await this.assignmentAssist.suggestPool({
+      condoId: input.condoId,
+      category: input.category,
+      subject: input.subject,
+      body: input.body,
+      repeatComplainant,
+      helpdesk,
+    });
+    const pool = suggestion?.poolUserIds ?? [];
 
     const assignedToUserId = pool.length > 0 ? await this.roundRobin(pool, input.condoId) : null;
     const duplicateSuggestions = await this.findDuplicateSuggestions(
@@ -59,25 +66,41 @@ export class ThreadAssignmentService {
     condoId: string,
     category: ThreadCategory,
     repeatComplainant: boolean,
+    subject?: string,
+  ): Promise<string | null> {
+    const condo = await this.prisma.condo.findUnique({
+      where: { id: condoId },
+      select: { settings: true },
+    });
+    const helpdesk = parseHelpdeskSettings(condo?.settings);
+
+    const suggestion = await this.assignmentAssist.suggestPool({
+      condoId,
+      category,
+      subject: subject ?? '',
+      repeatComplainant,
+      helpdesk,
+    });
+    const pool = suggestion?.poolUserIds ?? [];
+    return pool.length > 0 ? this.roundRobin(pool, condoId) : null;
+  }
+
+  async assignOnPriorityChange(
+    condoId: string,
+    priority: ThreadPriority,
+    repeatComplainant: boolean,
+    category: ThreadCategory,
+    currentAssigneeId: string | null,
   ): Promise<string | null> {
     const condo = await this.prisma.condo.findUnique({
       where: { id: condoId },
       select: { settings: true },
     });
     const auto = parseHelpdeskSettings(condo?.settings).autoAssignment;
-    if (!auto) return null;
-
-    let pool: string[] = [];
-    if (repeatComplainant && auto.seniorStaffPool?.length) {
-      pool = auto.seniorStaffPool;
-    } else {
-      const catPool = auto.categoryPools?.find((p) => p.category === category);
-      if (catPool?.userIds?.length) pool = catPool.userIds;
-      else if (category === 'GENERAL' && auto.generalTriagePool?.length) {
-        pool = auto.generalTriagePool;
-      }
-    }
-    return pool.length > 0 ? this.roundRobin(pool, condoId) : null;
+    const pool = resolvePriorityPool(auto, priority, category, repeatComplainant);
+    if (pool.length === 0) return currentAssigneeId;
+    const assignee = await this.roundRobin(pool, condoId);
+    return assignee ?? currentAssigneeId;
   }
 
   private async isRepeatComplainant(

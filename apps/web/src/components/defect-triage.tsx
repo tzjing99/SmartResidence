@@ -91,12 +91,9 @@ export function canMarkFixed(status: DefectStatus) {
 }
 
 export function fifoSort(a: TriageItem, b: TriageItem) {
-  // 1. Active items always before closed/finished
-  const aActive = isActiveDefect(a.status) ? 0 : 1;
-  const bActive = isActiveDefect(b.status) ? 0 : 1;
-  if (aActive !== bActive) return aActive - bActive;
-
-  // 2. FIFO — oldest submitted first (queue discipline)
+  // Strict first-in-first-out: whoever was submitted earliest comes first,
+  // comparing real timestamps (not formatted date strings) so the queue reads
+  // as a true chronological order across both standalone defects and packages.
   return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 }
 
@@ -521,9 +518,8 @@ export function DefectTriageToolbar({
             value={filters.sort ?? 'fifo'}
             onValueChange={(v) => update({ sort: v as SortOrder })}
             options={[
-              { value: 'fifo', label: 'FIFO (oldest first)' },
+              { value: 'fifo', label: 'Oldest first' },
               { value: 'newest', label: 'Newest first' },
-              { value: 'oldest', label: 'Oldest first' },
               { value: 'severity', label: 'By severity' },
             ]}
             aria-label="Sort order"

@@ -6,9 +6,14 @@ import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { queryKeys, useGuardWalkInPolicy, useMyCondos } from '@smartresidence/api-client';
-import { type Visitor, isValidMalaysiaPhone } from '@smartresidence/shared-types';
+import {
+  type Visitor,
+  isValidMalaysiaPhone,
+  isVisitorBlacklistError,
+} from '@smartresidence/shared-types';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
+import { Ban } from 'lucide-react';
 import { useState } from 'react';
 
 type Tab = 'unit' | 'office';
@@ -29,6 +34,7 @@ export default function GuardWalkInPage() {
   const [pendingVisitor, setPendingVisitor] = useState<
     (Visitor & { unit?: { identifier?: string } }) | null
   >(null);
+  const [blacklistAlert, setBlacklistAlert] = useState<string | null>(null);
 
   const pendingWalkIns = useQuery({
     queryKey: condo ? [...queryKeys.condoVisitors(condo.id), 'pending-walk-in'] : ['pending'],
@@ -59,6 +65,7 @@ export default function GuardWalkInPage() {
     }
     if (!validatePhone()) return;
     setBusy(true);
+    setBlacklistAlert(null);
     try {
       const visitor = await api.createWalkInUnit({
         unitId: unit.id,
@@ -79,7 +86,11 @@ export default function GuardWalkInPage() {
       setUnit(null);
       pendingWalkIns.refetch();
     } catch (err) {
-      toast.error((err as Error).message);
+      const message = (err as Error).message;
+      if (isVisitorBlacklistError(message)) {
+        setBlacklistAlert(message);
+      }
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -92,6 +103,7 @@ export default function GuardWalkInPage() {
     }
     if (!validatePhone()) return;
     setBusy(true);
+    setBlacklistAlert(null);
     try {
       await api.createWalkInOffice({
         name: name.trim(),
@@ -105,7 +117,11 @@ export default function GuardWalkInPage() {
       setPurpose('');
       setPendingVisitor(null);
     } catch (err) {
-      toast.error((err as Error).message);
+      const message = (err as Error).message;
+      if (isVisitorBlacklistError(message)) {
+        setBlacklistAlert(message);
+      }
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -127,6 +143,17 @@ export default function GuardWalkInPage() {
         {condo ? <p className="sr-muted text-sm mt-1">{condo.name}</p> : null}
         <p className="sr-muted text-sm mt-2">{t('visitors.guard.walkInBlurb')}</p>
       </header>
+
+
+      {blacklistAlert ? (
+        <Card className="border-red-500/40 bg-red-500/5 p-4 flex gap-3 items-start">
+          <Ban className="size-5 text-red-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-700">Visitor blocked</p>
+            <p className="text-sm text-red-700/90 mt-1">{blacklistAlert}</p>
+          </div>
+        </Card>
+      ) : null}
 
       {pendingVisitor?.status === 'PENDING_OWNER_APPROVAL' ? (
         <PendingWalkInCard

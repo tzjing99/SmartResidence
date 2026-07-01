@@ -95,11 +95,19 @@ export default function VisitorsScreen() {
       subtitle="Pre-register guests for a fast gate pass, or track walk-ins waiting for approval."
       scrollProps={{ refreshControl }}
       headerAction={
-        <Button
-          title="Pre-register a visitor"
-          size="lg"
-          onPress={() => router.push('/(resident)/visitors/new' as Href)}
-        />
+        <View style={{ gap: 8 }}>
+          <Button
+            title="Pre-register a visitor"
+            size="lg"
+            onPress={() => router.push('/(resident)/visitors/new' as Href)}
+          />
+          <Button
+            title="Recurring passes"
+            size="sm"
+            variant="secondary"
+            onPress={() => router.push('/(resident)/visitors/recurring' as Href)}
+          />
+        </View>
       }
     >
       <Card style={[residentStyles.card, { padding: 8 }]}>

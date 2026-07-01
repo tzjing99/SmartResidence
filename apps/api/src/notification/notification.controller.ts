@@ -2,10 +2,18 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Body, Controller, Get, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { ApiProperty } from '@nestjs/swagger';
 import { PushKind } from '@prisma/client';
-import { IsArray, IsEnum, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsBooleanString,
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { NotificationService } from './notification.service';
 
 class RegisterPushDto {
@@ -30,6 +38,13 @@ class MarkReadDto {
   ids!: string[];
 }
 
+class ListNotificationsDto extends PaginationDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBooleanString()
+  unreadOnly?: string;
+}
+
 @ApiTags('Notifications')
 @ApiBearerAuth('access')
 @Controller('notifications')
@@ -37,12 +52,11 @@ export class NotificationController {
   constructor(private readonly notifications: NotificationService) {}
 
   @Get()
-  list(
-    @CurrentUser() user: AuthenticatedUser,
-    @Query() page: PaginationDto,
-    @Query('unreadOnly') unreadOnly?: string,
-  ) {
-    return this.notifications.list(user.id, { ...page, unreadOnly: unreadOnly === 'true' });
+  list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListNotificationsDto) {
+    return this.notifications.list(user.id, {
+      ...query,
+      unreadOnly: query.unreadOnly === 'true',
+    });
   }
 
   @Patch('read')

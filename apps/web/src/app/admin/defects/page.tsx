@@ -54,8 +54,8 @@ export default function DefectsAdminPage() {
         <div className="inline-flex w-fit rounded-xl border border-[rgb(var(--sr-border))] p-1 bg-[rgb(var(--sr-card))]">
           {(
             [
-              { id: 'board', label: 'FIFO board' },
-              { id: 'reports', label: 'Unit packages' },
+              { id: 'board', label: 'Work queue' },
+              { id: 'reports', label: 'Handover reports' },
             ] as const
           ).map((t) => (
             <button
@@ -134,13 +134,13 @@ function DefectBoard({ condoId }: { condoId: string | null }) {
         : 'Unassigned unit';
       return {
         id: r.id,
-        title: `${unitLabel} defect package`,
+        title: `${unitLabel} handover report`,
         reference: defectReference(r.id),
-        description: `${r.itemCount} child defect(s) submitted under this package. Open the package to triage rooms, contractor fixing, and resident sign-off.`,
+        description: `${r.itemCount} child defect(s) submitted under this handover report. Open it to triage rooms, contractor fixing, and resident sign-off.`,
         status,
         severity: status === 'REOPENED' ? 'HIGH' : 'MEDIUM',
         createdAt: r.createdAt,
-        category: 'Unit package',
+        category: 'Handover report',
         room: 'Multiple rooms',
         unitLabel,
         blockName: r.unit?.block?.name ?? null,
@@ -302,7 +302,7 @@ function DefectBoard({ condoId }: { condoId: string | null }) {
           onSelect={(item) => setActiveId(item.id)}
           onStatus={move}
           onMarkFixed={markFixed}
-          empty="No defects match this view. Clear filters to see the FIFO queue again."
+          empty="No defects match this view. Clear filters to see the work queue again."
         />
         <DefectDetailPanel item={active} onMarkFixed={markFixed} />
       </div>
@@ -339,8 +339,8 @@ function InspectionsList({ condoId }: { condoId: string | null }) {
   if ((reports.data?.length ?? 0) === 0) {
     return (
       <EmptyState
-        title="No unit defect packages yet"
-        description="When a resident submits multiple defects, the unit package appears here for contractor handoff and resident sign-off."
+        title="No handover reports yet"
+        description="When a resident submits multiple defects at once, the handover report appears here for contractor handoff and resident sign-off."
       />
     );
   }

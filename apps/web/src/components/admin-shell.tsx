@@ -1,28 +1,39 @@
 'use client';
 
 import { MobileTabBar } from '@/components/mobile-tab-bar';
+import { NotificationBell } from '@/components/notification-bell';
 import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { NavLinks, PageFade } from '@/components/shell-nav';
 import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useSignOut } from '@/lib/use-sign-out';
-import { useMyCondos } from '@smartresidence/api-client';
-import { ROLE_LABEL } from '@smartresidence/shared-types';
+import { useMyCondos, useSetupStatus } from '@smartresidence/api-client';
+import { isSetupWizardPath, ROLE_LABEL } from '@smartresidence/shared-types';
 import {
   BarChart3,
   Building2,
   CalendarClock,
+  CalendarDays,
+  ClipboardList,
   CreditCard,
   HelpCircle,
+  Landmark,
   LifeBuoy,
   LogOut,
+  MapPin,
   Megaphone,
+  Package,
+  Rocket,
   Settings2,
   ShieldAlert,
+  Siren,
+  Vote,
+  Wallet,
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
 /**
@@ -50,14 +61,44 @@ const NAV: Array<{
     can: { action: 'read', subject: 'Visitor' },
   },
   {
+    href: '/admin/parcels',
+    label: 'Parcels',
+    icon: Package,
+    can: { action: 'read', subject: 'Parcel' },
+  },
+  {
     href: '/admin/invoices',
     label: 'Invoices',
     icon: CreditCard,
     can: { action: 'read', subject: 'Invoice' },
   },
   {
+    href: '/admin/deposits',
+    label: 'Deposits',
+    icon: Wallet,
+    can: { action: 'read', subject: 'Deposit' },
+  },
+  {
+    href: '/admin/accounting',
+    label: 'Accounting',
+    icon: Landmark,
+    can: { action: 'read', subject: 'Ledger' },
+  },
+  {
+    href: '/admin/safety',
+    label: 'Safety / SOS',
+    icon: Siren,
+    can: { action: 'read', subject: 'SosAlert' },
+  },
+  {
+    href: '/admin/patrol',
+    label: 'Patrol',
+    icon: MapPin,
+    can: { action: 'read', subject: 'PatrolCheckpoint' },
+  },
+  {
     href: '/admin/defects',
-    label: 'Defect board',
+    label: 'Defects',
     icon: Wrench,
     can: { action: 'read', subject: 'Defect' },
   },
@@ -73,21 +114,61 @@ const NAV: Array<{
     icon: Megaphone,
     can: { action: 'publish', subject: 'Announcement' },
   },
+  {
+    href: '/admin/polls',
+    label: 'Owner polls',
+    icon: Vote,
+    can: { action: 'manage', subject: 'Poll' },
+  },
+  {
+    href: '/admin/facilities',
+    label: 'Facilities',
+    icon: CalendarDays,
+    can: { action: 'manage', subject: 'Facility' },
+  },
+  {
+    href: '/admin/forms',
+    label: 'Forms',
+    icon: ClipboardList,
+    can: { action: 'read', subject: 'FormSubmission' },
+  },
   { href: '/admin/faq', label: 'FAQ', icon: HelpCircle, can: { action: 'manage', subject: 'Faq' } },
   { href: '/admin/settings', label: 'Settings', icon: Settings2 },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { role, abilities, ready } = useRoleGuard('admin');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const signOut = useSignOut();
 
-  const navItems = React.useMemo(
-    () =>
-      NAV.filter((item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject)),
-    [abilities],
-  );
+  // Only management admins can drive first-time setup; surface a Setup entry
+  // point until the building is marked configured.
+  const canManageCondo = hasAbility(abilities, 'manage', 'Condo');
+  const setup = useSetupStatus(api, canManageCondo ? (condo?.id ?? null) : null);
+  const setupIncomplete = Boolean(setup.data && !setup.data.completedAt);
+
+  // Unconfigured buildings: send admins to the wizard on login and block other
+  // admin pages until they finish or explicitly defer (dismiss).
+  React.useEffect(() => {
+    if (!ready || !canManageCondo || setup.isLoading || !setup.data || !condo?.id) return;
+    const { completedAt, dismissedAt } = setup.data;
+    if (completedAt || dismissedAt) return;
+    if (isSetupWizardPath(pathname)) return;
+    router.replace('/admin/setup');
+  }, [ready, canManageCondo, setup.isLoading, setup.data, condo?.id, pathname, router]);
+
+  const navItems = React.useMemo(() => {
+    const items = NAV.filter(
+      (item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject),
+    );
+    if (setupIncomplete) {
+      return [{ href: '/admin/setup', label: 'Finish setup', icon: Rocket }, ...items];
+    }
+    return items;
+  }, [abilities, setupIncomplete]);
 
   if (!ready) {
     return (
@@ -133,8 +214,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           Sign out
         </button>
       </aside>
-      <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-10 pb-20 md:pb-10">
-        <PageFade>{children}</PageFade>
+      <main className="flex-1 min-w-0">
+        <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 md:px-10 py-3 flex items-center justify-end">
+          <NotificationBell />
+        </header>
+        <div className="p-4 sm:p-6 md:p-10 pb-20 md:pb-10">
+          <PageFade>{children}</PageFade>
+        </div>
       </main>
       <MobileTabBar
         ariaLabel="Management navigation"

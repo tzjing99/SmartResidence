@@ -30,6 +30,11 @@ const GUARD_NAV = [
     match: (p: string) => p.startsWith('/guard/walk-in'),
   },
   {
+    href: '/guard/parcels',
+    label: 'Parcels',
+    match: (p: string) => p.startsWith('/guard/parcels'),
+  },
+  {
     href: '/guard/settings',
     label: 'Settings',
     match: (p: string) => p.startsWith('/guard/settings'),
@@ -151,6 +156,11 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
             href: '/guard/walk-in',
             label: 'Walk-in',
             isActive: (p) => p.startsWith('/guard/walk-in'),
+          },
+          {
+            href: '/guard/parcels',
+            label: 'Parcels',
+            isActive: (p) => p.startsWith('/guard/parcels'),
           },
         ]}
       />

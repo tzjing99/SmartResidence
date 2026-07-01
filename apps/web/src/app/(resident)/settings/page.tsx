@@ -14,6 +14,7 @@ import { z } from 'zod';
 
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email(),
   phone: MalaysiaPhoneSchema,
 });
 
@@ -29,7 +30,7 @@ export default function ProfileSettingsPage() {
   });
 
   const saveProfile = useMutation({
-    mutationFn: (input: { name: string; phone: string }) => api.updateProfile(input),
+    mutationFn: (input: { name: string; email: string; phone: string }) => api.updateProfile(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['auth', 'profile'] });
       toast.success('Profile saved');
@@ -39,7 +40,7 @@ export default function ProfileSettingsPage() {
 
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: '', phone: '' },
+    defaultValues: { name: '', email: '', phone: '' },
   });
 
   const [emailNotifications, setEmailNotifications] = React.useState(false);
@@ -59,6 +60,7 @@ export default function ProfileSettingsPage() {
     if (!profile.data) return;
     profileForm.reset({
       name: profile.data.name,
+      email: profile.data.email ?? '',
       phone: profile.data.phone ?? '',
     });
   }, [profile.data, profileForm]);
@@ -106,10 +108,14 @@ export default function ProfileSettingsPage() {
               <Input
                 id="profile-email"
                 className="mt-1"
-                value={profile.data?.email ?? ''}
-                disabled
-                readOnly
+                type="email"
+                {...profileForm.register('email')}
               />
+              {profileForm.formState.errors.email ? (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                  {profileForm.formState.errors.email.message}
+                </p>
+              ) : null}
             </div>
             <div>
               <Label htmlFor="profile-phone">Mobile phone</Label>

@@ -5,6 +5,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationKind, type Prisma, PushKind } from '@prisma/client';
 import { Expo, type ExpoPushMessage } from 'expo-server-sdk';
@@ -36,6 +37,7 @@ export class NotificationService {
   constructor(
     private readonly prisma: PrismaService,
     config: ConfigService<AppEnv, true>,
+    private readonly events: EventEmitter2,
   ) {
     const key = config.get('RESEND_API_KEY', { infer: true });
     this.resend = key ? new Resend(key) : null;
@@ -113,6 +115,15 @@ export class NotificationService {
         data: (opts.data ?? {}) as Prisma.InputJsonValue,
       })),
     });
+    for (const userId of opts.userIds) {
+      this.events.emit('notification.created', {
+        userId,
+        kind: opts.kind,
+        title: opts.title,
+        body: opts.body,
+        data: opts.data ?? {},
+      });
+    }
 
     const pushUserIds: string[] = [];
     const emailTargets: Array<{ email: string; userId: string }> = [];
@@ -564,6 +575,299 @@ export class NotificationService {
     );
   }
 
+  /** Management (admin + staff) user ids for a condo. */
+  private async condoManagementUserIds(condoId: string): Promise<string[]> {
+    const rows = await this.prisma.roleAssignment.findMany({
+      where: {
+        condoId,
+        revokedAt: null,
+        roleId: { in: ['MANAGEMENT_ADMIN', 'MANAGEMENT_STAFF'] },
+      },
+      select: { userId: true },
+    });
+    return [...new Set(rows.map((r) => r.userId))];
+  }
+
+  /** Safety responders (management + guards) for a condo — the SOS audience. */
+  private async condoSafetyResponderUserIds(condoId: string): Promise<string[]> {
+    const rows = await this.prisma.roleAssignment.findMany({
+      where: {
+        condoId,
+        revokedAt: null,
+        roleId: { in: ['MANAGEMENT_ADMIN', 'MANAGEMENT_STAFF', 'SECURITY_GUARD'] },
+      },
+      select: { userId: true },
+    });
+    return [...new Set(rows.map((r) => r.userId))];
+  }
+
+  // -- Guard safety: panic / SOS ---------------------------------------
+
+  private sosWithRelations(sosId: string) {
+    return this.prisma.sosAlert.findUnique({
+      where: { id: sosId },
+      include: {
+        raisedBy: { select: { id: true, name: true } },
+        unit: { select: { identifier: true } },
+      },
+    });
+  }
+
+  /** SOS raised → alert ALL management + guards in the condo immediately. */
+  @OnEvent('sos.raised')
+  async onSosRaised(payload: { sosId: string; condoId: string; raisedByUserId: string }) {
+    const alert = await this.sosWithRelations(payload.sosId);
+    if (!alert) return;
+    const responders = await this.condoSafetyResponderUserIds(payload.condoId);
+    const recipients = responders.filter((id) => id !== payload.raisedByUserId);
+    if (recipients.length === 0) return;
+    const where = alert.locationNote?.trim()
+      ? alert.locationNote.trim()
+      : (alert.unit?.identifier ?? 'location unknown');
+    // Emergency alerts ignore quiet hours: no timeZone passed so push always fires.
+    await this.dispatch({
+      userIds: recipients,
+      kind: NotificationKind.SYSTEM,
+      title: `SOS: ${this.sosKindLabel(alert.kind)} emergency`,
+      body: `${alert.raisedBy?.name ?? 'A resident'} needs help — ${where}. Tap to respond.`,
+      data: { sosId: alert.id, kind: alert.kind, safety: true, deeplink: 'smartresidence://sos' },
+    });
+  }
+
+  /** SOS acknowledged → reassure the raiser that help is on the way. */
+  @OnEvent('sos.acknowledged')
+  async onSosAcknowledged(payload: { sosId: string; raisedByUserId: string }) {
+    const alert = await this.sosWithRelations(payload.sosId);
+    if (!alert) return;
+    await this.dispatch({
+      userIds: [payload.raisedByUserId],
+      kind: NotificationKind.SYSTEM,
+      title: 'Help is on the way',
+      body: 'Security has acknowledged your SOS and is responding.',
+      data: { sosId: alert.id, deeplink: 'smartresidence://sos' },
+    });
+  }
+
+  /** SOS resolved → let the raiser know it was closed. */
+  @OnEvent('sos.resolved')
+  async onSosResolved(payload: { sosId: string; raisedByUserId: string }) {
+    const alert = await this.sosWithRelations(payload.sosId);
+    if (!alert) return;
+    await this.dispatch({
+      userIds: [payload.raisedByUserId],
+      kind: NotificationKind.SYSTEM,
+      title: 'SOS resolved',
+      body: 'Your SOS alert has been marked resolved by security. Stay safe.',
+      data: { sosId: alert.id, deeplink: 'smartresidence://sos' },
+    });
+  }
+
+  @OnEvent('patrol.overdue')
+  async onPatrolOverdue(payload: {
+    condoId: string;
+    checkpointId: string;
+    lastScanAt: string | null;
+  }) {
+    const checkpoint = await this.prisma.patrolCheckpoint.findUnique({
+      where: { id: payload.checkpointId },
+      select: { name: true, expectedIntervalMinutes: true },
+    });
+    if (!checkpoint) return;
+    const managers = await this.condoManagementUserIds(payload.condoId);
+    if (managers.length === 0) return;
+    const lastSeen = payload.lastScanAt
+      ? `last scanned ${new Date(payload.lastScanAt).toLocaleString('en-MY')}`
+      : 'never scanned';
+    await this.dispatch({
+      userIds: managers,
+      kind: NotificationKind.SYSTEM,
+      title: 'Patrol checkpoint overdue',
+      body: `${checkpoint.name} has not been scanned on schedule (${lastSeen}).`,
+      data: { patrolCheckpointId: payload.checkpointId, deeplink: 'smartresidence://patrol' },
+    });
+  }
+
+  /** Guard logged a parcel → notify unit residents to collect. */
+  @OnEvent('parcel.received')
+  async onParcelReceived(payload: { parcelId: string; condoId: string; unitId: string }) {
+    const parcel = await this.prisma.parcel.findUnique({
+      where: { id: payload.parcelId },
+      include: {
+        unit: { select: { identifier: true, block: { select: { name: true } } } },
+      },
+    });
+    if (!parcel) return;
+    const userIds = await this.unitResidentUserIds(payload.unitId);
+    if (userIds.length === 0) return;
+    const unitLabel = parcel.unit?.identifier ?? 'your unit';
+    const carrier = parcel.carrier ? ` (${parcel.carrier})` : '';
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.PARCEL_RECEIVED,
+      title: 'Parcel received',
+      body: `A parcel for ${parcel.recipientName}${carrier} is ready for collection at the lobby — ${unitLabel}.`,
+      data: {
+        parcelId: parcel.id,
+        unitId: payload.unitId,
+        deeplink: 'smartresidence://parcels',
+      },
+    });
+  }
+
+  /** Uncollected parcel overdue → remind residents (and nudge management). */
+  @OnEvent('parcel.overdue')
+  async onParcelOverdue(payload: { parcelId: string; condoId: string; unitId: string }) {
+    const parcel = await this.prisma.parcel.findUnique({
+      where: { id: payload.parcelId },
+      include: {
+        unit: { select: { identifier: true } },
+      },
+    });
+    if (!parcel) return;
+    const residents = await this.unitResidentUserIds(payload.unitId);
+    const unitLabel = parcel.unit?.identifier ?? 'your unit';
+    if (residents.length > 0) {
+      await this.dispatch({
+        userIds: residents,
+        kind: NotificationKind.PARCEL_OVERDUE,
+        title: 'Parcel waiting for collection',
+        body: `Your parcel for ${parcel.recipientName} at ${unitLabel} has not been collected. Please pick it up from the lobby.`,
+        data: {
+          parcelId: parcel.id,
+          unitId: payload.unitId,
+          deeplink: 'smartresidence://parcels',
+        },
+      });
+    }
+    const managers = await this.condoManagementUserIds(payload.condoId);
+    if (managers.length > 0) {
+      await this.dispatch({
+        userIds: managers,
+        kind: NotificationKind.PARCEL_OVERDUE,
+        title: 'Uncollected parcel',
+        body: `${parcel.recipientName} · ${unitLabel} — parcel overdue at lobby.`,
+        data: {
+          parcelId: parcel.id,
+          deeplink: 'smartresidence://admin/parcels',
+        },
+      });
+    }
+  }
+
+  private sosKindLabel(kind: string): string {
+    switch (kind) {
+      case 'MEDICAL':
+        return 'Medical';
+      case 'SECURITY':
+        return 'Security';
+      case 'FIRE':
+        return 'Fire';
+      default:
+        return 'General';
+    }
+  }
+
+  private async bookingWithFacility(bookingId: string) {
+    return this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        facility: { select: { name: true } },
+        unit: { select: { identifier: true } },
+      },
+    });
+  }
+
+  private bookingWhen(startAt: Date): string {
+    return startAt.toLocaleString('en-MY', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  /** New PENDING booking → notify management to approve. */
+  @OnEvent('booking.created')
+  async onBookingCreated(payload: { bookingId: string; condoId: string; status: string }) {
+    if (payload.status !== 'PENDING') return;
+    const b = await this.bookingWithFacility(payload.bookingId);
+    if (!b) return;
+    const userIds = await this.condoManagementUserIds(payload.condoId);
+    if (userIds.length === 0) return;
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.SYSTEM,
+      title: 'Facility booking needs approval',
+      body: `${b.facility?.name ?? 'A facility'} — ${this.bookingWhen(b.startAt)}${b.unit?.identifier ? ` · ${b.unit.identifier}` : ''}`,
+      data: { bookingId: b.id, deeplink: 'smartresidence://facilities' },
+    });
+  }
+
+  /** Booking confirmed → notify the resident who booked. */
+  @OnEvent('booking.confirmed')
+  async onBookingConfirmed(payload: { bookingId: string; userId: string }) {
+    const b = await this.bookingWithFacility(payload.bookingId);
+    if (!b) return;
+    await this.dispatch({
+      userIds: [payload.userId],
+      kind: NotificationKind.SYSTEM,
+      title: 'Booking confirmed',
+      body: `${b.facility?.name ?? 'Your facility'} is booked for ${this.bookingWhen(b.startAt)}.`,
+      data: { bookingId: b.id, deeplink: 'smartresidence://facilities' },
+    });
+  }
+
+  /** Booking rejected → notify the resident who booked. */
+  @OnEvent('booking.rejected')
+  async onBookingRejected(payload: { bookingId: string; userId: string }) {
+    const b = await this.bookingWithFacility(payload.bookingId);
+    if (!b) return;
+    await this.dispatch({
+      userIds: [payload.userId],
+      kind: NotificationKind.SYSTEM,
+      title: 'Booking not approved',
+      body: `Your ${b.facility?.name ?? 'facility'} booking for ${this.bookingWhen(b.startAt)} was declined.`,
+      data: { bookingId: b.id, deeplink: 'smartresidence://facilities' },
+    });
+  }
+
+  /**
+   * Booking cancelled → notify the resident when management cancelled, or
+   * notify management (slot freed) when the resident cancelled their own.
+   */
+  @OnEvent('booking.cancelled')
+  async onBookingCancelled(payload: {
+    bookingId: string;
+    condoId: string;
+    userId: string;
+    byManagement?: boolean;
+    actorUserId?: string;
+  }) {
+    const b = await this.bookingWithFacility(payload.bookingId);
+    if (!b) return;
+    const when = this.bookingWhen(b.startAt);
+    if (payload.byManagement) {
+      await this.dispatch({
+        userIds: [payload.userId],
+        kind: NotificationKind.SYSTEM,
+        title: 'Booking cancelled',
+        body: `Management cancelled your ${b.facility?.name ?? 'facility'} booking for ${when}.`,
+        data: { bookingId: b.id, deeplink: 'smartresidence://facilities' },
+      });
+      return;
+    }
+    const managers = await this.condoManagementUserIds(payload.condoId);
+    const recipients = managers.filter((id) => id !== payload.actorUserId);
+    if (recipients.length === 0) return;
+    await this.dispatch({
+      userIds: recipients,
+      kind: NotificationKind.SYSTEM,
+      title: 'Booking cancelled',
+      body: `${b.facility?.name ?? 'A facility'} booking for ${when} was cancelled by the resident.`,
+      data: { bookingId: b.id, deeplink: 'smartresidence://facilities' },
+    });
+  }
+
   @OnEvent('announcement.published')
   async onAnnouncement(payload: { announcementId: string; condoId: string }) {
     const a = await this.prisma.announcement.findUnique({
@@ -582,6 +886,84 @@ export class NotificationService {
       title: a.title,
       body: a.body.slice(0, 140),
       data: { announcementId: a.id },
+    });
+  }
+
+  private async submissionWithTemplate(submissionId: string) {
+    return this.prisma.formSubmission.findUnique({
+      where: { id: submissionId },
+      include: {
+        template: { select: { title: true, kind: true } },
+        unit: { select: { identifier: true } },
+        user: { select: { name: true } },
+      },
+    });
+  }
+
+  /** Resident submitted a form → notify management to review. */
+  @OnEvent('form.submitted')
+  async onFormSubmitted(payload: {
+    submissionId: string;
+    condoId: string;
+    userId: string;
+    unitId: string;
+  }) {
+    const row = await this.submissionWithTemplate(payload.submissionId);
+    if (!row) return;
+    const managers = await this.condoManagementUserIds(payload.condoId);
+    if (managers.length === 0) return;
+    const unitLabel = row.unit?.identifier ?? 'a unit';
+    const resident = row.user?.name ?? 'A resident';
+    await this.dispatch({
+      userIds: managers,
+      kind: NotificationKind.FORM_SUBMITTED,
+      title: 'Form awaiting review',
+      body: `${row.template?.title ?? 'Form'} from ${resident} · ${unitLabel}`,
+      data: {
+        submissionId: row.id,
+        deeplink: 'smartresidence://admin/forms',
+      },
+    });
+  }
+
+  /** Management approved a form → notify the resident. */
+  @OnEvent('form.approved')
+  async onFormApproved(payload: { submissionId: string; userId: string }) {
+    const row = await this.submissionWithTemplate(payload.submissionId);
+    if (!row) return;
+    await this.dispatch({
+      userIds: [payload.userId],
+      kind: NotificationKind.FORM_APPROVED,
+      title: 'Form approved',
+      body: `Your ${row.template?.title ?? 'form'} has been approved.`,
+      data: {
+        submissionId: row.id,
+        deeplink: 'smartresidence://forms',
+      },
+    });
+  }
+
+  /** Management rejected a form → notify the resident with optional note. */
+  @OnEvent('form.rejected')
+  async onFormRejected(payload: {
+    submissionId: string;
+    userId: string;
+    reviewNote?: string | null;
+  }) {
+    const row = await this.submissionWithTemplate(payload.submissionId);
+    if (!row) return;
+    const note = payload.reviewNote?.trim();
+    await this.dispatch({
+      userIds: [payload.userId],
+      kind: NotificationKind.FORM_REJECTED,
+      title: 'Form not approved',
+      body: note
+        ? `Your ${row.template?.title ?? 'form'} was declined: ${note}`
+        : `Your ${row.template?.title ?? 'form'} was declined.`,
+      data: {
+        submissionId: row.id,
+        deeplink: 'smartresidence://forms',
+      },
     });
   }
 }

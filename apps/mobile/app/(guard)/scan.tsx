@@ -1,3 +1,4 @@
+import { isVisitorBlacklistError } from '@smartresidence/shared-types';
 import { Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
@@ -57,10 +58,66 @@ export default function ScanScreen() {
       setVisitor(null);
       setScannedPass(null);
       setActiveScanning(false);
-    } catch {
+    } catch (err) {
+      const message = (err as Error).message;
+      if (isVisitorBlacklistError(message)) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Visitor blocked', message);
+        setVisitor(null);
+        setScannedPass(null);
+        return;
+      }
       await enqueueCheckIn({ qrCode: pass, gateLocation: 'Main gate' });
       Alert.alert('Queued', 'Network unavailable — check-in will sync automatically.');
       setPending(await pendingCount());
+    }
+  }
+
+  async function confirmRecurringCheckIn(pass: string, guestName: string) {
+    try {
+      await api.checkInRecurringPass(pass, { gateLocation: 'Main gate' });
+      Alert.alert('Welcome', `${guestName} checked in.`);
+    } catch (err) {
+      const message = (err as Error).message;
+      Alert.alert(
+        isVisitorBlacklistError(message) ? 'Visitor blocked' : 'Check-in failed',
+        message,
+      );
+    } finally {
+      setVisitor(null);
+      setScannedPass(null);
+      setActiveScanning(false);
+    }
+  }
+
+  /** Fall back to a recurring pass when the QR is not a one-off visitor pass. */
+  async function tryRecurringScan(pass: string): Promise<boolean> {
+    try {
+      const recurring = await api.verifyRecurringPass(pass);
+      setActiveScanning(false);
+      const summary = `${recurring.guestName}${recurring.unitLabel ? ` \u00b7 ${recurring.unitLabel}` : ''}`;
+      if (!recurring.withinSchedule) {
+        Alert.alert(
+          'Outside schedule',
+          recurring.scheduleMessage ?? `${summary} is not valid right now.`,
+        );
+        return true;
+      }
+      Alert.alert('Confirm check-in', `${summary} (recurring pass)`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Check in',
+          onPress: () => void confirmRecurringCheckIn(pass, recurring.guestName),
+        },
+      ]);
+      return true;
+    } catch (err) {
+      if (isVisitorBlacklistError((err as Error).message)) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Visitor blocked', (err as Error).message);
+        return true;
+      }
+      return false;
     }
   }
 
@@ -88,10 +145,22 @@ export default function ScanScreen() {
         ]);
       }
     } catch (err) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Unknown pass', (err as Error).message);
-      setVisitor(null);
-      setScannedPass(null);
+      const message = (err as Error).message;
+      if (isVisitorBlacklistError(message)) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Visitor blocked', message);
+        setVisitor(null);
+        setScannedPass(null);
+      } else {
+        // Not a one-off pass — it may be a recurring pass QR.
+        const handled = await tryRecurringScan(value);
+        if (!handled) {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          Alert.alert('Unknown pass', message);
+          setVisitor(null);
+          setScannedPass(null);
+        }
+      }
     } finally {
       setTimeout(() => setBusy(false), 1500);
     }

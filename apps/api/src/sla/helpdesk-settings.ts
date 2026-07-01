@@ -1,4 +1,4 @@
-import type { ThreadCategory } from '@prisma/client';
+import type { ThreadCategory, ThreadPriority } from '@prisma/client';
 
 export const DEFAULT_RESOLUTION_CONFIRMATION_GRACE_DAYS = 7;
 
@@ -7,13 +7,22 @@ export interface CategoryAssigneePool {
   userIds: string[];
 }
 
+export interface PriorityAssigneePool {
+  priority: ThreadPriority;
+  userIds: string[];
+}
+
 export interface AutoAssignmentSettings {
   /** GENERAL category / triage pool (C1). */
   generalTriagePool: string[];
   /** Per-category assignee pools. */
   categoryPools: CategoryAssigneePool[];
-  /** Senior staff pool for repeat complainants (C5). */
+  /** Senior staff pool for repeat complainants (C5) and URGENT/HIGH escalation (M2). */
   seniorStaffPool: string[];
+  /** Optional per-priority pools; URGENT/HIGH fall back to seniorStaffPool when unset. */
+  priorityPools?: PriorityAssigneePool[];
+  /** C6 phase 2 — opt-in ML assignee suggestions once enough closed threads exist. */
+  mlEnabled?: boolean;
 }
 
 export interface HelpdeskSettings {
@@ -45,6 +54,10 @@ export function parseHelpdeskSettings(raw: unknown): HelpdeskSettings {
         ? (aa.categoryPools as CategoryAssigneePool[])
         : [],
       seniorStaffPool: Array.isArray(aa.seniorStaffPool) ? (aa.seniorStaffPool as string[]) : [],
+      priorityPools: Array.isArray(aa.priorityPools)
+        ? (aa.priorityPools as PriorityAssigneePool[])
+        : undefined,
+      mlEnabled: typeof aa.mlEnabled === 'boolean' ? aa.mlEnabled : false,
     };
   }
 

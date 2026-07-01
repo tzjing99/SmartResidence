@@ -8,10 +8,21 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
+- ✅ **N1 — Real-time notifications (web toast + bell + mobile push fix)** — notification dispatch now emits an enriched `notification.created` event (title/body/data) that `realtime.gateway` forwards as `notification:new` to the recipient's `user:*` room. Web shows an in-app toast (`realtime-provider.tsx`) plus a notification bell with unread badge + dropdown (`notification-bell.tsx`) wired into `app-shell` and `admin-shell`; api-client gains `useNotifications`/`useMarkNotificationsRead` (+ `listNotifications`/`markNotificationsRead`/`registerPushToken`). Mobile push now registers via the authenticated `api.registerPushToken` (`src/lib/push.ts`, `use-push-registration.ts`, `push-navigation.ts`, `push-navigation-bridge.tsx`).
+- ✅ **GP1 — Governance-lite polls (owner-verified MC voting)** — `PollsModule` (`apps/api/src/polls/**`) with active-ownership-verified voting (only unit owners may vote; ownership + condo checked at vote time); admin authoring `/admin/polls` + resident `/(resident)/polls` on web, mobile `(resident)/polls.tsx`; `packages/shared-types/src/polls.ts`; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM e-voting (still future).
+- ✅ **MI1 — MCP integrations (admin)** — per-condo `McpServerConnection` (`apps/api/src/integrations/**`, `mcp-client.ts`) with admin UI `/admin/settings/integrations`; `packages/shared-types/src/mcp.ts`; CASL subject `McpServer` (manage for admin, read for staff); migration `20260701180000_mcp_server_connections`.
+- ✅ **V4 — Visitor blacklist + recurring passes** — `VisitorBlacklistService`/controller + `RecurringPassService`/controller + schedule (`apps/api/src/visitor/*`); `packages/shared-types/src/visitor-blacklist.ts` + `recurring-pass.ts`; web `visitor-blacklist-panel.tsx`; mobile resident `(resident)/visitors/recurring.tsx`; guard recurring-pass check-in + blacklist alerts on `scan.tsx`/`manual.tsx`; migration `20260701120000_visitor_blacklist_recurring_passes`.
+- ✅ **M3 — Helpdesk priority-change reassignment + ML assignment scaffold (C6 seam)** — priority override now re-routes the assignee via `ThreadAssignmentService.assignOnPriorityChange` (URGENT → senior pool, etc.), not just SLA recompute. ML phase-2 seam now exists: `assignment-assist.provider.ts` + `composite-assignment-assist.provider.ts`, `ml/ml-assignment.service.ts` gated behind `ML_ASSIGNMENT_MIN_CLOSED_THREADS = 200` + an opt-in admin toggle on `/admin/settings/helpdesk`; deterministic rules remain the fallback (a real trained model is still future).
+- ✅ **X1 — Mobile resident + guard feature parity** — new resident screens under `apps/mobile/app/(resident)/` (notifications, advance/prepaid payment in `billing.tsx`, polls, recurring passes, FAQ, delegated access) plus guard recurring-pass check-in + blacklist alerts, bringing mobile in line with web.
+- ✅ **Advance maintenance payment (prepaid credit)** — resident advance/prepaid maintenance payment shipped on web (`(resident)/billing/page.tsx`) and mobile (`(resident)/billing.tsx`) via `useCreateAdvancePayment`, topping up `UnitAccount` credit auto-applied to future invoices; migration `20260630160000_resident_advance_payments`.
+- ✅ **B1 — Billing v2 (deposits + accounting + self-serve gateways)** — three-phase build atop the billing core:
+  - **Phase 1:** `Deposit` (renovation/delivery/etc. with refund + forfeit), auto-issued `Receipt` with an admin-configurable template (`/admin/settings/billing`) and dependency-free PDF, and a per-`UnitType` `UnitTypeFeeRate` that auto-computes maintenance + sinking-fund invoice lines in `generateRecurring`. Resident `/billing` shows deposits, credits and receipts; admin `/admin/deposits`.
+  - **Phase 2:** append-only fund-tagged `LedgerEntry` + `UnitAccount` prepayment credit (advance maintenance auto-applied to invoices); reports for fund balances, collections, arrears aging and per-unit statements (`/admin/accounting`, resident statement summary).
+  - **Phase 3:** per-condo `PaymentGatewayConnection` with **AES-256-GCM** envelope-encrypted secrets (`BILLING_ENCRYPTION_KEY`; never returned to clients); **Stripe** live + **Fiuu (Razer)** / **iPay88** sandbox-ready adapters (signed redirect + callback verification); condo-aware webhooks; idempotent settlement that auto-issues a receipt + writes the ledger; resident Pay-now method picker. CASL subjects `Deposit`/`Receipt`/`BillingSettings`/`Ledger`; 30 Vitest specs; typecheck + Biome green.
 - ✅ **V3 — Visitor polish sprint** — guard walk-in unit search picker (web + mobile, API search by block/unit/resident); i18n hook + visitor/helpdesk/settings wiring (en/ms/zh-Hans); Windows `db:migrate` fix; admin overnight queue filters + readable summary table; mobile guard walk-in tablet layout.
 - ✅ **S1 — Helpdesk & SLA settings panel** — `SlaPolicyService` API + web `/admin/settings/helpdesk` (slider UX, dynamic advisory bands, risky-save announcement, grace period, audit log, **assignee pool editor**) + mobile management screen.
 - ✅ **M1 — Enhanced resolution flow** — accepted-answer, propose-resolve gate, reject why+what-wanted, grace period, auto-close, appeals, reopen badge; **D7** abusive close + **E1** email opt-in shipped in follow-on.
-- ✅ **M2 — Thread auto-assignment (phase 1)** — category → pool routing, triage, recategorise reassign, repeat complainant; **F3** inbox sort, **F4** FAQ deflection, **G2** PDF export shipped in follow-on. ML (**C6**) still deferred.
+- ✅ **M2 — Thread auto-assignment (phase 1)** — category → pool routing, triage, recategorise reassign, repeat complainant; **F3** inbox sort, **F4** FAQ deflection, **G2** PDF export shipped in follow-on. ML (**C6**) scaffold/seam now shipped (opt-in flag + 200-thread gate + stub provider); trained model still deferred.
 - ✅ **Deferred messaging polish (v0.2 follow-on)** — **F3**, **F4**, **S1** pool editor, **G2**, **D7**, **E1**, **G1** owner SLA audit page, **E5** quiet hours (web + mobile + API).
 - ✅ **D2 — Helpdesk thread behavior** — resident-driven resolution model: management "proposes resolved" (new `PENDING_RESIDENT_CONFIRMATION` status + `resolutionProposedAt`/`resolutionProposedByUserId`), resident confirms/rejects, resident comments while `AWAITING_MANAGEMENT` no longer flip status, explicit "request to resident" action, and a 7-day auto-confirm fallback in the scheduled scanner.
 - ✅ **H1 — Helpdesk dashboard polish** — cleaner admin inbox (columns for subject/requester/priority/status/assignee/SLA), unmistakable SLA chips (On track / At risk / Breached with time remaining), category + assignee filters, sort by SLA due, and the new D2 affordances surfaced in the thread detail + resident view.
@@ -320,14 +331,14 @@ When a resident opens a thread, the system should assign it to the right managem
 
 **Deferred**
 
-- ⬜ **Phase 2 ML** (**C6**) — `suggestAssignee` behind 200+ closed-thread threshold + opt-in feature flag.
+- 🟡 **Phase 2 ML** (**C6**) — scaffold/seam now shipped: `AssignmentAssistProvider` seam (`assignment-assist.provider.ts` + `composite-assignment-assist.provider.ts`) and `ml/ml-assignment.service.ts` gated behind `ML_ASSIGNMENT_MIN_CLOSED_THREADS = 200` + an opt-in admin toggle on `/admin/settings/helpdesk`; a **real trained model is still future** (current provider is a stub, deterministic rules remain fallback).
 
 **Delta from spec (remaining gaps)**
 
 - **Priority suggestion** ✅ — unchanged; `RuleBasedAiAssistProvider` on thread create.
 - **Auto-assignee** ✅ — `assignedToUserId` set on create from rules; `THREAD_ASSIGNED` notification when assigned.
-- **ML assignment** ⬜ — seam exists; phase 2 deferred.
-- **Assignment on priority change** ⬜ — reprioritisation recalculates SLA due dates but does not re-route assignee.
+- **ML assignment** 🟡 — seam + 200-thread gate + opt-in flag + stub provider shipped; trained model still future.
+- **Assignment on priority change** ✅ — priority override now re-routes the assignee via `assignOnPriorityChange` (in addition to SLA due-date recompute).
 
 **Acceptance (draft)**
 
@@ -364,6 +375,33 @@ When a resident opens a thread, the system should assign it to the right managem
 | --- | --- | --- | --- |
 | **F1** | ✅ Done | v0.3 | Visitor Collaboration v2 — two-path visitor flow. |
 | **F2** | P3 | future | Dedicated `SUPER_ADMIN` platform / multi-condo view. |
+| **F4** | P1 | 🟡 In progress | First-time setup / onboarding wizard — guided condo bootstrap for a brand-new deployment. |
+
+### F4 — First-time setup / onboarding wizard
+
+> **Status:** 🟡 In progress (real-time notifications shipped; wizard now being implemented) · **Priority:** P1 · **Area:** api + web
+
+When SmartResidence is deployed for a brand-new JMB/MC with an empty database (no demo seed), an admin needs a guided, foolproof way to stand the building up — today this only happens via the seed script. Build a **first-time setup wizard** that detects a fresh/unconfigured condo and walks the first admin through the essentials, in order, with validation and the ability to resume.
+
+**Suggested steps (decide/refine when we start):**
+
+1. **Create the condo** — name, address, state, timezone, currency (default MYR / Asia/Kuala_Lumpur), locale, brand color + logo.
+2. **First management admin** — confirm/adjust the bootstrapping admin account (the person running setup) and optionally invite co-admins/staff.
+3. **Structure** — add blocks, unit types (with sqft/fee basis), and units (manual add + bulk/CSV import).
+4. **Billing basics** — unit-type fee rates (maintenance + sinking fund), receipt template, billing automation schedule (opt-in), and at least one payment gateway (or "cash/manual only" for now).
+5. **Residents** — invite owners/tenants (single + bulk), or defer.
+6. **Operations toggles** — visitor policy (walk-in approval, overnight rules, holidays), helpdesk SLA defaults, announcement channels.
+7. **Optional integrations** — MCP servers, email/WhatsApp providers.
+8. **Review & finish** — summary checklist, mark condo as "configured", land on the admin dashboard.
+
+**Design notes / open questions:**
+
+- **Detection:** a condo/instance-level `setupCompletedAt` (or `settings.setup`) flag; unconfigured condos redirect the first admin into `/admin/setup`.
+- **Resumable:** persist progress per step so setup can be paused and continued; each step is independently editable later from normal settings.
+- **Idempotent & safe:** re-running a step must not duplicate data; guard against partial/abandoned setups.
+- **Bootstrapping the very first admin** on a truly empty instance (no users) — how is that account created (env-seeded owner, install token, CLI)? Ties into `SUPER_ADMIN`/multi-condo (F2).
+- **Reuse existing surfaces** (unit-types, billing settings, gateway connect, roles) rather than rebuilding forms — the wizard orchestrates them.
+- **Self-hosting story:** pairs with `make dev` / demo seed; a fresh production deploy should reach a working condo without touching the database directly.
 
 ### F1 — Visitor Collaboration v2
 
@@ -375,7 +413,7 @@ Two-path flow:
 - Every attempt (approved / rejected / no-response) is logged to the owner's unit activity.
 - Offline-tolerant at the gate.
 
-Future sub-items: vehicle plate / ANPR field, blacklist, recurring passes, lighter flow for deliveries / e-hailing.
+Future sub-items: vehicle plate / ANPR field, ~~blacklist~~ ✅ (shipped, V4), ~~recurring passes~~ ✅ (shipped, V4), lighter flow for deliveries / e-hailing (still remaining).
 
 ### F2 — Dedicated SUPER_ADMIN platform / multi-condo view
 

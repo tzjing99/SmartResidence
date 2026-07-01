@@ -300,6 +300,7 @@ export class AuthService {
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const data: Prisma.UserUpdateInput = {};
+    if (dto.email !== undefined) data.email = dto.email.toLowerCase().trim();
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.phone !== undefined) {
       const phone = normalizeMalaysiaPhone(dto.phone);

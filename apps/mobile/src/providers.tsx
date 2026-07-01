@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PushNavigationBridge } from './push-navigation-bridge';
 import { MobileRealtimeProvider } from './realtime-provider';
 import '../global.css';
 
@@ -26,6 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
           <MobileRealtimeProvider>
+            <PushNavigationBridge />
             <StatusBar style="auto" />
             {children}
           </MobileRealtimeProvider>

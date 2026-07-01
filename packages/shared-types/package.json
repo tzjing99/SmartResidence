@@ -43,6 +43,10 @@
       "types": "./dist/announcement.d.ts",
       "default": "./dist/announcement.js"
     },
+    "./polls": {
+      "types": "./dist/polls.d.ts",
+      "default": "./dist/polls.js"
+    },
     "./upload": {
       "types": "./dist/upload.d.ts",
       "default": "./dist/upload.js"

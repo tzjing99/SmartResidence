@@ -267,8 +267,9 @@ function HandoverForm({ unitId }: { unitId?: string }) {
   }
 
   const grouped = items.reduce<Record<string, DraftItem[]>>((acc, it) => {
-    if (!acc[it.spaceLabel]) acc[it.spaceLabel] = [];
-    acc[it.spaceLabel].push(it);
+    const list = acc[it.spaceLabel] ?? [];
+    list.push(it);
+    acc[it.spaceLabel] = list;
     return acc;
   }, {});
 

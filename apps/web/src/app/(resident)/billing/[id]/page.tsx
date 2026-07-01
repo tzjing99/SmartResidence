@@ -1,19 +1,24 @@
 'use client';
 
+import { DuitNowQrPanel, type DuitNowQrSession } from '@/components/duitnow-qr-panel';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { queryKeys, usePayInvoice } from '@smartresidence/api-client';
+import { queryKeys, usePayInvoice, usePayableMethods } from '@smartresidence/api-client';
 import type { Invoice, InvoiceStatus } from '@smartresidence/shared-types';
 import {
   INVOICE_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
   formatMoney,
   invoiceOutstanding,
   isInvoiceOverdue,
+  paymentStatusTone,
+  visibleInvoicePayments,
 } from '@smartresidence/shared-types';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 
 const STATUS_TONE: Record<InvoiceStatus, 'success' | 'neutral' | 'info' | 'warning' | 'danger'> = {
   DRAFT: 'neutral',
@@ -34,25 +39,74 @@ function fmtDate(d: Date | string) {
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const returnedFromGateway = searchParams.get('paid') === '1';
   const invoice = useQuery({
     queryKey: queryKeys.invoice(id),
     queryFn: () => api.invoice(id),
+    refetchInterval: (query) => {
+      const data = query.state.data as Invoice | undefined;
+      const hasPending = data?.payments?.some((p) => p.status === 'PENDING') ?? false;
+      return returnedFromGateway && data?.status !== 'PAID' && hasPending ? 3000 : false;
+    },
   });
   const pay = usePayInvoice(api);
+  const [qrSession, setQrSession] = useState<DuitNowQrSession | null>(null);
+  const condoId = (invoice.data as { condoId?: string } | undefined)?.condoId ?? null;
+  const methods = usePayableMethods(api, condoId);
 
   if (invoice.isLoading) return <Skeleton className="h-64" />;
   if (!invoice.data) return <p>Invoice not found.</p>;
 
-  const inv = invoice.data as Invoice & { unit?: { identifier?: string } };
+  const inv = invoice.data as Invoice & { unit?: { identifier?: string }; condoId: string };
   const outstanding = invoiceOutstanding(inv);
   const overdue = isInvoiceOverdue(inv);
-  const settleable = inv.status !== 'PAID' && inv.status !== 'VOID';
+  const paymentHistory = visibleInvoicePayments(inv.payments ?? []);
+  const pendingPayment = paymentHistory.some((p) => p.status === 'PENDING');
+  const settleable = inv.status !== 'PAID' && inv.status !== 'VOID' && outstanding > 0.005;
 
   async function payNow(provider: string) {
     try {
-      const res = await pay.mutateAsync({ id, provider });
-      if (res.redirectUrl) window.location.href = res.redirectUrl;
-      else toast.success('Payment intent created');
+      const appReturn =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/billing/${id}?paid=1`
+          : undefined;
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+      const returnUrl =
+        provider === 'RAZER' && appReturn
+          ? `${apiBase}/api/webhooks/payments/fiuu/return?next=${encodeURIComponent(appReturn)}`
+          : appReturn;
+      const res = await pay.mutateAsync({ id, provider, returnUrl });
+      if (res.qrPayload || res.qrImageUrl) {
+        setQrSession({
+          qrPayload: res.qrPayload,
+          qrImageUrl: res.qrImageUrl,
+          paymentId: res.paymentId,
+          amountLabel: formatMoney(outstanding, inv.currencyCode),
+        });
+        return;
+      }
+      if (res.formPost) {
+        // Build and auto-submit a hidden form to the gateway's hosted page.
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = res.formPost.url;
+        for (const [name, value] of Object.entries(res.formPost.fields)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        }
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+      if (res.redirectUrl) {
+        window.location.href = res.redirectUrl;
+        return;
+      }
+      toast.success('Payment started. Follow the gateway prompts to complete it.');
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -74,6 +128,12 @@ export default function InvoiceDetailPage() {
         <div className="flex items-center gap-2 rounded-xl border border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300">
           <CheckCircle2 className="size-4 shrink-0" />
           Paid in full{inv.paidAt ? ` on ${fmtDate(inv.paidAt)}` : ''}. Thank you!
+        </div>
+      ) : returnedFromGateway || pendingPayment ? (
+        <div className="flex items-center gap-2 rounded-xl border border-amber-200/70 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="size-4 shrink-0" />
+          Payment is being confirmed by the gateway. Please do not start another payment unless
+          management asks you to.
         </div>
       ) : overdue ? (
         <div className="flex items-center gap-2 rounded-xl border border-red-200/60 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-400">
@@ -140,11 +200,11 @@ export default function InvoiceDetailPage() {
         </table>
       </Card>
 
-      {inv.payments?.length ? (
+      {paymentHistory.length ? (
         <Card>
           <h3 className="font-semibold mb-3">Payment history</h3>
           <ul className="flex flex-col gap-2 text-sm">
-            {inv.payments.map((p) => (
+            {paymentHistory.map((p) => (
               <li key={p.id} className="flex items-center justify-between">
                 <span>
                   {formatMoney(p.amount, p.currencyCode)}{' '}
@@ -153,9 +213,7 @@ export default function InvoiceDetailPage() {
                     {p.paidAt ? ` · ${fmtDate(p.paidAt)}` : ''}
                   </span>
                 </span>
-                <Badge tone={p.status === 'SUCCEEDED' ? 'success' : 'warning'}>
-                  {p.status.toLowerCase()}
-                </Badge>
+                <Badge tone={paymentStatusTone(p.status)}>{PAYMENT_STATUS_LABELS[p.status]}</Badge>
               </li>
             ))}
           </ul>
@@ -163,14 +221,36 @@ export default function InvoiceDetailPage() {
       ) : null}
 
       {settleable ? (
-        <div className="flex gap-3">
-          <Button onClick={() => payNow('STRIPE')} disabled={pay.isPending}>
-            Pay with card
-          </Button>
-          <Button variant="secondary" onClick={() => payNow('FPX')} disabled={pay.isPending}>
-            Pay with FPX
-          </Button>
-        </div>
+        <Card>
+          <h3 className="font-semibold mb-1">Pay {formatMoney(outstanding, inv.currencyCode)}</h3>
+          {qrSession ? (
+            <DuitNowQrPanel
+              session={qrSession}
+              onClose={() => setQrSession(null)}
+              onSettled={() => {
+                void invoice.refetch();
+                setQrSession(null);
+              }}
+            />
+          ) : (methods.data?.length ?? 0) === 0 ? (
+            <p className="text-sm sr-muted mt-1">
+              Online payment isn&apos;t enabled for your condo yet. Please settle this invoice with
+              your management office.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-3 mt-3">
+              {(methods.data ?? []).map((m) => (
+                <Button
+                  key={`${m.provider}-${m.mode}`}
+                  onClick={() => payNow(m.provider)}
+                  disabled={pay.isPending || pendingPayment}
+                >
+                  {pay.isPending ? 'Starting…' : `${m.label}${m.mode === 'TEST' ? ' (TEST)' : ''}`}
+                </Button>
+              ))}
+            </div>
+          )}
+        </Card>
       ) : null}
     </div>
   );

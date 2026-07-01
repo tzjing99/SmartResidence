@@ -1,6 +1,7 @@
 export * from './components/Card';
 export * from './components/Button';
 export * from './components/Pill';
+export * from './components/Chip';
 export * from './components/EmptyState';
 export * from './components/Text';
 export * from './components/MetaLine';
@@ -8,6 +9,7 @@ export * from './components/AlignRow';
 export * from './components/Input';
 export * from './components/FadeInView';
 export * from './components/AnimatedPressable';
+export * from './components/Skeleton';
 export * from './hooks/useReducedMotion';
 export * from './typography';
 export * from './tokens';

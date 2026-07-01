@@ -41,7 +41,7 @@ import type { MeResponse } from '../../src/lib/roles';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-const CORAL = '#FF385C';
+const CORAL = palette.coralPrimary;
 const SOFT_CORAL = '#FFF1F0';
 const WARM_BG = '#FFF8F6';
 const CARD_BORDER = '#F1E8E4';

@@ -1,6 +1,12 @@
 import { MotiView } from 'moti';
 import * as React from 'react';
-import { Pressable, type PressableProps, Text, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  type PressableProps,
+  Text,
+  type ViewStyle,
+} from 'react-native';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { palette, radius, spring } from '../tokens';
 import { textBase, typography } from '../typography';
@@ -65,11 +71,14 @@ export const Button: React.FC<ButtonProps> = ({
           backgroundColor: p.bg,
           borderWidth: p.border ? 1 : 0,
           borderColor: p.border,
+          flexDirection: 'row',
           justifyContent: 'center',
           alignItems: 'center',
-          opacity: disabled || loading ? 0.6 : 1,
+          gap: 8,
+          opacity: disabled || loading ? 0.7 : 1,
         }}
       >
+        {loading ? <ActivityIndicator size="small" color={p.fg} /> : null}
         <Text
           style={{
             ...textBase,
@@ -79,7 +88,7 @@ export const Button: React.FC<ButtonProps> = ({
             textAlign: 'center',
           }}
         >
-          {loading ? 'Please wait…' : title}
+          {title}
         </Text>
       </MotiView>
     </Pressable>

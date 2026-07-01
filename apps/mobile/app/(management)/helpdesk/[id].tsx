@@ -21,7 +21,7 @@ import {
 } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThreadMessageList } from '../../../src/components/thread-message-list';
 import { api } from '../../../src/lib/api';
@@ -498,17 +498,23 @@ export default function ManagementThreadDetailScreen() {
   ) : null;
 
   return (
-    <ThreadMessageList
-      messages={t.messages}
-      variant="admin"
-      viewerId={myId}
-      residentId={t.createdBy?.id}
-      resolutionProposedMessageId={t.resolutionProposedMessageId}
+    <KeyboardAvoidingView
       style={styles.screen}
-      contentContainerStyle={contentContainerStyle}
-      ListHeaderComponent={header}
-      ListFooterComponent={footer}
-    />
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={insets.top}
+    >
+      <ThreadMessageList
+        messages={t.messages}
+        variant="admin"
+        viewerId={myId}
+        residentId={t.createdBy?.id}
+        resolutionProposedMessageId={t.resolutionProposedMessageId}
+        style={styles.screen}
+        contentContainerStyle={contentContainerStyle}
+        ListHeaderComponent={header}
+        ListFooterComponent={footer}
+      />
+    </KeyboardAvoidingView>
   );
 }
 

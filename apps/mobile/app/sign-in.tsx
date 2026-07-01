@@ -1,11 +1,20 @@
 import { queryKeys } from '@smartresidence/api-client';
-import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
+import {
+  AppText,
+  Button,
+  Card,
+  FadeInView,
+  Field,
+  Input,
+  palette,
+} from '@smartresidence/ui-mobile';
 import { useQueryClient } from '@tanstack/react-query';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { type Href, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { api } from '../src/lib/api';
+import { hapticError } from '../src/lib/haptics';
 import { getActiveRole, roleToHomePath } from '../src/lib/roles';
 import { setCached, writeSession } from '../src/lib/session';
 
@@ -56,65 +65,70 @@ export default function SignInScreen() {
     } catch (err) {
       signingInRef.current = false;
       setLoading(false);
+      hapticError();
       Alert.alert('Sign in failed', (err as Error).message);
     }
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        padding: 24,
-        backgroundColor: palette.bgLight,
-        justifyContent: 'center',
-      }}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: palette.bgLight }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={{ fontSize: 32, fontWeight: '700', marginBottom: 8 }}>
-        Smart<Text style={{ color: palette.coralPrimary }}>Residence</Text>
-      </Text>
-      <Text style={{ color: palette.mutedLight, marginBottom: 24 }}>
-        Welcome back. Sign in to continue.
-      </Text>
-      <Card>
-        <Text style={{ fontWeight: '600', marginBottom: 6 }}>Email</Text>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!loading}
-          style={{
-            height: 48,
-            borderRadius: radius.lg,
-            borderWidth: 1,
-            borderColor: palette.borderLight,
-            paddingHorizontal: 14,
-            fontSize: 15,
-          }}
-        />
-        <Text style={{ fontWeight: '600', marginTop: 14, marginBottom: 6 }}>Password</Text>
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!loading}
-          style={{
-            height: 48,
-            borderRadius: radius.lg,
-            borderWidth: 1,
-            borderColor: palette.borderLight,
-            paddingHorizontal: 14,
-            fontSize: 15,
-          }}
-        />
-        <View style={{ marginTop: 20 }}>
-          <Button title={loading ? 'Signing in…' : 'Sign in'} loading={loading} onPress={signIn} />
-        </View>
-      </Card>
-      <Text style={{ marginTop: 24, color: palette.mutedLight, fontSize: 12, textAlign: 'center' }}>
-        Demo accounts · password Demo!2026{'\n'}
-        Resident owner@acacia.demo · Gate guard@acacia.demo
-      </Text>
-    </View>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
+        <FadeInView>
+          <AppText style={{ fontSize: 32, fontWeight: '700', marginBottom: 8 }}>
+            Smart
+            <AppText style={{ color: palette.coralPrimary, fontSize: 32, fontWeight: '700' }}>
+              Residence
+            </AppText>
+          </AppText>
+          <AppText style={{ color: palette.mutedLight, marginBottom: 24 }}>
+            Welcome back. Sign in to continue.
+          </AppText>
+          <Card>
+            <Field label="Email">
+              <Input
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                editable={!loading}
+                returnKeyType="next"
+              />
+            </Field>
+            <View style={{ marginTop: 14 }}>
+              <Field label="Password">
+                <Input
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  editable={!loading}
+                  returnKeyType="done"
+                  onSubmitEditing={signIn}
+                />
+              </Field>
+            </View>
+            <View style={{ marginTop: 20 }}>
+              <Button
+                title={loading ? 'Signing in…' : 'Sign in'}
+                loading={loading}
+                onPress={signIn}
+              />
+            </View>
+          </Card>
+          <AppText
+            style={{ marginTop: 24, color: palette.mutedLight, fontSize: 12, textAlign: 'center' }}
+          >
+            Demo accounts · password Demo!2026{'\n'}
+            Resident owner@acacia.demo · Gate guard@acacia.demo
+          </AppText>
+        </FadeInView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

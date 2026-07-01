@@ -14,6 +14,7 @@ import {
   Card,
   EmptyState,
   Pill,
+  SkeletonList,
   palette,
   radius,
   spacing,
@@ -372,11 +373,7 @@ export default function ExpectedScreen() {
         </View>
         <Pill tone="primary" label={`${counts[tabIndex] ?? 0}`} />
       </Card>
-      {activeQuery?.isLoading ? (
-        <AppText variant="meta" style={styles.cardMeta}>
-          Loading visitors...
-        </AppText>
-      ) : null}
+      {activeQuery?.isLoading ? <SkeletonList rows={3} rowHeight={72} /> : null}
     </View>
   );
 

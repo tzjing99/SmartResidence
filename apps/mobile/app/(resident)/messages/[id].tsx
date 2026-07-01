@@ -22,7 +22,14 @@ import {
 } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   RESIDENT_CARD_BORDER,
@@ -329,17 +336,23 @@ export default function MessageDetailScreen() {
     ) : null;
 
   return (
-    <ThreadMessageList
-      messages={t.messages}
-      variant="resident"
-      viewerId={myId}
-      residentId={t.createdBy?.id}
-      resolutionProposedMessageId={t.resolutionProposedMessageId}
+    <KeyboardAvoidingView
       style={styles.screen}
-      contentContainerStyle={contentContainerStyle}
-      ListHeaderComponent={header}
-      ListFooterComponent={footer}
-    />
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={insets.top}
+    >
+      <ThreadMessageList
+        messages={t.messages}
+        variant="resident"
+        viewerId={myId}
+        residentId={t.createdBy?.id}
+        resolutionProposedMessageId={t.resolutionProposedMessageId}
+        style={styles.screen}
+        contentContainerStyle={contentContainerStyle}
+        ListHeaderComponent={header}
+        ListFooterComponent={footer}
+      />
+    </KeyboardAvoidingView>
   );
 }
 

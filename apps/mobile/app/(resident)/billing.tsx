@@ -16,29 +16,32 @@ import {
   AppText,
   Button,
   Card,
+  Chip,
   EmptyState,
+  FadeInView,
   Input,
   Pill,
+  SkeletonList,
   palette,
   radius,
   spacing,
 } from '@smartresidence/ui-mobile';
-import { useState } from 'react';
-import { Alert, Linking, Pressable, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, Linking, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import {
   HostedPaymentBrowser,
   type HostedPaymentSession,
 } from '../../src/components/hosted-payment-browser';
 import {
-  RESIDENT_CORAL,
-  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   prettyLabel,
   residentStyles,
 } from '../../src/components/resident-screen';
+import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 import {
   buildHostedGatewayReturnUrl,
   isPaymentReturnUrl,
@@ -117,6 +120,9 @@ export default function BillingScreen() {
   const totalOutstanding = openItems.reduce((sum, inv) => sum + invoiceOutstanding(inv), 0);
   const [qrSession, setQrSession] = useState<QrSession | null>(null);
   const [hostedSession, setHostedSession] = useState<HostedPaymentSession | null>(null);
+  const { refreshControl } = usePullToRefresh(
+    useCallback(() => invoices.refetch().then(() => undefined), [invoices]),
+  );
 
   async function handlePay(id: string, provider: string, amountLabel: string) {
     try {
@@ -148,10 +154,24 @@ export default function BillingScreen() {
         }
         return;
       }
+      hapticSuccess();
       Alert.alert('Payment ready', 'Confirm payment in the next screen.');
     } catch (err) {
+      hapticError();
       Alert.alert('Payment failed', (err as Error).message);
     }
+  }
+
+  if (units.isLoading || invoices.isLoading) {
+    return (
+      <ResidentScreen
+        eyebrow="Fees"
+        title="Maintenance fees"
+        subtitle="Review statements, formulas, and payment options without hidden surprises."
+      >
+        <SkeletonList rows={3} rowHeight={120} />
+      </ResidentScreen>
+    );
   }
 
   return (
@@ -159,6 +179,7 @@ export default function BillingScreen() {
       eyebrow="Fees"
       title="Maintenance fees"
       subtitle="Review statements, formulas, and payment options without hidden surprises."
+      scrollProps={{ refreshControl }}
     >
       {qrSession ? <DuitNowQrCard session={qrSession} onClose={() => setQrSession(null)} /> : null}
       <HostedPaymentBrowser
@@ -203,137 +224,139 @@ export default function BillingScreen() {
           description="Your fee statements appear here once issued."
         />
       ) : (
-        items.map((inv) => (
-          <Card key={inv.id} style={[residentStyles.card, { gap: spacing.sm }]}>
-            {(() => {
-              const outstanding = invoiceOutstanding(inv);
-              return (
-                <>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      flexWrap: 'wrap',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      gap: 12,
-                    }}
-                  >
-                    <View style={{ flex: 1, minWidth: 180 }}>
-                      <AppText
-                        style={{ fontWeight: '700', color: palette.textLight }}
-                        numberOfLines={2}
-                      >
-                        {inv.number}
-                      </AppText>
-                      <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
-                        Due {new Date(inv.dueDate).toLocaleDateString()}
-                      </AppText>
-                    </View>
-                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                      <AppText style={{ fontSize: 20, lineHeight: 26, fontWeight: '800' }}>
-                        {formatMoney(outstanding, inv.currencyCode ?? 'MYR')}
-                      </AppText>
-                      {Number(inv.amountPaid) > 0 && outstanding > 0.005 ? (
-                        <AppText variant="caption" style={{ color: palette.mutedLight }}>
-                          of {formatMoney(inv.total, inv.currencyCode ?? 'MYR')}
+        items.map((inv, index) => (
+          <FadeInView key={inv.id} index={index}>
+            <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+              {(() => {
+                const outstanding = invoiceOutstanding(inv);
+                return (
+                  <>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: 12,
+                      }}
+                    >
+                      <View style={{ flex: 1, minWidth: 180 }}>
+                        <AppText
+                          style={{ fontWeight: '700', color: palette.textLight }}
+                          numberOfLines={2}
+                        >
+                          {inv.number}
                         </AppText>
-                      ) : null}
-                      <Pill
-                        tone={
-                          inv.status === 'PAID'
-                            ? 'success'
-                            : inv.status === 'OVERDUE'
-                              ? 'danger'
-                              : 'primary'
-                        }
-                        label={prettyLabel(inv.status)}
-                      />
-                    </View>
-                  </View>
-
-                  <View
-                    style={{
-                      marginTop: 12,
-                      borderTopWidth: 1,
-                      borderTopColor: palette.borderLight,
-                      paddingTop: 10,
-                    }}
-                  >
-                    {(inv.lines ?? []).map((l: any) => (
-                      <View
-                        key={l.id}
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          gap: 12,
-                          paddingVertical: 4,
-                        }}
-                      >
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <AppText variant="bodySm" numberOfLines={2}>
-                            {l.description}
+                        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+                          Due {new Date(inv.dueDate).toLocaleDateString()}
+                        </AppText>
+                      </View>
+                      <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                        <AppText style={{ fontSize: 20, lineHeight: 26, fontWeight: '800' }}>
+                          {formatMoney(outstanding, inv.currencyCode ?? 'MYR')}
+                        </AppText>
+                        {Number(inv.amountPaid) > 0 && outstanding > 0.005 ? (
+                          <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                            of {formatMoney(inv.total, inv.currencyCode ?? 'MYR')}
                           </AppText>
-                          {l.formula ? (
-                            <AppText variant="caption" style={{ color: palette.mutedLight }}>
-                              {l.formula}
+                        ) : null}
+                        <Pill
+                          tone={
+                            inv.status === 'PAID'
+                              ? 'success'
+                              : inv.status === 'OVERDUE'
+                                ? 'danger'
+                                : 'primary'
+                          }
+                          label={prettyLabel(inv.status)}
+                        />
+                      </View>
+                    </View>
+
+                    <View
+                      style={{
+                        marginTop: 12,
+                        borderTopWidth: 1,
+                        borderTopColor: palette.borderLight,
+                        paddingTop: 10,
+                      }}
+                    >
+                      {(inv.lines ?? []).map((l: any) => (
+                        <View
+                          key={l.id}
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: 12,
+                            paddingVertical: 4,
+                          }}
+                        >
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <AppText variant="bodySm" numberOfLines={2}>
+                              {l.description}
                             </AppText>
-                          ) : null}
+                            {l.formula ? (
+                              <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                                {l.formula}
+                              </AppText>
+                            ) : null}
+                          </View>
+                          <AppText variant="bodySm" style={{ fontWeight: '700' }}>
+                            {formatMoney(l.amount, inv.currencyCode ?? 'MYR')}
+                          </AppText>
                         </View>
-                        <AppText variant="bodySm" style={{ fontWeight: '700' }}>
-                          {formatMoney(l.amount, inv.currencyCode ?? 'MYR')}
-                        </AppText>
-                      </View>
-                    ))}
-                  </View>
-
-                  {inv.status !== 'PAID' && inv.status !== 'VOID' ? (
-                    <View style={{ gap: 8, marginTop: 4 }}>
-                      {(() => {
-                        const pending = (inv.payments ?? [])
-                          .filter((p: { status: string }) => p.status !== 'CANCELLED')
-                          .find(
-                            (p: { status: string; provider?: string }) => p.status === 'PENDING',
-                          );
-                        return pending ? (
-                          <AppText variant="caption" style={{ color: palette.mutedLight }}>
-                            {GATEWAY_PROVIDER_SHORT_LABELS[pending.provider] ?? pending.provider}{' '}
-                            payment is awaiting confirmation. Choose another method below to switch
-                            — the previous attempt will be cancelled.
-                          </AppText>
-                        ) : null;
-                      })()}
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                        {(methods.data ?? []).length === 0 ? (
-                          <AppText variant="caption" style={{ color: palette.mutedLight }}>
-                            Online payment is not enabled for this condo yet.
-                          </AppText>
-                        ) : (
-                          (methods.data ?? []).map((method) => (
-                            <Button
-                              key={`${inv.id}-${method.provider}-${method.mode}`}
-                              title={`${method.label}${method.mode === 'TEST' ? ' (TEST)' : ''}`}
-                              variant={method.mode === 'TEST' ? 'secondary' : 'primary'}
-                              onPress={() =>
-                                handlePay(
-                                  inv.id,
-                                  method.provider,
-                                  formatMoney(invoiceOutstanding(inv), inv.currencyCode),
-                                )
-                              }
-                              disabled={pay.isPending}
-                              size="sm"
-                              style={{ flexGrow: 1 }}
-                            />
-                          ))
-                        )}
-                      </View>
+                      ))}
                     </View>
-                  ) : null}
-                </>
-              );
-            })()}
-          </Card>
+
+                    {inv.status !== 'PAID' && inv.status !== 'VOID' ? (
+                      <View style={{ gap: 8, marginTop: 4 }}>
+                        {(() => {
+                          const pending = (inv.payments ?? [])
+                            .filter((p: { status: string }) => p.status !== 'CANCELLED')
+                            .find(
+                              (p: { status: string; provider?: string }) => p.status === 'PENDING',
+                            );
+                          return pending ? (
+                            <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                              {GATEWAY_PROVIDER_SHORT_LABELS[pending.provider] ?? pending.provider}{' '}
+                              payment is awaiting confirmation. Choose another method below to
+                              switch — the previous attempt will be cancelled.
+                            </AppText>
+                          ) : null;
+                        })()}
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                          {(methods.data ?? []).length === 0 ? (
+                            <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                              Online payment is not enabled for this condo yet.
+                            </AppText>
+                          ) : (
+                            (methods.data ?? []).map((method) => (
+                              <Button
+                                key={`${inv.id}-${method.provider}-${method.mode}`}
+                                title={`${method.label}${method.mode === 'TEST' ? ' (TEST)' : ''}`}
+                                variant={method.mode === 'TEST' ? 'secondary' : 'primary'}
+                                onPress={() =>
+                                  handlePay(
+                                    inv.id,
+                                    method.provider,
+                                    formatMoney(invoiceOutstanding(inv), inv.currencyCode),
+                                  )
+                                }
+                                disabled={pay.isPending}
+                                size="sm"
+                                style={{ flexGrow: 1 }}
+                              />
+                            ))
+                          )}
+                        </View>
+                      </View>
+                    ) : null}
+                  </>
+                );
+              })()}
+            </Card>
+          </FadeInView>
         ))
       )}
 
@@ -420,52 +443,25 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         </AppText>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {ADVANCE_PRESETS.map((value) => {
-            const active = selected === value;
-            return (
-              <Pressable
-                key={value}
-                onPress={() => setSelected(value)}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderRadius: radius.full,
-                  backgroundColor: active ? RESIDENT_SOFT_CORAL : palette.surfaceLight,
-                  borderWidth: 1,
-                  borderColor: active ? 'rgba(255, 56, 92, 0.25)' : palette.borderLight,
-                }}
-              >
-                <AppText
-                  style={{
-                    fontWeight: '700',
-                    color: active ? RESIDENT_CORAL : palette.textLight,
-                  }}
-                >
-                  {formatMoney(value)}
-                </AppText>
-              </Pressable>
-            );
-          })}
-          <Pressable
-            onPress={() => setSelected('OTHER')}
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              borderRadius: radius.full,
-              backgroundColor: selected === 'OTHER' ? RESIDENT_SOFT_CORAL : palette.surfaceLight,
-              borderWidth: 1,
-              borderColor: selected === 'OTHER' ? 'rgba(255, 56, 92, 0.25)' : palette.borderLight,
-            }}
-          >
-            <AppText
-              style={{
-                fontWeight: '700',
-                color: selected === 'OTHER' ? RESIDENT_CORAL : palette.textLight,
+          {ADVANCE_PRESETS.map((value) => (
+            <Chip
+              key={value}
+              label={formatMoney(value)}
+              active={selected === value}
+              onPress={() => {
+                hapticSelection();
+                setSelected(value);
               }}
-            >
-              Other
-            </AppText>
-          </Pressable>
+            />
+          ))}
+          <Chip
+            label="Other"
+            active={selected === 'OTHER'}
+            onPress={() => {
+              hapticSelection();
+              setSelected('OTHER');
+            }}
+          />
         </View>
 
         {selected === 'OTHER' ? (

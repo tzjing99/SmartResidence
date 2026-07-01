@@ -23,7 +23,15 @@ import {
   visitorToCreateInput,
   visitorToPreRegParams,
 } from '@smartresidence/shared-types';
-import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
+import {
+  Button,
+  Card,
+  EmptyState,
+  Pill,
+  SkeletonList,
+  palette,
+  radius,
+} from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, Text, TextInput, View } from 'react-native';
@@ -39,6 +47,7 @@ import {
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
+import { hapticError, hapticSuccess } from '../../../src/lib/haptics';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
 
 type VisitorTab = VisitorListView | 'favourites';
@@ -238,8 +247,10 @@ function VisitorsTab({
   async function onApprove(id: string) {
     try {
       await approve.mutateAsync(id);
+      hapticSuccess();
       Alert.alert('Approved', 'Guard may check the visitor in.');
     } catch (err) {
+      hapticError();
       Alert.alert('Could not approve', (err as Error).message);
     }
   }
@@ -247,18 +258,16 @@ function VisitorsTab({
   async function onReject(id: string) {
     try {
       await reject.mutateAsync({ visitorId: id });
+      hapticSuccess();
       Alert.alert('Rejected', 'Guard has been notified.');
     } catch (err) {
+      hapticError();
       Alert.alert('Could not reject', (err as Error).message);
     }
   }
 
   if (isLoading) {
-    return (
-      <Card style={residentStyles.card}>
-        <Text style={{ color: palette.mutedLight, fontSize: 14 }}>Loading visitors…</Text>
-      </Card>
-    );
+    return <SkeletonList rows={3} rowHeight={88} />;
   }
 
   if (items.length === 0) {

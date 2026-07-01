@@ -18,14 +18,17 @@ import {
   AppText,
   Button,
   Card,
+  Chip,
   EmptyState,
+  FadeInView,
   Pill,
+  SkeletonList,
   palette,
   radius,
   spacing,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { DefectSubmissionProgress } from '../../../src/components/defect-submission-progress';
 import { PhotoPicker } from '../../../src/components/photo-picker';
@@ -36,6 +39,7 @@ import {
   prettyLabel,
   residentStyles,
 } from '../../../src/components/resident-screen';
+import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
 
@@ -47,17 +51,25 @@ export default function DefectsScreen() {
   const defects = useUnitDefects(api, unit?.id ?? null);
   const reports = useUnitDefectReports(api, unit?.id ?? null);
   const [mode, setMode] = useState<Mode>('single');
+  const { refreshControl } = usePullToRefresh(
+    useCallback(
+      () => Promise.all([defects.refetch(), reports.refetch()]).then(() => undefined),
+      [defects, reports],
+    ),
+  );
 
   const items = [
     ...(reports.data ?? []).map((r) => ({ kind: 'package' as const, data: r })),
     ...((defects.data?.items as any[]) ?? []).map((d) => ({ kind: 'defect' as const, data: d })),
   ].sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime());
+  const historyLoading = defects.isLoading || reports.isLoading;
 
   return (
     <ResidentScreen
       eyebrow="Defects"
       title="Report a repair"
       subtitle="Send clear details to management and follow each defect until it is resolved."
+      scrollProps={{ refreshControl }}
     >
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button
@@ -87,16 +99,23 @@ export default function DefectsScreen() {
         subtitle="Open and completed reports stay here for reference."
       />
 
-      {items.length === 0 ? (
+      {historyLoading ? (
+        <SkeletonList rows={3} rowHeight={80} />
+      ) : items.length === 0 ? (
         <EmptyState title="No defects yet" description="Repairs you submit will track here." />
       ) : (
-        items.map((row) =>
-          row.kind === 'package' ? (
-            <PackageCard key={`package-${row.data.id}`} report={row.data} />
-          ) : (
-            <StandaloneDefectCard key={`defect-${row.data.id}`} defect={row.data} />
-          ),
-        )
+        items.map((row, index) => (
+          <FadeInView
+            key={row.kind === 'package' ? `package-${row.data.id}` : `defect-${row.data.id}`}
+            index={index}
+          >
+            {row.kind === 'package' ? (
+              <PackageCard report={row.data} />
+            ) : (
+              <StandaloneDefectCard defect={row.data} />
+            )}
+          </FadeInView>
+        ))
       )}
     </ResidentScreen>
   );
@@ -294,37 +313,6 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
         disabled={photo.uploading}
       />
     </Card>
-  );
-}
-
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        borderRadius: radius.full ?? 999,
-        borderWidth: 1,
-        borderColor: active ? palette.coralPrimary : palette.borderLight,
-        backgroundColor: active ? palette.coralPrimary : palette.surfaceLight,
-      }}
-    >
-      <AppText
-        variant="meta"
-        style={{ color: active ? '#fff' : palette.textLight, fontWeight: '600' }}
-      >
-        {label}
-      </AppText>
-    </Pressable>
   );
 }
 

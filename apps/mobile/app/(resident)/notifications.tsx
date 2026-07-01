@@ -1,8 +1,17 @@
 import { useMarkNotificationsRead, useNotifications } from '@smartresidence/api-client';
-import { AppText, Button, Card, EmptyState, palette } from '@smartresidence/ui-mobile';
+import {
+  AnimatedPressable,
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  FadeInView,
+  SkeletonList,
+  palette,
+} from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import {
   RESIDENT_CORAL,
   ResidentScreen,
@@ -12,6 +21,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticLight } from '../../src/lib/haptics';
 import { resolveNotificationRoute } from '../../src/lib/push-navigation';
 
 type NotificationRow = {
@@ -36,6 +46,7 @@ export default function NotificationsScreen() {
   const unreadIds = items.filter((n) => !n.readAt).map((n) => n.id);
 
   function handlePress(row: NotificationRow) {
+    hapticLight();
     if (!row.readAt) void markRead.mutateAsync([row.id]).catch(() => undefined);
     const route = resolveNotificationRoute(row.data);
     if (route) router.push(route as Href);
@@ -70,65 +81,63 @@ export default function NotificationsScreen() {
       />
 
       {notifications.isLoading ? (
-        <Card style={residentStyles.card}>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
-            Loading notifications…
-          </AppText>
-        </Card>
+        <SkeletonList rows={4} rowHeight={72} />
       ) : items.length === 0 ? (
         <EmptyState
           title="You're all caught up."
           description="New alerts about your unit, visitors, fees, and messages appear here."
         />
       ) : (
-        items.map((row) => {
+        items.map((row, index) => {
           const unread = !row.readAt;
           return (
-            <Pressable key={row.id} onPress={() => handlePress(row)}>
-              <Card
-                style={[
-                  residentStyles.card,
-                  unread ? { borderColor: 'rgba(255, 56, 92, 0.35)' } : null,
-                ]}
-              >
-                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
-                  <View
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 4,
-                      marginTop: 6,
-                      backgroundColor: unread ? RESIDENT_CORAL : 'transparent',
-                    }}
-                  />
-                  <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                    <AppText
+            <FadeInView key={row.id} index={index}>
+              <AnimatedPressable onPress={() => handlePress(row)}>
+                <Card
+                  style={[
+                    residentStyles.card,
+                    unread ? { borderColor: 'rgba(255, 56, 92, 0.35)' } : null,
+                  ]}
+                >
+                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                    <View
                       style={{
-                        fontWeight: unread ? '800' : '700',
-                        color: palette.textLight,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        marginTop: 6,
+                        backgroundColor: unread ? RESIDENT_CORAL : 'transparent',
                       }}
-                      numberOfLines={2}
-                    >
-                      {row.title}
-                    </AppText>
-                    {row.body ? (
+                    />
+                    <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                       <AppText
-                        variant="bodySm"
-                        style={{ color: palette.mutedLight }}
-                        numberOfLines={3}
+                        style={{
+                          fontWeight: unread ? '800' : '700',
+                          color: palette.textLight,
+                        }}
+                        numberOfLines={2}
                       >
-                        {row.body}
+                        {row.title}
                       </AppText>
-                    ) : null}
-                    <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                      {prettyLabel(row.kind)}
-                      {' · '}
-                      {new Date(row.createdAt).toLocaleString()}
-                    </AppText>
+                      {row.body ? (
+                        <AppText
+                          variant="bodySm"
+                          style={{ color: palette.mutedLight }}
+                          numberOfLines={3}
+                        >
+                          {row.body}
+                        </AppText>
+                      ) : null}
+                      <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                        {prettyLabel(row.kind)}
+                        {' · '}
+                        {new Date(row.createdAt).toLocaleString()}
+                      </AppText>
+                    </View>
                   </View>
-                </View>
-              </Card>
-            </Pressable>
+                </Card>
+              </AnimatedPressable>
+            </FadeInView>
           );
         })
       )}

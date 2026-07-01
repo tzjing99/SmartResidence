@@ -15,16 +15,21 @@ import type {
 } from '@smartresidence/shared-types';
 import { BOOKING_STATUS_LABELS } from '@smartresidence/shared-types';
 import {
+  AnimatedPressable,
   AppText,
   Button,
   Card,
+  Chip,
   EmptyState,
+  FadeInView,
   Pill,
+  Skeleton,
+  SkeletonList,
   palette,
   radius,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import {
   RESIDENT_CORAL,
   RESIDENT_SOFT_CORAL,
@@ -34,6 +39,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
 type OwnedUnit = { id: string; identifier: string };
 
@@ -118,11 +124,7 @@ export default function FacilitiesScreen() {
       {selected ? (
         <BookingPanel facility={selected} />
       ) : facilitiesQuery.isLoading ? (
-        <Card style={residentStyles.card}>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
-            Loading facilities…
-          </AppText>
-        </Card>
+        <SkeletonList rows={3} rowHeight={72} />
       ) : facilities.length === 0 ? (
         <EmptyState
           title="No bookable facilities"
@@ -131,8 +133,10 @@ export default function FacilitiesScreen() {
       ) : (
         <>
           <ResidentSectionHeader title="Available to book" />
-          {facilities.map((f) => (
-            <FacilityListItem key={f.id} facility={f} onSelect={() => setSelectedId(f.id)} />
+          {facilities.map((f, index) => (
+            <FadeInView key={f.id} index={index}>
+              <FacilityListItem facility={f} onSelect={() => setSelectedId(f.id)} />
+            </FadeInView>
           ))}
         </>
       )}
@@ -147,7 +151,7 @@ function FacilityListItem({ facility, onSelect }: { facility: Facility; onSelect
   const fee = fmtMoney(facility.bookingFee);
   const deposit = fmtMoney(facility.depositAmount);
   return (
-    <Pressable onPress={onSelect}>
+    <AnimatedPressable onPress={onSelect}>
       <Card style={residentStyles.card}>
         <View
           style={{
@@ -173,7 +177,7 @@ function FacilityListItem({ facility, onSelect }: { facility: Facility; onSelect
           <AppText style={{ color: palette.mutedLight, fontSize: 20 }}>›</AppText>
         </View>
       </Card>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -212,6 +216,7 @@ function BookingPanel({ facility }: { facility: Facility }) {
               startAt: new Date(slot.startAt),
               endAt: new Date(slot.endAt),
             });
+            hapticSuccess();
             Alert.alert(
               'Booked',
               facility.requiresApproval
@@ -220,6 +225,7 @@ function BookingPanel({ facility }: { facility: Facility }) {
             );
             availability.refetch();
           } catch (err) {
+            hapticError();
             Alert.alert('Could not book', (err as Error).message);
           }
         },
@@ -258,7 +264,10 @@ function BookingPanel({ facility }: { facility: Facility }) {
               key={d.iso}
               label={d.label}
               active={date === d.iso}
-              onPress={() => setDate(d.iso)}
+              onPress={() => {
+                hapticSelection();
+                setDate(d.iso);
+              }}
             />
           ))}
         </View>
@@ -272,7 +281,10 @@ function BookingPanel({ facility }: { facility: Facility }) {
                   key={u.id}
                   label={u.identifier}
                   active={effectiveUnitId === u.id}
-                  onPress={() => setUnitId(u.id)}
+                  onPress={() => {
+                    hapticSelection();
+                    setUnitId(u.id);
+                  }}
                 />
               ))}
             </View>
@@ -281,9 +293,11 @@ function BookingPanel({ facility }: { facility: Facility }) {
 
         <AppText variant="label">Available slots</AppText>
         {availability.isLoading ? (
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
-            Loading availability…
-          </AppText>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={`slot-skeleton-${i}`} width={92} height={54} radius={radius.lg} />
+            ))}
+          </View>
         ) : slots.length === 0 ? (
           <AppText variant="meta" style={{ color: palette.mutedLight }}>
             No slots configured for this day.
@@ -293,7 +307,7 @@ function BookingPanel({ facility }: { facility: Facility }) {
             {slots.map((slot) => {
               const key = new Date(slot.startAt).toISOString();
               return (
-                <Pressable
+                <AnimatedPressable
                   key={key}
                   disabled={!slot.available || createBooking.isPending}
                   onPress={() => book(slot)}
@@ -322,7 +336,7 @@ function BookingPanel({ facility }: { facility: Facility }) {
                         : 'Free'
                       : 'Booked'}
                   </AppText>
-                </Pressable>
+                </AnimatedPressable>
               );
             })}
           </View>
@@ -346,7 +360,9 @@ function MyBookingsList() {
         onPress: async () => {
           try {
             await cancelBooking.mutateAsync({ id: b.id });
+            hapticSuccess();
           } catch (err) {
+            hapticError();
             Alert.alert('Could not cancel', (err as Error).message);
           }
         },
@@ -355,13 +371,7 @@ function MyBookingsList() {
   };
 
   if (bookings.isLoading) {
-    return (
-      <Card style={residentStyles.card}>
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading bookings…
-        </AppText>
-      </Card>
-    );
+    return <SkeletonList rows={2} rowHeight={88} />;
   }
   if (items.length === 0) {
     return (
@@ -371,60 +381,36 @@ function MyBookingsList() {
 
   return (
     <>
-      {items.map((b) => {
+      {items.map((b, index) => {
         const cancellable = b.status === 'PENDING' || b.status === 'CONFIRMED';
         return (
-          <Card key={b.id} style={[residentStyles.card, { gap: 8 }]}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-              <AppText style={{ fontWeight: '700', color: palette.textLight }}>
-                {b.facility?.name ?? 'Facility'}
+          <FadeInView key={b.id} index={index}>
+            <Card style={[residentStyles.card, { gap: 8 }]}>
+              <View
+                style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}
+              >
+                <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                  {b.facility?.name ?? 'Facility'}
+                </AppText>
+                <Pill tone={STATUS_TONE[b.status]} label={BOOKING_STATUS_LABELS[b.status]} />
+              </View>
+              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                {fmtDateTime(b.startAt)}–{fmtTime(b.endAt)}
+                {b.fee ? ` · Fee ${fmtMoney(b.fee)}` : ''}
+                {b.depositHeld ? ` · Deposit ${fmtMoney(b.depositHeld)}` : ''}
               </AppText>
-              <Pill tone={STATUS_TONE[b.status]} label={BOOKING_STATUS_LABELS[b.status]} />
-            </View>
-            <AppText variant="meta" style={{ color: palette.mutedLight }}>
-              {fmtDateTime(b.startAt)}–{fmtTime(b.endAt)}
-              {b.fee ? ` · Fee ${fmtMoney(b.fee)}` : ''}
-              {b.depositHeld ? ` · Deposit ${fmtMoney(b.depositHeld)}` : ''}
-            </AppText>
-            {cancellable ? (
-              <Button
-                title="Cancel booking"
-                size="sm"
-                variant="secondary"
-                onPress={() => cancel(b)}
-              />
-            ) : null}
-          </Card>
+              {cancellable ? (
+                <Button
+                  title="Cancel booking"
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => cancel(b)}
+                />
+              ) : null}
+            </Card>
+          </FadeInView>
         );
       })}
     </>
-  );
-}
-
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: radius.full,
-        backgroundColor: active ? RESIDENT_SOFT_CORAL : palette.surfaceLight,
-        borderWidth: 1,
-        borderColor: active ? 'rgba(255, 56, 92, 0.25)' : palette.borderLight,
-      }}
-    >
-      <AppText style={{ fontWeight: '600', color: active ? RESIDENT_CORAL : palette.textLight }}>
-        {label}
-      </AppText>
-    </Pressable>
   );
 }

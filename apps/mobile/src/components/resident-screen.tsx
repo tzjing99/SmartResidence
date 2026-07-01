@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTabletLayout } from '../lib/use-tablet-layout';
 
-export const RESIDENT_CORAL = '#FF385C';
+export const RESIDENT_CORAL = palette.coralPrimary;
 export const RESIDENT_SOFT_CORAL = '#FFF1F0';
 export const RESIDENT_WARM_BG = '#FFF8F6';
 export const RESIDENT_CARD_BORDER = '#F1E8E4';

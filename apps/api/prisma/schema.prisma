@@ -94,6 +94,8 @@ model User {
   formReviews          FormSubmission[] @relation("formReviewer")
   documentVersionsUploaded DocumentVersion[] @relation("documentVersionUploader")
   lostFoundPosts         LostFoundPost[]     @relation("lostFoundAuthor")
+  glJournalEntriesPosted GlJournalEntry[]    @relation("glJournalPoster")
+  bankStatementImports   BankStatementImport[] @relation("bankStatementImporter")
 
   @@index([email])
   @@index([phone])
@@ -227,6 +229,9 @@ model Condo {
   documentFolders  DocumentFolder[]
   documents        Document[]
   lostFoundPosts   LostFoundPost[]
+  glAccounts       GlAccount[]
+  glJournalEntries GlJournalEntry[]
+  bankStatementImports BankStatementImport[]
 
   @@map("condos")
 }
@@ -2388,4 +2393,123 @@ model DocumentVersion {
   @@unique([documentId, versionNumber])
   @@index([documentId])
   @@map("document_versions")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// General ledger (double-entry) & bank reconciliation
+//////////////////////////////////////////////////////////////////////////////
+
+enum GlAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum GlJournalSourceType {
+  INVOICE
+  PAYMENT
+  MANUAL
+  REVERSAL
+}
+
+model GlAccount {
+  id        String        @id @default(uuid()) @db.Uuid
+  condoId   String        @db.Uuid
+  condo     Condo         @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  code      String
+  name      String
+  type      GlAccountType
+  fund      LedgerFund    @default(GENERAL)
+  parentId  String?       @db.Uuid
+  parent    GlAccount?    @relation("GlAccountHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  GlAccount[]   @relation("GlAccountHierarchy")
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  journalLines         GlJournalLine[]
+  bankStatementImports BankStatementImport[]
+
+  @@unique([condoId, code])
+  @@index([condoId, type])
+  @@index([condoId, fund])
+  @@map("gl_accounts")
+}
+
+model GlJournalEntry {
+  id             String              @id @default(uuid()) @db.Uuid
+  condoId        String              @db.Uuid
+  condo          Condo               @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  entryDate      DateTime            @db.Date
+  description    String
+  sourceType     GlJournalSourceType
+  sourceId       String?
+  postedByUserId String?             @db.Uuid
+  postedBy       User?               @relation("glJournalPoster", fields: [postedByUserId], references: [id], onDelete: SetNull)
+  idempotencyKey String?
+  createdAt      DateTime            @default(now())
+
+  lines GlJournalLine[]
+
+  @@unique([idempotencyKey])
+  @@index([condoId, entryDate])
+  @@index([condoId, sourceType, sourceId])
+  @@map("gl_journal_entries")
+}
+
+model GlJournalLine {
+  id             String         @id @default(uuid()) @db.Uuid
+  journalEntryId String         @db.Uuid
+  journalEntry   GlJournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String         @db.Uuid
+  account        GlAccount      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  debit          Decimal        @default(0) @db.Decimal(14, 2)
+  credit         Decimal        @default(0) @db.Decimal(14, 2)
+  fund           LedgerFund     @default(GENERAL)
+  memo           String?
+
+  bankStatementMatches BankStatementLine[]
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@index([accountId, fund])
+  @@map("gl_journal_lines")
+}
+
+model BankStatementImport {
+  id               String    @id @default(uuid()) @db.Uuid
+  condoId          String    @db.Uuid
+  condo            Condo     @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  accountId        String    @db.Uuid
+  account          GlAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  periodStart      DateTime  @db.Date
+  periodEnd        DateTime  @db.Date
+  openingBalance   Decimal   @db.Decimal(14, 2)
+  closingBalance   Decimal   @db.Decimal(14, 2)
+  importedAt       DateTime  @default(now())
+  importedByUserId String?   @db.Uuid
+  importedBy       User?     @relation("bankStatementImporter", fields: [importedByUserId], references: [id], onDelete: SetNull)
+
+  lines BankStatementLine[]
+
+  @@index([condoId, accountId])
+  @@index([condoId, periodStart, periodEnd])
+  @@map("bank_statement_imports")
+}
+
+model BankStatementLine {
+  id                   String              @id @default(uuid()) @db.Uuid
+  importId             String              @db.Uuid
+  import               BankStatementImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+  date                 DateTime            @db.Date
+  description          String
+  amount               Decimal             @db.Decimal(14, 2)
+  matchedJournalLineId String?             @db.Uuid
+  matchedJournalLine   GlJournalLine?      @relation(fields: [matchedJournalLineId], references: [id], onDelete: SetNull)
+
+  @@index([importId, date])
+  @@index([matchedJournalLineId])
+  @@map("bank_statement_lines")
 }

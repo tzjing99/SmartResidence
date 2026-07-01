@@ -11,12 +11,15 @@ import { RoleId } from '@prisma/client';
 import {
   ARREARS_BUCKET_LABELS,
   FUND_LABELS,
+  type LedgerFund,
   formatCompactUnitLabel,
   formatMoney,
 } from '@smartresidence/shared-types';
+import { buildBalanceSheetPdf } from './balance-sheet-pdf';
 import { buildCsv } from './csv-utils';
 import { buildFundSummaryPdf } from './fund-summary-pdf';
 import { LedgerService } from './ledger.service';
+import { buildProfitLossPdf } from './profit-loss-pdf';
 import { parseReceiptTemplate } from './receipt-template';
 import { buildUnitStatementPdf } from './statement-pdf';
 
@@ -43,6 +46,23 @@ function parseDateRange(from?: string, to?: string): { from: Date; to: Date } {
     throw new BadRequestException('from must be on or before to');
   }
   return { from: fromDate, to: toDate };
+}
+
+function parseAsOf(asOf?: string): Date {
+  const date = asOf ? endOfDay(new Date(asOf)) : endOfDay(new Date());
+  if (Number.isNaN(date.getTime())) {
+    throw new BadRequestException('Invalid asOf date');
+  }
+  return date;
+}
+
+function parseFundFilter(fund?: string): LedgerFund | undefined {
+  if (!fund) return undefined;
+  const allowed = ['MAINTENANCE', 'SINKING_FUND', 'DEPOSIT', 'GENERAL'] as const;
+  if (!(allowed as readonly string[]).includes(fund)) {
+    throw new BadRequestException(`Invalid fund: ${fund}`);
+  }
+  return fund as LedgerFund;
 }
 
 function formatExportDate(d: Date): string {
@@ -262,6 +282,120 @@ export class BillingExportsService {
     ];
 
     const filename = `audit-trail-${range.from.toISOString().slice(0, 10)}-${range.to.toISOString().slice(0, 10)}.csv`;
+    return { csv: buildCsv(csvRows), filename };
+  }
+
+  async profitLossPdf(
+    user: AuthenticatedUser,
+    condoId: string,
+    from?: string,
+    to?: string,
+    fund?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    this.assertManagement(user, condoId);
+    const range = parseDateRange(from, to);
+    const fundFilter = parseFundFilter(fund);
+    const { condo, template } = await this.loadCondoTemplate(condoId);
+    const report = await this.ledger.profitLoss(condoId, range.from, range.to, fundFilter);
+    const fundSlug = fundFilter ? `-${fundFilter.toLowerCase()}` : '';
+    const filename = `profit-loss${fundSlug}-${range.from.toISOString().slice(0, 10)}-${range.to.toISOString().slice(0, 10)}.pdf`;
+    const buffer = buildProfitLossPdf({
+      organizationName: template.organizationName || condo.name,
+      registrationNo: template.registrationNo || undefined,
+      report,
+    });
+    return { buffer, filename };
+  }
+
+  async profitLossCsv(
+    user: AuthenticatedUser,
+    condoId: string,
+    from?: string,
+    to?: string,
+    fund?: string,
+  ): Promise<{ csv: string; filename: string }> {
+    this.assertManagement(user, condoId);
+    const range = parseDateRange(from, to);
+    const fundFilter = parseFundFilter(fund);
+    await this.loadCondoTemplate(condoId);
+    const report = await this.ledger.profitLoss(condoId, range.from, range.to, fundFilter);
+
+    const csvRows: string[][] = [
+      ['Profit and loss (income statement)'],
+      ['From', formatExportDate(range.from)],
+      ['To', formatExportDate(range.to)],
+      ['Fund', report.fundLabel],
+      [],
+      ['Income'],
+      ['Description', 'Code', 'Amount (MYR)'],
+      ...report.income.lines.map((l) => [l.label, l.code ?? '', formatMoney(l.amount)]),
+      ['Total income', '', formatMoney(report.income.total)],
+      [],
+      ['Expenditure'],
+      ['Description', 'Code', 'Amount (MYR)'],
+      ...report.expenses.lines.map((l) => [l.label, l.code ?? '', formatMoney(l.amount)]),
+      ['Total expenditure', '', formatMoney(report.expenses.total)],
+      [],
+      ['Net surplus / (deficit)', '', formatMoney(report.netSurplus)],
+    ];
+
+    const fundSlug = fundFilter ? `-${fundFilter.toLowerCase()}` : '';
+    const filename = `profit-loss${fundSlug}-${range.from.toISOString().slice(0, 10)}-${range.to.toISOString().slice(0, 10)}.csv`;
+    return { csv: buildCsv(csvRows), filename };
+  }
+
+  async balanceSheetPdf(
+    user: AuthenticatedUser,
+    condoId: string,
+    asOf?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    this.assertManagement(user, condoId);
+    const date = parseAsOf(asOf);
+    const { condo, template } = await this.loadCondoTemplate(condoId);
+    const report = await this.ledger.balanceSheet(condoId, date);
+    const filename = `balance-sheet-${date.toISOString().slice(0, 10)}.pdf`;
+    const buffer = buildBalanceSheetPdf({
+      organizationName: template.organizationName || condo.name,
+      registrationNo: template.registrationNo || undefined,
+      report,
+    });
+    return { buffer, filename };
+  }
+
+  async balanceSheetCsv(
+    user: AuthenticatedUser,
+    condoId: string,
+    asOf?: string,
+  ): Promise<{ csv: string; filename: string }> {
+    this.assertManagement(user, condoId);
+    const date = parseAsOf(asOf);
+    await this.loadCondoTemplate(condoId);
+    const report = await this.ledger.balanceSheet(condoId, date);
+
+    const sectionRows = (
+      title: string,
+      lines: { label: string; amount: number }[],
+      total: number,
+    ) => [
+      [title],
+      ['Description', 'Amount (MYR)'],
+      ...lines.map((l) => [l.label, formatMoney(l.amount)]),
+      [`Total ${title.toLowerCase()}`, formatMoney(total)],
+      [],
+    ];
+
+    const csvRows: string[][] = [
+      ['Balance sheet'],
+      ['As at', formatExportDate(date)],
+      [],
+      ...sectionRows('Assets', report.assets.lines, report.assets.total),
+      ...sectionRows('Liabilities', report.liabilities.lines, report.liabilities.total),
+      ...sectionRows('Funds', report.funds.lines, report.funds.total),
+      ['Total assets', formatMoney(report.totalAssets)],
+      ['Total liabilities and funds', formatMoney(report.totalLiabilitiesAndFunds)],
+    ];
+
+    const filename = `balance-sheet-${date.toISOString().slice(0, 10)}.csv`;
     return { csv: buildCsv(csvRows), filename };
   }
 }

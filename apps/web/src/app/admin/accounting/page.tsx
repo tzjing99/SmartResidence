@@ -14,6 +14,7 @@ import {
 } from '@smartresidence/api-client';
 import { ARREARS_BUCKET_LABELS, FUND_LABELS, formatMoney } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
+import Link from 'next/link';
 import * as React from 'react';
 
 const AccountingHeavyPanels = dynamic(
@@ -69,6 +70,12 @@ export default function AdminAccountingPage() {
   const [exportingArrears, setExportingArrears] = React.useState(false);
   const [exportingFundPdf, setExportingFundPdf] = React.useState(false);
   const [exportingAudit, setExportingAudit] = React.useState(false);
+  const [exportingPlPdf, setExportingPlPdf] = React.useState(false);
+  const [exportingPlCsv, setExportingPlCsv] = React.useState(false);
+  const [exportingBsPdf, setExportingBsPdf] = React.useState(false);
+  const [exportingBsCsv, setExportingBsCsv] = React.useState(false);
+  const [balanceSheetAsOf, setBalanceSheetAsOf] = React.useState(todayIso);
+  const [statementFund, setStatementFund] = React.useState<string>('');
 
   async function exportCollectionsCsv() {
     if (!condoId) return;
@@ -131,13 +138,76 @@ export default function AdminAccountingPage() {
     }
   }
 
+  async function exportProfitLossPdf() {
+    if (!condoId) return;
+    setExportingPlPdf(true);
+    try {
+      const blob = await api.downloadProfitLossPdf(condoId, {
+        from: reportFrom,
+        to: reportTo,
+        fund: statementFund || undefined,
+      });
+      await downloadBlob(blob, `profit-loss-${reportFrom}.pdf`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingPlPdf(false);
+    }
+  }
+
+  async function exportProfitLossCsv() {
+    if (!condoId) return;
+    setExportingPlCsv(true);
+    try {
+      const blob = await api.downloadProfitLossCsv(condoId, {
+        from: reportFrom,
+        to: reportTo,
+        fund: statementFund || undefined,
+      });
+      await downloadBlob(blob, `profit-loss-${reportFrom}.csv`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingPlCsv(false);
+    }
+  }
+
+  async function exportBalanceSheetPdf() {
+    if (!condoId) return;
+    setExportingBsPdf(true);
+    try {
+      const blob = await api.downloadBalanceSheetPdf(condoId, { asOf: balanceSheetAsOf });
+      await downloadBlob(blob, `balance-sheet-${balanceSheetAsOf}.pdf`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingBsPdf(false);
+    }
+  }
+
+  async function exportBalanceSheetCsv() {
+    if (!condoId) return;
+    setExportingBsCsv(true);
+    try {
+      const blob = await api.downloadBalanceSheetCsv(condoId, { asOf: balanceSheetAsOf });
+      await downloadBlob(blob, `balance-sheet-${balanceSheetAsOf}.csv`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingBsCsv(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Accounting</h1>
         <p className="sr-muted">
           Fund balances, collections, and arrears for your JMB — maintenance account, sinking fund,
-          and deposits are kept separate for Strata Management Act audits.
+          and deposits are kept separate for Strata Management Act audits.{' '}
+          <Link href="/admin/accounting/gl" className="underline font-medium">
+            Open general ledger & bank reconciliation
+          </Link>
         </p>
       </header>
 
@@ -198,6 +268,88 @@ export default function AdminAccountingPage() {
           </Button>
         </div>
       </section>
+
+      <Card>
+        <h3 className="font-semibold text-sm mb-1">Financial statements</h3>
+        <p className="text-xs sr-muted mb-4">
+          AGM-ready profit &amp; loss and balance sheet derived from the ledger. Maintenance fund
+          and sinking fund are reported separately for Malaysian JMB audits.
+        </p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="statement-fund" className="text-xs">
+                P&amp;L fund (optional)
+              </Label>
+              <select
+                id="statement-fund"
+                className="h-8 rounded-md border border-[rgb(var(--sr-border))] bg-transparent px-2 text-xs"
+                value={statementFund}
+                onChange={(e) => setStatementFund(e.target.value)}
+              >
+                <option value="">All funds</option>
+                <option value="MAINTENANCE">Maintenance fund</option>
+                <option value="SINKING_FUND">Sinking fund</option>
+                <option value="GENERAL">General fund</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!condoId || exportingPlPdf}
+                onClick={() => exportProfitLossPdf()}
+              >
+                {exportingPlPdf ? 'Exporting…' : 'P&L PDF'}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!condoId || exportingPlCsv}
+                onClick={() => exportProfitLossCsv()}
+              >
+                {exportingPlCsv ? 'Exporting…' : 'P&L CSV'}
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-[rgb(var(--sr-border))]/50">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="balance-sheet-as-of" className="text-xs">
+                Balance sheet as at
+              </Label>
+              <Input
+                id="balance-sheet-as-of"
+                type="date"
+                className="h-8 text-xs"
+                value={balanceSheetAsOf}
+                onChange={(e) => setBalanceSheetAsOf(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!condoId || exportingBsPdf}
+                onClick={() => exportBalanceSheetPdf()}
+              >
+                {exportingBsPdf ? 'Exporting…' : 'Balance sheet PDF'}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!condoId || exportingBsCsv}
+                onClick={() => exportBalanceSheetCsv()}
+              >
+                {exportingBsCsv ? 'Exporting…' : 'Balance sheet CSV'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {funds.isLoading || fundSummary.isLoading

@@ -16,7 +16,9 @@ import type {
   AnnouncementCategory,
   AnnouncementReadStats,
   ArrearsAging,
-  AutomationStatusResponse,
+  BalanceSheetReport,
+  BankReconciliationWorksheet,
+  BankStatementImportSummary,
   BillingAutomationPreview,
   BillingAutomationRunResult,
   BillingAutomationSettings,
@@ -74,7 +76,11 @@ import type {
   FundSummaryReport,
   GatewayConnectionView,
   GeneralMeeting,
+  GlAccountNode,
+  GlJournalEntryDetail,
+  GlJournalListItem,
   HandoverTemplate,
+  ImportBankStatementInput,
   IncomeExpenseReport,
   Invoice,
   LostFoundPost,
@@ -95,6 +101,8 @@ import type {
   PlatformCondoSummary,
   Poll,
   PollMyVote,
+  PostManualJournalInput,
+  ProfitLossReport,
   PublishDocumentVersionInput,
   RaiseSosInput,
   Receipt,
@@ -1073,6 +1081,24 @@ export class ApiClient {
       `/api/billing/reports/condo/${condoId}/income-expense${qs.toString() ? `?${qs.toString()}` : ''}`,
     );
   }
+  profitLoss(condoId: string, params: { from?: string; to?: string; fund?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    if (params.fund) qs.set('fund', params.fund);
+    return this.request<ProfitLossReport>(
+      'GET',
+      `/api/billing/reports/condo/${condoId}/profit-loss${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  balanceSheet(condoId: string, params: { asOf?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.asOf) qs.set('asOf', params.asOf);
+    return this.request<BalanceSheetReport>(
+      'GET',
+      `/api/billing/reports/condo/${condoId}/balance-sheet${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
   paymentIssues(condoId: string) {
     return this.request<PaymentIssue[]>('GET', `/api/billing/payments/condo/${condoId}/issues`);
   }
@@ -1088,6 +1114,67 @@ export class ApiClient {
   unitStatement(unitId: string) {
     return this.request<UnitStatement>('GET', `/api/billing/statements/unit/${unitId}`);
   }
+
+  chartOfAccounts(condoId: string) {
+    return this.request<GlAccountNode[]>('GET', `/api/accounting/condo/${condoId}/coa`);
+  }
+  glBankAccounts(condoId: string) {
+    return this.request<Array<{ id: string; code: string; name: string; fund: string }>>(
+      'GET',
+      `/api/accounting/condo/${condoId}/bank-accounts`,
+    );
+  }
+  glJournals(condoId: string, params: { from?: string; to?: string; limit?: number } = {}) {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    return this.request<GlJournalListItem[]>(
+      'GET',
+      `/api/accounting/condo/${condoId}/journals${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  glJournalDetail(condoId: string, entryId: string) {
+    return this.request<GlJournalEntryDetail>(
+      'GET',
+      `/api/accounting/condo/${condoId}/journals/${entryId}`,
+    );
+  }
+  postManualJournal(condoId: string, input: PostManualJournalInput) {
+    return this.request<GlJournalEntryDetail>(
+      'POST',
+      `/api/accounting/condo/${condoId}/journals`,
+      input,
+    );
+  }
+  bankStatementImports(condoId: string, accountId?: string) {
+    const qs = accountId ? `?accountId=${accountId}` : '';
+    return this.request<BankStatementImportSummary[]>(
+      'GET',
+      `/api/accounting/condo/${condoId}/bank-imports${qs}`,
+    );
+  }
+  importBankStatement(condoId: string, input: ImportBankStatementInput) {
+    return this.request<{ id: string }>(
+      'POST',
+      `/api/accounting/condo/${condoId}/bank-imports`,
+      input,
+    );
+  }
+  bankReconciliationWorksheet(condoId: string, importId: string) {
+    return this.request<BankReconciliationWorksheet>(
+      'GET',
+      `/api/accounting/condo/${condoId}/bank-imports/${importId}/worksheet`,
+    );
+  }
+  matchBankStatementLine(condoId: string, lineId: string, journalLineId: string | null) {
+    return this.request<{ id: string }>(
+      'POST',
+      `/api/accounting/condo/${condoId}/bank-lines/${lineId}/match`,
+      { journalLineId },
+    );
+  }
+
   private async downloadBillingBlob(path: string, accept: string): Promise<Blob> {
     const headers: Record<string, string> = { Accept: accept };
     const token = await this.cfg.getAccessToken?.();
@@ -1176,6 +1263,56 @@ export class ApiClient {
       'text/csv',
     );
   }
+  async downloadProfitLossPdf(
+    condoId: string,
+    params: { from?: string; to?: string; fund?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    if (params.fund) qs.set('fund', params.fund);
+    return this.downloadBillingBlob(
+      `/api/billing/reports/condo/${condoId}/profit-loss.pdf${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'application/pdf',
+    );
+  }
+  async downloadProfitLossCsv(
+    condoId: string,
+    params: { from?: string; to?: string; fund?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    if (params.fund) qs.set('fund', params.fund);
+    return this.downloadBillingBlob(
+      `/api/billing/reports/condo/${condoId}/profit-loss.csv${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'text/csv',
+    );
+  }
+  async downloadBalanceSheetPdf(condoId: string, params: { asOf?: string } = {}): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.asOf) qs.set('asOf', params.asOf);
+    return this.downloadBillingBlob(
+      `/api/billing/reports/condo/${condoId}/balance-sheet.pdf${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'application/pdf',
+    );
+  }
+  async downloadBalanceSheetCsv(condoId: string, params: { asOf?: string } = {}): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.asOf) qs.set('asOf', params.asOf);
+    return this.downloadBillingBlob(
+      `/api/billing/reports/condo/${condoId}/balance-sheet.csv${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'text/csv',
+    );
+  }
 
   // COB compliance templates -----------------------------------------
   listCobTemplates(condoId: string, params: { from?: string; to?: string } = {}) {
@@ -1196,9 +1333,7 @@ export class ApiClient {
     if (params.from) qs.set('from', params.from);
     if (params.to) qs.set('to', params.to);
     return this.downloadBillingBlob(
-      `/api/cob/condo/${condoId}/templates/${slug}.pdf${
-        qs.toString() ? `?${qs.toString()}` : ''
-      }`,
+      `/api/cob/condo/${condoId}/templates/${slug}.pdf${qs.toString() ? `?${qs.toString()}` : ''}`,
       'application/pdf',
     );
   }
@@ -1911,6 +2046,79 @@ export class ApiClient {
   }
   moderateRemoveLostFoundPost(id: string) {
     return this.request<LostFoundPost>('POST', `/api/lost-found/${id}/moderate-remove`);
+  }
+
+  // Procurement / vendor bills --------------------------------------
+  vendorsForCondo(
+    condoId: string,
+    params: { activeOnly?: boolean; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.activeOnly) qs.set('activeOnly', 'true');
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<{ items: Vendor[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/procurement/vendors/condo/${condoId}${suffix}`,
+    );
+  }
+  vendor(id: string) {
+    return this.request<Vendor>('GET', `/api/procurement/vendors/${id}`);
+  }
+  createVendor(input: CreateVendorInput) {
+    return this.request<Vendor>('POST', '/api/procurement/vendors', input);
+  }
+  updateVendor(id: string, input: UpdateVendorInput) {
+    return this.request<Vendor>('PATCH', `/api/procurement/vendors/${id}`, input);
+  }
+  vendorBillsForCondo(
+    condoId: string,
+    params: {
+      status?: string;
+      fund?: string;
+      vendorId?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v != null && v !== '') qs.set(k, String(v));
+    }
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<{ items: VendorBill[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/procurement/bills/condo/${condoId}${suffix}`,
+    );
+  }
+  vendorBill(id: string) {
+    return this.request<VendorBill>('GET', `/api/procurement/bills/${id}`);
+  }
+  createVendorBill(input: CreateVendorBillInput) {
+    return this.request<VendorBill>('POST', '/api/procurement/bills', input);
+  }
+  updateVendorBill(id: string, input: UpdateVendorBillInput) {
+    return this.request<VendorBill>('PATCH', `/api/procurement/bills/${id}`, input);
+  }
+  approveVendorBill(id: string) {
+    return this.request<VendorBill>('POST', `/api/procurement/bills/${id}/approve`);
+  }
+  payVendorBill(id: string) {
+    return this.request<VendorBill>('POST', `/api/procurement/bills/${id}/pay`);
+  }
+  voidVendorBill(id: string) {
+    return this.request<VendorBill>('POST', `/api/procurement/bills/${id}/void`);
+  }
+  downloadVendorSpendCsv(condoId: string, params: { from?: string; to?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return this.downloadBillingBlob(
+      `/api/procurement/bills/condo/${condoId}/spend-by-fund.csv${suffix}`,
+      'text/csv',
+    );
   }
 
   // Audit / transparency --------------------------------------------

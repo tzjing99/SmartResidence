@@ -3,6 +3,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { Controller, Get, Param, ParseUUIDPipe, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { LedgerFund } from '@prisma/client';
 import type { Response } from 'express';
 import { BillingExportsService } from './billing-exports.service';
 import { LedgerService } from './ledger.service';
@@ -42,6 +43,100 @@ export class ReportsController {
     const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
     const end = to ? new Date(to) : now;
     return this.ledger.incomeExpense(condoId, start, end);
+  }
+
+  @Get('reports/condo/:condoId/profit-loss')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Profit & loss (income statement) for a date range' })
+  profitLoss(
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('fund') fund?: string,
+  ) {
+    const now = new Date();
+    const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = to ? new Date(to) : now;
+    const fundFilter =
+      fund && (Object.values(LedgerFund) as string[]).includes(fund)
+        ? (fund as LedgerFund)
+        : undefined;
+    return this.ledger.profitLoss(condoId, start, end, fundFilter);
+  }
+
+  @Get('reports/condo/:condoId/balance-sheet')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Balance sheet as at a single date' })
+  balanceSheet(
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('asOf') asOf?: string,
+  ) {
+    const date = asOf ? new Date(asOf) : new Date();
+    return this.ledger.balanceSheet(condoId, date);
+  }
+
+  @Get('reports/condo/:condoId/profit-loss.pdf')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Download profit & loss PDF for AGM / audit (management)' })
+  async profitLossPdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Query('fund') fund: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.exports.profitLossPdf(user, condoId, from, to, fund);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
+  @Get('reports/condo/:condoId/profit-loss.csv')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Download profit & loss CSV for accountants (management)' })
+  async profitLossCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Query('fund') fund: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.exports.profitLossCsv(user, condoId, from, to, fund);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+  @Get('reports/condo/:condoId/balance-sheet.pdf')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Download balance sheet PDF as at date (management)' })
+  async balanceSheetPdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('asOf') asOf: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.exports.balanceSheetPdf(user, condoId, asOf);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
+  @Get('reports/condo/:condoId/balance-sheet.csv')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Download balance sheet CSV for accountants (management)' })
+  async balanceSheetCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('asOf') asOf: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.exports.balanceSheetCsv(user, condoId, asOf);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
   }
 
   @Get('reports/condo/:condoId/audit-trail.csv')

@@ -45,7 +45,7 @@ export default function AnnouncementDetailScreen() {
     if (item && !item.readByMe) {
       markRead.mutate(item.id);
     }
-  }, [item?.id, item?.readByMe]);
+  }, [item, markRead]);
 
   const openPdf = useCallback(async (attachmentId: string) => {
     const { uri, headers } = await api.attachmentImageSource(attachmentId, 'raw');

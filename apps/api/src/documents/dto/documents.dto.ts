@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from '@/common/dto/pagination.dto';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DocumentFolderAudience } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {

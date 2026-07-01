@@ -39,7 +39,11 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
-import { buildHostedGatewayReturnUrl, isPaymentReturnUrl, paymentDeepLink } from '../../src/lib/payment-return-url';
+import {
+  buildHostedGatewayReturnUrl,
+  isPaymentReturnUrl,
+  paymentDeepLink,
+} from '../../src/lib/payment-return-url';
 
 const ADVANCE_PRESETS = [100, 200, 400, 1000];
 
@@ -288,7 +292,9 @@ export default function BillingScreen() {
                       {(() => {
                         const pending = (inv.payments ?? [])
                           .filter((p: { status: string }) => p.status !== 'CANCELLED')
-                          .find((p: { status: string; provider?: string }) => p.status === 'PENDING');
+                          .find(
+                            (p: { status: string; provider?: string }) => p.status === 'PENDING',
+                          );
                         return pending ? (
                           <AppText variant="caption" style={{ color: palette.mutedLight }}>
                             {GATEWAY_PROVIDER_SHORT_LABELS[pending.provider] ?? pending.provider}{' '}
@@ -377,7 +383,10 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         if (isPaymentReturnUrl(res.redirectUrl)) {
           await Linking.openURL(res.redirectUrl);
         } else {
-          setHostedSession({ title: `Pay ${amountLabel} in advance`, redirectUrl: res.redirectUrl });
+          setHostedSession({
+            title: `Pay ${amountLabel} in advance`,
+            redirectUrl: res.redirectUrl,
+          });
         }
         return;
       }

@@ -1,5 +1,5 @@
-import { DistributedLockService } from '@/redis/distributed-lock.service';
 import { PrismaService } from '@/prisma/prisma.service';
+import { DistributedLockService } from '@/redis/distributed-lock.service';
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { VisitorService } from './visitor.service';
 

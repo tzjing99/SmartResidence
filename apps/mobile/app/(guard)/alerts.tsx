@@ -6,9 +6,9 @@ import {
   useResolveSos,
 } from '@smartresidence/api-client';
 import {
-  type SosAlert,
   SOS_KIND_LABELS,
   SOS_STATUS_LABELS,
+  type SosAlert,
   isSosOpen,
 } from '@smartresidence/shared-types';
 import {
@@ -21,7 +21,7 @@ import {
   radius,
   spacing,
 } from '@smartresidence/ui-mobile';
-import { ActivityIndicator, Alert, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import {
   GUARD_CORAL,
   GUARD_SOFT_CORAL,

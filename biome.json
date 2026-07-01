@@ -15,6 +15,7 @@
       "**/.expo",
       "**/.docusaurus",
       "**/coverage",
+      "**/vitest-report",
       "**/generated",
       "**/*.generated.*",
       "**/prisma/migrations",

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
@@ -8,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { type PatrolCheckpoint, PatrolScanSource, Prisma, RoleId } from '@prisma/client';
-import { randomBytes } from 'node:crypto';
 import type {
   CreatePatrolCheckpointDto,
   ListPatrolScansDto,

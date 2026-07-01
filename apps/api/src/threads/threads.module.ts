@@ -1,8 +1,8 @@
 import { NotificationModule } from '@/notification/notification.module';
 import { Module } from '@nestjs/common';
+import { AI_ASSIST_PROVIDER } from './ai/ai-assist.provider';
 import { ASSIGNMENT_ASSIST_PROVIDER } from './ai/assignment-assist.provider';
 import { RuleBasedAssignmentAssistProvider } from './ai/assignment-assist.provider';
-import { AI_ASSIST_PROVIDER } from './ai/ai-assist.provider';
 import { CompositeAiAssistProvider } from './ai/composite-ai-assist.provider';
 import { CompositeAssignmentAssistProvider } from './ai/composite-assignment-assist.provider';
 import { MlAssignmentService } from './ml/ml-assignment.service';

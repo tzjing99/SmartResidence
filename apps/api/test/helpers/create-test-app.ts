@@ -1,9 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import { DistributedLockService } from '../../src/redis/distributed-lock.service';
 import { RedisService } from '../../src/redis/redis.service';
-import { PrismaService } from '../../src/prisma/prisma.service';
 
 const mockRedisClient = {
   on: () => mockRedisClient,

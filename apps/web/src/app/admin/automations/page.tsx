@@ -165,7 +165,7 @@ export default function AdminAutomationsPage() {
           </Card>
 
           <ol className="flex flex-col gap-4">
-            {data.stages.map((stage, idx) => (
+            {data.stages.map((stage: AutomationStageStatus, idx) => (
               <StageCard key={stage.jobKey} stage={stage} last={idx === data.stages.length - 1} />
             ))}
           </ol>

@@ -142,15 +142,16 @@ export class NotificationService {
       data: opts.data,
       timeZone: opts.timeZone,
       condoId: opts.condoId,
-    }) ?? this.processDeliveryJob({
-      userIds: opts.userIds,
-      kind: opts.kind,
-      title: opts.title,
-      body: opts.body,
-      data: opts.data,
-      timeZone: opts.timeZone,
-      condoId: opts.condoId,
-    }));
+    }) ??
+      this.processDeliveryJob({
+        userIds: opts.userIds,
+        kind: opts.kind,
+        title: opts.title,
+        body: opts.body,
+        data: opts.data,
+        timeZone: opts.timeZone,
+        condoId: opts.condoId,
+      }));
   }
 
   /** Push, email, and WhatsApp delivery — runs on a BullMQ worker when available. */

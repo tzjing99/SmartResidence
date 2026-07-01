@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { PatrolScanSource, RoleId } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PatrolService, isCheckpointOverdue } from './patrol.service';

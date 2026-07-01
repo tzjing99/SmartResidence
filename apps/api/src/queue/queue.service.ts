@@ -1,16 +1,11 @@
 import type { AppEnv } from '@/config/env.schema';
 import { EInvoiceService } from '@/einvoice/einvoice.service';
 import { NotificationService } from '@/notification/notification.service';
-import {
-  Injectable,
-  Logger,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
-import { Queue, Worker, type ConnectionOptions } from 'bullmq';
 import type { NotificationKind } from '@prisma/client';
+import { type ConnectionOptions, Queue, Worker } from 'bullmq';
 
 export type NotificationDeliveryJob = {
   userIds: string[];

@@ -233,7 +233,7 @@ export class AnnouncementService {
         default:
           unitIds = [];
       }
-      unitIds.forEach((id) => allUnitIdsNeeded.add(id));
+      for (const id of unitIds) allUnitIdsNeeded.add(id);
       unitIdsByAnnouncement.set(row.id, unitIds);
     }
 

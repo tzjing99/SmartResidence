@@ -21,12 +21,7 @@ export class CobService {
     throw new ForbiddenException('Management access required');
   }
 
-  listTemplates(
-    user: AuthenticatedUser,
-    condoId: string,
-    from?: string,
-    to?: string,
-  ) {
+  listTemplates(user: AuthenticatedUser, condoId: string, from?: string, to?: string) {
     this.assertManagement(user, condoId);
     return this.prefill.listTemplates(condoId, from, to);
   }

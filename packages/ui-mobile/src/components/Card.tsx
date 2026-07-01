@@ -24,8 +24,9 @@ export const Card = ({ style, children, ...props }: ViewProps) => {
         style as object,
       ]}
       {...props}
-      children={children as never}
-    />
+    >
+      {children}
+    </MotiView>
   );
 };
 

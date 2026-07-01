@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { VisitorBlacklistBlockedError, VisitorBlacklistService } from '../src/visitor/visitor-blacklist.service';
+import {
+  VisitorBlacklistBlockedError,
+  VisitorBlacklistService,
+} from '../src/visitor/visitor-blacklist.service';
 
 function service() {
   const prisma: any = {

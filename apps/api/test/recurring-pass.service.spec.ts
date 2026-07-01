@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RecurringPassService } from '../src/visitor/recurring-pass.service';
 import { isWithinRecurringSchedule } from '../src/visitor/recurring-pass-schedule';
+import { RecurringPassService } from '../src/visitor/recurring-pass.service';
 import { VisitorBlacklistBlockedError } from '../src/visitor/visitor-blacklist.service';
 
 describe('recurring pass schedule', () => {
@@ -99,23 +99,21 @@ describe('RecurringPassService', () => {
     const now = new Date('2026-06-02T02:00:00.000Z'); // Tue 10:00 KL
     vi.setSystemTime(now);
 
-    prisma.recurringPass.findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'rp-1',
-        condoId: 'c1',
-        unitId: 'u1',
-        hostUserId: 'owner-1',
-        guestName: 'Encik Razak',
-        guestPhone: '+60123456789',
-        vehiclePlate: null,
-        schedule: { daysOfWeek: [2], timeWindow: { start: '08:00', end: '18:00' } },
-        validFrom: new Date('2026-01-01'),
-        validUntil: new Date('2027-01-01'),
-        active: true,
-        accessCode: 'PASS01',
-        unit: { block: { name: 'B' }, identifier: '08-01' },
-      });
+    prisma.recurringPass.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 'rp-1',
+      condoId: 'c1',
+      unitId: 'u1',
+      hostUserId: 'owner-1',
+      guestName: 'Encik Razak',
+      guestPhone: '+60123456789',
+      vehiclePlate: null,
+      schedule: { daysOfWeek: [2], timeWindow: { start: '08:00', end: '18:00' } },
+      validFrom: new Date('2026-01-01'),
+      validUntil: new Date('2027-01-01'),
+      active: true,
+      accessCode: 'PASS01',
+      unit: { block: { name: 'B' }, identifier: '08-01' },
+    });
     prisma.condo.findUnique.mockResolvedValue({ timezone: 'Asia/Kuala_Lumpur' });
     blacklist.assertNotBlacklisted.mockRejectedValue(
       new VisitorBlacklistBlockedError('Repeated trespassing'),

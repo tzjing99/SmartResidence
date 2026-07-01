@@ -1,7 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
-import { ValidationPipe } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createTestApp } from './helpers/create-test-app';
 import { ensureIntegrationEnv } from './helpers/integration-env';
 
 const integrationReady = ensureIntegrationEnv();
@@ -10,19 +9,8 @@ describe.skipIf(!integrationReady)('API integration (HTTP)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const { AppModule } = await import('../src/app.module');
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
-    app.useGlobalPipes(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transformOptions: { enableImplicitConversion: true },
-      }),
-    );
-    await app.init();
+    const boot = await createTestApp();
+    app = boot.app;
   }, 120_000);
 
   afterAll(async () => {
@@ -60,22 +48,9 @@ describe.skipIf(!integrationReady)('API integration (authenticated)', () => {
     const { RoleId, RoleScope, UserStatus } = await import('@prisma/client');
     const argon2 = await import('argon2');
     const supertest = (await import('supertest')).default;
-    const { AppModule } = await import('../src/app.module');
-    const { PrismaService } = await import('../src/prisma/prisma.service');
-
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
-    app.useGlobalPipes(
-      new ValidationPipe({
-        transform: true,
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transformOptions: { enableImplicitConversion: true },
-      }),
-    );
-    await app.init();
-    const prisma = app.get(PrismaService);
+    const boot = await createTestApp();
+    app = boot.app;
+    const prisma = boot.prisma;
 
     await prisma.role.createMany({
       data: [

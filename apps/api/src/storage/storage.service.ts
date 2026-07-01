@@ -1,6 +1,6 @@
 import type { Readable } from 'node:stream';
 import type { AppEnv } from '@/config/env.schema';
-import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client as MinioClient } from 'minio';
 
@@ -23,7 +23,7 @@ export class StorageService implements OnModuleInit {
   private readonly client: MinioClient;
   private readonly bucket: string;
 
-  constructor(config: ConfigService<AppEnv, true>) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService<AppEnv, true>) {
     const endpoint = config.get('S3_ENDPOINT', { infer: true });
     const url = new URL(endpoint);
     this.bucket = config.get('S3_BUCKET', { infer: true });

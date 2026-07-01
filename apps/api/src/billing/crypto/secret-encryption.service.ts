@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import type { AppEnv } from '@/config/env.schema';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface EncryptedSecret {
@@ -25,7 +25,7 @@ export class SecretEncryptionService {
   private readonly logger = new Logger(SecretEncryptionService.name);
   private readonly key: Buffer;
 
-  constructor(config: ConfigService<AppEnv, true>) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService<AppEnv, true>) {
     const raw = config.get('BILLING_ENCRYPTION_KEY', { infer: true }) as string | undefined;
     this.key = this.deriveKey(raw, config.get('NODE_ENV', { infer: true }));
   }

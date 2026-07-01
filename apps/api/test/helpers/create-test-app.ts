@@ -1,7 +1,18 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { PrismaService } from '../../src/prisma/prisma.service';
+import { DistributedLockService } from '../../src/redis/distributed-lock.service';
+import { RedisService } from '../../src/redis/redis.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
+
+const mockRedisClient = {
+  on: () => mockRedisClient,
+  quit: async () => 'OK',
+  set: async () => 'OK',
+  get: async () => null,
+  del: async () => 1,
+  eval: async () => 1,
+};
 
 /** Bootstrap a NestJS app configured like production (global prefix, validation pipes). */
 export async function createTestApp(): Promise<{
@@ -9,7 +20,18 @@ export async function createTestApp(): Promise<{
   prisma: PrismaService;
 }> {
   const { AppModule } = await import('../../src/app.module');
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(RedisService)
+    .useValue({
+      client: mockRedisClient,
+      onModuleInit: async () => {},
+      onModuleDestroy: async () => {},
+    })
+    .overrideProvider(DistributedLockService)
+    .useValue({
+      withLock: async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn(),
+    })
+    .compile();
   const app = moduleRef.createNestApplication();
   app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
   app.useGlobalPipes(

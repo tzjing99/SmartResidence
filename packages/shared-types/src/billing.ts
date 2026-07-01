@@ -339,12 +339,54 @@ export interface UpsertFeeRateInput {
   sinkingFundAmount: number;
 }
 
+export const FEE_SCHEDULE_EXTRA_LINE_FUNDS = ['MAINTENANCE', 'SINKING_FUND', 'DEPOSIT'] as const;
+export type FeeScheduleExtraLineFund = (typeof FEE_SCHEDULE_EXTRA_LINE_FUNDS)[number];
+
+export const FEE_SCHEDULE_EXTRA_LINE_FUND_LABELS: Record<FeeScheduleExtraLineFund, string> = {
+  MAINTENANCE: 'Maintenance fund',
+  SINKING_FUND: 'Sinking fund',
+  DEPOSIT: 'Deposit',
+};
+
+export const FEE_SCHEDULE_CATEGORY_FUND: Record<FeeScheduleLineCategory, FeeScheduleExtraLineFund> = {
+  FIRE_INSURANCE: 'SINKING_FUND',
+  QUIT_RENT: 'MAINTENANCE',
+  ASSESSMENT: 'MAINTENANCE',
+  SPECIAL_LEVY: 'SINKING_FUND',
+  SECURITY: 'MAINTENANCE',
+  FACILITY_CHARGE: 'MAINTENANCE',
+  LATE_PENALTY: 'MAINTENANCE',
+  OTHER: 'MAINTENANCE',
+};
+
+export function resolveFeeScheduleExtraLineFund(input: {
+  fund?: string | null;
+  category?: string | null;
+}): FeeScheduleExtraLineFund {
+  if (input.fund) {
+    if (input.fund === 'GENERAL') {
+      throw new Error('General fund is not allowed for fee schedule extra lines.');
+    }
+    if (!FEE_SCHEDULE_EXTRA_LINE_FUNDS.includes(input.fund as FeeScheduleExtraLineFund)) {
+      throw new Error('Select a fund for this fee line.');
+    }
+    return input.fund as FeeScheduleExtraLineFund;
+  }
+  const category = input.category?.trim().toUpperCase();
+  if (category && category in FEE_SCHEDULE_CATEGORY_FUND) {
+    return FEE_SCHEDULE_CATEGORY_FUND[category as FeeScheduleLineCategory];
+  }
+  throw new Error('Select a fund for this fee line.');
+}
+
+
 export const FeeScheduleExtraLineSchema = z.object({
   id: z.string().uuid(),
   condoId: z.string().uuid(),
   code: z.string(),
   description: z.string(),
   category: FeeScheduleLineCategory.or(z.string()),
+  fund: z.enum(FEE_SCHEDULE_EXTRA_LINE_FUNDS),
   formula: z.string().nullable().optional(),
   rateType: FeeScheduleLineRateType,
   amount: z.coerce.number(),
@@ -364,6 +406,7 @@ export interface UpsertFeeScheduleExtraLineInput {
   code: string;
   description: string;
   category?: FeeScheduleLineCategory | string;
+  fund?: FeeScheduleExtraLineFund;
   formula?: string;
   rateType: FeeScheduleLineRateType;
   amount?: number;
@@ -397,30 +440,48 @@ export const COMMON_FEE_SCHEDULE_PRESETS: Array<{
   code: string;
   description: string;
   formula: string;
+  fund: FeeScheduleExtraLineFund;
+  label: string;
 }> = [
   {
     category: 'FIRE_INSURANCE',
     code: 'FIRE',
     description: 'Fire insurance premium',
     formula: 'Shared building insurance apportioned to each unit',
+    fund: 'SINKING_FUND',
+    label: 'Fire insurance (sinking)',
   },
   {
     category: 'QUIT_RENT',
     code: 'QUIT',
     description: 'Quit rent',
     formula: 'Annual land tax apportioned to this billing period',
+    fund: 'MAINTENANCE',
+    label: 'Quit rent (maintenance)',
   },
   {
     category: 'ASSESSMENT',
     code: 'ASSESS',
     description: 'Local council assessment',
     formula: 'Assessment charge apportioned by management',
+    fund: 'MAINTENANCE',
+    label: 'Council assessment (maintenance)',
   },
   {
     category: 'SPECIAL_LEVY',
     code: 'LEVY',
     description: 'Special levy',
     formula: 'One-off approved levy for the selected billing month',
+    fund: 'SINKING_FUND',
+    label: 'Special levy (sinking)',
+  },
+  {
+    category: 'OTHER',
+    code: 'SINK',
+    description: 'Sinking fund contribution',
+    formula: 'Monthly sinking fund per unit type or sqft schedule',
+    fund: 'SINKING_FUND',
+    label: 'Sinking fund contribution',
   },
 ];
 

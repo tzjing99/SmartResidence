@@ -1,5 +1,5 @@
 import type { AppEnv } from '@/config/env.schema';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import type {
@@ -18,7 +18,7 @@ export class StripeAdapter implements PaymentProviderAdapter {
   private readonly envStripe: Stripe | null;
   private readonly envWebhookSecret: string | undefined;
 
-  constructor(config: ConfigService<AppEnv, true>) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService<AppEnv, true>) {
     const key = config.get('STRIPE_SECRET_KEY', { infer: true });
     this.envWebhookSecret = config.get('STRIPE_WEBHOOK_SECRET', { infer: true });
     this.envStripe = key ? new Stripe(key, { apiVersion: API_VERSION }) : null;

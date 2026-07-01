@@ -1,5 +1,5 @@
 import type { AppEnv } from '@/config/env.schema';
-import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -8,7 +8,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   readonly client: Redis;
 
-  constructor(config: ConfigService<AppEnv, true>) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService<AppEnv, true>) {
     this.client = new Redis(config.get('REDIS_URL', { infer: true }), {
       maxRetriesPerRequest: null,
       enableReadyCheck: true,

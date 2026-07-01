@@ -102,7 +102,7 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
     const providerRef = `reg-idem-${Date.now()}`;
     await prisma.payment.create({
       data: {
-        invoiceId: invoice.id,
+        sourceType: 'Invoice', sourceId: invoice.id,
         userId: fx.userIds.admin,
         amount: 100,
         currencyCode: 'MYR',
@@ -178,7 +178,7 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
     });
 
     const entries = await prisma.ledgerEntry.findMany({
-      where: { invoiceId: invoice.id, type: 'CHARGE' },
+      where: { sourceType: 'Invoice', sourceId: invoice.id, type: 'CHARGE' },
     });
     const maint = entries.find((e: { fund: string }) => e.fund === 'MAINTENANCE');
     const sink = entries.find((e: { fund: string }) => e.fund === 'SINKING_FUND');

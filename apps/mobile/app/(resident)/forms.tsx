@@ -15,14 +15,7 @@ import {
   FORM_SUBMISSION_STATUS_LABELS,
   FORM_TEMPLATE_KIND_LABELS,
 } from '@smartresidence/shared-types';
-import {
-  AppText,
-  Button,
-  Card,
-  EmptyState,
-  Pill,
-  palette,
-} from '@smartresidence/ui-mobile';
+import { AppText, Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
 import {
@@ -63,9 +56,20 @@ function FieldRow({
 }) {
   if (field.type === 'boolean') {
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <AppText style={{ flex: 1 }}>{field.label}</AppText>
-        <Switch value={value === true} onValueChange={onChange} trackColor={{ true: RESIDENT_CORAL }} />
+        <Switch
+          value={value === true}
+          onValueChange={onChange}
+          trackColor={{ true: RESIDENT_CORAL }}
+        />
       </View>
     );
   }
@@ -103,7 +107,11 @@ function FieldRow({
   );
 }
 
-function SubmitPanel({ template, unitId, onBack }: { template: FormTemplate; unitId: string; onBack: () => void }) {
+function SubmitPanel({
+  template,
+  unitId,
+  onBack,
+}: { template: FormTemplate; unitId: string; onBack: () => void }) {
   const create = useCreateFormSubmission(api);
   const fields = template.fields?.fields ?? [];
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
@@ -133,7 +141,10 @@ function SubmitPanel({ template, unitId, onBack }: { template: FormTemplate; uni
 
   return (
     <View style={{ gap: 16 }}>
-      <ResidentSectionHeader title={template.title} subtitle={FORM_TEMPLATE_KIND_LABELS[template.kind]} />
+      <ResidentSectionHeader
+        title={template.title}
+        subtitle={FORM_TEMPLATE_KIND_LABELS[template.kind]}
+      />
       <Card style={[residentStyles.card, { gap: 14 }]}>
         {fields.map((field) => (
           <FieldRow
@@ -166,7 +177,8 @@ export default function FormsScreen() {
 
   const { refreshControl } = usePullToRefresh(
     useCallback(
-      () => Promise.all([templatesQuery.refetch(), submissionsQuery.refetch()]).then(() => undefined),
+      () =>
+        Promise.all([templatesQuery.refetch(), submissionsQuery.refetch()]).then(() => undefined),
       [submissionsQuery, templatesQuery],
     ),
   );
@@ -178,7 +190,10 @@ export default function FormsScreen() {
   if (!unit) {
     return (
       <ResidentScreen eyebrow="Services" title="Forms" subtitle="Condo management forms">
-        <EmptyState title="No unit linked" description="Your account needs a unit to submit forms." />
+        <EmptyState
+          title="No unit linked"
+          description="Your account needs a unit to submit forms."
+        />
       </ResidentScreen>
     );
   }
@@ -190,7 +205,12 @@ export default function FormsScreen() {
         title="Forms"
         scrollProps={{ refreshControl }}
         headerAction={
-          <Button title="← Back" size="sm" variant="secondary" onPress={() => setSelectedId(null)} />
+          <Button
+            title="← Back"
+            size="sm"
+            variant="secondary"
+            onPress={() => setSelectedId(null)}
+          />
         }
       >
         <SubmitPanel template={selected} unitId={unit.id} onBack={() => setSelectedId(null)} />
@@ -238,11 +258,16 @@ export default function FormsScreen() {
         <View style={{ gap: 10 }}>
           {myItems.map((s) => (
             <Card key={s.id} style={[residentStyles.card, { gap: 8 }]}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <View
+                style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}
+              >
                 <AppText style={{ fontWeight: '700', color: palette.textLight }}>
                   {s.template?.title ?? 'Form'}
                 </AppText>
-                <Pill tone={STATUS_TONE[s.status]} label={FORM_SUBMISSION_STATUS_LABELS[s.status]} />
+                <Pill
+                  tone={STATUS_TONE[s.status]}
+                  label={FORM_SUBMISSION_STATUS_LABELS[s.status]}
+                />
               </View>
               <AppText variant="meta" style={{ color: palette.mutedLight }}>
                 {s.unit?.identifier} · {fmtDate(s.submittedAt ?? s.createdAt)}

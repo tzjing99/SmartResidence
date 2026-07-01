@@ -46,7 +46,8 @@ export default function NewVisitorScreen() {
       params.phoneCountryCode,
       params.vehiclePlate,
       entryModeRaw,
-      purposeRaw,
+      parsedPurpose?.success,
+      parsedPurpose?.data,
       params.expectedAt,
     ],
   );

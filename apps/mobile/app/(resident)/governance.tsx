@@ -13,15 +13,7 @@ import type {
   MeetingResolution,
 } from '@smartresidence/shared-types';
 import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
-import {
-  AppText,
-  Button,
-  Card,
-  EmptyState,
-  Input,
-  Pill,
-  palette,
-} from '@smartresidence/ui-mobile';
+import { AppText, Button, Card, EmptyState, Input, Pill, palette } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import {
@@ -112,11 +104,18 @@ function MeetingListItem({
   return (
     <Pressable onPress={onSelect}>
       <Card style={residentStyles.card}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+          }}
+        >
           <View style={{ flex: 1, paddingRight: 8 }}>
             <AppText variant="title">{meeting.title}</AppText>
             <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
-              {MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]} · {fmtDate(meeting.scheduledAt)}
+              {MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]} ·{' '}
+              {fmtDate(meeting.scheduledAt)}
             </AppText>
           </View>
           <Pill label={MEETING_STATUS_LABELS[status]} tone={STATUS_TONE[status]} />

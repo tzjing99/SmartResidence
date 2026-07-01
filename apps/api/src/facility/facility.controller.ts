@@ -15,7 +15,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
-import { AvailabilityQueryDto, CreateFacilityDto, ListFacilitiesDto, UpdateFacilityDto } from './dto/facility.dto';
+import {
+  AvailabilityQueryDto,
+  CreateFacilityDto,
+  ListFacilitiesDto,
+  UpdateFacilityDto,
+} from './dto/facility.dto';
 import { FacilityService } from './facility.service';
 
 @ApiTags('Facilities')

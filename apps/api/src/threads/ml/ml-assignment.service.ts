@@ -2,10 +2,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { parseHelpdeskSettings } from '@/sla/helpdesk-settings';
 import { Injectable } from '@nestjs/common';
 import type { ThreadCategory } from '@prisma/client';
-import type {
-  AssignmentAssistInput,
-  AssignmentSuggestion,
-} from '../ai/assignment-assist.provider';
+import type { AssignmentAssistInput, AssignmentSuggestion } from '../ai/assignment-assist.provider';
 import { resolveRulesPool } from '../ai/assignment-assist.provider';
 import {
   CLOSED_THREAD_STATUSES,
@@ -22,7 +19,10 @@ export interface MlAssignmentStats {
 
 /** Keyword → category heuristics for the phase-2 stub (not a real model). */
 const CATEGORY_KEYWORDS: Array<{ category: ThreadCategory; keywords: string[] }> = [
-  { category: 'BILLING', keywords: ['invoice', 'billing', 'payment', 'fee', 'charge', 'statement'] },
+  {
+    category: 'BILLING',
+    keywords: ['invoice', 'billing', 'payment', 'fee', 'charge', 'statement'],
+  },
   {
     category: 'MAINTENANCE',
     keywords: ['leak', 'repair', 'broken', 'pipe', 'lift', 'elevator', 'aircon', 'water'],

@@ -166,7 +166,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const condos = useMyCondos(api);
   const signOut = useSignOut();
 
-  const navSections = React.useMemo(() => filterNavGroups(NAV_GROUPS, abilities ?? []), [abilities]);
+  const navSections = React.useMemo(
+    () => filterNavGroups(NAV_GROUPS, abilities ?? []),
+    [abilities],
+  );
   const navItems = React.useMemo(() => flattenNavItems(navSections), [navSections]);
 
   const mobileTabItems = React.useMemo(

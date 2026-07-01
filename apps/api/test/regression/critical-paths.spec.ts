@@ -102,7 +102,8 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
     const providerRef = `reg-idem-${Date.now()}`;
     await prisma.payment.create({
       data: {
-        sourceType: 'Invoice', sourceId: invoice.id,
+        sourceType: 'Invoice',
+        sourceId: invoice.id,
         userId: fx.userIds.admin,
         amount: 100,
         currencyCode: 'MYR',
@@ -121,9 +122,7 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
     expect(Number(settled?.amountPaid)).toBeCloseTo(100);
     expect(settled?.status).toBe('PAID');
 
-    await expect(
-      billing.recordManualPayment(admin, invoice.id, { amount: 1 }),
-    ).rejects.toThrow();
+    await expect(billing.recordManualPayment(admin, invoice.id, { amount: 1 })).rejects.toThrow();
   });
 
   it('ledger: maintenance and sinking invoice lines post to separate funds', async () => {

@@ -406,7 +406,13 @@ describe('BillingService.generateRecurring', () => {
     ];
     feeSchedule.feeSchedule.listActiveExtraLinesForPeriod.mockResolvedValue(extraLines);
     feeSchedule.feeSchedule.computeLinesForUnit.mockReturnValue([
-      { code: 'MAINT', description: 'Maintenance', unitPrice: 100, quantity: 1, fund: 'MAINTENANCE' },
+      {
+        code: 'MAINT',
+        description: 'Maintenance',
+        unitPrice: 100,
+        quantity: 1,
+        fund: 'MAINTENANCE',
+      },
     ]);
     feeSchedule.feeSchedule.computeExtraLinesForUnit.mockReturnValue([
       {

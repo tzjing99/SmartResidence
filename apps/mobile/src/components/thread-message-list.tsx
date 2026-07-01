@@ -59,8 +59,9 @@ function MessageEnter({
         ...spring.snappy,
         delay: isKnown ? 0 : Math.min(index, 6) * 35,
       }}
-      children={children as never}
-    />
+    >
+      {children}
+    </MotiView>
   );
 }
 

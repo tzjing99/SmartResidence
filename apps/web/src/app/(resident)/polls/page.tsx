@@ -222,7 +222,7 @@ function InputUnitSelector({
     return () => {
       cancelled = true;
     };
-  }, [pollId, votedUnitIds, value, onChange]);
+  }, [votedUnitIds, value, onChange]);
 
   const available = units.filter((u) => !votedUnitIds.has(u.id));
 

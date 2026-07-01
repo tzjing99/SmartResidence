@@ -5,7 +5,7 @@ import {
   useScanPatrolCheckpoint,
 } from '@smartresidence/api-client';
 import type { PatrolCheckpointStatus } from '@smartresidence/shared-types';
-import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
+import { Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';

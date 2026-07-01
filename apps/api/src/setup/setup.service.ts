@@ -1,5 +1,6 @@
-import { PrismaService } from '@/prisma/prisma.service';
+import { parseReceiptTemplate } from '@/billing/receipt-template';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import { PrismaService } from '@/prisma/prisma.service';
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { type Prisma, RoleId } from '@prisma/client';
 import {
@@ -11,9 +12,8 @@ import {
   type SetupStepKey,
   type SetupStepStatus,
 } from '@smartresidence/shared-types';
-import { parseReceiptTemplate } from '@/billing/receipt-template';
-import { mergeSetupState, parseSetupState } from './setup-settings';
 import type { UpdateSetupStepDto } from './dto/setup.dto';
+import { mergeSetupState, parseSetupState } from './setup-settings';
 
 const asObject = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value)
@@ -49,9 +49,12 @@ export class SetupService {
    * Cheap, data-derived facts about how much of the essentials already exist.
    * Kept to lightweight counts so status polling stays fast.
    */
-  private async deriveFacts(
-    condo: { id: string; name: string; address: string; settings: unknown },
-  ): Promise<SetupChecklistFacts> {
+  private async deriveFacts(condo: {
+    id: string;
+    name: string;
+    address: string;
+    settings: unknown;
+  }): Promise<SetupChecklistFacts> {
     const condoId = condo.id;
     const rawSettings = asObject(condo.settings);
     const [
@@ -84,8 +87,7 @@ export class SetupService {
 
     const receipt = parseReceiptTemplate(condo.settings);
     const hasReceiptTemplate = receipt.organizationName.trim().length > 0;
-    const hasProfile =
-      condo.name.trim().length >= 2 && condo.address.trim().length >= 3;
+    const hasProfile = condo.name.trim().length >= 2 && condo.address.trim().length >= 3;
 
     return {
       hasProfile,
@@ -120,11 +122,7 @@ export class SetupService {
       case 'residents':
         return facts.residentCount >= 1;
       case 'operations':
-        return (
-          facts.hasVisitorPolicy ||
-          facts.hasHelpdeskSettings ||
-          facts.slaPolicyCount > 0
-        );
+        return facts.hasVisitorPolicy || facts.hasHelpdeskSettings || facts.slaPolicyCount > 0;
       case 'integrations':
         return facts.mcpCount > 0 ? true : null;
       case 'documents':
@@ -134,11 +132,7 @@ export class SetupService {
     }
   }
 
-  private buildStatus(
-    condoId: string,
-    settings: unknown,
-    facts: SetupChecklistFacts,
-  ): SetupStatus {
+  private buildStatus(condoId: string, settings: unknown, facts: SetupChecklistFacts): SetupStatus {
     const stored = parseSetupState(settings);
     const steps: SetupStepStatus[] = SETUP_STEP_ORDER.map((key) => {
       const s = stored.steps[key];

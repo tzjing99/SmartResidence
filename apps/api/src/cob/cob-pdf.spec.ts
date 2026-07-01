@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { CobPrefillContext } from './cob-prefill';
 import { buildCobTemplatePdf } from './cob-pdf';
+import type { CobPrefillContext } from './cob-prefill';
 
 const sampleCtx: CobPrefillContext = {
   organizationName: 'Pangsapuri Harmoni JMB',

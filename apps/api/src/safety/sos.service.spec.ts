@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { RoleId, SosStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SosService } from './sos.service';

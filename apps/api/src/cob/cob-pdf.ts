@@ -1,9 +1,9 @@
 import {
   COB_TEMPLATE_LABEL,
-  FUND_LABELS,
   type CobTemplateKind,
-  formatMoney,
+  FUND_LABELS,
   type LedgerFund,
+  formatMoney,
 } from '@smartresidence/shared-types';
 import { PDF_COLORS, PdfDocument } from '../common/pdf/pdf-document';
 import type { CobPrefillContext } from './cob-prefill';
@@ -45,9 +45,12 @@ function addBuildingBlock(doc: PdfDocument, ctx: CobPrefillContext): void {
 function addMcTable(doc: PdfDocument, ctx: CobPrefillContext): void {
   doc.sectionTitle('Management committee');
   if (ctx.managementCommittee.length === 0) {
-    doc.paragraph('No management admin users assigned — add roles under Admin → Settings → Roles.', {
-      color: PDF_COLORS.muted,
-    });
+    doc.paragraph(
+      'No management admin users assigned — add roles under Admin → Settings → Roles.',
+      {
+        color: PDF_COLORS.muted,
+      },
+    );
     return;
   }
   doc.table({
@@ -91,12 +94,18 @@ export function buildCobTemplatePdf(kind: CobTemplateKind, ctx: CobPrefillContex
 }
 
 function buildAnnualReturnPdf(ctx: CobPrefillContext): Buffer {
-  const doc = createCobDoc(ctx, COB_TEMPLATE_LABEL.ANNUAL_RETURN, 'Commissioner of Buildings filing aid');
+  const doc = createCobDoc(
+    ctx,
+    COB_TEMPLATE_LABEL.ANNUAL_RETURN,
+    'Commissioner of Buildings filing aid',
+  );
   addBuildingBlock(doc, ctx);
   addMcTable(doc, ctx);
   doc.sectionTitle('Annual return checklist');
   doc.paragraph('• Confirm parcel schedule matches COB registered strata plan');
-  doc.paragraph('• Attach audited or management accounts showing separate maintenance & sinking balances');
+  doc.paragraph(
+    '• Attach audited or management accounts showing separate maintenance & sinking balances',
+  );
   doc.paragraph('• Include minutes of the latest AGM');
   doc.paragraph('• Retain bank statements and insurance certificates in your document vault');
   addDisclaimer(doc);
@@ -147,7 +156,11 @@ function buildFinancialSummaryPdf(ctx: CobPrefillContext): Buffer {
 }
 
 function buildMeetingMinutesCoverPdf(ctx: CobPrefillContext): Buffer {
-  const doc = createCobDoc(ctx, COB_TEMPLATE_LABEL.MEETING_MINUTES_COVER, 'Minutes submission cover');
+  const doc = createCobDoc(
+    ctx,
+    COB_TEMPLATE_LABEL.MEETING_MINUTES_COVER,
+    'Minutes submission cover',
+  );
   addBuildingBlock(doc, ctx);
   doc.sectionTitle('Meeting details (complete before filing)');
   doc.labelValue('Meeting type', '_________________________  (AGM / EGM / JMC)');

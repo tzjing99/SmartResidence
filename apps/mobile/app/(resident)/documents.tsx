@@ -1,11 +1,7 @@
-import {
-  useCondoDocuments,
-  useDocumentFolders,
-  useMyCondos,
-} from '@smartresidence/api-client';
+import { useCondoDocuments, useDocumentFolders, useMyCondos } from '@smartresidence/api-client';
 import type { Document, DocumentFolder } from '@smartresidence/shared-types';
 import { DOCUMENT_FOLDER_AUDIENCE_LABELS } from '@smartresidence/shared-types';
-import { AppText, Button, Card, EmptyState, palette, Pill } from '@smartresidence/ui-mobile';
+import { AppText, Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
 import * as Linking from 'expo-linking';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';

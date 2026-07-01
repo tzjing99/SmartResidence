@@ -348,16 +348,17 @@ export const FEE_SCHEDULE_EXTRA_LINE_FUND_LABELS: Record<FeeScheduleExtraLineFun
   DEPOSIT: 'Deposit',
 };
 
-export const FEE_SCHEDULE_CATEGORY_FUND: Record<FeeScheduleLineCategory, FeeScheduleExtraLineFund> = {
-  FIRE_INSURANCE: 'SINKING_FUND',
-  QUIT_RENT: 'MAINTENANCE',
-  ASSESSMENT: 'MAINTENANCE',
-  SPECIAL_LEVY: 'SINKING_FUND',
-  SECURITY: 'MAINTENANCE',
-  FACILITY_CHARGE: 'MAINTENANCE',
-  LATE_PENALTY: 'MAINTENANCE',
-  OTHER: 'MAINTENANCE',
-};
+export const FEE_SCHEDULE_CATEGORY_FUND: Record<FeeScheduleLineCategory, FeeScheduleExtraLineFund> =
+  {
+    FIRE_INSURANCE: 'SINKING_FUND',
+    QUIT_RENT: 'MAINTENANCE',
+    ASSESSMENT: 'MAINTENANCE',
+    SPECIAL_LEVY: 'SINKING_FUND',
+    SECURITY: 'MAINTENANCE',
+    FACILITY_CHARGE: 'MAINTENANCE',
+    LATE_PENALTY: 'MAINTENANCE',
+    OTHER: 'MAINTENANCE',
+  };
 
 export function resolveFeeScheduleExtraLineFund(input: {
   fund?: string | null;
@@ -378,7 +379,6 @@ export function resolveFeeScheduleExtraLineFund(input: {
   }
   throw new Error('Select a fund for this fee line.');
 }
-
 
 export const FeeScheduleExtraLineSchema = z.object({
   id: z.string().uuid(),

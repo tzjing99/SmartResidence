@@ -118,7 +118,12 @@ describe('BillingExportsService', () => {
 
   it('builds collections CSV with header rows and detail lines', async () => {
     const { service } = makeService();
-    const { csv, filename } = await service.collectionsCsv(manager(), CONDO, '2026-01-01', '2026-01-31');
+    const { csv, filename } = await service.collectionsCsv(
+      manager(),
+      CONDO,
+      '2026-01-01',
+      '2026-01-31',
+    );
     expect(filename).toMatch(/^collections-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.csv$/);
     expect(csv).toContain('Collections export');
     expect(csv).toContain('Online payment');

@@ -1,6 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { RedisService } from '@/redis/redis.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 
 /**
  * Redis SET NX EX locks so scheduled sweeps run on one API instance at a time.

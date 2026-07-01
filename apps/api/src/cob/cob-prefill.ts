@@ -5,14 +5,14 @@ import {
   COB_TEMPLATE_DESCRIPTION,
   COB_TEMPLATE_LABEL,
   COB_TEMPLATE_SLUG,
-  FUND_LABELS,
   type CobPrefillDataSource,
   type CobPrefillSnapshot,
   type CobTemplateKind,
   type CobTemplateListItem,
   type CobTemplateListResponse,
-  formatMoney,
+  FUND_LABELS,
   type LedgerFund,
+  formatMoney,
 } from '@smartresidence/shared-types';
 import { LedgerService } from '../billing/ledger.service';
 import { parseReceiptTemplate } from '../billing/receipt-template';
@@ -91,11 +91,7 @@ export class CobPrefillService {
     private readonly ledger: LedgerService,
   ) {}
 
-  async buildContext(
-    condoId: string,
-    from?: string,
-    to?: string,
-  ): Promise<CobPrefillContext> {
+  async buildContext(condoId: string, from?: string, to?: string): Promise<CobPrefillContext> {
     const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
     if (!condo) throw new NotFoundException('Condo not found');
 

@@ -232,8 +232,8 @@ export default function HelpdeskInboxScreen() {
               Loading latest tickets...
             </AppText>
           </View>
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} style={{ padding: 16, gap: 12 }}>
+          {(['helpdesk-a', 'helpdesk-b', 'helpdesk-c', 'helpdesk-d'] as const).map((key) => (
+            <Card key={key} style={{ padding: 16, gap: 12 }}>
               <View
                 style={{
                   height: 16,

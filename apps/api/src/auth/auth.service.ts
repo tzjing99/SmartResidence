@@ -1,6 +1,6 @@
+import { CacheService } from '@/cache/cache.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { AppEnv } from '@/config/env.schema';
-import { CacheService } from '@/cache/cache.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   BadRequestException,

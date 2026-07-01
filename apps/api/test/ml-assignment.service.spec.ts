@@ -2,8 +2,8 @@ import type { PrismaService } from '@/prisma/prisma.service';
 import { parseHelpdeskSettings } from '@/sla/helpdesk-settings';
 import { ThreadCategory } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
-import { CompositeAssignmentAssistProvider } from '../src/threads/ai/composite-assignment-assist.provider';
 import { RuleBasedAssignmentAssistProvider } from '../src/threads/ai/assignment-assist.provider';
+import { CompositeAssignmentAssistProvider } from '../src/threads/ai/composite-assignment-assist.provider';
 import { ML_ASSIGNMENT_MIN_CLOSED_THREADS } from '../src/threads/ml/ml-assignment.constants';
 import { MlAssignmentService } from '../src/threads/ml/ml-assignment.service';
 

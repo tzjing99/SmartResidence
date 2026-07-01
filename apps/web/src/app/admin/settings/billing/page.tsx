@@ -23,6 +23,7 @@ import type {
   FeeRateType,
   FeeScheduleExtraLine,
   FeeScheduleExtraLineFund,
+  FeeScheduleLineCategory,
   FeeScheduleLineRateType,
   GatewayMode,
   PaymentProvider,
@@ -618,14 +619,14 @@ function ExtraFeeSchedule({ condoId, unitTypes }: { condoId: string; unitTypes: 
     .filter((line) => line.enabled && line.rateType !== 'PER_UNIT_TYPE' && Number(line.amount) > 0)
     .reduce((sum, line) => sum + Number(line.amount), 0);
 
-  async function onAddPresets(categories?: string[]) {
+  async function onAddPresets(categories?: FeeScheduleLineCategory[]) {
     try {
       const res = await addPresets.mutateAsync({
         condoId,
         input: {
           month: presetMonth,
           recurring: false,
-          presetCodes: categories ?? COMMON_FEE_SCHEDULE_PRESETS.map((p) => p.code),
+          presetCodes: categories ?? COMMON_FEE_SCHEDULE_PRESETS.map((p) => p.category),
         },
       });
       const skipped = res.skipped ? ` · ${res.skipped} already existed` : '';
@@ -677,7 +678,7 @@ function ExtraFeeSchedule({ condoId, unitTypes }: { condoId: string; unitTypes: 
                 size="sm"
                 variant="secondary"
                 disabled={addPresets.isPending}
-                onClick={() => void onAddPresets([preset.code])}
+                onClick={() => void onAddPresets([preset.category])}
               >
                 {preset.label}
               </Button>

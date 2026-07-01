@@ -8,9 +8,9 @@ import {
   useRaiseSos,
 } from '@smartresidence/api-client';
 import {
-  type SosAlert,
   SOS_KIND_LABELS,
   SOS_STATUS_LABELS,
+  type SosAlert,
   type SosKind,
   isSosOpen,
 } from '@smartresidence/shared-types';
@@ -24,8 +24,8 @@ import {
   radius,
   spacing,
 } from '@smartresidence/ui-mobile';
-import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

@@ -410,7 +410,7 @@ export default function ProcurementPage() {
   if (!condoId) {
     return (
       <EmptyState
-        icon={Receipt}
+        icon={<Receipt className="size-8" />}
         title="No condo selected"
         description="Select a condo to manage vendor bills."
       />

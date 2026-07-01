@@ -25,6 +25,8 @@ const MANAGEMENT_ROLES: RoleId[] = [
   RoleId.MANAGEMENT_STAFF,
 ];
 
+const defectUserSelect = { id: true, name: true, email: true } as const;
+
 @Injectable()
 export class DefectService {
   constructor(
@@ -74,7 +76,11 @@ export class DefectService {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.defect.findMany({
         where,
-        include: { raisedBy: true, assignedTo: true, attachments: true },
+        include: {
+          raisedBy: { select: defectUserSelect },
+          assignedTo: { select: defectUserSelect },
+          attachments: true,
+        },
         orderBy: { createdAt: 'desc' },
         take: opts.limit,
         skip: opts.offset,
@@ -93,8 +99,8 @@ export class DefectService {
       this.prisma.defect.findMany({
         where,
         include: {
-          raisedBy: true,
-          assignedTo: true,
+          raisedBy: { select: defectUserSelect },
+          assignedTo: { select: defectUserSelect },
           unit: { include: { block: true } },
           attachments: true,
         },
@@ -186,8 +192,8 @@ export class DefectService {
     const defect = await this.prisma.defect.findUnique({
       where: { id },
       include: {
-        raisedBy: true,
-        assignedTo: true,
+        raisedBy: { select: defectUserSelect },
+        assignedTo: { select: defectUserSelect },
         unit: { include: { block: true } },
         attachments: true,
         updates: {

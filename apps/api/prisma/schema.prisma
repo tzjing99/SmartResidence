@@ -538,6 +538,7 @@ model Visitor {
   @@index([approvalDeadline])
   // Condo-scoped, date-bounded lists & stats (guard boards, admin dashboards).
   @@index([condoId, expectedAt])
+  @@index([condoId, overnight, status])
   @@map("visitors")
 }
 
@@ -555,6 +556,7 @@ model VisitorCheckIn {
   notes           String?
 
   @@index([visitorId])
+  @@index([checkInAt])
   @@map("visitor_check_ins")
 }
 
@@ -700,7 +702,9 @@ model Invoice {
 
   @@unique([condoId, number])
   @@index([condoId, status])
+  @@index([condoId, status, dueDate])
   @@index([unitId])
+  @@index([unitId, periodStart, status])
   @@index([dueDate])
   @@map("invoices")
 }

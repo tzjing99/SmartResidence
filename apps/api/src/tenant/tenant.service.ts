@@ -64,7 +64,10 @@ export class TenantService {
         where,
         include: {
           block: true,
-          ownerships: { where: { status: 'ACTIVE' }, include: { user: true } },
+          ownerships: {
+            where: { status: 'ACTIVE' },
+            include: { user: { select: { id: true, name: true, email: true } } },
+          },
         },
         orderBy: [{ block: { position: 'asc' } }, { identifier: 'asc' }],
         take: opts.limit,

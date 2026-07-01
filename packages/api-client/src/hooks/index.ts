@@ -53,6 +53,8 @@ import { patchThreadInListCaches } from '../realtime/thread-cache';
 const STABLE_SESSION_MS = 5 * 60_000;
 /** List views kept fresh via realtime or explicit mutations. */
 const LIST_VIEW_MS = 30_000;
+/** Accounting reports that change slowly between billing runs. */
+const REPORT_VIEW_MS = 3 * 60_000;
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -436,6 +438,7 @@ export function useUnitInvoices(api: ApiClient, unitId: string | null) {
     queryFn: () =>
       unitId ? api.invoicesForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
+    staleTime: LIST_VIEW_MS,
   });
 }
 
@@ -1034,7 +1037,7 @@ export function useFundBalances(api: ApiClient, condoId: string | null) {
     queryKey: condoId ? queryKeys.fundBalances(condoId) : ['accounting', 'fund-balances', null],
     queryFn: () => (condoId ? api.fundBalances(condoId) : Promise.resolve([])),
     enabled: Boolean(condoId),
-    staleTime: LIST_VIEW_MS,
+    staleTime: REPORT_VIEW_MS,
   });
 }
 
@@ -1059,7 +1062,7 @@ export function useArrearsAging(api: ApiClient, condoId: string | null) {
     queryKey: condoId ? queryKeys.arrears(condoId) : ['accounting', 'arrears', null],
     queryFn: () => (condoId ? api.arrearsAging(condoId) : Promise.resolve(null)),
     enabled: Boolean(condoId),
-    staleTime: LIST_VIEW_MS,
+    staleTime: REPORT_VIEW_MS,
   });
 }
 
@@ -1105,6 +1108,7 @@ export function useUnitStatement(api: ApiClient, unitId: string | null) {
     queryKey: unitId ? queryKeys.unitStatement(unitId) : ['accounting', 'statement', null],
     queryFn: () => (unitId ? api.unitStatement(unitId) : Promise.resolve(null)),
     enabled: Boolean(unitId),
+    staleTime: REPORT_VIEW_MS,
   });
 }
 
@@ -1126,6 +1130,7 @@ export function useUnitDefects(api: ApiClient, unitId: string | null) {
     queryKey: unitId ? queryKeys.unitDefects(unitId) : ['defects', 'unit', null],
     queryFn: () => (unitId ? api.defectsForUnit(unitId) : Promise.resolve({ items: [], total: 0 })),
     enabled: Boolean(unitId),
+    staleTime: LIST_VIEW_MS,
   });
 }
 
@@ -1225,6 +1230,7 @@ export function useCondoAnnouncements(
           })
         : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
   });
 }
 

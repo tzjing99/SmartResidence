@@ -1076,6 +1076,16 @@ export class BillingService {
       include: useFeeSchedule ? { unitType: { include: { feeRate: true } } } : undefined,
     });
 
+    const existingForPeriod = await this.prisma.invoice.findMany({
+      where: {
+        unitId: { in: units.map((u) => u.id) },
+        periodStart: dto.periodStart,
+        status: { not: InvoiceStatus.VOID },
+      },
+      select: { unitId: true },
+    });
+    const existingUnitIds = new Set(existingForPeriod.map((row) => row.unitId));
+
     const createdInvoiceIds: string[] = [];
     let skipped = 0;
     let skippedNoRate = 0;
@@ -1098,14 +1108,7 @@ export class BillingService {
         continue;
       }
 
-      const existing = await this.prisma.invoice.count({
-        where: {
-          unitId: unit.id,
-          periodStart: dto.periodStart,
-          status: { not: InvoiceStatus.VOID },
-        },
-      });
-      if (existing > 0) {
+      if (existingUnitIds.has(unit.id)) {
         skipped += 1;
         continue;
       }

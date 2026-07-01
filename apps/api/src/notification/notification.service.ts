@@ -233,7 +233,10 @@ export class NotificationService {
   async onVisitorCreated(payload: { visitorId: string }) {
     const v = await this.prisma.visitor.findUnique({
       where: { id: payload.visitorId },
-      include: { host: true, unit: true },
+      include: {
+        host: { select: { id: true, name: true, phone: true } },
+        unit: true,
+      },
     });
     if (!v?.hostUserId) return;
     await this.dispatch({

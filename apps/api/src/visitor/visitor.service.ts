@@ -98,18 +98,25 @@ const CHECK_IN_ALLOWED: VisitorStatus[] = [VisitorStatus.APPROVED];
 export type GuardApprovalMethod = 'OWNER_BY_PHONE' | 'GUARD_MANUAL';
 export const GUARD_APPROVAL_METHODS: GuardApprovalMethod[] = ['OWNER_BY_PHONE', 'GUARD_MANUAL'];
 
+const visitorUserSelect = { id: true, name: true, phone: true } as const;
+
 const visitorInclude = {
   unit: {
     include: {
       block: true,
       ownerships: {
         where: { status: OwnershipStatus.ACTIVE },
-        include: { user: { select: { name: true } } },
+        include: { user: { select: visitorUserSelect } },
       },
     },
   },
-  host: true,
-  checkIns: true,
+  host: { select: visitorUserSelect },
+  checkIns: {
+    include: {
+      checkInGuard: { select: visitorUserSelect },
+      checkOutGuard: { select: visitorUserSelect },
+    },
+  },
 } as const;
 
 type VisitorWithRelations = Prisma.VisitorGetPayload<{ include: typeof visitorInclude }>;

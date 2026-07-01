@@ -44,8 +44,17 @@ export interface MyInvoisCancelResult {
 export interface MyInvoisProvider {
   readonly id: string;
   submit(ctx: MyInvoisSubmitContext): Promise<MyInvoisSubmitResult>;
-  getStatus(uuid: string, environment: string): Promise<MyInvoisStatusResult>;
-  cancel(uuid: string, reason: string, environment: string): Promise<MyInvoisCancelResult>;
+  getStatus(
+    uuid: string,
+    environment: string,
+    credentials?: MyInvoisCredentials,
+  ): Promise<MyInvoisStatusResult>;
+  cancel(
+    uuid: string,
+    reason: string,
+    environment: string,
+    credentials?: MyInvoisCredentials,
+  ): Promise<MyInvoisCancelResult>;
 }
 
 export const MYINVOIS_PROVIDER = Symbol('MYINVOIS_PROVIDER');

@@ -127,9 +127,22 @@ function EInvoiceForm({ condoId }: { condoId: string }) {
         icon={FileCheck2}
         eyebrow="LHDN MyInvois"
         title="Submission mode"
-        description="Enable e-invoicing to produce Malaysian e-invoices for issued invoices. Use Sandbox while integrating; it validates locally with no LHDN network call."
+        description="Enable e-invoicing to produce Malaysian e-invoices for issued invoices. Choose Sandbox for local integration testing, or Production to submit to the live LHDN MyInvois API."
       >
-        <div className="flex flex-col gap-4">
+        <div className="rounded-xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-bg))] p-4 text-sm space-y-2">
+          <p>
+            <span className="font-medium">Sandbox</span> validates documents locally with no LHDN
+            network call. Use this while configuring supplier details and testing invoice flows. API
+            credentials are optional.
+          </p>
+          <p>
+            <span className="font-medium">Production</span> submits invoices to LHDN via OAuth2 and
+            the MyInvois document API. Requires LHDN-issued client id and secret (stored encrypted
+            below), plus complete supplier TIN, MSIC code, and address. Without credentials,
+            Production falls back to Sandbox so misconfiguration does not hit the live API.
+          </p>
+        </div>
+        <div className="flex flex-col gap-4 mt-4">
           <label className="inline-flex items-start gap-2 rounded-xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-card))] p-3 text-sm">
             <input
               type="checkbox"
@@ -169,8 +182,8 @@ function EInvoiceForm({ condoId }: { condoId: string }) {
                   setDraft({ ...draft, environment: e.target.value as EInvoiceEnvironment })
                 }
               >
-                <option value="SANDBOX">Sandbox (no network / testing)</option>
-                <option value="PRODUCTION">Production (live LHDN)</option>
+                <option value="SANDBOX">Sandbox (local validation, no LHDN call)</option>
+                <option value="PRODUCTION">Production (live LHDN MyInvois API)</option>
               </select>
             </div>
           </div>
@@ -257,7 +270,7 @@ function EInvoiceForm({ condoId }: { condoId: string }) {
         icon={KeyRound}
         eyebrow="Credentials"
         title="LHDN API credentials"
-        description="Client id and secret for the MyInvois API. Encrypted at rest and never shown again. Not required for Sandbox; enter them before switching to Production."
+        description="Client id and secret from the LHDN MyInvois portal (Taxpayer or Intermediary system registration). Encrypted at rest and never shown again. Required before Production submissions; optional for Sandbox."
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">

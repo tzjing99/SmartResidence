@@ -41,6 +41,77 @@ export const VisitorStatus = z.enum([
 ]);
 export type VisitorStatus = z.infer<typeof VisitorStatus>;
 
+export const VisitorPassKind = z.enum(['STANDARD', 'DELIVERY', 'E_HAILING']);
+export type VisitorPassKind = z.infer<typeof VisitorPassKind>;
+
+export const DeliveryPlatform = z.enum(['GRABFOOD', 'FOODPANDA', 'SHOPEE_FOOD', 'GRAB', 'OTHER']);
+export type DeliveryPlatform = z.infer<typeof DeliveryPlatform>;
+
+export const DELIVERY_PLATFORM_OPTIONS: { value: DeliveryPlatform; label: string }[] = [
+  { value: 'GRABFOOD', label: 'GrabFood' },
+  { value: 'FOODPANDA', label: 'Foodpanda' },
+  { value: 'SHOPEE_FOOD', label: 'Shopee Food' },
+  { value: 'GRAB', label: 'Grab' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export const QUICK_ENTRY_PASS_KIND_OPTIONS: {
+  value: Exclude<VisitorPassKind, 'STANDARD'>;
+  label: string;
+}[] = [
+  { value: 'DELIVERY', label: 'Food delivery' },
+  { value: 'E_HAILING', label: 'E-hailing / ride' },
+];
+
+/** Default visit window for food delivery passes (2 hours). */
+export const DEFAULT_DELIVERY_DURATION_MINS = 120;
+
+/** Default visit window for e-hailing passes (3 hours). */
+export const DEFAULT_E_HAILING_DURATION_MINS = 180;
+
+/** Extra buffer after quick-entry pass window before expiry (30 minutes). */
+export const QUICK_ENTRY_EXPIRY_BUFFER_MINS = 30;
+
+export function deliveryPlatformLabel(platform: DeliveryPlatform | string): string {
+  return (
+    DELIVERY_PLATFORM_OPTIONS.find((o) => o.value === platform)?.label ??
+    String(platform).replace(/_/g, ' ')
+  );
+}
+
+export function passKindLabel(kind: VisitorPassKind | string): string {
+  switch (kind) {
+    case 'DELIVERY':
+      return 'Delivery pass';
+    case 'E_HAILING':
+      return 'E-hailing pass';
+    default:
+      return 'Visitor pass';
+  }
+}
+
+export function isQuickEntryPass(
+  visitor: Pick<Visitor, 'passKind'> | { passKind?: VisitorPassKind | string | null },
+): boolean {
+  return visitor.passKind === 'DELIVERY' || visitor.passKind === 'E_HAILING';
+}
+
+export function defaultQuickEntryDurationMins(
+  passKind: Exclude<VisitorPassKind, 'STANDARD'>,
+): number {
+  return passKind === 'E_HAILING'
+    ? DEFAULT_E_HAILING_DURATION_MINS
+    : DEFAULT_DELIVERY_DURATION_MINS;
+}
+
+export function defaultQuickEntryPassName(
+  passKind: Exclude<VisitorPassKind, 'STANDARD'>,
+  platform: DeliveryPlatform,
+): string {
+  const platformName = deliveryPlatformLabel(platform);
+  return passKind === 'E_HAILING' ? `${platformName} driver` : `${platformName} delivery`;
+}
+
 /** Next hour from now for smart default arrival. */
 export function defaultExpectedArrival(now = new Date()): Date {
   const d = new Date(now);
@@ -181,6 +252,17 @@ export const CreateVisitorSchema = z
   });
 export type CreateVisitorInput = z.infer<typeof CreateVisitorSchema>;
 
+export const CreateDeliveryPassSchema = z.object({
+  unitId: z.string().uuid(),
+  passKind: z.enum(['DELIVERY', 'E_HAILING']),
+  platform: DeliveryPlatform,
+  name: z.string().min(2).max(120).optional(),
+  vehiclePlate: z.string().max(20).optional(),
+  expectedAt: z.coerce.date(),
+  expectedDurationMins: z.number().int().min(30).max(240).optional(),
+});
+export type CreateDeliveryPassInput = z.infer<typeof CreateDeliveryPassSchema>;
+
 export const OvernightPreviewSchema = z.object({
   overnight: z.literal(true),
   hoursUntilArrival: z.number(),
@@ -271,6 +353,8 @@ export const VisitorSchema = z.object({
   id: z.string().uuid(),
   condoId: z.string().uuid(),
   visitType: VisitorVisitType,
+  passKind: VisitorPassKind.default('STANDARD'),
+  deliveryPlatform: DeliveryPlatform.nullable().optional(),
   unitId: z.string().uuid().nullable().optional(),
   hostUserId: z.string().uuid().nullable().optional(),
   name: z.string(),
@@ -335,6 +419,8 @@ export const GuardLiveVisitorSchema = z.object({
   checkedInAt: z.coerce.date(),
   unitLabel: z.string().nullable(),
   visitType: VisitorVisitType,
+  passKind: VisitorPassKind.optional(),
+  deliveryPlatform: DeliveryPlatform.nullable().optional(),
   overnight: z.boolean().optional(),
   /** False for walk-ins — they auto-close; guards must not manually check out. */
   canCheckOut: z.boolean().optional(),
@@ -356,6 +442,8 @@ export const GuardExpectedVisitorSchema = z.object({
   expectedAt: z.coerce.date(),
   vehiclePlate: z.string().nullable().optional(),
   visitType: VisitorVisitType,
+  passKind: VisitorPassKind.optional(),
+  deliveryPlatform: DeliveryPlatform.nullable().optional(),
   status: VisitorStatus,
   unitLabel: z.string().nullable(),
   overnight: z.boolean().optional(),

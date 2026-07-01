@@ -90,6 +90,7 @@ model User {
   parcelsCollected     Parcel[]     @relation("parcelCollectedBy")
   formSubmissions      FormSubmission[] @relation("formSubmitter")
   formReviews          FormSubmission[] @relation("formReviewer")
+  documentVersionsUploaded DocumentVersion[] @relation("documentVersionUploader")
 
   @@index([email])
   @@index([phone])
@@ -219,6 +220,8 @@ model Condo {
   parcels          Parcel[]
   formTemplates    FormTemplate[]
   formSubmissions  FormSubmission[]
+  documentFolders  DocumentFolder[]
+  documents        Document[]
 
   @@map("condos")
 }
@@ -458,11 +461,27 @@ enum VisitorStatus {
   CANCELLED
 }
 
+enum VisitorPassKind {
+  STANDARD
+  DELIVERY
+  E_HAILING
+}
+
+enum DeliveryPlatform {
+  GRABFOOD
+  FOODPANDA
+  SHOPEE_FOOD
+  GRAB
+  OTHER
+}
+
 model Visitor {
   id            String           @id @default(uuid()) @db.Uuid
   condoId       String           @db.Uuid
   condo         Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
   visitType     VisitorVisitType @default(PRE_REG)
+  passKind      VisitorPassKind  @default(STANDARD)
+  deliveryPlatform DeliveryPlatform?
   unitId        String?          @db.Uuid
   unit          Unit?            @relation(fields: [unitId], references: [id], onDelete: Cascade)
   hostUserId    String?          @db.Uuid
@@ -1226,6 +1245,7 @@ enum AttachmentOwner {
   THREAD_MESSAGE
   PROFILE
   GENERIC
+  DOCUMENT_VERSION
 }
 
 enum AttachmentStatus {
@@ -1260,6 +1280,8 @@ model Attachment {
   threadMessage  ThreadMessage?   @relation(fields: [threadMessageId], references: [id], onDelete: Cascade)
   announcementId String?          @db.Uuid
   announcement   Announcement?    @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  documentVersionId String?       @unique @db.Uuid
+  documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
   format               String?
   fallbackKey          String?
   fallbackMimeType     String?
@@ -1273,6 +1295,7 @@ model Attachment {
   @@index([defectUpdateId])
   @@index([threadMessageId])
   @@index([announcementId])
+  @@index([documentVersionId])
   @@index([status, createdAt])
   @@map("attachments")
 }
@@ -1409,6 +1432,7 @@ enum NotificationKind {
   FORM_SUBMITTED
   FORM_APPROVED
   FORM_REJECTED
+  DOCUMENT_PUBLISHED
   SYSTEM
 }
 
@@ -2155,4 +2179,78 @@ model FormSubmission {
   @@index([unitId])
   @@index([templateId])
   @@map("form_submissions")
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Documents vault (house rules, AGM minutes, bylaws, circulars)
+//////////////////////////////////////////////////////////////////////////////
+
+enum DocumentFolderAudience {
+  ALL
+  OWNERS
+  MANAGEMENT
+}
+
+/// Role-scoped folder for condo document library entries.
+model DocumentFolder {
+  id        String                 @id @default(uuid()) @db.Uuid
+  condoId   String                 @db.Uuid
+  condo     Condo                  @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  name      String
+  audience  DocumentFolderAudience @default(ALL)
+  position  Int                    @default(0)
+  active    Boolean                @default(true)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  documents Document[]
+
+  @@index([condoId, active])
+  @@map("document_folders")
+}
+
+/// A logical document (e.g. house rules) with versioned file uploads.
+model Document {
+  id               String           @id @default(uuid()) @db.Uuid
+  folderId         String           @db.Uuid
+  folder           DocumentFolder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  condoId          String           @db.Uuid
+  condo            Condo            @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  currentVersionId String?          @unique @db.Uuid
+  currentVersion   DocumentVersion? @relation("DocumentCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  active           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  versions DocumentVersion[] @relation("DocumentVersions")
+
+  @@index([condoId, folderId])
+  @@index([folderId])
+  @@map("documents")
+}
+
+/// Immutable published file revision for a document.
+model DocumentVersion {
+  id               String   @id @default(uuid()) @db.Uuid
+  documentId       String   @db.Uuid
+  document         Document @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade)
+  currentFor       Document? @relation("DocumentCurrentVersion")
+  versionNumber    Int
+  fileKey          String
+  mimeType         String
+  sizeBytes        Int
+  uploadedByUserId String   @db.Uuid
+  uploadedBy       User     @relation("documentVersionUploader", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+  publishedAt      DateTime @default(now())
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  attachment Attachment?
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+  @@map("document_versions")
 }

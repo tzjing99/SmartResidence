@@ -31,12 +31,23 @@ import {
   COMMON_FEE_SCHEDULE_PRESETS,
   CONNECTABLE_PROVIDERS,
   FEE_SCHEDULE_CATEGORY_LABELS,
+  GATEWAY_CAPABILITIES,
   GATEWAY_CREDENTIAL_FIELDS,
   GATEWAY_PROVIDER_LABELS,
+  GATEWAY_PROVIDER_SHORT_LABELS,
   formatMoney,
 } from '@smartresidence/shared-types';
-import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { CreditCard, FileText, Landmark, ReceiptText } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Label,
+  Skeleton,
+  Switch,
+} from '@smartresidence/ui-web';
+import { Check, CreditCard, FileText, Landmark, ReceiptText, X } from 'lucide-react';
 import * as React from 'react';
 
 const selectCls = 'sr-select';
@@ -767,9 +778,8 @@ function GatewayProviderCard({
     }
   }
 
-  async function toggleEnabled() {
+  async function handleToggle(nextEnabled: boolean) {
     if (!connection) return;
-    const nextEnabled = !connection.enabled;
     if (
       nextEnabled &&
       connection.mode === 'LIVE' &&
@@ -808,22 +818,76 @@ function GatewayProviderCard({
     }
   }
 
+  const capability = GATEWAY_CAPABILITIES[provider];
+  const canEnable = Boolean(connection?.configured);
+
   return (
     <div className="rounded-2xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-bg))]/35 p-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="font-semibold">{GATEWAY_PROVIDER_LABELS[provider]}</div>
-          <p className="text-xs sr-muted mt-0.5">
-            {connection?.configured
-              ? 'Credentials are stored. Enter new values only when rotating keys.'
-              : 'Add credentials before enabling this payment method.'}
-          </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">
+              {GATEWAY_PROVIDER_SHORT_LABELS[provider] ?? GATEWAY_PROVIDER_LABELS[provider]}
+            </span>
+            {connection?.configured ? (
+              <Badge tone="success">Credentials saved</Badge>
+            ) : (
+              <Badge tone="neutral">Not set up</Badge>
+            )}
+            {connection?.configured ? (
+              <Badge tone={connection.mode === 'LIVE' ? 'warning' : 'info'}>
+                {connection.mode === 'LIVE' ? 'LIVE' : 'TEST'}
+              </Badge>
+            ) : null}
+          </div>
+          {capability ? <p className="text-sm sr-muted mt-1">{capability.tagline}</p> : null}
         </div>
-        <div className="flex items-center gap-2">
-          {connection?.configured ? <Badge tone="success">Configured</Badge> : null}
-          {connection?.enabled ? <Badge tone="info">Enabled</Badge> : null}
+        <div className="flex flex-col items-start gap-1 sm:items-end">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{connection?.enabled ? 'On' : 'Off'}</span>
+            <Switch
+              checked={Boolean(connection?.enabled)}
+              disabled={!canEnable || setEnabled.isPending}
+              onCheckedChange={(next) => void handleToggle(next)}
+              aria-label={`Enable ${GATEWAY_PROVIDER_SHORT_LABELS[provider] ?? provider} for residents`}
+            />
+          </div>
+          {!canEnable ? (
+            <span className="text-xs sr-muted">Save credentials to turn on</span>
+          ) : null}
         </div>
       </div>
+
+      {capability ? (
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-card))] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide sr-muted">Accepts</div>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {capability.accepts.map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm">
+                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-card))] p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide sr-muted">
+              Does not do
+            </div>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {capability.limitations.map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm">
+                  <X className="mt-0.5 size-4 shrink-0 text-stone-400" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs sr-muted">{capability.checkout}</p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-3 mt-4 lg:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label>Mode</Label>
@@ -832,8 +896,8 @@ function GatewayProviderCard({
             value={mode}
             onChange={(e) => setMode(e.target.value as GatewayMode)}
           >
-            <option value="TEST">Sandbox / Test (Fiuu sandbox accounts only)</option>
-            <option value="LIVE">Live — real payments (pay.fiuu.com)</option>
+            <option value="TEST">TEST — sandbox, no real money</option>
+            <option value="LIVE">LIVE — real payments from residents</option>
           </select>
           {provider === 'RAZER' ? (
             <p className="text-xs sr-muted mt-1">
@@ -886,18 +950,12 @@ function GatewayProviderCard({
       </div>
       <div className="mt-4 flex flex-col-reverse gap-2 border-t border-[rgb(var(--sr-border))]/70 pt-3 sm:flex-row sm:justify-end">
         <Button size="sm" disabled={upsert.isPending} onClick={() => void save()}>
-          {upsert.isPending ? 'Saving…' : 'Save credentials'}
+          {upsert.isPending
+            ? 'Saving…'
+            : connection?.configured
+              ? 'Update credentials'
+              : 'Save credentials'}
         </Button>
-        {connection ? (
-          <Button
-            size="sm"
-            variant={connection.enabled ? 'ghost' : 'primary'}
-            disabled={setEnabled.isPending}
-            onClick={() => void toggleEnabled()}
-          >
-            {connection.enabled ? 'Disable' : 'Enable'}
-          </Button>
-        ) : null}
         {connection ? (
           <Button
             size="sm"
@@ -917,12 +975,21 @@ function GatewaySettings({ condoId }: { condoId: string }) {
   const gateways = useGateways(api, condoId);
   const connections = gateways.data ?? [];
 
+  const enabledCount = connections.filter((c) => c.enabled).length;
+
   return (
     <div>
       {gateways.isLoading ? (
         <Skeleton className="h-40" />
       ) : (
         <div className="flex flex-col gap-3">
+          <p className="rounded-xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-bg))]/50 px-4 py-3 text-sm sr-muted">
+            You can turn on more than one gateway. Residents will see every method that is switched
+            on when they pay.
+            {enabledCount > 0
+              ? ` ${enabledCount} gateway${enabledCount === 1 ? ' is' : 's are'} on now.`
+              : ' No gateways are on yet.'}
+          </p>
           {CONNECTABLE_PROVIDERS.map((provider) => (
             <GatewayProviderCard
               key={provider}
@@ -1019,7 +1086,7 @@ export default function AdminBillingSettingsPage() {
         icon={CreditCard}
         eyebrow="Online collection"
         title="Payment gateways"
-        description="Connect Stripe, Fiuu or iPay88. Credentials are encrypted at rest and never shown again. Use Sandbox/Test while integrating, then switch to Live."
+        description="Connect Stripe, Fiuu, iPay88 or DuitNow QR. Each card shows what the gateway can accept. Save credentials, then use the on/off switch to let residents pay. Credentials are encrypted and never shown again; use TEST while setting up, then switch to LIVE."
       >
         {condoId ? <GatewaySettings condoId={condoId} /> : <Skeleton className="h-40" />}
       </SettingsSection>

@@ -14,8 +14,11 @@ import {
   canOneClickPreRegFromVisitor,
   canOwnerCancelVisitor,
   defaultExpectedArrival,
+  deliveryPlatformLabel,
   favouriteToPreRegParams,
   formatMalaysiaPhoneDisplay,
+  isQuickEntryPass,
+  passKindLabel,
   visitorStatusLabel,
   visitorToCreateInput,
   visitorToPreRegParams,
@@ -25,6 +28,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { DeliveryPassForm } from '../../../src/components/delivery-pass-form';
 import {
   RESIDENT_CARD_BORDER,
   RESIDENT_SOFT_CORAL,
@@ -142,6 +146,8 @@ export default function VisitorsScreen() {
           })}
         </View>
       </Card>
+
+      <DeliveryPassForm unitId={unit?.id} />
 
       {tab === 'favourites' ? (
         <FavouritesTab
@@ -312,6 +318,18 @@ function VisitorsTab({
                   >
                     {v.name}
                   </Text>
+                  {isQuickEntryPass(v) ? (
+                    <View style={{ alignSelf: 'flex-start', marginTop: 6 }}>
+                      <Pill
+                        tone="warning"
+                        label={
+                          v.deliveryPlatform
+                            ? deliveryPlatformLabel(v.deliveryPlatform)
+                            : passKindLabel(v.passKind ?? 'DELIVERY')
+                        }
+                      />
+                    </View>
+                  ) : null}
                   <Text
                     style={{
                       color: palette.mutedLight,

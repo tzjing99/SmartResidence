@@ -28,6 +28,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { SafetyModule } from './safety/safety.module';
 import { ParcelModule } from './parcel/parcel.module';
 import { FormsModule } from './forms/forms.module';
+import { DocumentsModule } from './documents/documents.module';
 import { SetupModule } from './setup/setup.module';
 import { SlaModule } from './sla/sla.module';
 import { StorageModule } from './storage/storage.module';
@@ -74,6 +75,7 @@ import { VisitorModule } from './visitor/visitor.module';
     SafetyModule,
     ParcelModule,
     FormsModule,
+    DocumentsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

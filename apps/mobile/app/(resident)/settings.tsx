@@ -95,6 +95,7 @@ export default function SettingsScreen() {
   const { signOut, busy: signingOut } = useSignOut();
 
   const [emailNotifications, setEmailNotifications] = useState(false);
+  const [whatsappNotifications, setWhatsappNotifications] = useState(false);
   const [quietEnabled, setQuietEnabled] = useState(false);
   const [quietStart, setQuietStart] = useState('22:00');
   const [quietEnd, setQuietEnd] = useState('07:00');
@@ -102,6 +103,7 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (!prefs.data) return;
     setEmailNotifications(prefs.data.emailNotifications);
+    setWhatsappNotifications(prefs.data.whatsappNotifications);
     setQuietEnabled(prefs.data.quietHours.enabled);
     setQuietStart(prefs.data.quietHours.start);
     setQuietEnd(prefs.data.quietHours.end);
@@ -111,6 +113,7 @@ export default function SettingsScreen() {
     try {
       await save.mutateAsync({
         emailNotifications,
+        whatsappNotifications,
         quietHours: { enabled: quietEnabled, start: quietStart, end: quietEnd },
       });
       Alert.alert('Saved', 'Notification preferences updated');
@@ -189,7 +192,7 @@ export default function SettingsScreen() {
 
       <ResidentSectionHeader
         title="Notifications"
-        subtitle="In-app and push stay on by default. Configure email opt-in and quiet hours below."
+        subtitle="In-app and push stay on by default. Configure email, WhatsApp, and quiet hours below."
       />
 
       <Card style={residentStyles.card}>
@@ -199,6 +202,27 @@ export default function SettingsScreen() {
             <AppText variant="meta">Opt in to email notifications for helpdesk updates</AppText>
           </View>
           <Switch value={emailNotifications} onValueChange={setEmailNotifications} />
+        </AlignRow>
+      </Card>
+
+      <Card style={residentStyles.card}>
+        <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }}>
+          <View style={{ flex: 1, paddingRight: 12, gap: 4 }}>
+            <AppText variant="label">WhatsApp alerts</AppText>
+            <AppText variant="meta">
+              Parcel, visitor, and billing reminders on your verified phone
+            </AppText>
+            {!prefs.data?.whatsappEligible ? (
+              <AppText variant="meta" style={{ marginTop: 4 }}>
+                Add and verify your mobile number in Profile first.
+              </AppText>
+            ) : null}
+          </View>
+          <Switch
+            value={whatsappNotifications}
+            onValueChange={setWhatsappNotifications}
+            disabled={!prefs.data?.whatsappEligible}
+          />
         </AlignRow>
       </Card>
 
@@ -247,6 +271,12 @@ export default function SettingsScreen() {
           title="Facilities"
           subtitle="Book shared amenities"
           onPress={() => router.push('/(resident)/facilities' as Href)}
+        />
+        <MoreLink
+          icon="document-text-outline"
+          title="Documents"
+          subtitle="House rules, minutes, and circulars"
+          onPress={() => router.push('/(resident)/documents' as Href)}
         />
         <MoreLink
           icon="repeat-outline"

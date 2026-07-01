@@ -1,7 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useGuardAcknowledgeWalkIn, useMyCondos } from '@smartresidence/api-client';
 import type { GuardExpectedVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
-import { guardCanAcknowledgeWalkIn } from '@smartresidence/shared-types';
+import {
+  deliveryPlatformLabel,
+  guardCanAcknowledgeWalkIn,
+  isQuickEntryPass,
+  passKindLabel,
+} from '@smartresidence/shared-types';
 import {
   AppText,
   Button,
@@ -144,6 +149,8 @@ function toCardVisitor(
     expectedAt: visitor.expectedAt,
     vehiclePlate: visitor.vehiclePlate,
     visitType: visitor.visitType,
+    passKind: visitor.passKind,
+    deliveryPlatform: visitor.deliveryPlatform,
     status: visitor.status,
     unitLabel: visitor.unit?.identifier ?? null,
     overnight: visitor.overnight,
@@ -175,6 +182,7 @@ function ExpectedVisitorCard({
       style={[
         guardStyles.card,
         styles.visitorCard,
+        isQuickEntryPass(visitor) ? styles.deliveryCard : null,
         highlight === 'soon' ? styles.soonCard : null,
         highlight === 'overdue' ? styles.overdueCard : null,
         variant === 'no_show' ? styles.mutedCard : null,
@@ -189,6 +197,16 @@ function ExpectedVisitorCard({
             {visitor.unitLabel ?? 'Unit not shown'}
           </AppText>
           <View style={styles.pillRow}>
+            {isQuickEntryPass(visitor) ? (
+              <Pill
+                tone="warning"
+                label={
+                  visitor.deliveryPlatform
+                    ? deliveryPlatformLabel(visitor.deliveryPlatform)
+                    : passKindLabel(visitor.passKind ?? 'DELIVERY')
+                }
+              />
+            ) : null}
             <Pill tone="neutral" label={visitTypeLabel(visitor.visitType)} />
             {visitor.vehiclePlate ? <Pill tone="info" label={visitor.vehiclePlate} /> : null}
             {visitor.overnight ? <Pill tone="warning" label="Overnight" /> : null}
@@ -463,6 +481,10 @@ const styles = StyleSheet.create({
   },
   visitorCard: {
     padding: spacing.md,
+  },
+  deliveryCard: {
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    backgroundColor: 'rgba(255, 251, 235, 0.85)',
   },
   soonCard: {
     borderColor: 'rgba(255,90,95,0.32)',

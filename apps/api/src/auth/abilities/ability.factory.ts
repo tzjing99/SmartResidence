@@ -61,7 +61,10 @@ export type Subject =
   | 'PatrolScan'
   | 'Parcel'
   | 'FormTemplate'
-  | 'FormSubmission';
+  | 'FormSubmission'
+  | 'DocumentFolder'
+  | 'Document'
+  | 'DocumentVersion';
 
 export type Action =
   | 'manage'
@@ -176,6 +179,10 @@ export class AbilityFactory {
         can('manage', 'Parcel', { condoId: scope.condoId ?? '' });
         can('manage', 'FormTemplate', { condoId: scope.condoId ?? '' });
         can('manage', 'FormSubmission', { condoId: scope.condoId ?? '' });
+        can('manage', 'DocumentFolder', { condoId: scope.condoId ?? '' });
+        can('manage', 'Document', { condoId: scope.condoId ?? '' });
+        can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
+        can('manage', 'Notification', { condoId: scope.condoId ?? '' });
         can('read', 'AuditLog', { condoId: scope.condoId ?? '' });
         can('read', 'User');
         can('update', 'User');
@@ -224,6 +231,10 @@ export class AbilityFactory {
         can('read', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('approve', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('reject', 'FormSubmission', { condoId: scope.condoId ?? '' });
+        can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
+        can('read', 'Document', { condoId: scope.condoId ?? '' });
+        can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
+        can('read', 'Notification', { condoId: scope.condoId ?? '' });
         return;
 
       case RoleId.SECURITY_GUARD:
@@ -274,6 +285,9 @@ export class AbilityFactory {
         can('read', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('update', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('cancel', 'FormSubmission', { condoId: scope.condoId ?? '' });
+        can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
+        can('read', 'Document', { condoId: scope.condoId ?? '' });
+        can('read', 'DocumentVersion', { condoId: scope.condoId ?? '' });
         can('manage', 'Tenancy', { unitId: scope.unitId ?? '' });
         can('manage', 'HouseholdMember', { unitId: scope.unitId ?? '' });
         can('invite', 'User');
@@ -321,6 +335,9 @@ export class AbilityFactory {
         can('read', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('update', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('cancel', 'FormSubmission', { condoId: scope.condoId ?? '' });
+        can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
+        can('read', 'Document', { condoId: scope.condoId ?? '' });
+        can('read', 'DocumentVersion', { condoId: scope.condoId ?? '' });
         can('read', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'Thread');
         can('resolve', 'Thread', { unitId: scope.unitId ?? '' });
@@ -350,6 +367,9 @@ export class AbilityFactory {
         can('read', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('update', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('cancel', 'FormSubmission', { condoId: scope.condoId ?? '' });
+        can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
+        can('read', 'Document', { condoId: scope.condoId ?? '' });
+        can('read', 'DocumentVersion', { condoId: scope.condoId ?? '' });
         can('read', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'Thread');
         can('resolve', 'Thread', { unitId: scope.unitId ?? '' });

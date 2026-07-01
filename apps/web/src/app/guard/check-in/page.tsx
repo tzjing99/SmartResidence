@@ -3,7 +3,12 @@
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import type { RecurringPassVerify } from '@smartresidence/shared-types';
-import { isVisitorBlacklistError } from '@smartresidence/shared-types';
+import {
+  deliveryPlatformLabel,
+  isQuickEntryPass,
+  isVisitorBlacklistError,
+  passKindLabel,
+} from '@smartresidence/shared-types';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import { Ban } from 'lucide-react';
 import { useState } from 'react';
@@ -14,6 +19,8 @@ type VerifiedVisitor = {
   name: string;
   accessCode?: string | null;
   visitType?: string;
+  passKind?: 'STANDARD' | 'DELIVERY' | 'E_HAILING';
+  deliveryPlatform?: string | null;
   entryMode?: 'WALK_IN' | 'DRIVE_IN';
   vehiclePlate?: string | null;
   unit?: { identifier?: string; block?: { name?: string } };
@@ -139,6 +146,16 @@ export default function GuardCheckInPage() {
         <Card className="flex flex-col gap-4">
           <div>
             <p className="font-semibold text-lg">{displayName(pass)}</p>
+            {!isRecurring && isQuickEntryPass(pass as VerifiedVisitor) ? (
+              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-800 mt-1">
+                {(() => {
+                  const v = pass as VerifiedVisitor;
+                  return v.deliveryPlatform
+                    ? deliveryPlatformLabel(v.deliveryPlatform)
+                    : passKindLabel(v.passKind ?? 'DELIVERY');
+                })()}
+              </span>
+            ) : null}
             <p className="text-sm sr-muted">Unit: {unitLabel(pass)}</p>
             {isRecurring ? (
               <p className="text-xs sr-muted mt-1">

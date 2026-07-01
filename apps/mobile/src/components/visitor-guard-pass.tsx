@@ -1,7 +1,14 @@
 import type {
+  DeliveryPlatform,
   VisitorEntryMode,
+  VisitorPassKind,
   VisitorStatus,
   VisitorVisitType,
+} from '@smartresidence/shared-types';
+import {
+  deliveryPlatformLabel,
+  isQuickEntryPass,
+  passKindLabel,
 } from '@smartresidence/shared-types';
 import { Button, Card, Pill, palette, radius } from '@smartresidence/ui-mobile';
 import { Text, View } from 'react-native';
@@ -11,6 +18,8 @@ export type GuardVerifiedVisitor = {
   accessCode?: string | null;
   status?: VisitorStatus | string;
   visitType?: VisitorVisitType | string;
+  passKind?: VisitorPassKind | string;
+  deliveryPlatform?: DeliveryPlatform | string | null;
   entryMode?: VisitorEntryMode;
   vehiclePlate?: string | null;
   unit?: { identifier?: string; block?: { name?: string } };
@@ -63,6 +72,18 @@ export function VisitorGuardPassCard({
   return (
     <Card>
       <Text style={{ fontSize: 20, fontWeight: '700' }}>{visitor.name}</Text>
+      {isQuickEntryPass(visitor) ? (
+        <View style={{ alignSelf: 'flex-start', marginTop: 8 }}>
+          <Pill
+            tone="warning"
+            label={
+              visitor.deliveryPlatform
+                ? deliveryPlatformLabel(visitor.deliveryPlatform)
+                : passKindLabel(visitor.passKind ?? 'DELIVERY')
+            }
+          />
+        </View>
+      ) : null}
       <Text style={{ color: palette.mutedLight, fontSize: 14, marginTop: 4 }}>
         Unit: {unitLabel(visitor)}
       </Text>

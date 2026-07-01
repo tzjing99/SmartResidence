@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { validateEInvoiceDocument } from '../document-builder';
 import type {
   MyInvoisCancelResult,
+  MyInvoisCredentials,
   MyInvoisProvider,
   MyInvoisStatusResult,
   MyInvoisSubmitContext,
@@ -70,7 +71,11 @@ export class SandboxMyInvoisProvider implements MyInvoisProvider {
     };
   }
 
-  async getStatus(uuid: string, environment: string): Promise<MyInvoisStatusResult> {
+  async getStatus(
+    uuid: string,
+    environment: string,
+    _credentials?: MyInvoisCredentials,
+  ): Promise<MyInvoisStatusResult> {
     // The sandbox has no server state; a submitted document is considered VALID.
     return {
       uuid,
@@ -79,7 +84,12 @@ export class SandboxMyInvoisProvider implements MyInvoisProvider {
     };
   }
 
-  async cancel(uuid: string, reason: string, _environment: string): Promise<MyInvoisCancelResult> {
+  async cancel(
+    uuid: string,
+    reason: string,
+    _environment: string,
+    _credentials?: MyInvoisCredentials,
+  ): Promise<MyInvoisCancelResult> {
     this.logger.log(`[SANDBOX] Cancelled e-invoice ${uuid}: ${reason || 'no reason'}`);
     return { uuid, status: 'CANCELLED' };
   }

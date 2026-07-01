@@ -2,22 +2,26 @@ import { BillingModule } from '@/billing/billing.module';
 import { Module } from '@nestjs/common';
 import { EInvoiceController } from './einvoice.controller';
 import { EInvoiceService } from './einvoice.service';
+import { DelegatingMyInvoisProvider } from './providers/delegating-myinvois.provider';
 import { MYINVOIS_PROVIDER } from './providers/myinvois-provider.interface';
+import { ProductionMyInvoisProvider } from './providers/production-myinvois.provider';
 import { SandboxMyInvoisProvider } from './providers/sandbox-myinvois.provider';
 
 /**
- * LHDN MyInvois e-invoicing. The provider seam ({@link MYINVOIS_PROVIDER}) binds
- * to the network-free {@link SandboxMyInvoisProvider} by default; swap the
- * `useClass` for a production MyInvois client (OAuth2 + document API) to go live.
- * `SecretEncryptionService` is reused from BillingModule to encrypt LHDN API
- * credentials at rest.
+ * LHDN MyInvois e-invoicing. {@link MYINVOIS_PROVIDER} resolves to
+ * {@link DelegatingMyInvoisProvider}, which routes per condo to the network-free
+ * {@link SandboxMyInvoisProvider} or {@link ProductionMyInvoisProvider} based on
+ * `environment` and stored API credentials. `SecretEncryptionService` is reused
+ * from BillingModule to encrypt LHDN credentials at rest.
  */
 @Module({
   imports: [BillingModule],
   providers: [
     EInvoiceService,
     SandboxMyInvoisProvider,
-    { provide: MYINVOIS_PROVIDER, useExisting: SandboxMyInvoisProvider },
+    ProductionMyInvoisProvider,
+    DelegatingMyInvoisProvider,
+    { provide: MYINVOIS_PROVIDER, useExisting: DelegatingMyInvoisProvider },
   ],
   controllers: [EInvoiceController],
   exports: [EInvoiceService],

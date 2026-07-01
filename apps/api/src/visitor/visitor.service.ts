@@ -10,17 +10,20 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AuditAction,
+  DeliveryPlatform,
   NotificationKind,
   OwnershipStatus,
   type Prisma,
   RoleId,
   TenancyStatus,
   VisitorEntryMode,
+  VisitorPassKind,
   VisitorPurpose,
   VisitorStatus,
   VisitorVisitType,
 } from '@prisma/client';
 import {
+  defaultQuickEntryPassName,
   formatUnitLabel,
   isValidMalaysiaPhone,
   normalizeMalaysiaPhone,
@@ -37,6 +40,7 @@ import {
 import { condoDayBounds } from './condo-timezone';
 import type {
   CheckInVisitorDto,
+  CreateDeliveryPassDto,
   CreateFavouriteVisitorDto,
   CreateVisitorDto,
   CreateWalkInOfficeDto,
@@ -72,8 +76,11 @@ import {
   walkInApprovalMinutes,
 } from './visitor-settings';
 import {
+  DEFAULT_DELIVERY_DURATION_MINS,
+  DEFAULT_E_HAILING_DURATION_MINS,
   DEFAULT_VISIT_DURATION_MINS,
   HISTORY_VISITOR_STATUSES,
+  QUICK_ENTRY_EXPIRY_BUFFER_MINS,
   UPCOMING_VISITOR_STATUSES,
   type VisitorAdminFilter,
   type VisitorListView,
@@ -134,6 +141,20 @@ export class VisitorService {
   ): Date {
     const windowMins = durationMins ?? DEFAULT_VISIT_DURATION_MINS;
     return this.addMinutes(expectedAt, windowMins + preRegExpiryBufferMins(settings));
+  }
+
+  private computeQuickEntryExpiresAt(expectedAt: Date, durationMins: number): Date {
+    return this.addMinutes(expectedAt, durationMins + QUICK_ENTRY_EXPIRY_BUFFER_MINS);
+  }
+
+  private quickEntryDurationMins(
+    passKind: Exclude<VisitorPassKind, 'STANDARD'>,
+    requested?: number,
+  ): number {
+    if (requested != null) return requested;
+    return passKind === VisitorPassKind.E_HAILING
+      ? DEFAULT_E_HAILING_DURATION_MINS
+      : DEFAULT_DELIVERY_DURATION_MINS;
   }
 
   private async unitResidentUserIds(unitId: string): Promise<string[]> {
@@ -478,6 +499,64 @@ export class VisitorService {
         data: pass,
       });
     }
+
+    this.events.emit('visitor.created', { visitorId: updated.id, condoId: updated.condoId });
+    return updated;
+  }
+
+  /** Quick-entry pass for food delivery riders or e-hailing drivers — shorter validity, no phone required. */
+  async createDeliveryPass(user: AuthenticatedUser, dto: CreateDeliveryPassDto) {
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: dto.unitId },
+      include: { condo: true },
+    });
+    if (!unit) throw new NotFoundException('Unit not found');
+    if (!this.userCanManageUnit(user, unit.id)) {
+      throw new ForbiddenException('You can only create passes for your own units');
+    }
+
+    const passKind = dto.passKind as Exclude<VisitorPassKind, 'STANDARD'>;
+    const duration = this.quickEntryDurationMins(passKind, dto.expectedDurationMins);
+    const plate = dto.vehiclePlate?.trim() || null;
+    const entryMode = plate ? VisitorEntryMode.DRIVE_IN : VisitorEntryMode.WALK_IN;
+    const name =
+      dto.name?.trim() || defaultQuickEntryPassName(passKind, dto.platform as DeliveryPlatform);
+    const now = new Date();
+    const accessCode = await this.uniqueAccessCode(unit.condoId);
+    const expiresAt = this.computeQuickEntryExpiresAt(dto.expectedAt, duration);
+
+    const visitor = await this.prisma.visitor.create({
+      data: {
+        condoId: unit.condoId,
+        visitType: VisitorVisitType.PRE_REG,
+        passKind,
+        deliveryPlatform: dto.platform,
+        unitId: unit.id,
+        hostUserId: user.id,
+        name,
+        phone: null,
+        phoneCountryCode: '+60',
+        entryMode,
+        vehiclePlate: plate,
+        purpose:
+          passKind === VisitorPassKind.DELIVERY ? VisitorPurpose.DELIVERY : VisitorPurpose.VISITOR,
+        overnight: false,
+        expectedAt: dto.expectedAt,
+        expectedDurationMins: duration,
+        status: VisitorStatus.APPROVED,
+        approvedByUserId: user.id,
+        approvedAt: now,
+        expiresAt,
+        accessCode,
+        qrPayload: buildQrPayload(unit.condoId, 'pending', accessCode),
+        qrCode: null,
+      },
+    });
+
+    const updated = await this.prisma.visitor.update({
+      where: { id: visitor.id },
+      data: this.passFields(unit.condoId, visitor.id, accessCode),
+    });
 
     this.events.emit('visitor.created', { visitorId: updated.id, condoId: updated.condoId });
     return updated;
@@ -1435,6 +1514,8 @@ export class VisitorService {
       expectedAt: visitor.expectedAt,
       vehiclePlate: visitor.vehiclePlate,
       visitType: visitor.visitType,
+      passKind: visitor.passKind,
+      deliveryPlatform: visitor.deliveryPlatform,
       status: visitor.status,
       unitLabel: this.formatVisitorUnitLabel(visitor),
       overnight: visitor.overnight ?? false,
@@ -1462,6 +1543,8 @@ export class VisitorService {
       checkedInAt: this.activeCheckInAt(visitor),
       unitLabel: this.formatVisitorUnitLabel(visitor),
       visitType: visitor.visitType,
+      passKind: visitor.passKind,
+      deliveryPlatform: visitor.deliveryPlatform,
       overnight: visitor.overnight ?? false,
       canCheckOut:
         visitor.visitType !== VisitorVisitType.WALKIN_UNIT &&

@@ -9,14 +9,16 @@ import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useSignOut } from '@/lib/use-sign-out';
 import { useMyCondos, useSetupStatus } from '@smartresidence/api-client';
-import { isSetupWizardPath, ROLE_LABEL } from '@smartresidence/shared-types';
+import { ROLE_LABEL } from '@smartresidence/shared-types';
 import {
+  AlertTriangle,
   BarChart3,
   Building2,
   CalendarClock,
   CalendarDays,
   ClipboardList,
   CreditCard,
+  FileText,
   HelpCircle,
   Landmark,
   LifeBuoy,
@@ -28,12 +30,12 @@ import {
   Settings2,
   ShieldAlert,
   Siren,
+  Store,
   Vote,
   Wallet,
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
 /**
@@ -132,13 +134,17 @@ const NAV: Array<{
     icon: ClipboardList,
     can: { action: 'read', subject: 'FormSubmission' },
   },
+  {
+    href: '/admin/documents',
+    label: 'Documents',
+    icon: FileText,
+    can: { action: 'manage', subject: 'Document' },
+  },
   { href: '/admin/faq', label: 'FAQ', icon: HelpCircle, can: { action: 'manage', subject: 'Faq' } },
   { href: '/admin/settings', label: 'Settings', icon: Settings2 },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const { role, abilities, ready } = useRoleGuard('admin');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -148,17 +154,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   // point until the building is marked configured.
   const canManageCondo = hasAbility(abilities, 'manage', 'Condo');
   const setup = useSetupStatus(api, canManageCondo ? (condo?.id ?? null) : null);
-  const setupIncomplete = Boolean(setup.data && !setup.data.completedAt);
+  const setupIncomplete = Boolean(setup.data && !setup.data.completedAt && !setup.data.dismissedAt);
 
-  // Unconfigured buildings: send admins to the wizard on login and block other
-  // admin pages until they finish or explicitly defer (dismiss).
-  React.useEffect(() => {
-    if (!ready || !canManageCondo || setup.isLoading || !setup.data || !condo?.id) return;
-    const { completedAt, dismissedAt } = setup.data;
-    if (completedAt || dismissedAt) return;
-    if (isSetupWizardPath(pathname)) return;
-    router.replace('/admin/setup');
-  }, [ready, canManageCondo, setup.isLoading, setup.data, condo?.id, pathname, router]);
+  // Incomplete setup is surfaced via the dashboard banner and "Finish setup" nav item —
+  // no forced redirect so admins can reach settings, invoices, and dismiss the wizard.
 
   const navItems = React.useMemo(() => {
     const items = NAV.filter(
@@ -219,6 +218,18 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <NotificationBell />
         </header>
         <div className="p-4 sm:p-6 md:p-10 pb-20 md:pb-10">
+          {canManageCondo && setup.isError ? (
+            <div
+              role="alert"
+              className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50/80 dark:border-amber-900/40 dark:bg-amber-950/30 px-4 py-3 text-sm"
+            >
+              <AlertTriangle className="size-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <p>
+                Could not load setup status. Some reminders may be missing until the API is
+                available again ({'http://localhost:4000'}).
+              </p>
+            </div>
+          ) : null}
           <PageFade>{children}</PageFade>
         </div>
       </main>

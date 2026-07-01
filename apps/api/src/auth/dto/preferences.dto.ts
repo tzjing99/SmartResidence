@@ -27,6 +27,14 @@ export class UpdateUserPreferencesDto {
   @IsBoolean()
   emailNotifications?: boolean;
 
+  @ApiPropertyOptional({
+    description:
+      'Opt in to WhatsApp on the verified account phone (parcel, visitor, billing alerts).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  whatsappNotifications?: boolean;
+
   @ApiPropertyOptional({ type: QuietHoursDto })
   @IsOptional()
   @ValidateNested()

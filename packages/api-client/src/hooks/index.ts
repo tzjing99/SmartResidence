@@ -9,6 +9,7 @@ import type {
   CreateDefectInput,
   CreateDefectIssueInput,
   CreateDefectSpaceTypeInput,
+  CreateDeliveryPassInput,
   CreateFacilityInput,
   CreateFavouriteVisitorInput,
   CreateHandoverReportInput,
@@ -88,6 +89,7 @@ export const queryKeys = {
   setupStatus: (condoId: string) => ['setup', 'status', condoId] as const,
   gateways: (condoId: string) => ['gateways', condoId] as const,
   eInvoiceConfig: (condoId: string) => ['einvoice', 'config', condoId] as const,
+  whatsAppConfig: (condoId: string) => ['notifications', 'whatsapp', condoId] as const,
   eInvoice: (invoiceId: string) => ['einvoice', 'invoice', invoiceId] as const,
   mcpServers: (condoId: string) => ['integrations', 'mcp', condoId] as const,
   payableMethods: (condoId: string) => ['payment-methods', condoId] as const,
@@ -153,6 +155,12 @@ export const queryKeys = {
   condoFormSubmissions: (condoId: string, params?: Record<string, unknown>) =>
     ['forms', 'submissions', condoId, params ?? {}] as const,
   formSubmission: (id: string) => ['forms', 'submission', id] as const,
+  documentFolders: (condoId: string, includeInactive?: boolean) =>
+    ['documents', 'folders', condoId, includeInactive ? 'all' : 'active'] as const,
+  condoDocuments: (condoId: string, params?: { folderId?: string; includeInactive?: boolean }) =>
+    ['documents', 'condo', condoId, params ?? {}] as const,
+  document: (id: string) => ['documents', 'item', id] as const,
+  documentVersions: (documentId: string) => ['documents', documentId, 'versions'] as const,
 };
 
 function syncThreadAfterMutation(
@@ -241,6 +249,16 @@ export function useCreateVisitor(api: ApiClient) {
   });
 }
 
+export function useCreateDeliveryPass(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateDeliveryPassInput) => api.createDeliveryPass(input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['visitors', 'unit', vars.unitId] });
+    },
+  });
+}
+
 export function useOvernightPreview(
   api: ApiClient,
   condoId: string | null,
@@ -286,7 +304,6 @@ export function useApproveVisitor(api: ApiClient) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['visitors'] }),
   });
 }
-
 
 export function useGuardApproveWalkIn(api: ApiClient) {
   const qc = useQueryClient();
@@ -872,6 +889,36 @@ export function useCancelEInvoice(api: ApiClient) {
   });
 }
 
+// -- WhatsApp notifications -----------------------------------------
+
+export function useWhatsAppConfig(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.whatsAppConfig(condoId) : ['notifications', 'whatsapp', null],
+    queryFn: () => (condoId ? api.whatsAppConfig(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useUpdateWhatsAppConfig(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      input: import('@smartresidence/shared-types').UpdateWhatsAppConfigInput;
+    }) => api.updateWhatsAppConfig(vars.condoId, vars.input),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.whatsAppConfig(vars.condoId) });
+    },
+  });
+}
+
+export function useTestWhatsAppSend(api: ApiClient) {
+  return useMutation({
+    mutationFn: (vars: { condoId: string; phone: string }) =>
+      api.testWhatsAppSend(vars.condoId, vars.phone),
+  });
+}
+
 // -- MCP integrations -----------------------------------------------
 
 export function useMcpServers(api: ApiClient, condoId: string | null) {
@@ -1422,8 +1469,13 @@ export function useCondoFormSubmissions(
   params: { status?: string; templateId?: string } = {},
 ) {
   return useQuery({
-    queryKey: condoId ? queryKeys.condoFormSubmissions(condoId, params) : ['forms', 'submissions', null],
-    queryFn: () => (condoId ? api.condoFormSubmissions(condoId, params) : Promise.resolve({ items: [], total: 0 })),
+    queryKey: condoId
+      ? queryKeys.condoFormSubmissions(condoId, params)
+      : ['forms', 'submissions', null],
+    queryFn: () =>
+      condoId
+        ? api.condoFormSubmissions(condoId, params)
+        : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId),
   });
 }
@@ -1440,8 +1492,10 @@ export function useCreateFormSubmission(api: ApiClient) {
 export function useUpdateFormSubmission(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: string; data: import('@smartresidence/shared-types').UpdateFormSubmissionInput }) =>
-      api.updateFormSubmission(vars.id, vars.data),
+    mutationFn: (vars: {
+      id: string;
+      data: import('@smartresidence/shared-types').UpdateFormSubmissionInput;
+    }) => api.updateFormSubmission(vars.id, vars.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
   });
 }
@@ -1471,6 +1525,85 @@ export function useRejectFormSubmission(api: ApiClient) {
   });
 }
 
+// Documents vault ----------------------------------------------------
+
+export function useDocumentFolders(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { includeInactive?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.documentFolders(condoId, opts.includeInactive)
+      : ['documents', 'folders', null],
+    queryFn: () =>
+      condoId
+        ? api.documentFoldersForCondo(condoId, { includeInactive: opts.includeInactive })
+        : Promise.resolve([]),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useCondoDocuments(
+  api: ApiClient,
+  condoId: string | null,
+  params: { folderId?: string; includeInactive?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoDocuments(condoId, params) : ['documents', 'condo', null],
+    queryFn: () => (condoId ? api.condoDocuments(condoId, params) : Promise.resolve([])),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useDocumentVersions(api: ApiClient, documentId: string | null) {
+  return useQuery({
+    queryKey: documentId ? queryKeys.documentVersions(documentId) : ['documents', null, 'versions'],
+    queryFn: () => (documentId ? api.documentVersions(documentId) : Promise.resolve([])),
+    enabled: Boolean(documentId),
+  });
+}
+
+export function useCreateDocumentFolder(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').CreateDocumentFolderInput) =>
+      api.createDocumentFolder(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
+  });
+}
+
+export function useUpdateDocumentFolder(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      id: string;
+      data: import('@smartresidence/shared-types').UpdateDocumentFolderInput;
+    }) => api.updateDocumentFolder(vars.id, vars.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
+  });
+}
+
+export function useCreateDocument(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: import('@smartresidence/shared-types').CreateDocumentInput) =>
+      api.createDocument(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
+  });
+}
+
+export function usePublishDocumentVersion(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      documentId: string;
+      input: import('@smartresidence/shared-types').PublishDocumentVersionInput;
+    }) => api.publishDocumentVersion(vars.documentId, vars.input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
+  });
+}
+
 export function useCreateFormTemplate(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
@@ -1483,8 +1616,10 @@ export function useCreateFormTemplate(api: ApiClient) {
 export function useUpdateFormTemplate(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { id: string; data: import('@smartresidence/shared-types').UpdateFormTemplateInput }) =>
-      api.updateFormTemplate(vars.id, vars.data),
+    mutationFn: (vars: {
+      id: string;
+      data: import('@smartresidence/shared-types').UpdateFormTemplateInput;
+    }) => api.updateFormTemplate(vars.id, vars.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['forms'] }),
   });
 }
@@ -2506,7 +2641,9 @@ export function useCondoParcels(
   return useQuery({
     queryKey: condoId ? queryKeys.condoParcels(condoId, params) : ['parcels', 'condo', null],
     queryFn: () =>
-      condoId ? api.parcelsForCondo(condoId, params) : Promise.resolve({ items: [], total: 0, limit: 0, offset: 0 }),
+      condoId
+        ? api.parcelsForCondo(condoId, params)
+        : Promise.resolve({ items: [], total: 0, limit: 0, offset: 0 }),
     enabled: Boolean(condoId),
     staleTime: LIST_VIEW_MS,
   });
@@ -2520,7 +2657,9 @@ export function useUnitParcels(
   return useQuery({
     queryKey: unitId ? queryKeys.unitParcels(unitId, params) : ['parcels', 'unit', null],
     queryFn: () =>
-      unitId ? api.parcelsForUnit(unitId, params) : Promise.resolve({ items: [], total: 0, limit: 0, offset: 0 }),
+      unitId
+        ? api.parcelsForUnit(unitId, params)
+        : Promise.resolve({ items: [], total: 0, limit: 0, offset: 0 }),
     enabled: Boolean(unitId),
     staleTime: LIST_VIEW_MS,
   });

@@ -18,6 +18,8 @@ export * from './mcp';
 export * from './upload';
 export * from './setup';
 export * from './forms';
+export * from './documents';
+export * from './whatsapp';
 
 export const APP_NAME = 'SmartResidence';
 export const APP_DEEPLINK_SCHEME = 'smartresidence';

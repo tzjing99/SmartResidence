@@ -33,6 +33,9 @@ import type {
   CreateDefectInput,
   CreateDefectIssueInput,
   CreateDefectSpaceTypeInput,
+  CreateDeliveryPassInput,
+  CreateDocumentFolderInput,
+  CreateDocumentInput,
   CreateFacilityInput,
   CreateFavouriteVisitorInput,
   CreateFormSubmissionInput,
@@ -50,6 +53,10 @@ import type {
   DefectReportSummary,
   DefectSpaceTypeTree,
   Deposit,
+  Document,
+  DocumentDownloadUrl,
+  DocumentFolder,
+  DocumentVersion,
   EInvoiceConfigView,
   EInvoiceView,
   Facility,
@@ -74,6 +81,7 @@ import type {
   PaymentIssue,
   Poll,
   PollMyVote,
+  PublishDocumentVersionInput,
   RaiseSosInput,
   Receipt,
   ReceiptTemplateConfig,
@@ -94,6 +102,8 @@ import type {
   UpdateDefectElementInput,
   UpdateDefectIssueInput,
   UpdateDefectSpaceTypeInput,
+  UpdateDocumentFolderInput,
+  UpdateDocumentInput,
   UpdateEInvoiceConfigInput,
   UpdateFacilityInput,
   UpdateFavouriteVisitorInput,
@@ -210,7 +220,10 @@ export interface SlaSettingsResponse {
 
 export interface UserPreferences {
   emailNotifications: boolean;
+  whatsappNotifications: boolean;
   quietHours: { enabled: boolean; start: string; end: string };
+  /** True when the account has a verified phone suitable for WhatsApp opt-in. */
+  whatsappEligible?: boolean;
 }
 
 export interface NotificationItem {
@@ -493,6 +506,9 @@ export class ApiClient {
   // Visitors ---------------------------------------------------------
   createVisitor(input: CreateVisitorInput) {
     return this.request<Visitor>('POST', '/api/visitors', input);
+  }
+  createDeliveryPass(input: CreateDeliveryPassInput) {
+    return this.request<Visitor>('POST', '/api/visitors/delivery-pass', input);
   }
   overnightPreview(condoId: string, expectedAt: Date) {
     const qs = new URLSearchParams({ expectedAt: expectedAt.toISOString() });
@@ -1084,6 +1100,31 @@ export class ApiClient {
     return this.request<EInvoiceView>('POST', `/api/einvoice/invoice/${invoiceId}/cancel`, input);
   }
 
+  // WhatsApp notifications -------------------------------------------
+  whatsAppConfig(condoId: string) {
+    return this.request<import('@smartresidence/shared-types').WhatsAppConfigView>(
+      'GET',
+      `/api/notifications/condo/${condoId}/whatsapp/config`,
+    );
+  }
+  updateWhatsAppConfig(
+    condoId: string,
+    input: import('@smartresidence/shared-types').UpdateWhatsAppConfigInput,
+  ) {
+    return this.request<import('@smartresidence/shared-types').WhatsAppConfigView>(
+      'PUT',
+      `/api/notifications/condo/${condoId}/whatsapp/config`,
+      input,
+    );
+  }
+  testWhatsAppSend(condoId: string, phone: string) {
+    return this.request<import('@smartresidence/shared-types').WhatsAppTestSendResult>(
+      'POST',
+      `/api/notifications/condo/${condoId}/whatsapp/test`,
+      { phone },
+    );
+  }
+
   // MCP integrations -------------------------------------------------
   listMcpServers(condoId: string) {
     return this.request<McpServerConnectionView[]>(
@@ -1393,6 +1434,55 @@ export class ApiClient {
   }
   rejectFormSubmission(id: string, body: RejectFormSubmissionInput = {}) {
     return this.request<FormSubmission>('POST', `/api/form-submissions/${id}/reject`, body);
+  }
+
+  // Documents vault ---------------------------------------------------
+  documentFoldersForCondo(condoId: string, params: { includeInactive?: boolean } = {}) {
+    const qs = params.includeInactive ? '?includeInactive=true' : '';
+    return this.request<DocumentFolder[]>('GET', `/api/document-folders/condo/${condoId}${qs}`);
+  }
+  createDocumentFolder(input: CreateDocumentFolderInput) {
+    return this.request<DocumentFolder>('POST', '/api/document-folders', input);
+  }
+  updateDocumentFolder(id: string, body: UpdateDocumentFolderInput) {
+    return this.request<DocumentFolder>('PATCH', `/api/document-folders/${id}`, body);
+  }
+  deleteDocumentFolder(id: string) {
+    return this.request<{ ok: boolean; deactivated?: boolean }>(
+      'DELETE',
+      `/api/document-folders/${id}`,
+    );
+  }
+  condoDocuments(condoId: string, params: { folderId?: string; includeInactive?: boolean } = {}) {
+    const qs = new URLSearchParams();
+    if (params.folderId) qs.set('folderId', params.folderId);
+    if (params.includeInactive) qs.set('includeInactive', 'true');
+    const query = qs.toString();
+    return this.request<Document[]>(
+      'GET',
+      `/api/documents/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
+  }
+  document(id: string) {
+    return this.request<Document>('GET', `/api/documents/${id}`);
+  }
+  createDocument(input: CreateDocumentInput) {
+    return this.request<Document>('POST', '/api/documents', input);
+  }
+  updateDocument(id: string, body: UpdateDocumentInput) {
+    return this.request<Document>('PATCH', `/api/documents/${id}`, body);
+  }
+  deleteDocument(id: string) {
+    return this.request<{ ok: boolean }>('DELETE', `/api/documents/${id}`);
+  }
+  documentVersions(documentId: string) {
+    return this.request<DocumentVersion[]>('GET', `/api/documents/${documentId}/versions`);
+  }
+  publishDocumentVersion(documentId: string, input: PublishDocumentVersionInput) {
+    return this.request<DocumentVersion>('POST', `/api/documents/${documentId}/versions`, input);
+  }
+  documentVersionDownloadUrl(versionId: string) {
+    return this.request<DocumentDownloadUrl>('GET', `/api/document-versions/${versionId}/download`);
   }
 
   // Guard safety: panic / SOS -----------------------------------------

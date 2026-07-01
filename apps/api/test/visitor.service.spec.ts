@@ -138,6 +138,85 @@ describe('VisitorService', () => {
     expect(events.emit).toHaveBeenCalledWith('visitor.created', expect.any(Object));
   });
 
+  it('creates a delivery pass with shorter validity and no phone', async () => {
+    const { svc, prisma, events } = service();
+    const expectedAt = new Date('2026-06-10T12:00:00Z');
+    prisma.unit.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: { id: 'c1', settings: {} },
+    });
+    prisma.visitor.findUnique.mockResolvedValue(null);
+    prisma.visitor.create.mockResolvedValueOnce({ id: 'v-delivery', condoId: 'c1' });
+    prisma.visitor.update.mockResolvedValueOnce({
+      id: 'v-delivery',
+      condoId: 'c1',
+      passKind: 'DELIVERY',
+      deliveryPlatform: 'GRABFOOD',
+      accessCode: 'R3F9K2',
+      status: 'APPROVED',
+    });
+
+    const v = await svc.createDeliveryPass(host, {
+      unitId: 'u1',
+      passKind: 'DELIVERY',
+      platform: 'GRABFOOD',
+      expectedAt,
+    } as any);
+
+    expect(v.passKind).toBe('DELIVERY');
+    expect(prisma.visitor.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          passKind: 'DELIVERY',
+          deliveryPlatform: 'GRABFOOD',
+          phone: null,
+          name: 'GrabFood delivery',
+          expectedDurationMins: 120,
+          expiresAt: new Date(expectedAt.getTime() + (120 + 30) * 60_000),
+        }),
+      }),
+    );
+    expect(events.emit).toHaveBeenCalledWith('visitor.created', expect.any(Object));
+  });
+
+  it('creates an e-hailing pass with optional plate as drive-in', async () => {
+    const { svc, prisma } = service();
+    const expectedAt = new Date('2026-06-10T14:00:00Z');
+    prisma.unit.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: { id: 'c1', settings: {} },
+    });
+    prisma.visitor.findUnique.mockResolvedValue(null);
+    prisma.visitor.create.mockResolvedValueOnce({ id: 'v-ride', condoId: 'c1' });
+    prisma.visitor.update.mockResolvedValueOnce({
+      id: 'v-ride',
+      passKind: 'E_HAILING',
+      deliveryPlatform: 'GRAB',
+    });
+
+    await svc.createDeliveryPass(host, {
+      unitId: 'u1',
+      passKind: 'E_HAILING',
+      platform: 'GRAB',
+      vehiclePlate: 'VAB 1234',
+      expectedAt,
+    } as any);
+
+    expect(prisma.visitor.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          passKind: 'E_HAILING',
+          entryMode: 'DRIVE_IN',
+          vehiclePlate: 'VAB 1234',
+          expectedDurationMins: 180,
+          expiresAt: new Date(expectedAt.getTime() + (180 + 30) * 60_000),
+        }),
+      }),
+    );
+  });
+
   it('normalizes pre-reg phone to E.164 on create', async () => {
     const { svc, prisma } = service();
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });

@@ -11,7 +11,12 @@ import type {
   VisitorStatus,
   VisitorVisitType,
 } from '@smartresidence/shared-types';
-import { guardCanAcknowledgeWalkIn } from '@smartresidence/shared-types';
+import {
+  deliveryPlatformLabel,
+  guardCanAcknowledgeWalkIn,
+  isQuickEntryPass,
+  passKindLabel,
+} from '@smartresidence/shared-types';
 import { Badge, Button, cn } from '@smartresidence/ui-web';
 import * as React from 'react';
 
@@ -92,6 +97,8 @@ export function GuardExpectedVisitorCard({
     | 'vehiclePlate'
     | 'overnight'
     | 'status'
+    | 'passKind'
+    | 'deliveryPlatform'
   >;
   variant: GuardExpectedCardVariant;
   onAcknowledgeWalkIn?: (visitorId: string) => void;
@@ -126,6 +133,7 @@ export function GuardExpectedVisitorCard({
     <article
       className={cn(
         'rounded-2xl border p-4 transition-colors',
+        isQuickEntryPass(visitor) && 'border-amber-500/35 bg-amber-500/[0.04]',
         variant === 'no_show'
           ? 'border-[rgb(var(--sr-border))]/60 bg-[rgb(var(--sr-surface))]/60 opacity-90'
           : 'border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-surface))]',
@@ -150,6 +158,13 @@ export function GuardExpectedVisitorCard({
               />
             ) : null}
             <h3 className="font-semibold truncate">{visitor.name}</h3>
+            {isQuickEntryPass(visitor) ? (
+              <Badge tone="warning" className="shrink-0">
+                {visitor.deliveryPlatform
+                  ? deliveryPlatformLabel(visitor.deliveryPlatform)
+                  : passKindLabel(visitor.passKind ?? 'DELIVERY')}
+              </Badge>
+            ) : null}
             {visitor.overnight ? (
               <Badge tone="neutral" className="shrink-0">
                 {t('visitors.guard.overnightBadge')}

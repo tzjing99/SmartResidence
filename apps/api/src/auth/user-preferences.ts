@@ -8,6 +8,8 @@ export interface QuietHoursSettings {
 export interface UserPreferences {
   /** E1: thread notifications via email (default off; in-app + push always on). */
   emailNotifications: boolean;
+  /** Opt in to transactional WhatsApp alerts on the verified account phone. */
+  whatsappNotifications: boolean;
   /** E5: suppress push during quiet hours (in-app still delivered). */
   quietHours: QuietHoursSettings;
 }
@@ -20,6 +22,7 @@ const DEFAULT_QUIET: QuietHoursSettings = {
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   emailNotifications: false,
+  whatsappNotifications: false,
   quietHours: DEFAULT_QUIET,
 };
 
@@ -31,6 +34,7 @@ export function parseUserPreferences(raw: unknown): UserPreferences {
   >;
   return {
     emailNotifications: obj.emailNotifications === true,
+    whatsappNotifications: obj.whatsappNotifications === true,
     quietHours: {
       enabled: qh.enabled === true,
       start: typeof qh.start === 'string' ? qh.start : DEFAULT_QUIET.start,
@@ -48,6 +52,7 @@ export function mergeUserPreferences(
   const current = parseUserPreferences(existing);
   return {
     emailNotifications: patch.emailNotifications ?? current.emailNotifications,
+    whatsappNotifications: patch.whatsappNotifications ?? current.whatsappNotifications,
     quietHours: patch.quietHours
       ? { ...current.quietHours, ...patch.quietHours }
       : current.quietHours,

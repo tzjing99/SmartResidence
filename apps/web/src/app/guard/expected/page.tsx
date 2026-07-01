@@ -34,6 +34,8 @@ function toCardVisitor(
     expectedAt: visitor.expectedAt,
     vehiclePlate: visitor.vehiclePlate,
     visitType: visitor.visitType,
+    passKind: visitor.passKind,
+    deliveryPlatform: visitor.deliveryPlatform,
     status: visitor.status,
     unitLabel: visitor.unit?.identifier ?? null,
     overnight: visitor.overnight,

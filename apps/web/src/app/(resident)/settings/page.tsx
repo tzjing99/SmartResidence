@@ -44,6 +44,7 @@ export default function ProfileSettingsPage() {
   });
 
   const [emailNotifications, setEmailNotifications] = React.useState(false);
+  const [whatsappNotifications, setWhatsappNotifications] = React.useState(false);
   const [quietEnabled, setQuietEnabled] = React.useState(false);
   const [quietStart, setQuietStart] = React.useState('22:00');
   const [quietEnd, setQuietEnd] = React.useState('07:00');
@@ -51,6 +52,7 @@ export default function ProfileSettingsPage() {
   React.useEffect(() => {
     if (!prefs.data) return;
     setEmailNotifications(prefs.data.emailNotifications);
+    setWhatsappNotifications(prefs.data.whatsappNotifications);
     setQuietEnabled(prefs.data.quietHours.enabled);
     setQuietStart(prefs.data.quietHours.start);
     setQuietEnd(prefs.data.quietHours.end);
@@ -69,6 +71,7 @@ export default function ProfileSettingsPage() {
     try {
       await save.mutateAsync({
         emailNotifications,
+        whatsappNotifications,
         quietHours: { enabled: quietEnabled, start: quietStart, end: quietEnd },
       });
       toast.success('Notification preferences saved');
@@ -144,7 +147,7 @@ export default function ProfileSettingsPage() {
         <h2 className="sr-section-title">Notifications</h2>
         <p className="sr-muted text-sm mt-1">
           In-app and mobile push notifications are always on for thread updates. Configure optional
-          email and quiet hours below.
+          email, WhatsApp, and quiet hours below.
         </p>
       </div>
 
@@ -165,6 +168,34 @@ export default function ProfileSettingsPage() {
               />
               Send thread notifications to my email
             </label>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5 flex flex-col gap-4">
+        <div className="align-row items-start min-h-0">
+          <Bell className="size-5 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <Label className="font-medium">WhatsApp alerts</Label>
+            <p className="text-xs sr-muted mt-1">
+              Receive parcel, visitor, and billing reminders on your verified mobile number. Your
+              management team must enable WhatsApp for the building first.
+            </p>
+            {prefs.data?.whatsappEligible ? (
+              <label className="align-row mt-3 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={whatsappNotifications}
+                  onChange={(e) => setWhatsappNotifications(e.target.checked)}
+                  className="shrink-0"
+                />
+                Send alerts to {profile.data?.phone ?? 'my verified phone'} on WhatsApp
+              </label>
+            ) : (
+              <p className="text-xs sr-muted mt-3">
+                Add and verify your mobile phone in Profile above before opting in to WhatsApp.
+              </p>
+            )}
           </div>
         </div>
       </Card>

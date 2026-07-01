@@ -26,6 +26,7 @@ import {
   readEInvoiceSecret,
   writeEInvoiceSecret,
 } from './einvoice-settings';
+import { DelegatingMyInvoisProvider } from './providers/delegating-myinvois.provider';
 import {
   MYINVOIS_PROVIDER,
   type MyInvoisCredentials,
@@ -141,6 +142,7 @@ export class EInvoiceService {
       throw new BadRequestException('This invoice already has a validated e-invoice');
     }
 
+    const providerId = this.resolveProviderId(config.environment, credentials);
     const result = await this.provider.submit({
       document,
       environment: config.environment,
@@ -181,7 +183,7 @@ export class EInvoiceService {
           invoiceNumber: invoice.number,
           status: result.status,
           lhdnUuid: result.uuid,
-          provider: this.provider.id,
+          provider: providerId,
           ...(result.error ? { error: result.error } : {}),
         },
       },
@@ -197,7 +199,7 @@ export class EInvoiceService {
   ): Promise<EInvoiceView> {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { condoId: true, unitId: true },
+      select: { condoId: true, unitId: true, condo: { select: { settings: true } } },
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     this.assertCondoManagement(actor, invoice.condoId, true);
@@ -207,7 +209,13 @@ export class EInvoiceService {
     if (!row.lhdnUuid) throw new BadRequestException('E-invoice has no LHDN identifier to cancel');
     if (row.status === 'CANCELLED') return this.toView(row, true);
 
-    const result = await this.provider.cancel(row.lhdnUuid, reason ?? '', row.environment);
+    const credentials = this.resolveCredentials(invoice.condo.settings) ?? undefined;
+    const result = await this.provider.cancel(
+      row.lhdnUuid,
+      reason ?? '',
+      row.environment,
+      credentials,
+    );
     const updated = await this.prisma.eInvoice.update({
       where: { invoiceId },
       data: {
@@ -372,6 +380,14 @@ export class EInvoiceService {
         ? { document: (row.documentJson as unknown as EInvoiceDocument) ?? null }
         : {}),
     };
+  }
+
+  /** Provider id actually used for a condo (sandbox vs production). */
+  private resolveProviderId(environment: string, credentials?: MyInvoisCredentials): string {
+    if (this.provider instanceof DelegatingMyInvoisProvider) {
+      return this.provider.resolveProviderId(environment, credentials);
+    }
+    return this.provider.id;
   }
 
   private assertCondoManagement(

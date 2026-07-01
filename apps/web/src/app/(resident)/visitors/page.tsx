@@ -1,5 +1,6 @@
 'use client';
 
+import { DeliveryPassQuickForm } from '@/components/delivery-pass-quick-form';
 import { PillTabs } from '@/components/pill-tabs';
 import { RecurringPassesPanel } from '@/components/recurring-passes-panel';
 import { ResidentConfirmDialog } from '@/components/resident-confirm-dialog';
@@ -23,8 +24,11 @@ import {
   canOneClickPreRegFromVisitor,
   canOwnerCancelVisitor,
   defaultExpectedArrival,
+  deliveryPlatformLabel,
   favouriteToPreRegParams,
   formatMalaysiaPhoneDisplay,
+  isQuickEntryPass,
+  passKindLabel,
   toDatetimeLocalValue,
   visitorToCreateInput,
   visitorToPreRegParams,
@@ -98,6 +102,8 @@ export default function VisitorsPage() {
       </section>
 
       <PillTabs items={TAB_ITEMS} value={tab} onChange={setTab} ariaLabel="Visitor views" />
+
+      <DeliveryPassQuickForm />
 
       {tab === 'favourites' ? (
         <FavouritesPanel
@@ -247,7 +253,16 @@ function VisitorListPanel({
         <Card key={v.id} className="flex h-full flex-col">
           <div className="flex flex-1 items-start justify-between gap-4">
             <div className="flex-1">
-              <div className="font-medium">{v.name}</div>
+              <div className="font-medium flex items-center gap-2 flex-wrap">
+                {v.name}
+                {isQuickEntryPass(v) ? (
+                  <Badge tone="warning" className="shrink-0">
+                    {v.deliveryPlatform
+                      ? deliveryPlatformLabel(v.deliveryPlatform)
+                      : passKindLabel(v.passKind ?? 'DELIVERY')}
+                  </Badge>
+                ) : null}
+              </div>
               <div className="text-xs sr-muted mt-0.5">
                 {v.visitType === 'WALKIN_UNIT'
                   ? `${t('visitors.guard.visitTypeWalkInUnit')} · `

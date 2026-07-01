@@ -292,7 +292,14 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, phone: true, name: true, locale: true },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        phoneVerifiedAt: true,
+        name: true,
+        locale: true,
+      },
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
@@ -322,24 +329,40 @@ export class AuthService {
     return this.getProfile(userId);
   }
 
-  async getPreferences(userId: string): Promise<UserPreferences> {
+  async getPreferences(userId: string): Promise<UserPreferences & { whatsappEligible: boolean }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { preferences: true },
+      select: { preferences: true, phone: true, phoneVerifiedAt: true },
     });
     if (!user) throw new NotFoundException('User not found');
-    return parseUserPreferences(user.preferences);
+    return {
+      ...parseUserPreferences(user.preferences),
+      whatsappEligible: Boolean(user.phone && user.phoneVerifiedAt),
+    };
   }
 
-  async updatePreferences(userId: string, dto: UpdateUserPreferencesDto): Promise<UserPreferences> {
+  async updatePreferences(
+    userId: string,
+    dto: UpdateUserPreferencesDto,
+  ): Promise<UserPreferences & { whatsappEligible: boolean }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { preferences: true },
+      select: { preferences: true, phone: true, phoneVerifiedAt: true },
     });
     if (!user) throw new NotFoundException('User not found');
+
+    if (dto.whatsappNotifications === true && (!user.phone || !user.phoneVerifiedAt)) {
+      throw new BadRequestException(
+        'Add and verify your mobile phone in Profile before enabling WhatsApp notifications.',
+      );
+    }
+
     const merged = mergeUserPreferences(user.preferences, {
       ...(dto.emailNotifications !== undefined
         ? { emailNotifications: dto.emailNotifications }
+        : {}),
+      ...(dto.whatsappNotifications !== undefined
+        ? { whatsappNotifications: dto.whatsappNotifications }
         : {}),
       ...(dto.quietHours
         ? {
@@ -355,7 +378,10 @@ export class AuthService {
       where: { id: userId },
       data: { preferences: merged as unknown as Prisma.InputJsonValue },
     });
-    return merged;
+    return {
+      ...merged,
+      whatsappEligible: Boolean(user.phone && user.phoneVerifiedAt),
+    };
   }
 
   static handlePrismaError(err: unknown): never {

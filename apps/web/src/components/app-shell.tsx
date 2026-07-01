@@ -16,6 +16,7 @@ import {
   ClipboardList,
   CreditCard,
   Eye,
+  FileText,
   HelpCircle,
   History,
   Home,
@@ -25,6 +26,7 @@ import {
   MessageSquare,
   Package,
   Settings2,
+  Store,
   Vote,
   Wrench,
 } from 'lucide-react';
@@ -95,6 +97,12 @@ const NAV_ITEMS: Array<{
     label: 'Forms',
     icon: ClipboardList,
     can: { action: 'read', subject: 'FormTemplate' },
+  },
+  {
+    href: '/documents',
+    label: 'Documents',
+    icon: FileText,
+    can: { action: 'read', subject: 'Document' },
   },
   { href: '/faq', label: 'Help & FAQ', icon: HelpCircle, can: { action: 'read', subject: 'Faq' } },
   { href: '/settings', label: 'Settings', icon: Settings2 },

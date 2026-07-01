@@ -20,6 +20,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
 import {
   CheckInVisitorDto,
+  CreateDeliveryPassDto,
   CreateFavouriteVisitorDto,
   CreateVisitorDto,
   CreateWalkInOfficeDto,
@@ -116,6 +117,16 @@ export class VisitorController {
   @ApiOperation({ summary: 'Pre-register a visitor for one of my units' })
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateVisitorDto) {
     return this.visitors.create(user, dto);
+  }
+
+  @Post('delivery-pass')
+  @CheckAbility({ action: 'create', subject: 'Visitor' })
+  @Audit({ action: AuditAction.CREATE, resourceType: 'Visitor', resourceIdFrom: 'response.id' })
+  @ApiOperation({
+    summary: 'Create a quick delivery or e-hailing pass (shorter validity, optional rider details)',
+  })
+  createDeliveryPass(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateDeliveryPassDto) {
+    return this.visitors.createDeliveryPass(user, dto);
   }
 
   @Get('guard/walk-in-policy')

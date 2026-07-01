@@ -1,6 +1,6 @@
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { VisitorEntryMode, VisitorPurpose, VisitorStatus } from '@prisma/client';
+import { DeliveryPlatform, VisitorEntryMode, VisitorPurpose, VisitorStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -134,6 +134,43 @@ export class CreateVisitorDto {
   @IsString()
   @MaxLength(500)
   vehiclePlatePhotoUrl?: string;
+}
+
+export class CreateDeliveryPassDto {
+  @ApiProperty()
+  @IsUUID()
+  unitId!: string;
+
+  @ApiProperty({ enum: ['DELIVERY', 'E_HAILING'] })
+  @IsIn(['DELIVERY', 'E_HAILING'])
+  passKind!: 'DELIVERY' | 'E_HAILING';
+
+  @ApiProperty({ enum: DeliveryPlatform })
+  @IsEnum(DeliveryPlatform)
+  platform!: DeliveryPlatform;
+
+  @ApiPropertyOptional({ maxLength: 120, description: 'Rider or driver name (optional)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  vehiclePlate?: string;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  @Type(() => Date)
+  @IsDate()
+  expectedAt!: Date;
+
+  @ApiPropertyOptional({ minimum: 30, maximum: 240 })
+  @IsOptional()
+  @IsInt()
+  @Min(30)
+  expectedDurationMins?: number;
 }
 
 export class WorkingDaysDto {

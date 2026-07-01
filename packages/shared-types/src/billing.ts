@@ -712,6 +712,64 @@ export const GATEWAY_PROVIDER_LABELS: Record<string, string> = {
   MANUAL: 'Manual / offline',
 };
 
+/** Short brand names for gateway cards (capabilities are shown separately). */
+export const GATEWAY_PROVIDER_SHORT_LABELS: Record<string, string> = {
+  STRIPE: 'Stripe',
+  RAZER: 'Fiuu',
+  IPAY88: 'iPay88',
+  DUITNOW_QR: 'DuitNow QR',
+  FPX: 'FPX',
+  MANUAL: 'Manual / offline',
+};
+
+/**
+ * Plain-English capability summary shown on each gateway card so admins know
+ * exactly what a gateway can and cannot do before enabling it. Copy is kept in
+ * sync with the real provider adapters in `apps/api/src/billing/providers`.
+ */
+export interface GatewayCapabilityInfo {
+  /** One-line description of the gateway. */
+  tagline: string;
+  /** How the resident completes payment at checkout. */
+  checkout: string;
+  /** Payment methods residents can use through this gateway. */
+  accepts: string[];
+  /** Notable limitations, so capabilities are never overstated. */
+  limitations: string[];
+}
+
+export const GATEWAY_CAPABILITIES: Record<string, GatewayCapabilityInfo> = {
+  STRIPE: {
+    tagline: 'International credit and debit cards.',
+    checkout: 'Resident pays with a card on a secure card form.',
+    accepts: ['Visa, Mastercard and American Express', 'Cards issued outside Malaysia'],
+    limitations: ['No FPX online banking', 'No local e-wallets or DuitNow QR'],
+  },
+  RAZER: {
+    tagline: 'All-in-one Malaysian gateway: FPX, cards and e-wallets.',
+    checkout: 'Resident is sent to the Fiuu hosted page to pick a method.',
+    accepts: [
+      'FPX online banking (all major Malaysian banks)',
+      'Credit and debit cards',
+      "E-wallets (Touch 'n Go, GrabPay, Boost, ShopeePay)",
+      'DuitNow',
+    ],
+    limitations: ['Payment happens on the Fiuu hosted page, not inside the app'],
+  },
+  IPAY88: {
+    tagline: 'Malaysian gateway for FPX, cards and e-wallets.',
+    checkout: 'Resident is sent to the iPay88 hosted page to pick a method.',
+    accepts: ['FPX online banking', 'Credit and debit cards', 'E-wallets'],
+    limitations: ['Payment happens on the iPay88 hosted page, not inside the app'],
+  },
+  DUITNOW_QR: {
+    tagline: 'Scan-to-pay QR for any Malaysian bank or e-wallet app.',
+    checkout: 'Resident scans a QR code shown on screen — no redirect.',
+    accepts: ['DuitNow QR from any Malaysian banking or e-wallet app'],
+    limitations: ['Cards are not accepted directly', 'Resident needs a supported banking app'],
+  },
+};
+
 /** Which credential fields each provider expects (labels for the admin UI). */
 export const GATEWAY_CREDENTIAL_FIELDS: Record<string, { key: string; label: string }[]> = {
   STRIPE: [

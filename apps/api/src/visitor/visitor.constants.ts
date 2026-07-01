@@ -3,6 +3,15 @@ import { VisitorStatus } from '@prisma/client';
 /** Default visit window when resident does not specify duration. */
 export const DEFAULT_VISIT_DURATION_MINS = 120;
 
+/** Default visit window for food delivery quick-entry passes. */
+export const DEFAULT_DELIVERY_DURATION_MINS = 120;
+
+/** Default visit window for e-hailing quick-entry passes. */
+export const DEFAULT_E_HAILING_DURATION_MINS = 180;
+
+/** Extra buffer after quick-entry pass window before expiry (30 minutes). */
+export const QUICK_ENTRY_EXPIRY_BUFFER_MINS = 30;
+
 /** Extra buffer after visit window before pre-reg pass expires (2h). */
 export const PRE_REG_EXPIRY_BUFFER_MINS = 120;
 

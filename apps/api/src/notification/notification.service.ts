@@ -3,13 +3,20 @@ import { isInQuietHours, parseUserPreferences } from '@/auth/user-preferences';
 import type { AppEnv } from '@/config/env.schema';
 import { PrismaService } from '@/prisma/prisma.service';
 import { parseCondoVisitorSettings, walkInApprovalMinutes } from '@/visitor/visitor-settings';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NotificationKind, type Prisma, PushKind } from '@prisma/client';
+import { resolveMalaysiaPhoneE164 } from '@smartresidence/shared-types';
 import { Expo, type ExpoPushMessage } from 'expo-server-sdk';
 import { Resend } from 'resend';
+import { isWhatsAppSupportedKind } from './providers/whatsapp-notification.provider';
+import {
+  WHATSAPP_NOTIFICATION_PROVIDER,
+  type WhatsAppNotificationProvider,
+} from './providers/whatsapp-notification.provider.interface';
+import { WhatsAppConfigService } from './whatsapp-config.service';
 
 const THREAD_KINDS: NotificationKind[] = [
   NotificationKind.THREAD_MESSAGE,
@@ -38,6 +45,9 @@ export class NotificationService {
     private readonly prisma: PrismaService,
     config: ConfigService<AppEnv, true>,
     private readonly events: EventEmitter2,
+    private readonly whatsappConfig: WhatsAppConfigService,
+    @Inject(WHATSAPP_NOTIFICATION_PROVIDER)
+    private readonly whatsappProvider: WhatsAppNotificationProvider,
   ) {
     const key = config.get('RESEND_API_KEY', { infer: true });
     this.resend = key ? new Resend(key) : null;
@@ -97,12 +107,14 @@ export class NotificationService {
     data?: Record<string, unknown>;
     /** Condo timezone for quiet-hours evaluation (E5). */
     timeZone?: string;
+    /** Condo scope for WhatsApp channel delivery. */
+    condoId?: string;
   }): Promise<void> {
     if (opts.userIds.length === 0) return;
 
     const users = await this.prisma.user.findMany({
       where: { id: { in: opts.userIds } },
-      select: { id: true, email: true, preferences: true },
+      select: { id: true, email: true, phone: true, phoneVerifiedAt: true, preferences: true },
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
@@ -185,6 +197,33 @@ export class NotificationService {
         this.logger.debug(
           `[email opt-in] ${target.email}: ${opts.title} — ${opts.body.slice(0, 80)}`,
         );
+      }
+    }
+
+    if (opts.condoId && isWhatsAppSupportedKind(opts.kind)) {
+      const whatsapp = await this.whatsappConfig.resolveForDispatch(opts.condoId);
+      if (whatsapp) {
+        for (const userId of opts.userIds) {
+          const user = userMap.get(userId);
+          if (!user?.phone || !user.phoneVerifiedAt) continue;
+          const prefs = parseUserPreferences(user.preferences);
+          if (!prefs.whatsappNotifications) continue;
+          const e164 = resolveMalaysiaPhoneE164(user.phone);
+          if (!e164) continue;
+          try {
+            await this.whatsappProvider.send({
+              phoneNumberId: whatsapp.phoneNumberId,
+              credentials: whatsapp.credentials,
+              toE164: e164,
+              kind: opts.kind,
+              title: opts.title,
+              body: opts.body,
+              data: opts.data,
+            });
+          } catch (err) {
+            this.logger.warn(`WhatsApp to ${e164} failed: ${(err as Error).message}`);
+          }
+        }
       }
     }
   }
@@ -346,6 +385,7 @@ export class NotificationService {
       body: `Checked in at ${timeLabel}${unitPart}.`,
       data: { visitorId: v.id, deeplink: `smartresidence://visitors/${v.id}` },
       timeZone: tz,
+      condoId: v.condoId,
     });
   }
 
@@ -542,7 +582,12 @@ export class NotificationService {
       kind: NotificationKind.INVOICE_DUE_SOON,
       title: `Invoice ${inv.number} due soon`,
       body: `${this.formatMyr(inv.total)} is due ${inv.dueDate.toLocaleDateString()}. Pay early to avoid late status.`,
-      data: { invoiceId: inv.id, deeplink: `smartresidence://billing/${inv.id}` },
+      data: {
+        invoiceId: inv.id,
+        invoiceNumber: inv.number,
+        deeplink: `smartresidence://billing/${inv.id}`,
+      },
+      condoId: inv.condoId,
     });
   }
 
@@ -558,7 +603,12 @@ export class NotificationService {
       kind: NotificationKind.INVOICE_DUE_SOON,
       title: `Invoice ${inv.number} is overdue`,
       body: `${this.formatMyr(outstanding)} was due ${inv.dueDate.toLocaleDateString()}. Please settle it as soon as possible.`,
-      data: { invoiceId: inv.id, deeplink: `smartresidence://billing/${inv.id}` },
+      data: {
+        invoiceId: inv.id,
+        invoiceNumber: inv.number,
+        deeplink: `smartresidence://billing/${inv.id}`,
+      },
+      condoId: inv.condoId,
     });
   }
 
@@ -583,6 +633,21 @@ export class NotificationService {
         revokedAt: null,
         roleId: { in: ['MANAGEMENT_ADMIN', 'MANAGEMENT_STAFF'] },
       },
+      select: { userId: true },
+    });
+    return [...new Set(rows.map((r) => r.userId))];
+  }
+
+  /** Resident user ids for document / announcement-style condo broadcasts. */
+  private async condoResidentUserIds(
+    condoId: string,
+    opts: { ownersOnly?: boolean } = {},
+  ): Promise<string[]> {
+    const roles = opts.ownersOnly
+      ? (['UNIT_OWNER'] as const)
+      : (['UNIT_OWNER', 'TENANT', 'HOUSEHOLD_MEMBER'] as const);
+    const rows = await this.prisma.roleAssignment.findMany({
+      where: { condoId, revokedAt: null, roleId: { in: [...roles] } },
       select: { userId: true },
     });
     return [...new Set(rows.map((r) => r.userId))];
@@ -709,8 +774,11 @@ export class NotificationService {
       data: {
         parcelId: parcel.id,
         unitId: payload.unitId,
+        recipientName: parcel.recipientName,
+        unitLabel,
         deeplink: 'smartresidence://parcels',
       },
+      condoId: payload.condoId,
     });
   }
 
@@ -963,6 +1031,35 @@ export class NotificationService {
       data: {
         submissionId: row.id,
         deeplink: 'smartresidence://forms',
+      },
+    });
+  }
+
+  /** New condo document published → notify residents who can access the folder. */
+  @OnEvent('document.version.published')
+  async onDocumentPublished(payload: {
+    documentId: string;
+    versionId: string;
+    condoId: string;
+    folderAudience: string;
+    title: string;
+  }) {
+    if (payload.folderAudience === 'MANAGEMENT') return;
+
+    const userIds = await this.condoResidentUserIds(payload.condoId, {
+      ownersOnly: payload.folderAudience === 'OWNERS',
+    });
+    if (userIds.length === 0) return;
+
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.DOCUMENT_PUBLISHED,
+      title: 'New document published',
+      body: `${payload.title} is now available in the document library.`,
+      data: {
+        documentId: payload.documentId,
+        versionId: payload.versionId,
+        deeplink: 'smartresidence://documents',
       },
     });
   }

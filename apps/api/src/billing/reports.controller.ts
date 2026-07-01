@@ -1,15 +1,20 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
+import { BillingExportsService } from './billing-exports.service';
 import { LedgerService } from './ledger.service';
 
 @ApiTags('Billing reports')
 @ApiBearerAuth('access')
 @Controller('billing')
 export class ReportsController {
-  constructor(private readonly ledger: LedgerService) {}
+  constructor(
+    private readonly ledger: LedgerService,
+    private readonly exports: BillingExportsService,
+  ) {}
 
   @Get('reports/condo/:condoId/fund-balances')
   @CheckAbility({ action: 'read', subject: 'Ledger' })
@@ -47,5 +52,58 @@ export class ReportsController {
     @Param('unitId', new ParseUUIDPipe()) unitId: string,
   ) {
     return this.ledger.unitStatementForUser(user, unitId);
+  }
+
+  @Get('condo/:condoId/statements/unit/:unitId.pdf')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Download unit account statement PDF for a date range (management)' })
+  async unitStatementPdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.exports.unitStatementPdf(
+      user,
+      condoId,
+      unitId,
+      from,
+      to,
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
+  @Get('condo/:condoId/exports/collections.csv')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Export collections detail CSV for a period (management)' })
+  async collectionsCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.exports.collectionsCsv(user, condoId, from, to);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+  @Get('condo/:condoId/exports/arrears.csv')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Export arrears aging detail CSV (management)' })
+  async arrearsCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.exports.arrearsCsv(user, condoId);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
   }
 }

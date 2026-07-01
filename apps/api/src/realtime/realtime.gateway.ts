@@ -138,6 +138,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.server.to(`condo:${payload.condoId}`).emit('parcel:update', payload);
   }
 
+  @OnEvent('lostfound.*')
+  lostFoundEvent(payload: { condoId: string; postId: string; userId?: string }) {
+    this.server.to(`condo:${payload.condoId}`).emit('lostfound:update', payload);
+    if (payload.userId) {
+      this.server.to(`user:${payload.userId}`).emit('lostfound:update', payload);
+    }
+  }
+
   @OnEvent('form.*')
   formEvent(payload: {
     condoId: string;

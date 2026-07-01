@@ -44,6 +44,9 @@ export type Subject =
   | 'DefectTaxonomy'
   | 'Announcement'
   | 'Poll'
+  | 'GeneralMeeting'
+  | 'MeetingProxy'
+  | 'MeetingResolution'
   | 'Facility'
   | 'Booking'
   | 'AuditLog'
@@ -64,7 +67,9 @@ export type Subject =
   | 'FormSubmission'
   | 'DocumentFolder'
   | 'Document'
-  | 'DocumentVersion';
+  | 'DocumentVersion'
+  | 'LostFoundPost'
+  | 'Platform';
 
 export type Action =
   | 'manage'
@@ -85,6 +90,7 @@ export type Action =
   | 'publish'
   | 'acknowledge'
   | 'vote'
+  | 'submit-proxy'
   | 'invite'
   | 'revoke'
   | 'export'
@@ -132,6 +138,8 @@ export class AbilityFactory {
     switch (role) {
       case RoleId.SUPER_ADMIN:
         can('manage', 'all');
+        can('read', 'Platform');
+        can('manage', 'Platform');
         return;
 
       case RoleId.MANAGEMENT_ADMIN:
@@ -162,6 +170,9 @@ export class AbilityFactory {
         can('manage', 'DefectTaxonomy', { condoId: scope.condoId ?? '' });
         can('manage', 'Announcement', { condoId: scope.condoId ?? '' });
         can('manage', 'Poll', { condoId: scope.condoId ?? '' });
+        can('manage', 'GeneralMeeting', { condoId: scope.condoId ?? '' });
+        can('manage', 'MeetingResolution', { condoId: scope.condoId ?? '' });
+        can('read', 'MeetingProxy', { condoId: scope.condoId ?? '' });
         can('manage', 'Facility', { condoId: scope.condoId ?? '' });
         can('manage', 'Booking', { condoId: scope.condoId ?? '' });
         can('manage', 'RoleAssignment', { condoId: scope.condoId ?? '' });
@@ -182,6 +193,7 @@ export class AbilityFactory {
         can('manage', 'DocumentFolder', { condoId: scope.condoId ?? '' });
         can('manage', 'Document', { condoId: scope.condoId ?? '' });
         can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
+        can('manage', 'LostFoundPost', { condoId: scope.condoId ?? '' });
         can('manage', 'Notification', { condoId: scope.condoId ?? '' });
         can('read', 'AuditLog', { condoId: scope.condoId ?? '' });
         can('read', 'User');
@@ -209,6 +221,9 @@ export class AbilityFactory {
         can('read', 'Ledger', { condoId: scope.condoId ?? '' });
         can('publish', 'Announcement', { condoId: scope.condoId ?? '' });
         can('read', 'Poll', { condoId: scope.condoId ?? '' });
+        can('read', 'GeneralMeeting', { condoId: scope.condoId ?? '' });
+        can('read', 'MeetingResolution', { condoId: scope.condoId ?? '' });
+        can('read', 'MeetingProxy', { condoId: scope.condoId ?? '' });
         can('read', 'Facility', { condoId: scope.condoId ?? '' });
         can('read', 'Booking', { condoId: scope.condoId ?? '' });
         can('read', 'Thread', { condoId: scope.condoId ?? '' });
@@ -234,6 +249,8 @@ export class AbilityFactory {
         can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
         can('read', 'Document', { condoId: scope.condoId ?? '' });
         can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
+        can('read', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('manage', 'LostFoundPost', { condoId: scope.condoId ?? '' });
         can('read', 'Notification', { condoId: scope.condoId ?? '' });
         return;
 
@@ -274,6 +291,10 @@ export class AbilityFactory {
         can('acknowledge', 'Announcement');
         can('read', 'Poll', { condoId: scope.condoId ?? '' });
         can('vote', 'Poll', { condoId: scope.condoId ?? '' });
+        can('read', 'GeneralMeeting', { condoId: scope.condoId ?? '' });
+        can('submit-proxy', 'MeetingProxy', { condoId: scope.condoId ?? '' });
+        can('read', 'MeetingResolution', { condoId: scope.condoId ?? '' });
+        can('vote', 'MeetingResolution', { condoId: scope.condoId ?? '' });
         can('read', 'Facility', { condoId: scope.condoId ?? '' });
         can('create', 'Booking', { condoId: scope.condoId ?? '' });
         can('read', 'Booking', { condoId: scope.condoId ?? '' });
@@ -288,6 +309,10 @@ export class AbilityFactory {
         can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
         can('read', 'Document', { condoId: scope.condoId ?? '' });
         can('read', 'DocumentVersion', { condoId: scope.condoId ?? '' });
+        can('create', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('read', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('resolve', 'LostFoundPost', { userId: scope.userId });
+        can('delete', 'LostFoundPost', { userId: scope.userId });
         can('manage', 'Tenancy', { unitId: scope.unitId ?? '' });
         can('manage', 'HouseholdMember', { unitId: scope.unitId ?? '' });
         can('invite', 'User');
@@ -338,6 +363,10 @@ export class AbilityFactory {
         can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
         can('read', 'Document', { condoId: scope.condoId ?? '' });
         can('read', 'DocumentVersion', { condoId: scope.condoId ?? '' });
+        can('create', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('read', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('resolve', 'LostFoundPost', { userId: scope.userId });
+        can('delete', 'LostFoundPost', { userId: scope.userId });
         can('read', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'Thread');
         can('resolve', 'Thread', { unitId: scope.unitId ?? '' });
@@ -370,6 +399,10 @@ export class AbilityFactory {
         can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
         can('read', 'Document', { condoId: scope.condoId ?? '' });
         can('read', 'DocumentVersion', { condoId: scope.condoId ?? '' });
+        can('create', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('read', 'LostFoundPost', { condoId: scope.condoId ?? '' });
+        can('resolve', 'LostFoundPost', { userId: scope.userId });
+        can('delete', 'LostFoundPost', { userId: scope.userId });
         can('read', 'Thread', { unitId: scope.unitId ?? '' });
         can('create', 'Thread');
         can('resolve', 'Thread', { unitId: scope.unitId ?? '' });

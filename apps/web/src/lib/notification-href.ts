@@ -25,6 +25,11 @@ export function webHrefForNotification(payload: {
     return '/parcels';
   }
   if (payload.kind === 'PARCEL_RECEIVED' || payload.kind === 'PARCEL_OVERDUE') return '/parcels';
+  if (typeof data.lostFoundPostId === 'string') {
+    if (deeplink?.includes('admin/lost-found')) return '/admin/lost-found';
+    return '/lost-found';
+  }
+  if (payload.kind === 'LOST_FOUND_POST') return '/admin/lost-found';
   if (payload.kind === 'AUDIT_ALERT') return '/who-viewed';
   return null;
 }

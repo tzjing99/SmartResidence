@@ -7,13 +7,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InvoiceStatus, LedgerEntryType, LedgerFund, type Prisma, RoleId } from '@prisma/client';
-import type {
-  ArrearsAging,
-  ArrearsAgingBucket,
-  CollectionsSummary,
-  FundBalance,
-  UnitStatement,
-  UnitStatementEntry,
+import {
+  type ArrearsAging,
+  type ArrearsAgingBucket,
+  type CollectionsSummary,
+  type FundBalance,
+  type UnitStatement,
+  type UnitStatementEntry,
+  formatCompactUnitLabel,
 } from '@smartresidence/shared-types';
 
 type Client = PrismaService | Prisma.TransactionClient;
@@ -33,6 +34,63 @@ interface LedgerEntryInput {
 }
 
 const ARREARS_STATUSES = [InvoiceStatus.ISSUED, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE];
+
+export interface UnitStatementInRange extends UnitStatement {
+  from: string;
+  to: string;
+  openingBalance: number;
+  closingBalance: number;
+}
+
+export interface CollectionsExportRow {
+  occurredAt: string;
+  unitLabel: string;
+  fund: LedgerFund;
+  type: LedgerEntryType;
+  description: string;
+  amount: number;
+  sourceRef: string | null;
+}
+
+export interface ArrearsExportRow {
+  unitLabel: string;
+  invoiceNumber: string;
+  dueDate: string;
+  daysOverdue: number;
+  bucket: ArrearsAgingBucket['bucket'];
+  total: number;
+  amountPaid: number;
+  outstanding: number;
+}
+
+function applyLedgerEntry(
+  balance: number,
+  entry: {
+    type: LedgerEntryType;
+    amount: unknown;
+    fund: LedgerFund;
+    memo: string | null;
+    occurredAt: Date;
+  },
+): { balance: number; line: UnitStatementEntry } {
+  const amount = Number(entry.amount);
+  const isCharge = entry.type === LedgerEntryType.CHARGE;
+  const charge = isCharge ? amount : 0;
+  const payment = isCharge ? 0 : amount;
+  const newBalance = Math.round((balance + charge - payment) * 100) / 100;
+  return {
+    balance: newBalance,
+    line: {
+      occurredAt: entry.occurredAt.toISOString(),
+      type: entry.type,
+      fund: entry.fund,
+      description: entry.memo ?? entry.type,
+      charge,
+      payment,
+      balance: newBalance,
+    },
+  };
+}
 
 @Injectable()
 export class LedgerService {
@@ -316,6 +374,16 @@ export class LedgerService {
   }
 
   async unitStatement(unitId: string): Promise<UnitStatement> {
+    const full = await this.unitStatementInRange(unitId, new Date(0), new Date(8640000000000000));
+    return {
+      unitId: full.unitId,
+      creditBalance: full.creditBalance,
+      totalOutstanding: full.totalOutstanding,
+      entries: full.entries,
+    };
+  }
+
+  async unitStatementInRange(unitId: string, from: Date, to: Date): Promise<UnitStatementInRange> {
     const entries = await this.prisma.ledgerEntry.findMany({
       where: { unitId, type: { not: LedgerEntryType.DEPOSIT } },
       orderBy: { occurredAt: 'asc' },
@@ -323,29 +391,92 @@ export class LedgerService {
     const account = await this.prisma.unitAccount.findUnique({ where: { unitId } });
 
     let balance = 0;
+    let openingBalance = 0;
     const statementEntries: UnitStatementEntry[] = [];
     for (const e of entries) {
-      const amount = Number(e.amount);
-      const isCharge = e.type === LedgerEntryType.CHARGE;
-      const charge = isCharge ? amount : 0;
-      const payment = isCharge ? 0 : amount;
-      balance += charge - payment;
-      statementEntries.push({
-        occurredAt: e.occurredAt.toISOString(),
-        type: e.type,
-        fund: e.fund,
-        description: e.memo ?? e.type,
-        charge,
-        payment,
-        balance: Math.round(balance * 100) / 100,
-      });
+      const { balance: newBalance, line } = applyLedgerEntry(balance, e);
+      balance = newBalance;
+      if (e.occurredAt < from) {
+        openingBalance = newBalance;
+      } else if (e.occurredAt <= to) {
+        statementEntries.push(line);
+      }
     }
+
+    const lastEntry = statementEntries.at(-1);
+    const closingBalance = lastEntry ? lastEntry.balance : openingBalance;
 
     return {
       unitId,
       creditBalance: Number(account?.creditBalance ?? 0),
       totalOutstanding: Math.round(balance * 100) / 100,
+      from: from.toISOString(),
+      to: to.toISOString(),
+      openingBalance,
+      closingBalance,
       entries: statementEntries,
     };
+  }
+
+  async collectionsExportRows(
+    condoId: string,
+    from: Date,
+    to: Date,
+  ): Promise<CollectionsExportRow[]> {
+    const entries = await this.prisma.ledgerEntry.findMany({
+      where: {
+        condoId,
+        type: LedgerEntryType.PAYMENT,
+        occurredAt: { gte: from, lte: to },
+      },
+      include: { unit: { include: { block: true } } },
+      orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+    });
+
+    return entries.map((e) => ({
+      occurredAt: e.occurredAt.toISOString(),
+      unitLabel: e.unit ? formatCompactUnitLabel(e.unit) : '—',
+      fund: e.fund,
+      type: e.type,
+      description: e.memo ?? e.type,
+      amount: Number(e.amount),
+      sourceRef: e.sourceId,
+    }));
+  }
+
+  async arrearsExportRows(condoId: string): Promise<ArrearsExportRow[]> {
+    const invoices = await this.prisma.invoice.findMany({
+      where: { condoId, status: { in: ARREARS_STATUSES } },
+      include: { unit: { include: { block: true } } },
+      orderBy: [{ unit: { identifier: 'asc' } }, { dueDate: 'asc' }],
+    });
+
+    const now = Date.now();
+    const rows: ArrearsExportRow[] = [];
+    for (const inv of invoices) {
+      const outstanding = Number(inv.total) - Number(inv.amountPaid);
+      if (outstanding <= 0.005) continue;
+      const daysOverdue = Math.max(
+        0,
+        Math.floor((now - new Date(inv.dueDate).getTime()) / 86_400_000),
+      );
+      rows.push({
+        unitLabel: formatCompactUnitLabel(inv.unit),
+        invoiceNumber: inv.number,
+        dueDate: inv.dueDate.toISOString(),
+        daysOverdue,
+        bucket: (() => {
+          const days = daysOverdue;
+          if (days <= 30) return '0-30' as const;
+          if (days <= 60) return '31-60' as const;
+          if (days <= 90) return '61-90' as const;
+          return '90+' as const;
+        })(),
+        total: Number(inv.total),
+        amountPaid: Number(inv.amountPaid),
+        outstanding: Math.round(outstanding * 100) / 100,
+      });
+    }
+    return rows;
   }
 }

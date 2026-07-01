@@ -5,6 +5,7 @@ import {
   CreateWalkInUnitSchema,
   guardCanAcknowledgeWalkIn,
   guardCanCheckOutVisitor,
+  guardVisitorStatusLabel,
   isWalkInVisitType,
   showOvernightPreRegOption,
   visitorStatusLabel,
@@ -20,6 +21,14 @@ describe('visitorStatusLabel', () => {
 
   it('falls back to a humanized label for unknown statuses', () => {
     expect(visitorStatusLabel('SOME_NEW_STATUS')).toBe('some new status');
+  });
+});
+
+describe('guardVisitorStatusLabel', () => {
+  it('uses guard-facing wording for gate duty screens', () => {
+    expect(guardVisitorStatusLabel('PENDING_OWNER_APPROVAL')).toBe('Waiting for owner approval');
+    expect(guardVisitorStatusLabel('PENDING_MANAGEMENT_APPROVAL')).toBe('Pending management');
+    expect(guardVisitorStatusLabel('CHECKED_IN')).toBe('On site');
   });
 });
 

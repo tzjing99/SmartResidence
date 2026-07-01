@@ -3,6 +3,7 @@
 import type {
   BulkUpdateReportItemsInput,
   CastPollVoteInput,
+  CastResolutionVoteInput,
   CreateAnnouncementInput,
   CreateBookingInput,
   CreateDefectElementInput,
@@ -13,20 +14,27 @@ import type {
   CreateFacilityInput,
   CreateFavouriteVisitorInput,
   CreateHandoverReportInput,
+  CreateLostFoundPostInput,
   CreateParcelInput,
   CreatePatrolCheckpointInput,
   CreatePollInput,
+  CreateGeneralMeetingInput,
+  CreateMeetingResolutionInput,
   CreateUnitTypeInput,
   CreateUnitTypeSpaceInput,
   CreateVisitorInput,
   PatrolScanInput,
   RaiseSosInput,
+  OpenResolutionVotingInput,
+  SubmitMeetingProxyInput,
   UpdateAnnouncementInput,
   UpdateDefectElementInput,
   UpdateDefectIssueInput,
   UpdateDefectSpaceTypeInput,
   UpdateFacilityInput,
   UpdatePatrolCheckpointInput,
+  UpdateGeneralMeetingInput,
+  UpdateMeetingResolutionInput,
   UpdatePollInput,
   UpdateUnitTypeInput,
   UpdateUnitTypeSpaceInput,
@@ -49,6 +57,8 @@ const LIST_VIEW_MS = 30_000;
 export const queryKeys = {
   me: ['me'] as const,
   myCondos: ['condos', 'mine'] as const,
+  platformCondos: (search?: string) => ['platform', 'condos', search ?? ''] as const,
+  platformCondoSummary: (condoId: string) => ['platform', 'condos', condoId, 'summary'] as const,
   myUnits: ['units', 'mine'] as const,
   unitVisitors: (unitId: string, view?: string) =>
     ['visitors', 'unit', unitId, view ?? 'all'] as const,
@@ -112,6 +122,8 @@ export const queryKeys = {
   condoAnnouncements: (condoId: string) => ['announcements', 'condo', condoId] as const,
   condoPolls: (condoId: string) => ['polls', 'condo', condoId] as const,
   poll: (id: string) => ['polls', id] as const,
+  condoMeetings: (condoId: string) => ['governance', 'condo', condoId] as const,
+  meeting: (id: string) => ['governance', id] as const,
   condoFacilities: (condoId: string, includeInactive?: boolean) =>
     ['facilities', 'condo', condoId, includeInactive ? 'all' : 'active'] as const,
   facility: (id: string) => ['facilities', id] as const,
@@ -148,6 +160,10 @@ export const queryKeys = {
   unitParcels: (unitId: string, params?: Record<string, unknown>) =>
     ['parcels', 'unit', unitId, params ?? {}] as const,
   parcel: (id: string) => ['parcels', id] as const,
+  condoLostFound: (condoId: string, params?: Record<string, unknown>) =>
+    ['lost-found', 'condo', condoId, params ?? {}] as const,
+  myLostFound: (params?: Record<string, unknown>) => ['lost-found', 'mine', params ?? {}] as const,
+  lostFoundPost: (id: string) => ['lost-found', id] as const,
   condoFormTemplates: (condoId: string, includeInactive?: boolean) =>
     ['forms', 'templates', condoId, includeInactive ? 'all' : 'active'] as const,
   formTemplate: (id: string) => ['forms', 'template', id] as const,
@@ -200,6 +216,35 @@ export function useMyCondos(api: ApiClient, options?: { enabled?: boolean }) {
     queryFn: () => api.myCondos(),
     enabled: options?.enabled ?? true,
     staleTime: STABLE_SESSION_MS,
+  });
+}
+
+export function usePlatformCondos(
+  api: ApiClient,
+  params: { search?: string } = {},
+  options?: { enabled?: boolean },
+) {
+  const search = params.search?.trim() || undefined;
+  return useQuery({
+    queryKey: queryKeys.platformCondos(search),
+    queryFn: () => api.listPlatformCondos({ search }),
+    enabled: options?.enabled ?? true,
+    staleTime: LIST_VIEW_MS,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function usePlatformCondoSummary(
+  api: ApiClient,
+  condoId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.platformCondoSummary(condoId) : ['platform', 'condos', null],
+    queryFn: () =>
+      condoId ? api.platformCondoSummary(condoId) : Promise.reject(new Error('no condo')),
+    enabled: (options?.enabled ?? true) && Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
   });
 }
 
@@ -1310,6 +1355,120 @@ export function useCastPollVote(api: ApiClient) {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['polls'] });
       qc.invalidateQueries({ queryKey: queryKeys.poll(vars.pollId) });
+    },
+  });
+}
+
+export function useCondoMeetings(
+  api: ApiClient,
+  condoId: string | null,
+  opts: { manage?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: condoId
+      ? [...queryKeys.condoMeetings(condoId), opts.manage ? 'manage' : 'resident']
+      : ['governance', 'condo', null],
+    queryFn: () =>
+      condoId
+        ? api.meetingsForCondo(condoId, { manage: opts.manage })
+        : Promise.resolve({ items: [], total: 0 }),
+    enabled: Boolean(condoId),
+  });
+}
+
+export function useMeeting(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? queryKeys.meeting(id) : ['governance', null],
+    queryFn: () => (id ? api.meeting(id) : Promise.reject(new Error('No id'))),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateMeeting(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateGeneralMeetingInput) => api.createMeeting(input),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+      if (data.id) qc.setQueryData(queryKeys.meeting(data.id), data);
+    },
+  });
+}
+
+export function useUpdateMeeting(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data: UpdateGeneralMeetingInput }) =>
+      api.updateMeeting(vars.id, vars.data),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+      if (data?.id) qc.setQueryData(queryKeys.meeting(data.id), data);
+    },
+  });
+}
+
+export function usePublishMeetingNotice(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.publishMeetingNotice(id),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+      if (data?.id) qc.setQueryData(queryKeys.meeting(data.id), data);
+    },
+  });
+}
+
+export function useAddMeetingResolution(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { meetingId: string; data: CreateMeetingResolutionInput }) =>
+      api.addMeetingResolution(vars.meetingId, vars.data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(vars.meetingId) });
+    },
+  });
+}
+
+export function useOpenResolutionVoting(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { resolutionId: string; data?: OpenResolutionVotingInput }) =>
+      api.openResolutionVoting(vars.resolutionId, vars.data ?? {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+    },
+  });
+}
+
+export function useCloseResolutionVoting(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (resolutionId: string) => api.closeResolutionVoting(resolutionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+    },
+  });
+}
+
+export function useCastResolutionVote(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { resolutionId: string; data: CastResolutionVoteInput }) =>
+      api.castResolutionVote(vars.resolutionId, vars.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+    },
+  });
+}
+
+export function useSubmitMeetingProxy(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { meetingId: string; data: SubmitMeetingProxyInput }) =>
+      api.submitMeetingProxy(vars.meetingId, vars.data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.meeting(vars.meetingId) });
     },
   });
 }
@@ -2679,5 +2838,80 @@ export function useCollectParcel(api: ApiClient) {
     mutationFn: (vars: { id: string; notes?: string }) =>
       api.collectParcel(vars.id, { notes: vars.notes }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['parcels'] }),
+  });
+}
+
+export function useCondoLostFoundPosts(
+  api: ApiClient,
+  condoId: string | null,
+  params: {
+    kind?: string;
+    status?: string;
+    openOnly?: boolean;
+    manage?: boolean;
+    limit?: number;
+    offset?: number;
+  } = {},
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.condoLostFound(condoId, params) : ['lost-found', 'condo', null],
+    queryFn: () =>
+      condoId
+        ? api.lostFoundForCondo(condoId, params)
+        : Promise.resolve({ items: [], total: 0, limit: 50, offset: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useMyLostFoundPosts(
+  api: ApiClient,
+  params: { kind?: string; status?: string; limit?: number; offset?: number } = {},
+) {
+  return useQuery({
+    queryKey: queryKeys.myLostFound(params),
+    queryFn: () => api.myLostFoundPosts(params),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useLostFoundPost(api: ApiClient, id: string | null) {
+  return useQuery({
+    queryKey: id ? queryKeys.lostFoundPost(id) : ['lost-found', null],
+    queryFn: () => (id ? api.lostFoundPost(id) : Promise.reject(new Error('No id'))),
+    enabled: Boolean(id),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreateLostFoundPost(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateLostFoundPostInput) => api.createLostFoundPost(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lost-found'] }),
+  });
+}
+
+export function useResolveLostFoundPost(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.resolveLostFoundPost(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lost-found'] }),
+  });
+}
+
+export function useRemoveLostFoundPost(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.removeLostFoundPost(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lost-found'] }),
+  });
+}
+
+export function useModerateRemoveLostFoundPost(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.moderateRemoveLostFoundPost(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lost-found'] }),
   });
 }

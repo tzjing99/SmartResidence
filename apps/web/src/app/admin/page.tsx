@@ -16,7 +16,12 @@ import {
   useDismissSetup,
 } from '@smartresidence/api-client';
 import type { AutomationRunStatus } from '@smartresidence/shared-types';
-import { AUTOMATION_STATUS_LABELS, formatMoney, setupProgress } from '@smartresidence/shared-types';
+import {
+  AUTOMATION_STATUS_LABELS,
+  formatMoney,
+  isFreshSetupInstance,
+  setupProgress,
+} from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -156,6 +161,7 @@ function SetupBanner({ condoId }: { condoId: string }) {
   if (!data || data.completedAt || data.dismissedAt) return null;
 
   const progress = setupProgress(data);
+  const fresh = isFreshSetupInstance(data.facts);
   const dismiss = () => {
     dismissSetup.mutate(
       { condoId },
@@ -172,19 +178,22 @@ function SetupBanner({ condoId }: { condoId: string }) {
           <Rocket className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold">Finish setting up your building</h2>
+          <h2 className="text-lg font-semibold">
+            {fresh ? 'Welcome — let’s set up your building' : 'Finish setting up your building'}
+          </h2>
           <p className="text-sm sr-muted mt-0.5">
-            {progress.completed} of {progress.total} steps ready. Finish the guided setup to get
-            billing and residents running.
+            {fresh
+              ? 'This is a blank building with no units yet. The guided setup walks you through blocks, billing, and resident invites step by step.'
+              : `${progress.completed} of ${progress.total} steps done. Continue the checklist to get billing and residents running.`}
           </p>
           <div className="flex flex-wrap items-center gap-3 mt-3">
             <Button asChild size="sm">
               <Link href="/admin/setup">
-                Continue setup <ChevronRight className="size-4" />
+                {fresh ? 'Start guided setup' : 'Continue setup'} <ChevronRight className="size-4" />
               </Link>
             </Button>
             <Button variant="ghost" size="sm" onClick={dismiss}>
-              Dismiss
+              Do this later
             </Button>
           </div>
         </div>

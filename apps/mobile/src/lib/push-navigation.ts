@@ -42,6 +42,8 @@ function routeFromDeeplink(deeplink: string): string | null {
       return '/(resident)/sos';
     case 'parcels':
       return '/(resident)/parcels';
+    case 'lost-found':
+      return '/(resident)/lost-found';
     case 'forms':
       return '/(resident)/forms';
     default:
@@ -75,6 +77,9 @@ export function resolveNotificationRoute(data: NotificationData): string | null 
 
   const parcelId = asString(data.parcelId);
   if (parcelId) return '/(resident)/parcels';
+
+  const lostFoundPostId = asString(data.lostFoundPostId);
+  if (lostFoundPostId) return '/(resident)/lost-found';
 
   const submissionId = asString(data.submissionId);
   if (submissionId) return '/(resident)/forms';

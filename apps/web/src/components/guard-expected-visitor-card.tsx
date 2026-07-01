@@ -14,6 +14,7 @@ import type {
 import {
   deliveryPlatformLabel,
   guardCanAcknowledgeWalkIn,
+  guardVisitorStatusLabel,
   isQuickEntryPass,
   passKindLabel,
 } from '@smartresidence/shared-types';
@@ -33,25 +34,8 @@ function visitTypeLabel(visitType: VisitorVisitType, t: ReturnType<typeof useT>)
   }
 }
 
-function statusLabel(status: VisitorStatus, t: ReturnType<typeof useT>): string {
-  switch (status) {
-    case 'PENDING_OWNER_APPROVAL':
-      return t('visitors.guard.awaitingOwner');
-    case 'PENDING_MANAGEMENT_APPROVAL':
-      return t('visitors.guard.statusPendingManagement');
-    case 'APPROVED':
-      return t('visitors.guard.statusApproved');
-    case 'CHECKED_OUT':
-      return t('visitors.guard.statusCheckedOut');
-    case 'EXPIRED':
-      return t('visitors.guard.noShowBadge');
-    case 'CANCELLED':
-      return t('visitors.guard.statusCancelled');
-    case 'REJECTED':
-      return t('visitors.guard.statusRejected');
-    default:
-      return status.toLowerCase().replaceAll('_', ' ');
-  }
+function statusLabel(status: VisitorStatus, _t: ReturnType<typeof useT>): string {
+  return guardVisitorStatusLabel(status);
 }
 
 function ArrivalChip({

@@ -17,6 +17,7 @@ export const SetupStepKey = z.enum([
   'residents',
   'operations',
   'integrations',
+  'documents',
   'review',
 ]);
 export type SetupStepKey = z.infer<typeof SetupStepKey>;
@@ -29,6 +30,7 @@ export const SETUP_STEP_ORDER: SetupStepKey[] = [
   'residents',
   'operations',
   'integrations',
+  'documents',
   'review',
 ];
 
@@ -46,7 +48,7 @@ export const SETUP_STEP_META: Record<SetupStepKey, SetupStepMeta> = {
   condoProfile: {
     key: 'condoProfile',
     title: 'Building details',
-    description: 'Confirm your building name, address, timezone, and branding.',
+    description: 'Add your building name, address, timezone, and logo.',
     href: '/admin/settings',
     skippable: false,
   },
@@ -54,7 +56,7 @@ export const SETUP_STEP_META: Record<SetupStepKey, SetupStepMeta> = {
     key: 'structure',
     title: 'Blocks and units',
     description:
-      'Add at least one block, unit type, and unit so billing and resident access can work.',
+      'Create at least one block, unit type, and unit so billing and resident logins can work.',
     href: '/admin/units',
     skippable: false,
   },
@@ -62,7 +64,7 @@ export const SETUP_STEP_META: Record<SetupStepKey, SetupStepMeta> = {
     key: 'billing',
     title: 'Billing basics',
     description:
-      'Set fee rates and receipt details. Turn on monthly invoice automation when you are ready.',
+      'Set maintenance fees and receipt details. Online payments and monthly invoices are optional.',
     href: '/admin/settings/billing',
     skippable: true,
   },
@@ -76,7 +78,7 @@ export const SETUP_STEP_META: Record<SetupStepKey, SetupStepMeta> = {
   operations: {
     key: 'operations',
     title: 'Day-to-day rules',
-    description: 'Set visitor rules, helpdesk response times, and how announcements go out.',
+    description: 'Review visitor rules and helpdesk response times for your building.',
     href: '/admin/settings/visitors',
     skippable: true,
   },
@@ -87,19 +89,27 @@ export const SETUP_STEP_META: Record<SetupStepKey, SetupStepMeta> = {
     href: '/admin/settings/integrations',
     skippable: true,
   },
+  documents: {
+    key: 'documents',
+    title: 'Documents (optional)',
+    description: 'Upload house rules, bylaws, or AGM minutes for residents to view.',
+    href: '/admin/documents',
+    skippable: true,
+  },
   review: {
     key: 'review',
     title: 'Review and finish',
-    description: 'Check what is done, then mark your building as ready.',
+    description: 'Check your progress, then mark the building as ready.',
     href: '/admin/setup',
     skippable: false,
   },
 };
 
-/** Admin routes reachable while setup is incomplete (wizard links + billing automation). */
+/** Admin routes linked from the setup wizard (banner/nav only — no forced redirect). */
 export const SETUP_WIZARD_PATH_PREFIXES: string[] = [
   '/admin/setup',
   '/admin/automations',
+  '/admin/documents',
   ...new Set(Object.values(SETUP_STEP_META).map((m) => m.href)),
 ];
 
@@ -127,8 +137,18 @@ export interface SetupChecklistFacts {
   billingAutomationEnabled: boolean;
   enabledGatewayCount: number;
   residentCount: number;
+  hasVisitorPolicy: boolean;
+  hasHelpdeskSettings: boolean;
   slaPolicyCount: number;
   mcpCount: number;
+  documentCount: number;
+}
+
+/** True when the condo has no structure or residents yet — show the guided bootstrap path. */
+export function isFreshSetupInstance(
+  facts: Pick<SetupChecklistFacts, 'blockCount' | 'unitCount' | 'residentCount'>,
+): boolean {
+  return facts.blockCount === 0 && facts.unitCount === 0 && facts.residentCount === 0;
 }
 
 /**

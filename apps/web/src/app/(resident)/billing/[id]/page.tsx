@@ -6,6 +6,7 @@ import { toast } from '@/lib/toast';
 import { queryKeys, usePayInvoice, usePayableMethods } from '@smartresidence/api-client';
 import type { Invoice, InvoiceStatus } from '@smartresidence/shared-types';
 import {
+  GATEWAY_PROVIDER_SHORT_LABELS,
   INVOICE_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
   formatMoney,
@@ -62,20 +63,28 @@ export default function InvoiceDetailPage() {
   const outstanding = invoiceOutstanding(inv);
   const overdue = isInvoiceOverdue(inv);
   const paymentHistory = visibleInvoicePayments(inv.payments ?? []);
-  const pendingPayment = paymentHistory.some((p) => p.status === 'PENDING');
+  const pendingPayment = paymentHistory.find((p) => p.status === 'PENDING');
   const settleable = inv.status !== 'PAID' && inv.status !== 'VOID' && outstanding > 0.005;
+
+  function buildReturnUrl(provider: string) {
+    const appReturn =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/billing/${id}?paid=1`
+        : undefined;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+    if (!appReturn) return undefined;
+    if (provider === 'RAZER') {
+      return `${apiBase}/api/webhooks/payments/fiuu/return?next=${encodeURIComponent(appReturn)}`;
+    }
+    if (provider === 'IPAY88') {
+      return `${apiBase}/api/webhooks/payments/ipay88/return?next=${encodeURIComponent(appReturn)}`;
+    }
+    return appReturn;
+  }
 
   async function payNow(provider: string) {
     try {
-      const appReturn =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/billing/${id}?paid=1`
-          : undefined;
-      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-      const returnUrl =
-        provider === 'RAZER' && appReturn
-          ? `${apiBase}/api/webhooks/payments/fiuu/return?next=${encodeURIComponent(appReturn)}`
-          : appReturn;
+      const returnUrl = buildReturnUrl(provider);
       const res = await pay.mutateAsync({ id, provider, returnUrl });
       if (res.qrPayload || res.qrImageUrl) {
         setQrSession({
@@ -132,8 +141,15 @@ export default function InvoiceDetailPage() {
       ) : returnedFromGateway || pendingPayment ? (
         <div className="flex items-center gap-2 rounded-xl border border-amber-200/70 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
           <AlertTriangle className="size-4 shrink-0" />
-          Payment is being confirmed by the gateway. Please do not start another payment unless
-          management asks you to.
+          {pendingPayment ? (
+            <>
+              {GATEWAY_PROVIDER_SHORT_LABELS[pendingPayment.provider] ?? pendingPayment.provider}{' '}
+              payment is being confirmed. You can choose a different method below — the previous
+              attempt will be cancelled.
+            </>
+          ) : (
+            <>Payment is being confirmed by the gateway. This may take a moment.</>
+          )}
         </div>
       ) : overdue ? (
         <div className="flex items-center gap-2 rounded-xl border border-red-200/60 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-400">
@@ -243,7 +259,7 @@ export default function InvoiceDetailPage() {
                 <Button
                   key={`${m.provider}-${m.mode}`}
                   onClick={() => payNow(m.provider)}
-                  disabled={pay.isPending || pendingPayment}
+                  disabled={pay.isPending}
                 >
                   {pay.isPending ? 'Starting…' : `${m.label}${m.mode === 'TEST' ? ' (TEST)' : ''}`}
                 </Button>

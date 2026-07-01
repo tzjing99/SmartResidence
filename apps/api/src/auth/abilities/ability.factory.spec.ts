@@ -28,7 +28,20 @@ describe('AbilityFactory', () => {
       }),
     );
     expect(ability.can('manage', 'all')).toBe(true);
+    expect(ability.can('read', 'Platform')).toBe(true);
     expect(ability.can('read', 'AuditLog')).toBe(true);
+  });
+
+  it('does not grant Platform access to management admin', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.MANAGEMENT_ADMIN, condoId: 'condo-1', unitId: null, permissions: [] },
+        ],
+        activeRole: RoleId.MANAGEMENT_ADMIN,
+      }),
+    );
+    expect(ability.can('read', 'Platform')).toBe(false);
   });
 
   it('lets a unit owner read the audit log of their own unit only', () => {

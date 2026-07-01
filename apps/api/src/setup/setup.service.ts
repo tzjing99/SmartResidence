@@ -53,6 +53,7 @@ export class SetupService {
     condo: { id: string; name: string; address: string; settings: unknown },
   ): Promise<SetupChecklistFacts> {
     const condoId = condo.id;
+    const rawSettings = asObject(condo.settings);
     const [
       blockCount,
       unitTypeCount,
@@ -62,6 +63,7 @@ export class SetupService {
       residentCount,
       slaPolicyCount,
       mcpCount,
+      documentCount,
     ] = await Promise.all([
       this.prisma.block.count({ where: { condoId } }),
       this.prisma.unitType.count({ where: { condoId } }),
@@ -77,6 +79,7 @@ export class SetupService {
       }),
       this.prisma.slaPolicy.count({ where: { condoId } }),
       this.prisma.mcpServerConnection.count({ where: { condoId } }),
+      this.prisma.document.count({ where: { condoId } }),
     ]);
 
     const receipt = parseReceiptTemplate(condo.settings);
@@ -94,15 +97,17 @@ export class SetupService {
       billingAutomationEnabled: this.readBillingAutomationEnabled(condo.settings),
       enabledGatewayCount,
       residentCount,
+      hasVisitorPolicy: Boolean(rawSettings.visitor),
+      hasHelpdeskSettings: Boolean(rawSettings.helpdesk),
       slaPolicyCount,
       mcpCount,
+      documentCount,
     };
   }
 
   /**
    * Derive whether a step is satisfied from real data. Returns `null` for
-   * steps that cannot be inferred (operations toggles, optional integrations)
-   * which rely purely on the admin's explicit done/skip choice.
+   * optional steps with nothing configured yet (integrations, documents).
    */
   private deriveSatisfied(key: SetupStepKey, facts: SetupChecklistFacts): boolean | null {
     switch (key) {
@@ -114,6 +119,16 @@ export class SetupService {
         return facts.feeRateCount >= 1 && facts.hasReceiptTemplate;
       case 'residents':
         return facts.residentCount >= 1;
+      case 'operations':
+        return (
+          facts.hasVisitorPolicy ||
+          facts.hasHelpdeskSettings ||
+          facts.slaPolicyCount > 0
+        );
+      case 'integrations':
+        return facts.mcpCount > 0 ? true : null;
+      case 'documents':
+        return facts.documentCount > 0 ? true : null;
       default:
         return null;
     }
@@ -156,6 +171,20 @@ export class SetupService {
     if (!condo) throw new NotFoundException('Condo not found');
     const facts = await this.deriveFacts(condo);
     return this.buildStatus(condoId, condo.settings, facts);
+  }
+
+  /**
+   * Build setup status for platform operators listing condos. Caller must
+   * enforce `read Platform` — no per-condo management scope is required.
+   */
+  async buildStatusForCondo(condo: {
+    id: string;
+    name: string;
+    address: string;
+    settings: unknown;
+  }): Promise<SetupStatus> {
+    const facts = await this.deriveFacts(condo);
+    return this.buildStatus(condo.id, condo.settings, facts);
   }
 
   async updateStep(

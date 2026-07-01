@@ -1154,6 +1154,11 @@ async function main() {
             logoUrl: '',
           },
         },
+        setup: {
+          completedAt: '2026-01-15T00:00:00.000Z',
+          dismissedAt: null,
+          steps: {},
+        },
       },
     },
   });

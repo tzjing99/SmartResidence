@@ -373,7 +373,6 @@ export class BillingService {
       where: {
         unitId: unit.id,
         userId: actor.id,
-        provider: dto.provider,
         status: PaymentStatus.PENDING,
       },
       data: { status: PaymentStatus.CANCELLED },
@@ -491,10 +490,10 @@ export class BillingService {
     return null;
   }
 
-  /** Supersede abandoned gateway attempts so history does not fill with pending rows. */
-  private async cancelStalePendingPayments(invoiceId: string, provider: PaymentProvider) {
+  /** Supersede abandoned gateway attempts so residents can switch payment methods. */
+  private async cancelStalePendingPayments(invoiceId: string, _provider?: PaymentProvider) {
     await this.prisma.payment.updateMany({
-      where: { invoiceId, provider, status: PaymentStatus.PENDING },
+      where: { invoiceId, status: PaymentStatus.PENDING },
       data: { status: PaymentStatus.CANCELLED },
     });
   }

@@ -7,6 +7,7 @@ import type {
 } from '@smartresidence/shared-types';
 import {
   deliveryPlatformLabel,
+  guardVisitorStatusLabel,
   isQuickEntryPass,
   passKindLabel,
 } from '@smartresidence/shared-types';
@@ -129,9 +130,7 @@ export function VisitorGuardPassCard({
           <Pill
             tone={ownerPreRegistered ? 'success' : 'primary'}
             label={
-              ownerPreRegistered
-                ? 'Ready for check-in'
-                : visitor.status.toLowerCase().replace(/_/g, ' ')
+              ownerPreRegistered ? 'Ready for check-in' : guardVisitorStatusLabel(visitor.status)
             }
           />
         ) : null}

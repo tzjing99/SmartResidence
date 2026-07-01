@@ -11,6 +11,7 @@ export * from './defect';
 export * from './handover';
 export * from './announcement';
 export * from './polls';
+export * from './governance';
 export * from './facility';
 export * from './parcel';
 export * from './safety';
@@ -19,7 +20,9 @@ export * from './upload';
 export * from './setup';
 export * from './forms';
 export * from './documents';
+export * from './lost-found';
 export * from './whatsapp';
+export * from './platform';
 
 export const APP_NAME = 'SmartResidence';
 export const APP_DEEPLINK_SCHEME = 'smartresidence';

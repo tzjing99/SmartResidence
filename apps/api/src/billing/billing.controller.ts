@@ -283,9 +283,20 @@ export class PaymentWebhookController {
     @Res() res: Response,
   ) {
     await this.billing.handleGatewayCallback(PaymentProvider.RAZER, body, headers);
-    const fallback = 'http://localhost:3000/billing';
-    const target = next?.startsWith('http') ? next : fallback;
-    res.redirect(302, target);
+    res.redirect(302, this.gatewayReturnTarget(next));
+  }
+
+  /** Browser return from iPay88 hosted page (POST). Settles then redirects the resident. */
+  @Public()
+  @Post('ipay88/return')
+  async ipay88Return(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: Record<string, string | string[]>,
+    @Query('next') next: string | undefined,
+    @Res() res: Response,
+  ) {
+    await this.billing.handleGatewayCallback(PaymentProvider.IPAY88, body, headers);
+    res.redirect(302, this.gatewayReturnTarget(next));
   }
 
   @Public()
@@ -324,5 +335,13 @@ export class PaymentWebhookController {
       },
       {},
     );
+  }
+
+  /** Accept http(s) app URLs and mobile deep links after hosted gateway return. */
+  private gatewayReturnTarget(next: string | undefined): string {
+    const fallback = 'http://localhost:3000/billing';
+    if (!next) return fallback;
+    if (next.startsWith('http') || next.startsWith('smartresidence://')) return next;
+    return fallback;
   }
 }

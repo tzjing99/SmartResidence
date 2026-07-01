@@ -4,6 +4,7 @@ import type { GuardExpectedVisitor, Visitor, VisitorListView } from '@smartresid
 import {
   deliveryPlatformLabel,
   guardCanAcknowledgeWalkIn,
+  guardVisitorStatusLabel,
   isQuickEntryPass,
   passKindLabel,
 } from '@smartresidence/shared-types';
@@ -215,7 +216,12 @@ function ExpectedVisitorCard({
             ) : variant === 'no_show' ? (
               <Pill tone="neutral" label="No-show" />
             ) : variant === 'history' ? (
-              <Pill tone="neutral" label={plainLabel(visitor.status)} />
+              <Pill tone="neutral" label={guardVisitorStatusLabel(visitor.status)} />
+            ) : visitor.status !== 'APPROVED' ? (
+              <Pill
+                tone={visitor.status === 'PENDING_OWNER_APPROVAL' ? 'warning' : 'neutral'}
+                label={guardVisitorStatusLabel(visitor.status)}
+              />
             ) : null}
           </View>
         </View>

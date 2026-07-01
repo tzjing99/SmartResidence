@@ -120,9 +120,10 @@ export class AuthService {
       permissions: Array.isArray(r.permissions) ? (r.permissions as string[]) : [],
     }));
 
+    const isSuperAdmin = roles.some((r) => r.roleId === RoleId.SUPER_ADMIN);
     const condoIds = Array.from(new Set(roles.map((r) => r.condoId).filter(Boolean) as string[]));
     let activeCondoId: string | null = null;
-    if (condoIdHint && condoIds.includes(condoIdHint)) {
+    if (condoIdHint && (condoIds.includes(condoIdHint) || isSuperAdmin)) {
       activeCondoId = condoIdHint;
     } else if (condoIds.length === 1) {
       activeCondoId = condoIds[0] ?? null;

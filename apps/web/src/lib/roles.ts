@@ -46,6 +46,10 @@ export function isGuardRole(role: RoleId | null | undefined): boolean {
   return role === 'SECURITY_GUARD';
 }
 
+export function isPlatformRole(role: RoleId | null | undefined): boolean {
+  return role === 'SUPER_ADMIN';
+}
+
 /** Which UI area a role belongs to. CONTRACTOR/unknown fall back to resident. */
 export function areaForRole(role: RoleId | null | undefined): Area {
   if (isGuardRole(role)) return 'guard';
@@ -55,6 +59,7 @@ export function areaForRole(role: RoleId | null | undefined): Area {
 
 /** The landing route for a role after sign-in (or when redirected out of a forbidden area). */
 export function roleToHome(role: RoleId | null | undefined): string {
+  if (isPlatformRole(role)) return '/admin/platform';
   switch (areaForRole(role)) {
     case 'guard':
       return '/guard';

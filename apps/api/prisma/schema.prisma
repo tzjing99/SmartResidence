@@ -81,6 +81,8 @@ model User {
   receipts             Receipt[]
   pollsCreated         Poll[]     @relation("pollAuthor")
   pollVotes            PollVote[]
+  generalMeetingsCreated GeneralMeeting[] @relation("meetingAuthor")
+  meetingProxiesSubmitted MeetingProxy[] @relation("proxyOwner")
   bookings             Booking[]
   sosRaised            SosAlert[] @relation("sosRaisedBy")
   sosAcknowledged      SosAlert[] @relation("sosAcknowledgedBy")
@@ -91,6 +93,7 @@ model User {
   formSubmissions      FormSubmission[] @relation("formSubmitter")
   formReviews          FormSubmission[] @relation("formReviewer")
   documentVersionsUploaded DocumentVersion[] @relation("documentVersionUploader")
+  lostFoundPosts         LostFoundPost[]     @relation("lostFoundAuthor")
 
   @@index([email])
   @@index([phone])
@@ -210,6 +213,7 @@ model Condo {
   advancePayments  AdvancePayment[]
   automationRuns   AutomationRun[]
   polls            Poll[]
+  generalMeetings  GeneralMeeting[]
   mcpServerConnections McpServerConnection[]
   facilities       Facility[]
   bookings         Booking[]
@@ -222,6 +226,7 @@ model Condo {
   formSubmissions  FormSubmission[]
   documentFolders  DocumentFolder[]
   documents        Document[]
+  lostFoundPosts   LostFoundPost[]
 
   @@map("condos")
 }
@@ -288,10 +293,12 @@ model Unit {
   unitAccount      UnitAccount?
   advancePayments  AdvancePayment[]
   pollVotes        PollVote[]
+  meetingProxies   MeetingProxy[]
   bookings         Booking[]
   sosAlerts        SosAlert[]
   parcels          Parcel[]
   formSubmissions  FormSubmission[]
+  lostFoundPosts   LostFoundPost[]
 
   @@unique([condoId, identifier])
   @@index([blockId])
@@ -1282,6 +1289,7 @@ model Attachment {
   announcement   Announcement?    @relation(fields: [announcementId], references: [id], onDelete: Cascade)
   documentVersionId String?       @unique @db.Uuid
   documentVersion   DocumentVersion? @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+  lostFoundPost     LostFoundPost?
   format               String?
   fallbackKey          String?
   fallbackMimeType     String?
@@ -1429,10 +1437,14 @@ enum NotificationKind {
   THREAD_SLA_ESCALATION
   PARCEL_RECEIVED
   PARCEL_OVERDUE
+  LOST_FOUND_POST
   FORM_SUBMITTED
   FORM_APPROVED
   FORM_REJECTED
   DOCUMENT_PUBLISHED
+  MEETING_NOTICE_PUBLISHED
+  PROXY_RECEIVED
+  RESOLUTION_OPEN
   SYSTEM
 }
 
@@ -1851,10 +1863,86 @@ model Poll {
 
   options PollOption[]
   votes   PollVote[]
+  meetingResolution MeetingResolution?
 
   @@index([condoId, status])
   @@index([condoId, createdAt])
   @@map("polls")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Governance v0.6 — AGM/EGM meetings, proxies, resolution voting via Poll
+//////////////////////////////////////////////////////////////////////////////
+
+enum GeneralMeetingKind {
+  AGM
+  EGM
+}
+
+enum GeneralMeetingStatus {
+  DRAFT
+  NOTICE_PUBLISHED
+  IN_PROGRESS
+  CLOSED
+}
+
+model GeneralMeeting {
+  id              String               @id @default(uuid()) @db.Uuid
+  condoId         String               @db.Uuid
+  condo           Condo                @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  kind            GeneralMeetingKind
+  title           String
+  scheduledAt     DateTime
+  noticeBody      String               @default("")
+  status          GeneralMeetingStatus @default(DRAFT)
+  createdByUserId String               @db.Uuid
+  createdBy       User                 @relation("meetingAuthor", fields: [createdByUserId], references: [id])
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  resolutions MeetingResolution[]
+  proxies     MeetingProxy[]
+
+  @@index([condoId, status])
+  @@index([condoId, scheduledAt])
+  @@map("general_meetings")
+}
+
+model MeetingProxy {
+  id                 String         @id @default(uuid()) @db.Uuid
+  meetingId          String         @db.Uuid
+  meeting            GeneralMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  unitId             String         @db.Uuid
+  unit               Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  ownerUserId        String         @db.Uuid
+  owner              User           @relation("proxyOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  proxyHolderName    String
+  proxyHolderContact String         @default("")
+  submittedAt        DateTime       @default(now())
+
+  @@unique([meetingId, unitId])
+  @@index([meetingId])
+  @@index([ownerUserId])
+  @@map("meeting_proxies")
+}
+
+model MeetingResolution {
+  id             String         @id @default(uuid()) @db.Uuid
+  meetingId      String         @db.Uuid
+  meeting        GeneralMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  title          String
+  description    String         @default("")
+  /// Linked Poll for share-weighted owner voting (For / Against / Abstain).
+  pollId         String?        @unique @db.Uuid
+  poll           Poll?          @relation(fields: [pollId], references: [id], onDelete: SetNull)
+  votingOpensAt  DateTime?
+  votingClosesAt DateTime?
+  position       Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([meetingId])
+  @@map("meeting_resolutions")
 }
 
 model PollOption {
@@ -2111,6 +2199,49 @@ model Parcel {
   @@index([unitId, status])
   @@index([condoId, receivedAt])
   @@map("parcels")
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Lost & found board (non-commercial community posts)
+//////////////////////////////////////////////////////////////////////////////
+
+enum LostFoundKind {
+  LOST
+  FOUND
+}
+
+enum LostFoundStatus {
+  OPEN
+  RESOLVED
+  REMOVED
+}
+
+/// Resident-posted lost or found item for the condo community board.
+model LostFoundPost {
+  id                String          @id @default(uuid()) @db.Uuid
+  condoId           String          @db.Uuid
+  condo             Condo           @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  userId            String          @db.Uuid
+  user              User            @relation("lostFoundAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  unitId            String          @db.Uuid
+  unit              Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  kind              LostFoundKind
+  title             String
+  description       String
+  locationNote      String?
+  contactMethod     String
+  status            LostFoundStatus @default(OPEN)
+  photoAttachmentId String?         @unique @db.Uuid
+  photoAttachment   Attachment?     @relation(fields: [photoAttachmentId], references: [id], onDelete: SetNull)
+  resolvedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([condoId, status])
+  @@index([condoId, kind, status])
+  @@index([userId])
+  @@index([unitId])
+  @@map("lost_found_posts")
 }
 
 //////////////////////////////////////////////////////////////////////////////

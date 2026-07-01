@@ -78,15 +78,19 @@ function downloadCsv(filename: string, rows: string[][]) {
   URL.revokeObjectURL(url);
 }
 
+async function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function downloadReceipt(receiptId: string, number: string) {
   try {
     const blob = await api.downloadReceiptPdf(receiptId);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${number}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+    await downloadBlob(blob, `${number}.pdf`);
   } catch (err) {
     toast.error((err as Error).message);
   }
@@ -130,8 +134,8 @@ function PrepaymentForm({ condoId }: { condoId: string }) {
     <Card>
       <h3 className="font-semibold mb-1 text-sm">Record advance maintenance payment</h3>
       <p className="text-xs sr-muted mb-4">
-        Adds credit to the unit account. Credit is applied to outstanding invoices first, then future
-        maintenance fees. A receipt is issued.
+        Adds credit to the unit account. Credit is applied to outstanding invoices first, then
+        future maintenance fees. A receipt is issued.
       </p>
       <form className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end" onSubmit={submit}>
         <div className="flex flex-col gap-1.5">
@@ -441,11 +445,59 @@ function ReceiptRegister({ condoId }: { condoId: string }) {
 function UnitStatementPanel({ condoId }: { condoId: string }) {
   const [search, setSearch] = React.useState('');
   const [unitId, setUnitId] = React.useState('');
+  const [stmtFrom, setStmtFrom] = React.useState(monthStartIso);
+  const [stmtTo, setStmtTo] = React.useState(todayIso);
+  const [exportingPdf, setExportingPdf] = React.useState(false);
   const units = useCondoUnitsSearch(api, condoId, search);
   const unitItems = (units.data?.items ?? []) as UnitRow[];
   const statement = useUnitStatement(api, unitId || null);
   const selectedUnit = unitItems.find((u) => u.id === unitId);
   const data = statement.data as UnitStatement | null | undefined;
+
+  async function exportPdf() {
+    if (!unitId) return;
+    setExportingPdf(true);
+    try {
+      const blob = await api.downloadUnitStatementPdf(condoId, unitId, {
+        from: stmtFrom,
+        to: stmtTo,
+      });
+      const label = selectedUnit?.identifier ?? unitId;
+      await downloadBlob(blob, `statement-${label}-${stmtFrom}.pdf`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
+  function exportCsv() {
+    if (!data?.entries.length) return;
+    const fromMs = new Date(stmtFrom).getTime();
+    const toMs = new Date(stmtTo).getTime() + 86_400_000 - 1;
+    const filtered = data.entries.filter((e) => {
+      const t = new Date(e.occurredAt).getTime();
+      return t >= fromMs && t <= toMs;
+    });
+    if (filtered.length === 0) {
+      toast.error('No statement entries in this date range');
+      return;
+    }
+    downloadCsv(`unit-statement-${selectedUnit?.identifier ?? unitId}.csv`, [
+      ['From', stmtFrom],
+      ['To', stmtTo],
+      ['Date', 'Type', 'Fund', 'Description', 'Charge', 'Payment', 'Balance'],
+      ...filtered.map((e) => [
+        fmtDate(e.occurredAt),
+        e.type,
+        FUND_LABELS[e.fund],
+        e.description,
+        String(e.charge),
+        String(e.payment),
+        String(e.balance),
+      ]),
+    ]);
+  }
 
   return (
     <Card>
@@ -456,28 +508,50 @@ function UnitStatementPanel({ condoId }: { condoId: string }) {
             Running balance by unit. Charges increase the balance, payments and credits reduce it.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={!data?.entries.length}
-          onClick={() =>
-            data &&
-            downloadCsv(`unit-statement-${selectedUnit?.identifier ?? unitId}.csv`, [
-              ['Date', 'Type', 'Fund', 'Description', 'Charge', 'Payment', 'Balance'],
-              ...data.entries.map((e) => [
-                fmtDate(e.occurredAt),
-                e.type,
-                FUND_LABELS[e.fund],
-                e.description,
-                String(e.charge),
-                String(e.payment),
-                String(e.balance),
-              ]),
-            ])
-          }
-        >
-          Export CSV
-        </Button>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="stmt-from" className="text-xs">
+              From
+            </Label>
+            <Input
+              id="stmt-from"
+              type="date"
+              className="h-8 text-xs"
+              value={stmtFrom}
+              onChange={(e) => setStmtFrom(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="stmt-to" className="text-xs">
+              To
+            </Label>
+            <Input
+              id="stmt-to"
+              type="date"
+              className="h-8 text-xs"
+              value={stmtTo}
+              onChange={(e) => setStmtTo(e.target.value)}
+            />
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!unitId || exportingPdf}
+            onClick={() => exportPdf()}
+          >
+            {exportingPdf ? 'Exporting…' : 'PDF'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!data?.entries.length}
+            onClick={() => exportCsv()}
+          >
+            CSV
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
@@ -587,11 +661,42 @@ export default function AdminAccountingPage() {
   const funds = useFundBalances(api, condoId);
   const [collectionFrom, setCollectionFrom] = React.useState(monthStartIso);
   const [collectionTo, setCollectionTo] = React.useState(todayIso);
+  const [exportingCollections, setExportingCollections] = React.useState(false);
+  const [exportingArrears, setExportingArrears] = React.useState(false);
   const collections = useCollectionsSummary(api, condoId, {
     from: collectionFrom,
     to: collectionTo,
   });
   const arrears = useArrearsAging(api, condoId);
+
+  async function exportCollectionsCsv() {
+    if (!condoId) return;
+    setExportingCollections(true);
+    try {
+      const blob = await api.downloadCollectionsCsv(condoId, {
+        from: collectionFrom,
+        to: collectionTo,
+      });
+      await downloadBlob(blob, `collections-${collectionFrom}-${collectionTo}.csv`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingCollections(false);
+    }
+  }
+
+  async function exportArrearsCsv() {
+    if (!condoId) return;
+    setExportingArrears(true);
+    try {
+      const blob = await api.downloadArrearsCsv(condoId);
+      await downloadBlob(blob, `arrears-aging-${todayIso()}.csv`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingArrears(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -649,21 +754,10 @@ export default function AdminAccountingPage() {
                 type="button"
                 size="sm"
                 variant="secondary"
-                disabled={!collections.data}
-                onClick={() =>
-                  collections.data &&
-                  downloadCsv('collections-summary.csv', [
-                    ['From', collections.data.from],
-                    ['To', collections.data.to],
-                    ['Total', String(collections.data.total)],
-                    ['Payment count', String(collections.data.count)],
-                    [],
-                    ['Fund', 'Amount'],
-                    ...collections.data.byFund.map((f) => [FUND_LABELS[f.fund], String(f.balance)]),
-                  ])
-                }
+                disabled={!condoId || exportingCollections}
+                onClick={() => exportCollectionsCsv()}
               >
-                Export
+                {exportingCollections ? 'Exporting…' : 'Export CSV'}
               </Button>
             </div>
           </div>
@@ -697,24 +791,10 @@ export default function AdminAccountingPage() {
               type="button"
               size="sm"
               variant="secondary"
-              disabled={!arrears.data}
-              onClick={() =>
-                arrears.data &&
-                downloadCsv('arrears-aging.csv', [
-                  ['Total outstanding', String(arrears.data.totalOutstanding)],
-                  ['Units in arrears', String(arrears.data.unitsInArrears)],
-                  ['Invoices in arrears', String(arrears.data.invoicesInArrears ?? '')],
-                  [],
-                  ['Bucket', 'Invoice count', 'Amount'],
-                  ...arrears.data.buckets.map((b) => [
-                    ARREARS_BUCKET_LABELS[b.bucket],
-                    String(b.count),
-                    String(b.amount),
-                  ]),
-                ])
-              }
+              disabled={!condoId || exportingArrears}
+              onClick={() => exportArrearsCsv()}
             >
-              Export
+              {exportingArrears ? 'Exporting…' : 'Export CSV'}
             </Button>
           </div>
           {arrears.isLoading ? (

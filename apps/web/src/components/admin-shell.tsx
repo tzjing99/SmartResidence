@@ -4,7 +4,7 @@ import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { NotificationBell } from '@/components/notification-bell';
 import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { NavLinks, PageFade } from '@/components/shell-nav';
-import { api } from '@/lib/api';
+import { api, readSession } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useSignOut } from '@/lib/use-sign-out';
@@ -19,6 +19,7 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  Gavel,
   HelpCircle,
   Landmark,
   LifeBuoy,
@@ -27,6 +28,7 @@ import {
   Megaphone,
   Package,
   Rocket,
+  Search,
   Settings2,
   ShieldAlert,
   Siren,
@@ -50,6 +52,12 @@ const NAV: Array<{
   can?: { action: string; subject: string };
 }> = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
+  {
+    href: '/admin/platform',
+    label: 'All condos',
+    icon: Store,
+    can: { action: 'read', subject: 'Platform' },
+  },
   {
     href: '/admin/units',
     label: 'Residents & units',
@@ -123,6 +131,18 @@ const NAV: Array<{
     can: { action: 'manage', subject: 'Poll' },
   },
   {
+    href: '/admin/lost-found',
+    label: 'Lost & found',
+    icon: Search,
+    can: { action: 'manage', subject: 'LostFoundPost' },
+  },
+  {
+    href: '/admin/governance',
+    label: 'Governance',
+    icon: Gavel,
+    can: { action: 'manage', subject: 'GeneralMeeting' },
+  },
+  {
     href: '/admin/facilities',
     label: 'Facilities',
     icon: CalendarDays,
@@ -147,7 +167,8 @@ const NAV: Array<{
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { role, abilities, ready } = useRoleGuard('admin');
   const condos = useMyCondos(api);
-  const condo = condos.data?.[0];
+  const activeCondoId = readSession()?.activeCondoId ?? null;
+  const condo = condos.data?.find((c) => c.id === activeCondoId) ?? condos.data?.[0];
   const signOut = useSignOut();
 
   // Only management admins can drive first-time setup; surface a Setup entry
@@ -156,8 +177,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const setup = useSetupStatus(api, canManageCondo ? (condo?.id ?? null) : null);
   const setupIncomplete = Boolean(setup.data && !setup.data.completedAt && !setup.data.dismissedAt);
 
-  // Incomplete setup is surfaced via the dashboard banner and "Finish setup" nav item —
-  // no forced redirect so admins can reach settings, invoices, and dismiss the wizard.
+  // Incomplete setup is surfaced via the dashboard banner and optional "Finish setup"
+  // nav item — admins are never redirected away from other admin pages.
 
   const navItems = React.useMemo(() => {
     const items = NAV.filter(

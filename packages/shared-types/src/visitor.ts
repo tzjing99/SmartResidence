@@ -79,15 +79,15 @@ export function deliveryPlatformLabel(platform: DeliveryPlatform | string): stri
   );
 }
 
+/** Plain-language pass kind labels for guard and resident UI. */
+export const PASS_KIND_LABELS: Record<VisitorPassKind, string> = {
+  STANDARD: 'Visitor pass',
+  DELIVERY: 'Delivery pass',
+  E_HAILING: 'E-hailing pass',
+};
+
 export function passKindLabel(kind: VisitorPassKind | string): string {
-  switch (kind) {
-    case 'DELIVERY':
-      return 'Delivery pass';
-    case 'E_HAILING':
-      return 'E-hailing pass';
-    default:
-      return 'Visitor pass';
-  }
+  return PASS_KIND_LABELS[kind as VisitorPassKind] ?? PASS_KIND_LABELS.STANDARD;
 }
 
 export function isQuickEntryPass(
@@ -311,9 +311,21 @@ export type CreateWalkInOfficeInput = z.infer<typeof CreateWalkInOfficeSchema>;
 export const GuardApprovalMethod = z.enum(['OWNER_BY_PHONE', 'GUARD_MANUAL']);
 export type GuardApprovalMethod = z.infer<typeof GuardApprovalMethod>;
 
-/** Plain-language visitor status labels shared across surfaces (no raw enums in UI). */
+/** Plain-language visitor status labels for resident-facing UI (no raw enums). */
 export const VISITOR_STATUS_LABELS: Record<VisitorStatus, string> = {
   PENDING_OWNER_APPROVAL: 'Waiting for your approval',
+  PENDING_MANAGEMENT_APPROVAL: 'Pending management',
+  APPROVED: 'Approved',
+  REJECTED: 'Declined',
+  CHECKED_IN: 'On site',
+  CHECKED_OUT: 'Visited',
+  EXPIRED: 'Expired',
+  CANCELLED: 'Cancelled',
+};
+
+/** Guard-facing status labels (third-person / gate duty wording). */
+export const GUARD_VISITOR_STATUS_LABELS: Record<VisitorStatus, string> = {
+  PENDING_OWNER_APPROVAL: 'Waiting for owner approval',
   PENDING_MANAGEMENT_APPROVAL: 'Pending management',
   APPROVED: 'Approved',
   REJECTED: 'Declined',
@@ -326,6 +338,13 @@ export const VISITOR_STATUS_LABELS: Record<VisitorStatus, string> = {
 export function visitorStatusLabel(status: VisitorStatus | string): string {
   return (
     VISITOR_STATUS_LABELS[status as VisitorStatus] ??
+    String(status).toLowerCase().replace(/_/g, ' ')
+  );
+}
+
+export function guardVisitorStatusLabel(status: VisitorStatus | string): string {
+  return (
+    GUARD_VISITOR_STATUS_LABELS[status as VisitorStatus] ??
     String(status).toLowerCase().replace(/_/g, ' ')
   );
 }

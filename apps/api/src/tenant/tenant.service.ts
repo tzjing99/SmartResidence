@@ -26,12 +26,19 @@ export class TenantService {
   ) {}
 
   async listMyCondos(user: AuthenticatedUser) {
+    const isSuperAdmin = user.roles.some((r) => r.roleId === RoleId.SUPER_ADMIN);
+    if (isSuperAdmin) {
+      return this.prisma.condo.findMany({
+        where: { deletedAt: null },
+        orderBy: { name: 'asc' },
+      });
+    }
     const condoIds = Array.from(
       new Set(user.roles.map((r) => r.condoId).filter(Boolean) as string[]),
     );
     if (condoIds.length === 0) return [];
     return this.prisma.condo.findMany({
-      where: { id: { in: condoIds } },
+      where: { id: { in: condoIds }, deletedAt: null },
       orderBy: { name: 'asc' },
     });
   }

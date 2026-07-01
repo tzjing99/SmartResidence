@@ -63,10 +63,12 @@ export default function ResidentTabsLayout() {
         />
         <Tabs.Screen name="notifications" options={{ href: null }} />
         <Tabs.Screen name="polls" options={{ href: null }} />
+        <Tabs.Screen name="governance" options={{ href: null }} />
         <Tabs.Screen name="facilities" options={{ href: null }} />
         <Tabs.Screen name="forms" options={{ href: null }} />
         <Tabs.Screen name="documents" options={{ href: null }} />
         <Tabs.Screen name="parcels" options={{ href: null }} />
+        <Tabs.Screen name="lost-found" options={{ href: null }} />
         <Tabs.Screen name="faq" options={{ href: null }} />
         <Tabs.Screen name="access" options={{ href: null }} />
         <Tabs.Screen name="sos" options={{ href: null }} />

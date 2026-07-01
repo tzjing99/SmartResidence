@@ -261,6 +261,20 @@ export default function HomeScreen() {
           onPress={() => router.push('/(resident)/polls' as Href)}
         />
         <ActionTile
+          icon="search-outline"
+          title="Lost & found"
+          subtitle="Community board"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/lost-found' as Href)}
+        />
+        <ActionTile
+          icon="hammer-outline"
+          title="Governance"
+          subtitle="AGM & EGM"
+          width={actionWidth}
+          onPress={() => router.push('/(resident)/governance' as Href)}
+        />
+        <ActionTile
           icon="calendar-outline"
           title="Facilities"
           subtitle="Book amenities"

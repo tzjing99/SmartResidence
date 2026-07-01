@@ -994,6 +994,36 @@ export class NotificationService {
     });
   }
 
+  /** Resident posted to lost & found → optionally notify management. */
+  @OnEvent('lostfound.created')
+  async onLostFoundCreated(payload: { postId: string; condoId: string; userId: string }) {
+    const post = await this.prisma.lostFoundPost.findUnique({
+      where: { id: payload.postId },
+      include: {
+        user: { select: { name: true } },
+        unit: { select: { identifier: true } },
+      },
+    });
+    if (!post) return;
+    const managers = await this.condoManagementUserIds(payload.condoId);
+    const recipients = managers.filter((id) => id !== payload.userId);
+    if (recipients.length === 0) return;
+    const kindLabel = post.kind === 'LOST' ? 'Lost item' : 'Found item';
+    const unitLabel = post.unit?.identifier ?? 'a unit';
+    const resident = post.user?.name ?? 'A resident';
+    await this.dispatch({
+      userIds: recipients,
+      kind: NotificationKind.LOST_FOUND_POST,
+      title: `New ${kindLabel.toLowerCase()} on the board`,
+      body: `${post.title} — posted by ${resident} · ${unitLabel}`,
+      data: {
+        lostFoundPostId: post.id,
+        deeplink: 'smartresidence://admin/lost-found',
+      },
+      condoId: payload.condoId,
+    });
+  }
+
   /** Management approved a form → notify the resident. */
   @OnEvent('form.approved')
   async onFormApproved(payload: { submissionId: string; userId: string }) {
@@ -1061,6 +1091,97 @@ export class NotificationService {
         versionId: payload.versionId,
         deeplink: 'smartresidence://documents',
       },
+    });
+  }
+
+  /** AGM/EGM notice published → notify all unit owners. */
+  @OnEvent('governance.notice.published')
+  async onMeetingNoticePublished(payload: { meetingId: string; condoId: string }) {
+    const meeting = await this.prisma.generalMeeting.findUnique({
+      where: { id: payload.meetingId },
+    });
+    if (!meeting) return;
+
+    const userIds = await this.condoResidentUserIds(payload.condoId, { ownersOnly: true });
+    if (userIds.length === 0) return;
+
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.MEETING_NOTICE_PUBLISHED,
+      title: `${meeting.kind} notice: ${meeting.title}`,
+      body: meeting.noticeBody.slice(0, 140),
+      data: {
+        meetingId: meeting.id,
+        deeplink: 'smartresidence://governance',
+      },
+      condoId: payload.condoId,
+    });
+  }
+
+  /** Owner submitted a proxy → notify management. */
+  @OnEvent('governance.proxy.submitted')
+  async onProxySubmitted(payload: {
+    proxyId: string;
+    meetingId: string;
+    condoId: string;
+    ownerUserId: string;
+    unitId: string;
+  }) {
+    const [meeting, unit] = await Promise.all([
+      this.prisma.generalMeeting.findUnique({ where: { id: payload.meetingId } }),
+      this.prisma.unit.findUnique({
+        where: { id: payload.unitId },
+        select: { identifier: true },
+      }),
+    ]);
+    if (!meeting) return;
+
+    const managers = await this.condoManagementUserIds(payload.condoId);
+    if (managers.length === 0) return;
+
+    await this.dispatch({
+      userIds: managers,
+      kind: NotificationKind.PROXY_RECEIVED,
+      title: 'Proxy form received',
+      body: `Unit ${unit?.identifier ?? 'unknown'} submitted a proxy for ${meeting.title}.`,
+      data: {
+        proxyId: payload.proxyId,
+        meetingId: payload.meetingId,
+        deeplink: 'smartresidence://admin/governance',
+      },
+      condoId: payload.condoId,
+    });
+  }
+
+  /** Resolution voting opened → notify all unit owners. */
+  @OnEvent('governance.resolution.opened')
+  async onResolutionOpened(payload: {
+    resolutionId: string;
+    meetingId: string;
+    condoId: string;
+    pollId: string | null;
+  }) {
+    const resolution = await this.prisma.meetingResolution.findUnique({
+      where: { id: payload.resolutionId },
+      include: { meeting: { select: { title: true } } },
+    });
+    if (!resolution) return;
+
+    const userIds = await this.condoResidentUserIds(payload.condoId, { ownersOnly: true });
+    if (userIds.length === 0) return;
+
+    await this.dispatch({
+      userIds,
+      kind: NotificationKind.RESOLUTION_OPEN,
+      title: 'Resolution open for voting',
+      body: `${resolution.title} — ${resolution.meeting.title}`,
+      data: {
+        resolutionId: resolution.id,
+        meetingId: payload.meetingId,
+        pollId: payload.pollId,
+        deeplink: 'smartresidence://governance',
+      },
+      condoId: payload.condoId,
     });
   }
 }

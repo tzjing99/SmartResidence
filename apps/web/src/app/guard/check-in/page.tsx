@@ -5,6 +5,7 @@ import { toast } from '@/lib/toast';
 import type { RecurringPassVerify } from '@smartresidence/shared-types';
 import {
   deliveryPlatformLabel,
+  guardVisitorStatusLabel,
   isQuickEntryPass,
   isVisitorBlacklistError,
   passKindLabel,
@@ -179,9 +180,7 @@ export default function GuardCheckInPage() {
               </div>
             ) : null}
             {!isRecurring ? (
-              <p className="text-xs sr-muted mt-1 capitalize">
-                {(pass as VerifiedVisitor).status.toLowerCase().replace(/_/g, ' ')}
-              </p>
+              <p className="text-xs sr-muted mt-1">{guardVisitorStatusLabel((pass as VerifiedVisitor).status)}</p>
             ) : null}
           </div>
           <Button onClick={allowEntry} disabled={busy || !canCheckIn}>

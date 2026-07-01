@@ -15,6 +15,7 @@ import {
   type SetupStatus,
   type SetupStepKey,
   type SetupStepStatus,
+  isFreshSetupInstance,
   setupProgress,
 } from '@smartresidence/shared-types';
 import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
@@ -65,7 +66,7 @@ function factLine(key: SetupStepKey, status: SetupStatus): string[] {
     case 'condoProfile':
       return [
         f.hasProfile
-          ? 'Building name and address are set'
+          ? 'Building name and address are saved'
           : 'Add your building name and address in Settings',
       ];
     case 'structure':
@@ -83,21 +84,32 @@ function factLine(key: SetupStepKey, status: SetupStatus): string[] {
           : 'Monthly invoice automation is off (optional)',
         f.enabledGatewayCount > 0
           ? `${f.enabledGatewayCount} online payment method${f.enabledGatewayCount === 1 ? '' : 's'} enabled`
-          : 'No online payment method yet (cash or manual is fine)',
+          : 'No online payment method yet — cash or bank transfer is fine',
       ];
     case 'residents':
-      return [`${f.residentCount} resident${f.residentCount === 1 ? '' : 's'} onboarded`];
+      return [`${f.residentCount} resident${f.residentCount === 1 ? '' : 's'} invited`];
     case 'operations':
       return [
-        f.slaPolicyCount > 0
-          ? `${f.slaPolicyCount} helpdesk SLA rule${f.slaPolicyCount === 1 ? '' : 's'} configured`
-          : 'Using default helpdesk SLA settings',
+        f.hasVisitorPolicy
+          ? 'Visitor rules reviewed and saved'
+          : 'Visitor rules still on defaults — open Settings to review',
+        f.hasHelpdeskSettings || f.slaPolicyCount > 0
+          ? f.slaPolicyCount > 0
+            ? `${f.slaPolicyCount} helpdesk SLA rule${f.slaPolicyCount === 1 ? '' : 's'} configured`
+            : 'Helpdesk settings saved'
+          : 'Helpdesk SLA still on defaults (optional)',
       ];
     case 'integrations':
       return [
         f.mcpCount > 0
           ? `${f.mcpCount} integration${f.mcpCount === 1 ? '' : 's'} connected`
           : 'No integrations connected yet (optional)',
+      ];
+    case 'documents':
+      return [
+        f.documentCount > 0
+          ? `${f.documentCount} document${f.documentCount === 1 ? '' : 's'} uploaded`
+          : 'No documents uploaded yet (optional)',
       ];
     default:
       return [];
@@ -174,7 +186,7 @@ export default function AdminSetupPage() {
       { condoId, input: { step: activeKey, skipped: true, done: false } },
       {
         onSuccess: () => {
-          toast.message('Step skipped — you can finish it later from Settings');
+          toast.message('Step skipped — come back to it any time from this checklist.');
           goNext();
         },
         onError: () => toast.error('Could not skip this step'),
@@ -202,7 +214,7 @@ export default function AdminSetupPage() {
       { condoId },
       {
         onSuccess: () => {
-          toast.message('You can finish setup any time from Settings or the dashboard banner.');
+          toast.message('Setup reminder hidden — reopen it from Settings or the sidebar.');
           router.push('/admin');
         },
         onError: () => toast.error('Could not defer setup'),
@@ -232,8 +244,7 @@ export default function AdminSetupPage() {
     );
   }
 
-  const isFreshInstance =
-    data.facts.blockCount === 0 && data.facts.unitCount === 0 && data.facts.residentCount === 0;
+  const isFreshInstance = isFreshSetupInstance(data.facts);
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl">
@@ -245,14 +256,14 @@ export default function AdminSetupPage() {
           </h1>
         </div>
         <p className="sr-muted">
-          Work through the steps below in order. You can leave and come back — your progress is
-          saved, and you can change anything later from Settings.
+          Follow the steps below in order. Your progress is saved automatically — leave and come
+          back any time.
         </p>
         {isFreshInstance ? (
           <Card className="border-coral-500/30 bg-coral-500/5 mt-1">
             <p className="text-sm">
-              This looks like a brand-new building. Start with <strong>Building details</strong>,
-              then add your blocks and units — that unlocks billing and resident invites.
+              Welcome — this building is empty. Start with <strong>Building details</strong>, then
+              add blocks and units. That unlocks billing, resident invites, and the rest.
             </p>
           </Card>
         ) : null}
@@ -349,6 +360,11 @@ export default function AdminSetupPage() {
                     <Link href="/admin/automations">Invoice automation</Link>
                   </Button>
                 ) : null}
+                {activeStep.key === 'operations' ? (
+                  <Button asChild variant="ghost">
+                    <Link href="/admin/settings/helpdesk">Helpdesk & SLA</Link>
+                  </Button>
+                ) : null}
                 {activeStep.done ? (
                   <Button
                     variant="ghost"
@@ -383,8 +399,8 @@ export default function AdminSetupPage() {
               <div>
                 <h2 className="text-lg font-semibold">Review and finish</h2>
                 <p className="sr-muted mt-1">
-                  Here is where each step stands. Finish when you are happy — you can always change
-                  things later from Settings.
+                  Check each step below. When you are ready, finish setup — you can change anything
+                  later from Settings.
                 </p>
               </div>
               <ul className="flex flex-col divide-y divide-[rgb(var(--sr-border))]/60">
@@ -411,7 +427,7 @@ export default function AdminSetupPage() {
               </ul>
               {!data.ready ? (
                 <p className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-xl p-3">
-                  Some steps still need attention. You can finish anyway, but we recommend fixing or
+                  Some steps still need work. You can finish anyway, but we recommend completing or
                   skipping them first.
                 </p>
               ) : null}

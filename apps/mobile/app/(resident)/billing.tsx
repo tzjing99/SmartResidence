@@ -7,7 +7,11 @@ import {
   usePollDuitNowInvoiceStatus,
   useUnitInvoices,
 } from '@smartresidence/api-client';
-import { formatMoney, invoiceOutstanding } from '@smartresidence/shared-types';
+import {
+  GATEWAY_PROVIDER_SHORT_LABELS,
+  formatMoney,
+  invoiceOutstanding,
+} from '@smartresidence/shared-types';
 import {
   AppText,
   Button,
@@ -23,6 +27,10 @@ import { useState } from 'react';
 import { Alert, Linking, Pressable, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import {
+  HostedPaymentBrowser,
+  type HostedPaymentSession,
+} from '../../src/components/hosted-payment-browser';
+import {
   RESIDENT_CORAL,
   RESIDENT_SOFT_CORAL,
   ResidentScreen,
@@ -31,6 +39,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
+import { buildHostedGatewayReturnUrl, isPaymentReturnUrl, paymentDeepLink } from '../../src/lib/payment-return-url';
 
 const ADVANCE_PRESETS = [100, 200, 400, 1000];
 
@@ -103,13 +112,14 @@ export default function BillingScreen() {
   const payableMethods = methods.data ?? [];
   const totalOutstanding = openItems.reduce((sum, inv) => sum + invoiceOutstanding(inv), 0);
   const [qrSession, setQrSession] = useState<QrSession | null>(null);
+  const [hostedSession, setHostedSession] = useState<HostedPaymentSession | null>(null);
 
   async function handlePay(id: string, provider: string, amountLabel: string) {
     try {
       const res = await pay.mutateAsync({
         id,
         provider,
-        returnUrl: 'smartresidence://billing',
+        returnUrl: buildHostedGatewayReturnUrl(provider),
       });
       if (res.qrPayload) {
         setQrSession({
@@ -119,13 +129,22 @@ export default function BillingScreen() {
         });
         return;
       }
-      if (res.redirectUrl) await Linking.openURL(res.redirectUrl);
-      else if (res.formPost) {
-        Alert.alert(
-          'Open web billing to pay',
-          'This payment method uses a secure hosted bank page. Please complete it from the web billing screen until mobile hosted payments are enabled.',
-        );
-      } else Alert.alert('Payment ready', 'Confirm payment in the next screen.');
+      if (res.formPost) {
+        setHostedSession({
+          title: `Pay ${amountLabel}`,
+          formPost: res.formPost,
+        });
+        return;
+      }
+      if (res.redirectUrl) {
+        if (isPaymentReturnUrl(res.redirectUrl)) {
+          await Linking.openURL(res.redirectUrl);
+        } else {
+          setHostedSession({ title: `Pay ${amountLabel}`, redirectUrl: res.redirectUrl });
+        }
+        return;
+      }
+      Alert.alert('Payment ready', 'Confirm payment in the next screen.');
     } catch (err) {
       Alert.alert('Payment failed', (err as Error).message);
     }
@@ -138,6 +157,14 @@ export default function BillingScreen() {
       subtitle="Review statements, formulas, and payment options without hidden surprises."
     >
       {qrSession ? <DuitNowQrCard session={qrSession} onClose={() => setQrSession(null)} /> : null}
+      <HostedPaymentBrowser
+        session={hostedSession}
+        onClose={() => setHostedSession(null)}
+        onComplete={() => {
+          void invoices.refetch();
+          Alert.alert('Payment submitted', 'We are confirming your payment with the bank.');
+        }}
+      />
 
       <Card style={[residentStyles.card, { gap: 4 }]}>
         <AppText variant="meta" style={{ color: palette.mutedLight, fontWeight: '600' }}>
@@ -257,30 +284,44 @@ export default function BillingScreen() {
                   </View>
 
                   {inv.status !== 'PAID' && inv.status !== 'VOID' ? (
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-                      {(methods.data ?? []).length === 0 ? (
-                        <AppText variant="caption" style={{ color: palette.mutedLight }}>
-                          Online payment is not enabled for this condo yet.
-                        </AppText>
-                      ) : (
-                        (methods.data ?? []).map((method) => (
-                          <Button
-                            key={`${inv.id}-${method.provider}-${method.mode}`}
-                            title={`${method.label}${method.mode === 'TEST' ? ' (TEST)' : ''}`}
-                            variant={method.mode === 'TEST' ? 'secondary' : 'primary'}
-                            onPress={() =>
-                              handlePay(
-                                inv.id,
-                                method.provider,
-                                formatMoney(invoiceOutstanding(inv), inv.currencyCode),
-                              )
-                            }
-                            disabled={pay.isPending}
-                            size="sm"
-                            style={{ flexGrow: 1 }}
-                          />
-                        ))
-                      )}
+                    <View style={{ gap: 8, marginTop: 4 }}>
+                      {(() => {
+                        const pending = (inv.payments ?? [])
+                          .filter((p: { status: string }) => p.status !== 'CANCELLED')
+                          .find((p: { status: string; provider?: string }) => p.status === 'PENDING');
+                        return pending ? (
+                          <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                            {GATEWAY_PROVIDER_SHORT_LABELS[pending.provider] ?? pending.provider}{' '}
+                            payment is awaiting confirmation. Choose another method below to switch
+                            — the previous attempt will be cancelled.
+                          </AppText>
+                        ) : null;
+                      })()}
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                        {(methods.data ?? []).length === 0 ? (
+                          <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                            Online payment is not enabled for this condo yet.
+                          </AppText>
+                        ) : (
+                          (methods.data ?? []).map((method) => (
+                            <Button
+                              key={`${inv.id}-${method.provider}-${method.mode}`}
+                              title={`${method.label}${method.mode === 'TEST' ? ' (TEST)' : ''}`}
+                              variant={method.mode === 'TEST' ? 'secondary' : 'primary'}
+                              onPress={() =>
+                                handlePay(
+                                  inv.id,
+                                  method.provider,
+                                  formatMoney(invoiceOutstanding(inv), inv.currencyCode),
+                                )
+                              }
+                              disabled={pay.isPending}
+                              size="sm"
+                              style={{ flexGrow: 1 }}
+                            />
+                          ))
+                        )}
+                      </View>
                     </View>
                   ) : null}
                 </>
@@ -303,6 +344,7 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
   const [selected, setSelected] = useState<number | 'OTHER'>(100);
   const [customAmount, setCustomAmount] = useState('');
   const [qrSession, setQrSession] = useState<QrSession | null>(null);
+  const [hostedSession, setHostedSession] = useState<HostedPaymentSession | null>(null);
   const payableMethods = methods.data ?? [];
   const amount = selected === 'OTHER' ? Number(customAmount) : selected;
 
@@ -311,33 +353,38 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
       Alert.alert('Enter an amount', 'Choose or enter a valid advance payment amount.');
       return;
     }
+    const amountLabel = formatMoney(amount);
     try {
       const res = await createAdvance.mutateAsync({
         unitId,
         amount,
         provider: provider as never,
-        returnUrl: 'smartresidence://billing',
+        returnUrl: buildHostedGatewayReturnUrl(provider, paymentDeepLink({ advance: '1' })),
       });
       if (res.qrPayload) {
         setQrSession({
           qrPayload: res.qrPayload,
           advancePaymentId: res.advancePaymentId,
-          amountLabel: formatMoney(amount),
+          amountLabel,
         });
         return;
       }
-      if (res.redirectUrl) await Linking.openURL(res.redirectUrl);
-      else if (res.formPost) {
-        Alert.alert(
-          'Open web billing to pay',
-          'This payment method uses a secure hosted bank page. Please complete it from the web billing screen until mobile hosted payments are enabled.',
-        );
-      } else {
-        Alert.alert(
-          'Advance payment started',
-          'Complete the gateway prompt to add prepaid credit to your account.',
-        );
+      if (res.formPost) {
+        setHostedSession({ title: `Pay ${amountLabel} in advance`, formPost: res.formPost });
+        return;
       }
+      if (res.redirectUrl) {
+        if (isPaymentReturnUrl(res.redirectUrl)) {
+          await Linking.openURL(res.redirectUrl);
+        } else {
+          setHostedSession({ title: `Pay ${amountLabel} in advance`, redirectUrl: res.redirectUrl });
+        }
+        return;
+      }
+      Alert.alert(
+        'Advance payment started',
+        'Complete the gateway prompt to add prepaid credit to your account.',
+      );
     } catch (err) {
       Alert.alert('Could not start advance payment', (err as Error).message);
     }
@@ -346,6 +393,13 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
   return (
     <>
       {qrSession ? <DuitNowQrCard session={qrSession} onClose={() => setQrSession(null)} /> : null}
+      <HostedPaymentBrowser
+        session={hostedSession}
+        onClose={() => setHostedSession(null)}
+        onComplete={() => {
+          Alert.alert('Payment submitted', 'We are confirming your advance payment with the bank.');
+        }}
+      />
       <ResidentSectionHeader
         title="Pay in advance"
         subtitle="Add prepaid credit that is automatically applied to your next maintenance invoice."

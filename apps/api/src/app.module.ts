@@ -16,19 +16,22 @@ import { AuthModule } from './auth/auth.module';
 import { BillingModule } from './billing/billing.module';
 import { CacheModule } from './cache/cache.module';
 import { DefectModule } from './defect/defect.module';
+import { DocumentsModule } from './documents/documents.module';
 import { EInvoiceModule } from './einvoice/einvoice.module';
 import { FacilityModule } from './facility/facility.module';
 import { FaqModule } from './faq/faq.module';
+import { FormsModule } from './forms/forms.module';
+import { GovernanceModule } from './governance/governance.module';
 import { HandoverModule } from './handover/handover.module';
 import { IntegrationsModule } from './integrations/integrations.module';
+import { LostFoundModule } from './lost-found/lost-found.module';
 import { NotificationModule } from './notification/notification.module';
 import { OwnerModule } from './owner/owner.module';
+import { ParcelModule } from './parcel/parcel.module';
+import { PlatformModule } from './platform/platform.module';
 import { PollsModule } from './polls/polls.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SafetyModule } from './safety/safety.module';
-import { ParcelModule } from './parcel/parcel.module';
-import { FormsModule } from './forms/forms.module';
-import { DocumentsModule } from './documents/documents.module';
 import { SetupModule } from './setup/setup.module';
 import { SlaModule } from './sla/sla.module';
 import { StorageModule } from './storage/storage.module';
@@ -61,6 +64,7 @@ import { VisitorModule } from './visitor/visitor.module';
     DefectModule,
     AnnouncementModule,
     PollsModule,
+    GovernanceModule,
     NotificationModule,
     AuditModule,
     RealtimeModule,
@@ -72,10 +76,12 @@ import { VisitorModule } from './visitor/visitor.module';
     HandoverModule,
     IntegrationsModule,
     SetupModule,
+    PlatformModule,
     SafetyModule,
     ParcelModule,
     FormsModule,
     DocumentsModule,
+    LostFoundModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

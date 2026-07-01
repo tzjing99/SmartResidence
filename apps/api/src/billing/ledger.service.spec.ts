@@ -53,6 +53,89 @@ describe('LedgerService.recordPaymentAllocation', () => {
   });
 });
 
+describe('LedgerService.unitStatementInRange', () => {
+  it('computes opening balance and filters entries to the date range', async () => {
+    const day = 86_400_000;
+    const base = new Date('2026-01-15T12:00:00Z').getTime();
+    const prisma = {
+      ledgerEntry: {
+        findMany: vi.fn(async () => [
+          {
+            type: 'CHARGE',
+            amount: 100,
+            fund: 'MAINTENANCE',
+            memo: 'Jan invoice',
+            occurredAt: new Date(base - 20 * day),
+          },
+          {
+            type: 'PAYMENT',
+            amount: 40,
+            fund: 'MAINTENANCE',
+            memo: 'Partial pay',
+            occurredAt: new Date(base - 5 * day),
+          },
+          {
+            type: 'PAYMENT',
+            amount: 60,
+            fund: 'MAINTENANCE',
+            memo: 'Final pay',
+            occurredAt: new Date(base + 2 * day),
+          },
+        ]),
+      },
+      unitAccount: {
+        findUnique: vi.fn(async () => ({ creditBalance: 25 })),
+      },
+    } as unknown as PrismaService;
+    const svc = new LedgerService(prisma);
+
+    const from = new Date(base - 10 * day);
+    const to = new Date(base + 10 * day);
+    const res = await svc.unitStatementInRange('u', from, to);
+
+    expect(res.openingBalance).toBeCloseTo(100);
+    expect(res.entries).toHaveLength(2);
+    expect(res.entries[0]?.description).toBe('Partial pay');
+    expect(res.closingBalance).toBeCloseTo(0);
+    expect(res.creditBalance).toBe(25);
+  });
+});
+
+describe('LedgerService.arrearsExportRows', () => {
+  it('returns per-invoice arrears detail skipping settled invoices', async () => {
+    const now = Date.now();
+    const day = 86_400_000;
+    const prisma = {
+      invoice: {
+        findMany: vi.fn(async () => [
+          {
+            number: 'INV-1',
+            total: 100,
+            amountPaid: 0,
+            dueDate: new Date(now - 10 * day),
+            unit: { identifier: 'A-01-1', block: { name: 'A' } },
+          },
+          {
+            number: 'INV-2',
+            total: 50,
+            amountPaid: 50,
+            dueDate: new Date(now - 40 * day),
+            unit: { identifier: 'A-01-2', block: { name: 'A' } },
+          },
+        ]),
+      },
+    } as unknown as PrismaService;
+    const svc = new LedgerService(prisma);
+
+    const rows = await svc.arrearsExportRows('c');
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.invoiceNumber).toBe('INV-1');
+    expect(rows[0]?.bucket).toBe('0-30');
+    expect(rows[0]?.outstanding).toBeCloseTo(100);
+  });
+});
+
 describe('LedgerService.arrearsAging', () => {
   it('buckets outstanding invoices by age and skips paid ones', async () => {
     const now = Date.now();

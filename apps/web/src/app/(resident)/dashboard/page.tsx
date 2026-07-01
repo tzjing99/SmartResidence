@@ -14,6 +14,7 @@ import {
   useUnitVisitors,
 } from '@smartresidence/api-client';
 import { formatMoney, invoiceOutstanding, isInvoiceOverdue } from '@smartresidence/shared-types';
+import { DEFECT_STATUS_LABELS, type DefectStatus } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState } from '@smartresidence/ui-web';
 import {
   AlertTriangle,
@@ -21,9 +22,8 @@ import {
   CheckCircle2,
   ChevronRight,
   CreditCard,
-  Home,
   Megaphone,
-  ShieldCheck,
+  Package,
   Users,
   Wrench,
 } from 'lucide-react';
@@ -62,6 +62,12 @@ type DashboardAnnouncement = {
   requiresAck?: boolean;
   ackedByMe?: boolean;
   publishedAt?: string | Date | null;
+};
+
+const IMPORTANCE_LABELS: Record<string, string> = {
+  INFO: 'Info',
+  IMPORTANT: 'Important',
+  URGENT: 'Urgent',
 };
 
 function fmtDate(value: string | Date) {
@@ -200,8 +206,8 @@ export default function DashboardPage() {
               icon: CheckCircle2,
               title: 'All clear for now',
               body: 'No urgent payments, visitor arrivals or notices need action.',
-              href: '/billing',
-              action: 'View home status',
+              href: '/announcements',
+              action: 'View notices',
             };
   const HeroIcon = hero.icon;
   const heroClass =
@@ -214,7 +220,7 @@ export default function DashboardPage() {
           : '';
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl">
+    <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm sr-muted">{condo?.name ?? 'Your condo'}</p>
@@ -318,7 +324,8 @@ export default function DashboardPage() {
             <div className="mt-4 rounded-xl border border-[rgb(var(--sr-border))]/70 p-3 text-sm">
               <div className="font-medium">{openDefects[0].title ?? 'Latest request'}</div>
               <div className="text-xs sr-muted mt-0.5">
-                {openDefects[0].status.toLowerCase()}
+                {DEFECT_STATUS_LABELS[openDefects[0].status as DefectStatus] ??
+                  openDefects[0].status.toLowerCase()}
                 {openDefects[0].createdAt ? ` · ${fmtDate(openDefects[0].createdAt)}` : ''}
               </div>
             </div>
@@ -375,7 +382,17 @@ export default function DashboardPage() {
             href="/announcements"
           />
           {announcementItems.length === 0 ? (
-            <p className="text-sm sr-muted mt-4">No announcements yet.</p>
+            <EmptyState
+              title="No announcements yet"
+              description="Building notices and updates from management will show up here."
+              action={
+                <Link href="/announcements">
+                  <Button variant="secondary" size="sm">
+                    Open notices
+                  </Button>
+                </Link>
+              }
+            />
           ) : (
             <ul className="flex flex-col gap-3 mt-4">
               {announcementItems.map((a) => (
@@ -392,7 +409,7 @@ export default function DashboardPage() {
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {a.importance !== 'INFO' ? (
                       <Badge tone={a.importance === 'URGENT' ? 'danger' : 'warning'}>
-                        {a.importance.toLowerCase()}
+                        {IMPORTANCE_LABELS[a.importance] ?? a.importance}
                       </Badge>
                     ) : null}
                     {a.requiresAck && !a.ackedByMe ? <Badge tone="info">Ack needed</Badge> : null}
@@ -412,35 +429,38 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Link href="/billing">
-          <Card interactive className="h-full">
-            <CreditCard className="size-5 sr-muted mb-2" />
-            <div className="font-medium">Billing</div>
-            <div className="text-xs sr-muted">Invoices, receipts and deposits</div>
-          </Card>
-        </Link>
-        <Link href="/visitors/new">
-          <Card interactive className="h-full">
-            <Users className="size-5 sr-muted mb-2" />
-            <div className="font-medium">Pre-register</div>
-            <div className="text-xs sr-muted">Invite a visitor</div>
-          </Card>
-        </Link>
-        <Link href="/defects/new">
-          <Card interactive className="h-full">
-            <Home className="size-5 sr-muted mb-2" />
-            <div className="font-medium">Report issue</div>
-            <div className="text-xs sr-muted">Defects or repairs</div>
-          </Card>
-        </Link>
-        <Link href="/announcements">
-          <Card interactive className="h-full">
-            <ShieldCheck className="size-5 sr-muted mb-2" />
-            <div className="font-medium">Notices</div>
-            <div className="text-xs sr-muted">Building updates</div>
-          </Card>
-        </Link>
+      <section>
+        <h3 className="text-sm font-semibold sr-muted mb-3">Quick links</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Link href="/billing">
+            <Card interactive className="h-full !p-4">
+              <CreditCard className="size-5 sr-muted mb-2" />
+              <div className="font-medium text-sm">Fees</div>
+              <div className="text-xs sr-muted">Invoices & deposits</div>
+            </Card>
+          </Link>
+          <Link href="/visitors/new">
+            <Card interactive className="h-full !p-4">
+              <CalendarClock className="size-5 sr-muted mb-2" />
+              <div className="font-medium text-sm">Visitors</div>
+              <div className="text-xs sr-muted">Pre-register a guest</div>
+            </Card>
+          </Link>
+          <Link href="/defects/new">
+            <Card interactive className="h-full !p-4">
+              <Wrench className="size-5 sr-muted mb-2" />
+              <div className="font-medium text-sm">Report issue</div>
+              <div className="text-xs sr-muted">Defects & repairs</div>
+            </Card>
+          </Link>
+          <Link href="/parcels">
+            <Card interactive className="h-full !p-4">
+              <Package className="size-5 sr-muted mb-2" />
+              <div className="font-medium text-sm">Parcels</div>
+              <div className="text-xs sr-muted">Lobby deliveries</div>
+            </Card>
+          </Link>
+        </div>
       </section>
     </div>
   );

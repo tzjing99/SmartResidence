@@ -12,7 +12,7 @@ import {
   toDatetimeLocalValue,
 } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
-import { Bike, ChevronDown, ChevronUp, Package } from 'lucide-react';
+import { Bike, ChevronDown, ChevronUp, Package, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -45,7 +45,7 @@ export function DeliveryPassQuickForm() {
         vehiclePlate: vehiclePlate.trim() || undefined,
         expectedAt,
       });
-      toast.success('Delivery pass created — share the code with your rider');
+      toast.success('Pass ready — share the gate code with your rider');
       router.push(`/visitors/${created.id}`);
     } catch (err) {
       toast.error((err as Error).message);
@@ -53,24 +53,29 @@ export function DeliveryPassQuickForm() {
   }
 
   const durationMins = defaultQuickEntryDurationMins(passKind);
+  const durationHours = Math.round(durationMins / 60);
 
   return (
     <Card className="border-amber-500/25 bg-amber-500/[0.03]">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 text-left"
+        className="flex w-full items-center justify-between gap-3 text-left touch-manipulation"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <div className="flex items-start gap-3">
-          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700">
+        <div className="flex items-start gap-3 min-w-0">
+          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300">
             <Package className="size-5" aria-hidden />
           </span>
-          <div>
-            <p className="font-semibold">Delivery / rider pass</p>
+          <div className="min-w-0">
+            <p className="font-semibold flex items-center gap-2 flex-wrap">
+              Expecting food or a rider?
+              <span className="inline-flex items-center gap-1 text-xs font-normal text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                <Sparkles className="size-3" aria-hidden />~{durationHours}h pass
+              </span>
+            </p>
             <p className="text-sm sr-muted mt-0.5">
-              Quick gate pass for food delivery or e-hailing — valid about{' '}
-              {Math.round(durationMins / 60)} hours
+              Create a quick gate pass — no need to fill in visitor details.
             </p>
           </div>
         </div>
@@ -86,8 +91,8 @@ export function DeliveryPassQuickForm() {
           className="mt-4 flex flex-col gap-4 border-t border-[rgb(var(--sr-border))] pt-4"
           onSubmit={onSubmit}
         >
-          <div className="flex flex-col gap-1.5">
-            <Label>Pass type</Label>
+          <div className="flex flex-col gap-2">
+            <Label>What kind of visit?</Label>
             <div className="flex flex-wrap gap-2">
               {QUICK_ENTRY_PASS_KIND_OPTIONS.map((opt) => (
                 <Button
@@ -109,10 +114,10 @@ export function DeliveryPassQuickForm() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-platform">Platform</Label>
+            <Label htmlFor="delivery-platform">App or service</Label>
             <select
               id="delivery-platform"
-              className="sr-input"
+              className="sr-select"
               value={platform}
               onChange={(e) => setPlatform(e.target.value as DeliveryPlatform)}
             >
@@ -122,6 +127,7 @@ export function DeliveryPassQuickForm() {
                 </option>
               ))}
             </select>
+            <p className="text-xs sr-muted">Helps guards know what to expect at the gate.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -131,22 +137,22 @@ export function DeliveryPassQuickForm() {
                 id="delivery-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Leave blank if unknown"
+                placeholder="Skip if you don't know yet"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="delivery-plate">Vehicle plate (optional)</Label>
+              <Label htmlFor="delivery-plate">Car plate (optional)</Label>
               <Input
                 id="delivery-plate"
                 value={vehiclePlate}
                 onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
-                placeholder="For drive-in at boom gate"
+                placeholder="Only if driving in"
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-expected-at">Expected arrival</Label>
+            <Label htmlFor="delivery-expected-at">When are they arriving?</Label>
             <Input
               id="delivery-expected-at"
               type="datetime-local"
@@ -157,14 +163,17 @@ export function DeliveryPassQuickForm() {
               }}
             />
             <p className="text-xs sr-muted">
-              Pass stays valid for {durationMins} minutes after arrival, plus a short buffer for
-              delays.
+              The pass stays valid for about {durationMins} minutes after arrival, with a little
+              buffer for delays.
             </p>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
             <Button type="submit" disabled={create.isPending || !unit?.id}>
-              {create.isPending ? 'Creating…' : 'Create delivery pass'}
+              {create.isPending ? 'Creating…' : 'Create pass'}
             </Button>
           </div>
         </form>

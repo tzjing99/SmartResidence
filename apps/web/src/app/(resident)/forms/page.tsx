@@ -196,35 +196,45 @@ export default function ResidentFormsPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Forms</h1>
-        <EmptyState title="No unit linked" description="Your account needs a unit to submit forms." />
+        <EmptyState
+          title="No unit linked"
+          description="Your account needs a unit to submit forms."
+        />
       </div>
     );
   }
 
   if (selected) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Forms</h1>
+      <div className="flex flex-col gap-6">
+        <div>
+          <h2 className="sr-section-title">{selected.title}</h2>
+          <p className="sr-muted text-sm mt-1">{FORM_TEMPLATE_KIND_LABELS[selected.kind]}</p>
+        </div>
         <SubmitPanel template={selected} unitId={unit.id} onDone={() => setSelectedId(null)} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Forms</h1>
-        <p className="text-sm sr-muted mt-1">
-          Submit move-in/out, renovation, and vehicle sticker requests to management.
+    <div className="flex flex-col gap-8">
+      <header>
+        <h2 className="sr-section-title">Forms</h2>
+        <p className="sr-muted mt-1">
+          Submit move-in/out, renovation, and vehicle sticker requests to management — no paperwork
+          needed.
         </p>
-      </div>
+      </header>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Available forms</h2>
+      <section className="flex flex-col gap-3">
+        <h3 className="font-semibold">Available forms</h3>
         {templates.isLoading ? (
           <Skeleton className="h-24 w-full" />
         ) : templateList.length === 0 ? (
-          <EmptyState title="No forms available" description="Management has not published any forms yet." />
+          <EmptyState
+            title="No forms available"
+            description="When management publishes forms for your building, they'll appear here."
+          />
         ) : (
           <div className="grid gap-3">
             {templateList.map((t) => (
@@ -250,12 +260,15 @@ export default function ResidentFormsPage() {
         )}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">My submissions</h2>
+      <section className="flex flex-col gap-3">
+        <h3 className="font-semibold">My submissions</h3>
         {submissions.isLoading ? (
           <Skeleton className="h-24 w-full" />
         ) : myItems.length === 0 ? (
-          <EmptyState title="No submissions yet" description="Your submitted forms will appear here." />
+          <EmptyState
+            title="No submissions yet"
+            description="Forms you submit will show up here with their review status."
+          />
         ) : (
           <div className="grid gap-3">
             {myItems.map((s) => (
@@ -269,7 +282,9 @@ export default function ResidentFormsPage() {
                     <p className="text-sm mt-1 text-red-600">{s.reviewNote}</p>
                   ) : null}
                 </div>
-                <Badge tone={STATUS_TONE[s.status]}>{FORM_SUBMISSION_STATUS_LABELS[s.status]}</Badge>
+                <Badge tone={STATUS_TONE[s.status]}>
+                  {FORM_SUBMISSION_STATUS_LABELS[s.status]}
+                </Badge>
               </Card>
             ))}
           </div>

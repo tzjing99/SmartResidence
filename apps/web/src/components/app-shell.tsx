@@ -2,11 +2,12 @@
 
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { NotificationBell } from '@/components/notification-bell';
+import { ResidentMobileMenu } from '@/components/resident-mobile-menu';
 import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
-import { NavLinks, PageFade } from '@/components/shell-nav';
+import { type NavGroup, NavGroupLinks, PageFade } from '@/components/shell-nav';
 import { api } from '@/lib/api';
 import { resolveActiveHref } from '@/lib/nav';
-import { hasAbility } from '@/lib/roles';
+import { type AbilityRule, hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useSignOut } from '@/lib/use-sign-out';
 import { useMyCondos } from '@smartresidence/api-client';
@@ -28,7 +29,6 @@ import {
   Package,
   Search,
   Settings2,
-  Store,
   Vote,
   Wrench,
 } from 'lucide-react';
@@ -36,99 +36,129 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
 
-/**
- * Resident navigation. Items with a `can` clause are only shown when the
- * user's abilities (from `/api/auth/me`) permit them, so the menu matches what
- * the API will actually allow — e.g. only UNIT_OWNER sees "Manage access"
- * (revoke RoleAssignment); HOUSEHOLD_MEMBER doesn't see Fees/Defects. The
- * owner-empowerment surfaces (My activity, Who viewed me) have no ability gate
- * because their endpoints are scoped per-user and open to every resident.
- */
-const NAV_ITEMS: Array<{
-  href: string;
-  label: string;
-  icon: typeof Home;
-  can?: { action: string; subject: string };
-}> = [
-  { href: '/dashboard', label: 'Home', icon: Home },
+const NAV_GROUPS: NavGroup[] = [
   {
-    href: '/visitors',
-    label: 'Visitors',
-    icon: CalendarClock,
-    can: { action: 'read', subject: 'Visitor' },
+    label: 'Home',
+    items: [
+      { href: '/dashboard', label: 'Home', icon: Home },
+      {
+        href: '/visitors',
+        label: 'Visitors',
+        icon: CalendarClock,
+      },
+      {
+        href: '/parcels',
+        label: 'Parcels',
+        icon: Package,
+      },
+      {
+        href: '/billing',
+        label: 'Fees',
+        icon: CreditCard,
+      },
+      {
+        href: '/defects',
+        label: 'Defects',
+        icon: Wrench,
+      },
+      {
+        href: '/messages',
+        label: 'Messages',
+        icon: MessageSquare,
+      },
+    ],
   },
   {
-    href: '/parcels',
-    label: 'Parcels',
-    icon: Package,
-    can: { action: 'read', subject: 'Parcel' },
+    label: 'Community',
+    items: [
+      {
+        href: '/announcements',
+        label: 'Announcements',
+        icon: Megaphone,
+      },
+      {
+        href: '/polls',
+        label: 'Polls',
+        icon: Vote,
+      },
+      {
+        href: '/lost-found',
+        label: 'Lost & found',
+        icon: Search,
+      },
+      {
+        href: '/governance',
+        label: 'Governance',
+        icon: Gavel,
+      },
+      {
+        href: '/facilities',
+        label: 'Facilities',
+        icon: CalendarDays,
+      },
+      {
+        href: '/forms',
+        label: 'Forms',
+        icon: ClipboardList,
+      },
+      {
+        href: '/documents',
+        label: 'Documents',
+        icon: FileText,
+      },
+      { href: '/faq', label: 'Help', icon: HelpCircle },
+    ],
   },
   {
-    href: '/billing',
-    label: 'Fees',
-    icon: CreditCard,
-    can: { action: 'read', subject: 'Invoice' },
-  },
-  { href: '/defects', label: 'Defects', icon: Wrench, can: { action: 'read', subject: 'Defect' } },
-  {
-    href: '/messages',
-    label: 'Messages',
-    icon: MessageSquare,
-    can: { action: 'read', subject: 'Thread' },
-  },
-  {
-    href: '/announcements',
-    label: 'Announcements',
-    icon: Megaphone,
-    can: { action: 'read', subject: 'Announcement' },
-  },
-  {
-    href: '/polls',
-    label: 'MC polls',
-    icon: Vote,
-    can: { action: 'read', subject: 'Poll' },
-  },
-  {
-    href: '/lost-found',
-    label: 'Lost & found',
-    icon: Search,
-    can: { action: 'read', subject: 'LostFoundPost' },
-  },
-  {
-    href: '/governance',
-    label: 'Governance',
-    icon: Gavel,
-    can: { action: 'read', subject: 'GeneralMeeting' },
-  },
-  {
-    href: '/facilities',
-    label: 'Facilities',
-    icon: CalendarDays,
-    can: { action: 'read', subject: 'Facility' },
-  },
-  {
-    href: '/forms',
-    label: 'Forms',
-    icon: ClipboardList,
-    can: { action: 'read', subject: 'FormTemplate' },
-  },
-  {
-    href: '/documents',
-    label: 'Documents',
-    icon: FileText,
-    can: { action: 'read', subject: 'Document' },
-  },
-  { href: '/faq', label: 'Help & FAQ', icon: HelpCircle, can: { action: 'read', subject: 'Faq' } },
-  { href: '/settings', label: 'Settings', icon: Settings2 },
-  { href: '/activity', label: 'My activity', icon: History },
-  { href: '/who-viewed', label: 'Who viewed me', icon: Eye },
-  {
-    href: '/access',
-    label: 'Manage access',
-    icon: KeyRound,
-    can: { action: 'revoke', subject: 'RoleAssignment' },
+    label: 'Account',
+    items: [
+      { href: '/settings', label: 'Settings', icon: Settings2 },
+      { href: '/activity', label: 'My activity', icon: History },
+      { href: '/who-viewed', label: 'Who viewed me', icon: Eye },
+      {
+        href: '/access',
+        label: 'Manage access',
+        icon: KeyRound,
+      },
+    ],
   },
 ];
+
+/** Ability gates — filtered before rendering nav. */
+const NAV_CAN: Record<string, { action: string; subject: string }> = {
+  '/visitors': { action: 'read', subject: 'Visitor' },
+  '/parcels': { action: 'read', subject: 'Parcel' },
+  '/billing': { action: 'read', subject: 'Invoice' },
+  '/defects': { action: 'read', subject: 'Defect' },
+  '/messages': { action: 'read', subject: 'Thread' },
+  '/announcements': { action: 'read', subject: 'Announcement' },
+  '/polls': { action: 'read', subject: 'Poll' },
+  '/lost-found': { action: 'read', subject: 'LostFoundPost' },
+  '/governance': { action: 'read', subject: 'GeneralMeeting' },
+  '/facilities': { action: 'read', subject: 'Facility' },
+  '/forms': { action: 'read', subject: 'FormTemplate' },
+  '/documents': { action: 'read', subject: 'Document' },
+  '/faq': { action: 'read', subject: 'Faq' },
+  '/access': { action: 'revoke', subject: 'RoleAssignment' },
+};
+
+const MOBILE_TAB_HREFS = ['/dashboard', '/visitors', '/parcels', '/billing', '/defects'] as const;
+
+function filterNavGroups(groups: NavGroup[], abilities: AbilityRule[]) {
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const gate = NAV_CAN[item.href];
+        return !gate || hasAbility(abilities, gate.action, gate.subject);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+function flattenNavItems(groups: NavGroup[]) {
+  return groups.flatMap((g) => g.items);
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -136,13 +166,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const condos = useMyCondos(api);
   const signOut = useSignOut();
 
-  const navItems = React.useMemo(
+  const navSections = React.useMemo(() => filterNavGroups(NAV_GROUPS, abilities ?? []), [abilities]);
+  const navItems = React.useMemo(() => flattenNavItems(navSections), [navSections]);
+
+  const mobileTabItems = React.useMemo(
     () =>
-      NAV_ITEMS.filter(
-        (item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject),
+      MOBILE_TAB_HREFS.map((href) => navItems.find((i) => i.href === href)).filter(
+        (item): item is (typeof navItems)[number] => item != null,
       ),
-    [abilities],
+    [navItems],
   );
+
+  const activeLabel =
+    navItems.find(
+      (i) =>
+        i.href ===
+        resolveActiveHref(
+          pathname,
+          navItems.map((n) => n.href),
+        ),
+    )?.label ?? 'SmartResidence';
 
   const condo = condos.data?.[0];
 
@@ -153,13 +196,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="text-xl font-bold tracking-tight px-2 mb-6 mt-2">
             Smart<span className="text-coral-500">Residence</span>
           </div>
-          <ShellNavSkeleton count={NAV_ITEMS.length} />
+          <ShellNavSkeleton count={flattenNavItems(NAV_GROUPS).length} />
         </aside>
         <main className="flex-1 min-w-0">
-          <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-6 py-3">
+          <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3">
             <div className="h-5 w-24 rounded bg-[rgb(var(--sr-border))]/30 animate-shimmer" />
           </header>
-          <div className="p-6 md:p-10 max-w-5xl">
+          <div className="p-4 sm:p-6 md:p-10 max-w-5xl mx-auto w-full">
             <DashboardSkeleton />
           </div>
         </main>
@@ -173,10 +216,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/dashboard" className="text-xl font-bold tracking-tight px-2 mb-2 mt-2">
           Smart<span className="text-coral-500">Residence</span>
         </Link>
-        {condo ? <div className="px-2 text-xs sr-muted mb-6 truncate">{condo.name}</div> : null}
+        {condo ? <div className="px-2 text-xs sr-muted mb-4 truncate">{condo.name}</div> : null}
 
-        <NavLinks items={navItems} />
-        <div className="border-t border-[rgb(var(--sr-border))] pt-4 mt-4 flex flex-col gap-2">
+        <NavGroupLinks groups={navSections} />
+
+        <div className="border-t border-[rgb(var(--sr-border))] pt-4 mt-4 flex flex-col gap-2 shrink-0">
           {me.data ? (
             <div className="text-xs sr-muted px-2 truncate">
               {(me.data as { user?: { name?: string; email?: string } }).user?.name} ·{' '}
@@ -195,30 +239,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 min-w-0">
-        <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-6 py-3 flex items-center justify-between">
-          <h1 className="text-base font-semibold tracking-tight">
-            {navItems.find(
-              (i) =>
-                i.href ===
-                resolveActiveHref(
-                  pathname,
-                  navItems.map((n) => n.href),
-                ),
-            )?.label ?? 'SmartResidence'}
-          </h1>
-          <div className="flex items-center gap-2">
+        <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <ResidentMobileMenu items={navItems} />
+            <h1 className="text-base font-semibold tracking-tight truncate">{activeLabel}</h1>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <NotificationBell />
           </div>
         </header>
-        <div className="p-4 sm:p-6 md:p-10 max-w-5xl pb-20 md:pb-10">
+        <div className="p-4 sm:p-6 md:p-10 max-w-5xl mx-auto w-full pb-20 md:pb-10">
           <PageFade>{children}</PageFade>
         </div>
       </main>
       <MobileTabBar
         ariaLabel="Resident navigation"
-        items={navItems.slice(0, 5).map((item) => ({
+        items={mobileTabItems.map((item) => ({
           href: item.href,
           label: item.label,
+          icon: item.icon,
           isActive: (p) =>
             p === item.href || (item.href !== '/dashboard' && p.startsWith(`${item.href}/`)),
         }))}

@@ -9,6 +9,7 @@ import * as React from 'react';
 export interface MobileTabItem {
   href: string;
   label: string;
+  icon?: React.ComponentType<{ className?: string }>;
   isActive?: (pathname: string) => boolean;
 }
 
@@ -39,6 +40,7 @@ export function MobileTabBar({
           const active = item.isActive
             ? item.isActive(pathname)
             : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const Icon = item.icon;
           return (
             <Link
               key={item.href}
@@ -48,11 +50,12 @@ export function MobileTabBar({
               onMouseEnter={() => prefetchRoute(router, item.href)}
               onFocus={() => prefetchRoute(router, item.href)}
               className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-12 touch-manipulation text-[11px] font-semibold transition-colors',
+                'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-12 touch-manipulation text-[10px] font-semibold transition-colors',
                 active ? 'text-coral-500' : 'sr-muted hover:text-[rgb(var(--sr-fg))]',
               )}
             >
-              {item.label}
+              {Icon ? <Icon className="size-5 shrink-0" aria-hidden /> : null}
+              <span className="truncate max-w-full px-0.5">{item.label}</span>
             </Link>
           );
         })}

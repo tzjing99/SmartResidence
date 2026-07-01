@@ -308,7 +308,7 @@ function VisitorListPanel({
             <Badge tone={visitorStatusTone(v.status)}>{t(visitorStatusLabelKey(v.status))}</Badge>
           </div>
           {showInviteAgain(tab, v) || (tab === 'upcoming' && canOwnerCancelVisitor(v)) ? (
-            <CardFooter className="mt-auto justify-end gap-2">
+            <CardFooter className="mt-auto flex-col sm:flex-row sm:justify-end gap-2 !items-stretch sm:!items-center">
               {tab === 'upcoming' && canOwnerCancelVisitor(v) ? (
                 <Button
                   size="sm"

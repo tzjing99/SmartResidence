@@ -7,7 +7,7 @@ import { usePreferences, useUpdatePreferences } from '@smartresidence/api-client
 import { MalaysiaPhoneSchema } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Moon, Save, User } from 'lucide-react';
+import { Bell, MessageCircle, Moon, Save, User } from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -18,7 +18,6 @@ const profileSchema = z.object({
   phone: MalaysiaPhoneSchema,
 });
 
-/** E1 email opt-in + E5 quiet hours + profile phone for residents. */
 export default function ProfileSettingsPage() {
   const qc = useQueryClient();
   const prefs = usePreferences(api);
@@ -87,21 +86,20 @@ export default function ProfileSettingsPage() {
   if (prefs.isLoading || profile.isLoading) return <Skeleton className="h-64" />;
 
   return (
-    <div className="max-w-lg flex flex-col gap-6">
-      <div>
-        <h2 className="sr-section-title">Profile</h2>
-        <p className="sr-muted text-sm mt-1">
-          Your phone number lets guards reach you when a walk-in visitor is waiting for approval.
-        </p>
-      </div>
+    <div className="max-w-lg flex flex-col gap-8">
+      <section className="flex flex-col gap-4">
+        <header>
+          <h2 className="sr-section-title flex items-center gap-2">
+            <User className="size-5 text-coral-500" aria-hidden />
+            Profile
+          </h2>
+          <p className="sr-muted text-sm mt-1">
+            Your phone number lets guards reach you when a walk-in visitor is waiting for approval.
+          </p>
+        </header>
 
-      <Card className="p-5 flex flex-col gap-4">
-        <div className="align-row items-start min-h-0">
-          <User className="size-5 shrink-0 mt-0.5" />
-          <form
-            className="flex-1 flex flex-col gap-3"
-            onSubmit={profileForm.handleSubmit(onSaveProfile)}
-          >
+        <Card className="!p-5">
+          <form className="flex flex-col gap-3" onSubmit={profileForm.handleSubmit(onSaveProfile)}>
             <div>
               <Label htmlFor="profile-name">Full name</Label>
               <Input id="profile-name" className="mt-1" {...profileForm.register('name')} />
@@ -140,80 +138,77 @@ export default function ProfileSettingsPage() {
               Save profile
             </Button>
           </form>
-        </div>
-      </Card>
+        </Card>
+      </section>
 
-      <div>
-        <h2 className="sr-section-title">Notifications</h2>
-        <p className="sr-muted text-sm mt-1">
-          In-app and mobile push notifications are always on for thread updates. Configure optional
-          email, WhatsApp, and quiet hours below.
-        </p>
-      </div>
+      <section className="flex flex-col gap-4">
+        <header>
+          <h2 className="sr-section-title flex items-center gap-2">
+            <Bell className="size-5 text-coral-500" aria-hidden />
+            Notifications
+          </h2>
+          <p className="sr-muted text-sm mt-1">
+            In-app alerts are always on. Choose optional email, WhatsApp, and quiet hours below.
+          </p>
+        </header>
 
-      <Card className="p-5 flex flex-col gap-4">
-        <div className="align-row items-start min-h-0">
-          <Bell className="size-5 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <Label className="font-medium">Email for thread updates (E1)</Label>
+        <Card className="!p-5 flex flex-col gap-5">
+          <div>
+            <Label className="font-medium">Email for helpdesk updates</Label>
             <p className="text-xs sr-muted mt-1">
-              Opt in to receive helpdesk thread notifications by email. Off by default.
+              Optional — get thread replies by email when you&apos;re away from the app.
             </p>
-            <label className="align-row mt-3 text-sm cursor-pointer">
+            <label className="flex items-start gap-2 mt-3 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 checked={emailNotifications}
                 onChange={(e) => setEmailNotifications(e.target.checked)}
-                className="shrink-0"
+                className="mt-0.5 shrink-0"
               />
               Send thread notifications to my email
             </label>
           </div>
-        </div>
-      </Card>
 
-      <Card className="p-5 flex flex-col gap-4">
-        <div className="align-row items-start min-h-0">
-          <Bell className="size-5 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <Label className="font-medium">WhatsApp alerts</Label>
+          <div className="border-t border-[rgb(var(--sr-border))] pt-5">
+            <Label className="font-medium flex items-center gap-2">
+              <MessageCircle className="size-4 sr-muted" aria-hidden />
+              WhatsApp alerts
+            </Label>
             <p className="text-xs sr-muted mt-1">
-              Receive parcel, visitor, and billing reminders on your verified mobile number. Your
-              management team must enable WhatsApp for the building first.
+              Parcel, visitor, and billing reminders on your verified mobile number. Your building
+              must have WhatsApp enabled first.
             </p>
             {prefs.data?.whatsappEligible ? (
-              <label className="align-row mt-3 text-sm cursor-pointer">
+              <label className="flex items-start gap-2 mt-3 text-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={whatsappNotifications}
                   onChange={(e) => setWhatsappNotifications(e.target.checked)}
-                  className="shrink-0"
+                  className="mt-0.5 shrink-0"
                 />
                 Send alerts to {profile.data?.phone ?? 'my verified phone'} on WhatsApp
               </label>
             ) : (
-              <p className="text-xs sr-muted mt-3">
+              <p className="text-xs sr-muted mt-3 rounded-lg bg-[rgb(var(--sr-bg))] px-3 py-2">
                 Add and verify your mobile phone in Profile above before opting in to WhatsApp.
               </p>
             )}
           </div>
-        </div>
-      </Card>
 
-      <Card className="p-5 flex flex-col gap-4">
-        <div className="align-row items-start min-h-0">
-          <Moon className="size-5 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <Label className="font-medium">Quiet hours (E5)</Label>
+          <div className="border-t border-[rgb(var(--sr-border))] pt-5">
+            <Label className="font-medium flex items-center gap-2">
+              <Moon className="size-4 sr-muted" aria-hidden />
+              Quiet hours
+            </Label>
             <p className="text-xs sr-muted mt-1">
-              Suppress mobile push during these hours. In-app notifications still arrive.
+              Pause mobile push during these hours. In-app notifications still arrive.
             </p>
-            <label className="align-row mt-3 text-sm cursor-pointer">
+            <label className="flex items-start gap-2 mt-3 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 checked={quietEnabled}
                 onChange={(e) => setQuietEnabled(e.target.checked)}
-                className="shrink-0"
+                className="mt-0.5 shrink-0"
               />
               Enable quiet hours
             </label>
@@ -228,7 +223,7 @@ export default function ProfileSettingsPage() {
                     type="time"
                     value={quietStart}
                     onChange={(e) => setQuietStart(e.target.value)}
-                    className="sr-select-sm mt-1"
+                    className="sr-select-sm mt-1 block"
                   />
                 </div>
                 <div>
@@ -240,19 +235,23 @@ export default function ProfileSettingsPage() {
                     type="time"
                     value={quietEnd}
                     onChange={(e) => setQuietEnd(e.target.value)}
-                    className="sr-select-sm mt-1"
+                    className="sr-select-sm mt-1 block"
                   />
                 </div>
               </div>
             ) : null}
           </div>
-        </div>
-      </Card>
 
-      <Button onClick={onSavePrefs} disabled={save.isPending}>
-        <Save className="size-4" />
-        Save notification preferences
-      </Button>
+          <Button
+            onClick={() => void onSavePrefs()}
+            disabled={save.isPending}
+            className="self-start"
+          >
+            <Save className="size-4" />
+            Save notification preferences
+          </Button>
+        </Card>
+      </section>
     </div>
   );
 }

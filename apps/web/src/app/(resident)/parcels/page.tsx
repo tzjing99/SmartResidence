@@ -43,16 +43,16 @@ export default function ResidentParcelsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Package className="size-6 text-coral-500" />
+    <div className="flex flex-col gap-6">
+      <header>
+        <h2 className="sr-section-title flex items-center gap-2">
+          <Package className="size-6 text-coral-500" aria-hidden />
           Parcels
-        </h1>
-        <p className="sr-muted text-sm mt-1">
+        </h2>
+        <p className="sr-muted mt-1">
           Packages waiting at the lobby for your unit. Tap collected when you pick them up.
         </p>
-      </div>
+      </header>
 
       {parcels.isLoading ? (
         <Skeleton className="h-32 w-full rounded-2xl" />
@@ -60,6 +60,11 @@ export default function ResidentParcelsPage() {
         <EmptyState
           title="No parcels waiting"
           description="When security logs a delivery for your unit, it will appear here."
+          action={
+            <p className="text-xs sr-muted max-w-sm text-center">
+              You&apos;ll get a notification when something arrives — no need to check constantly.
+            </p>
+          }
         />
       ) : (
         <div className="space-y-3">
@@ -77,7 +82,11 @@ export default function ResidentParcelsPage() {
                 <Badge tone={STATUS_TONE[p.status]}>{PARCEL_STATUS_LABELS[p.status]}</Badge>
               </div>
               {p.notes ? <p className="text-sm sr-muted">{p.notes}</p> : null}
-              <Button type="button" onClick={() => void confirmCollect(p.id)} disabled={collectParcel.isPending}>
+              <Button
+                type="button"
+                onClick={() => void confirmCollect(p.id)}
+                disabled={collectParcel.isPending}
+              >
                 I collected this
               </Button>
             </Card>

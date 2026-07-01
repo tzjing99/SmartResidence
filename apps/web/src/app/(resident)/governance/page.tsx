@@ -3,8 +3,8 @@
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
-import { useRoleGuard } from '@/lib/use-role-guard';
 import { toast } from '@/lib/toast';
+import { useRoleGuard } from '@/lib/use-role-guard';
 import {
   useCastResolutionVote,
   useCondoMeetings,
@@ -19,10 +19,7 @@ import type {
   GeneralMeetingStatus,
   MeetingResolution,
 } from '@smartresidence/shared-types';
-import {
-  MEETING_KIND_LABELS,
-  MEETING_STATUS_LABELS,
-} from '@smartresidence/shared-types';
+import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { ChevronRight, Gavel, Loader2 } from 'lucide-react';
 import * as React from 'react';
@@ -67,10 +64,7 @@ function ProxyForm({
       ownerships?: Array<{ status?: string }>;
     }>;
     return rows.filter(
-      (u) =>
-        u.ownerships?.some((o) => o.status === 'ACTIVE') &&
-        u.id &&
-        !existingUnitIds.has(u.id),
+      (u) => u.ownerships?.some((o) => o.status === 'ACTIVE') && u.id && !existingUnitIds.has(u.id),
     );
   }, [unitsQuery.data, existingUnitIds]);
 
@@ -103,7 +97,9 @@ function ProxyForm({
       }}
     >
       <h3 className="font-medium">Submit proxy</h3>
-      <p className="text-sm sr-muted">Appoint someone to vote on your behalf. One proxy per unit.</p>
+      <p className="text-sm sr-muted">
+        Appoint someone to vote on your behalf. One proxy per unit.
+      </p>
       {ownedUnits.length === 0 ? (
         <p className="text-sm sr-muted">All your units already have a proxy submitted.</p>
       ) : (
@@ -131,7 +127,10 @@ function ProxyForm({
             <Label>Contact (optional)</Label>
             <Input value={holderContact} onChange={(e) => setHolderContact(e.target.value)} />
           </div>
-          <Button type="submit" disabled={submitProxy.isPending || !unitId || holderName.length < 2}>
+          <Button
+            type="submit"
+            disabled={submitProxy.isPending || !unitId || holderName.length < 2}
+          >
             {submitProxy.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Submit proxy
           </Button>
@@ -174,7 +173,9 @@ function ResolutionVotePanel({
   return (
     <Card className="p-4 border border-[rgb(var(--sr-border))]">
       <p className="font-medium">{resolution.title}</p>
-      {resolution.description ? <p className="text-sm sr-muted mt-1">{resolution.description}</p> : null}
+      {resolution.description ? (
+        <p className="text-sm sr-muted mt-1">{resolution.description}</p>
+      ) : null}
 
       {resolution.poll?.results ? (
         <div className="mt-3 space-y-2">
@@ -260,7 +261,11 @@ function ResolutionVotePanel({
   );
 }
 
-function MeetingDetail({ meetingId, canVote, canSubmitProxy }: { meetingId: string; canVote: boolean; canSubmitProxy: boolean }) {
+function MeetingDetail({
+  meetingId,
+  canVote,
+  canSubmitProxy,
+}: { meetingId: string; canVote: boolean; canSubmitProxy: boolean }) {
   const meetingQuery = useMeeting(api, meetingId);
   const meeting = meetingQuery.data;
 
@@ -276,13 +281,17 @@ function MeetingDetail({ meetingId, canVote, canSubmitProxy }: { meetingId: stri
   if (!meeting) return null;
 
   const status = meeting.status ?? 'DRAFT';
-  const existingProxyUnits = new Set(meeting.myProxies?.map((p) => p.unitId).filter(Boolean) as string[]);
+  const existingProxyUnits = new Set(
+    meeting.myProxies?.map((p) => p.unitId).filter(Boolean) as string[],
+  );
 
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-2">
         <Badge tone={STATUS_TONE[status]}>{MEETING_STATUS_LABELS[status]}</Badge>
-        <span className="text-sm sr-muted">{MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]}</span>
+        <span className="text-sm sr-muted">
+          {MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]}
+        </span>
       </div>
       <h2 className="text-xl font-semibold">{meeting.title}</h2>
       <p className="text-sm sr-muted mt-1">{fmtDate(meeting.scheduledAt)}</p>
@@ -340,16 +349,16 @@ export default function ResidentGovernancePage() {
   const meetings = (meetingsQuery.data?.items ?? []) as GeneralMeeting[];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <Gavel className="h-6 w-6" />
+    <div className="flex flex-col gap-6">
+      <header>
+        <h2 className="sr-section-title flex items-center gap-2">
+          <Gavel className="size-6 text-coral-500" aria-hidden />
           Governance
-        </h1>
+        </h2>
         <p className="sr-muted mt-1">
-          AGM/EGM notices, proxy forms, and share-weighted resolution voting.
+          AGM and EGM notices, proxy forms, and voting on building resolutions.
         </p>
-      </div>
+      </header>
 
       {selectedId ? (
         <>

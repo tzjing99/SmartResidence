@@ -257,16 +257,16 @@ export default function LostFoundPage() {
   const busy = resolvePost.isPending || removePost.isPending;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Search className="size-6 text-coral-500" />
+    <div className="flex flex-col gap-6">
+      <header>
+        <h2 className="sr-section-title flex items-center gap-2">
+          <Search className="size-6 text-coral-500" aria-hidden />
           Lost &amp; found
-        </h1>
-        <p className="sr-muted text-sm mt-1">
+        </h2>
+        <p className="sr-muted mt-1">
           Community board for lost and found items — not for buying or selling.
         </p>
-      </div>
+      </header>
 
       {canCreate && condo?.id && unit?.id ? (
         <CreatePostForm condoId={condo.id} unitId={unit.id} />
@@ -312,6 +312,18 @@ export default function LostFoundPage() {
             <EmptyState
               title="Nothing on the board"
               description="Open lost and found posts from residents will appear here."
+              action={
+                canCreate && condo?.id && unit?.id ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  >
+                    Post something
+                  </Button>
+                ) : undefined
+              }
             />
           ) : (
             <div className="space-y-3">
@@ -324,7 +336,17 @@ export default function LostFoundPage() {
       ) : mineQuery.isLoading ? (
         <Skeleton className="h-32 w-full rounded-2xl" />
       ) : (mineQuery.data?.items.length ?? 0) === 0 ? (
-        <EmptyState title="No posts yet" description="Posts you create will show up here." />
+        <EmptyState
+          title="No posts yet"
+          description="Posts you create will show up here so you can track or update them."
+          action={
+            canCreate ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => setTab('board')}>
+                Browse community board
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="space-y-3">
           {mineQuery.data?.items.map((post) => (

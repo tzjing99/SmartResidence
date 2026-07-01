@@ -1,6 +1,7 @@
 'use client';
 
 import { DuitNowQrPanel, type DuitNowQrSession } from '@/components/duitnow-qr-panel';
+import { PaymentMethodPayButtons } from '@/components/payment-method-picker';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { queryKeys, usePayInvoice, usePayableMethods } from '@smartresidence/api-client';
@@ -15,7 +16,7 @@ import {
   paymentStatusTone,
   visibleInvoicePayments,
 } from '@smartresidence/shared-types';
-import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
+import { Badge, Card, Skeleton } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -68,9 +69,7 @@ export default function InvoiceDetailPage() {
 
   function buildReturnUrl(provider: string) {
     const appReturn =
-      typeof window !== 'undefined'
-        ? `${window.location.origin}/billing/${id}?paid=1`
-        : undefined;
+      typeof window !== 'undefined' ? `${window.location.origin}/billing/${id}?paid=1` : undefined;
     const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
     if (!appReturn) return undefined;
     if (provider === 'RAZER') {
@@ -225,7 +224,7 @@ export default function InvoiceDetailPage() {
                 <span>
                   {formatMoney(p.amount, p.currencyCode)}{' '}
                   <span className="sr-muted">
-                    · {p.provider.toLowerCase()}
+                    · {GATEWAY_PROVIDER_SHORT_LABELS[p.provider] ?? p.provider}
                     {p.paidAt ? ` · ${fmtDate(p.paidAt)}` : ''}
                   </span>
                 </span>
@@ -254,17 +253,17 @@ export default function InvoiceDetailPage() {
               your management office.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-3 mt-3">
-              {(methods.data ?? []).map((m) => (
-                <Button
-                  key={`${m.provider}-${m.mode}`}
-                  onClick={() => payNow(m.provider)}
-                  disabled={pay.isPending}
-                >
-                  {pay.isPending ? 'Starting…' : `${m.label}${m.mode === 'TEST' ? ' (TEST)' : ''}`}
-                </Button>
-              ))}
-            </div>
+            <>
+              <p className="text-sm sr-muted mt-1 mb-1">
+                Choose how you&apos;d like to pay. DuitNow QR stays on this page; Fiuu and iPay88
+                open their secure payment page.
+              </p>
+              <PaymentMethodPayButtons
+                methods={methods.data ?? []}
+                onPay={(provider) => void payNow(provider)}
+                pending={pay.isPending}
+              />
+            </>
           )}
         </Card>
       ) : null}

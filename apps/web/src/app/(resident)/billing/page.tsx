@@ -1,6 +1,7 @@
 'use client';
 
 import { DuitNowQrPanel, type DuitNowQrSession } from '@/components/duitnow-qr-panel';
+import { PaymentMethodPicker } from '@/components/payment-method-picker';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -192,32 +193,36 @@ function AdvanceMaintenancePayment({
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="mt-5 flex flex-wrap gap-2">
         {ADVANCE_PRESETS.map((value) => (
-          <button
+          <Button
             key={value}
             type="button"
-            className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+            size="sm"
+            variant={selected === value ? 'primary' : 'secondary'}
+            className={
               selected === value
-                ? 'border-emerald-400 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
-                : 'border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] hover:border-emerald-300'
-            }`}
+                ? 'border-emerald-400 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700'
+                : 'hover:border-emerald-300'
+            }
             onClick={() => setSelected(value)}
           >
             {formatMoney(value)}
-          </button>
+          </Button>
         ))}
-        <button
+        <Button
           type="button"
-          className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+          size="sm"
+          variant={selected === 'OTHER' ? 'primary' : 'secondary'}
+          className={
             selected === 'OTHER'
-              ? 'border-emerald-400 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200'
-              : 'border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] hover:border-emerald-300'
-          }`}
+              ? 'border-emerald-400 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700'
+              : 'hover:border-emerald-300'
+          }
           onClick={() => setSelected('OTHER')}
         >
-          Other
-        </button>
+          Other amount
+        </Button>
       </div>
 
       {qrSession ? (
@@ -225,9 +230,9 @@ function AdvanceMaintenancePayment({
           <DuitNowQrPanel session={qrSession} onClose={() => setQrSession(null)} />
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="mt-4 flex flex-col gap-4">
           {selected === 'OTHER' ? (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 max-w-xs">
               <label className="text-xs sr-muted font-medium" htmlFor="advance-custom-amount">
                 Other amount (MYR)
               </label>
@@ -243,37 +248,29 @@ function AdvanceMaintenancePayment({
               />
             </div>
           ) : (
-            <div className="rounded-xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-card))] px-3 py-2">
+            <div className="rounded-xl border border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-card))] px-3 py-2 max-w-xs">
               <div className="text-xs sr-muted">Selected amount</div>
               <div className="font-semibold">{formatMoney(amount || 0)}</div>
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <label className="text-xs sr-muted font-medium" htmlFor="advance-provider">
-              Payment method
+              How would you like to pay?
             </label>
-            <select
+            <PaymentMethodPicker
               id="advance-provider"
-              className="sr-select h-10"
+              layout="cards"
+              methods={methods.data ?? []}
               value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-              disabled={(methods.data?.length ?? 0) === 0}
-            >
-              {(methods.data ?? []).length === 0 ? (
-                <option value="">No online method</option>
-              ) : null}
-              {(methods.data ?? []).map((m) => (
-                <option key={`${m.provider}-${m.mode}`} value={m.provider}>
-                  {m.label}
-                  {m.mode === 'TEST' ? ' (TEST)' : ''}
-                </option>
-              ))}
-            </select>
+              onChange={setProvider}
+              disabled={createAdvance.isPending || (methods.data?.length ?? 0) === 0}
+            />
           </div>
 
           <Button
             type="button"
+            className="self-start"
             disabled={createAdvance.isPending || !provider || (methods.data?.length ?? 0) === 0}
             onClick={() => void startAdvancePayment()}
           >

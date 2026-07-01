@@ -7,7 +7,7 @@ import { queryKeys, useMe } from '@smartresidence/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 
 const SETTINGS_NAV: SettingsNavItem[] = [
-  { href: '/settings', label: 'Notifications' },
+  { href: '/settings', label: 'Profile & alerts' },
   {
     href: '/settings/sla-audit',
     label: 'Response time history',

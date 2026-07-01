@@ -59,25 +59,28 @@ export default function ResidentDocumentsPage() {
   if (condos.isLoading) return <Skeleton className="h-40 w-full" />;
 
   return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
-        <p className="text-sm sr-muted mt-1">
+    <div className="flex flex-col gap-8">
+      <header>
+        <h2 className="sr-section-title flex items-center gap-2">
+          <FileText className="size-6 text-coral-500" aria-hidden />
+          Documents
+        </h2>
+        <p className="sr-muted mt-1">
           House rules, AGM minutes, bylaws, and management circulars for your condo.
         </p>
-      </div>
+      </header>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <FolderOpen className="h-5 w-5" aria-hidden />
+      <section className="flex flex-col gap-3">
+        <h3 className="font-semibold flex items-center gap-2">
+          <FolderOpen className="size-5" aria-hidden />
           Folders
-        </h2>
+        </h3>
         {folders.isLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : folderRows.length === 0 ? (
           <EmptyState
             title="No documents yet"
-            description="When management publishes documents, they will appear here."
+            description="When management publishes documents, they'll appear here organised by folder."
           />
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -96,7 +99,7 @@ export default function ResidentDocumentsPage() {
       </section>
 
       {selectedFolderId ? (
-        <section className="space-y-4">
+        <section className="flex flex-col gap-4">
           {(() => {
             const folder = folderRows.find((f) => f.id === selectedFolderId);
             if (!folder) return null;
@@ -110,11 +113,17 @@ export default function ResidentDocumentsPage() {
           {docs.isLoading ? (
             <Skeleton className="h-32 w-full" />
           ) : docRows.length === 0 ? (
-            <EmptyState title="No documents in this folder" />
+            <EmptyState
+              title="No documents in this folder"
+              description="Check back later — management may still be uploading files."
+            />
           ) : (
             <div className="grid gap-3">
               {docRows.map((doc) => (
-                <Card key={doc.id} className="p-4 flex flex-wrap items-center justify-between gap-3">
+                <Card
+                  key={doc.id}
+                  className="p-4 flex flex-wrap items-center justify-between gap-3"
+                >
                   <div className="flex items-start gap-3 min-w-0">
                     <FileText className="h-5 w-5 shrink-0 mt-0.5" aria-hidden />
                     <div className="min-w-0">

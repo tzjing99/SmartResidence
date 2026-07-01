@@ -13,7 +13,6 @@ import type { SosAlert, SosKind, SosStatus } from '@smartresidence/shared-types'
 import { SOS_KIND_LABELS, SOS_STATUS_LABELS, isSosOpen } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { Loader2, MapPin, ShieldCheck, Siren } from 'lucide-react';
-import * as React from 'react';
 
 const STATUS_TONE: Record<SosStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
   ACTIVE: 'danger',

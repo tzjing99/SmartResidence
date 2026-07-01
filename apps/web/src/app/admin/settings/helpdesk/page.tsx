@@ -396,9 +396,8 @@ export default function HelpdeskSettingsPage() {
             <Sparkles className="size-4" /> Smart assignment (beta)
           </h2>
           <p className="text-xs sr-muted mt-1">
-            Learns from closed tickets to suggest who should handle new messages. Needs at least
-            200 closed tickets. Falls back to category-based assignment when off or not enough
-            history.
+            Learns from closed tickets to suggest who should handle new messages. Needs at least 200
+            closed tickets. Falls back to category-based assignment when off or not enough history.
           </p>
         </div>
         {mlAssignment ? (

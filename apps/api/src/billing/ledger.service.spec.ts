@@ -140,6 +140,90 @@ describe('LedgerService.arrearsExportRows', () => {
   });
 });
 
+describe('LedgerService.recordInvoiceCharges', () => {
+  it('posts invoice lines to maintenance vs sinking funds by line code', async () => {
+    const created: Array<{ fund: string; amount: number; type: string }> = [];
+    const tx = {
+      ledgerEntry: {
+        createMany: vi.fn(
+          async ({ data }: { data: Array<{ fund: string; amount: number; type: string }> }) => {
+            created.push(...data);
+            return { count: data.length };
+          },
+        ),
+      },
+    };
+    const svc = new LedgerService({} as PrismaService);
+
+    await svc.recordInvoiceCharges(tx as never, { id: 'inv-1', condoId: 'c', unitId: 'u' }, [
+      { code: 'MAINT', amount: 300, description: 'Maintenance' },
+      { code: 'SINKING', amount: 50, description: 'Sinking fund' },
+    ]);
+
+    expect(created).toHaveLength(2);
+    expect(created.find((e) => e.fund === 'MAINTENANCE')?.amount).toBe(300);
+    expect(created.find((e) => e.fund === 'SINKING_FUND')?.amount).toBe(50);
+  });
+});
+
+describe('LedgerService.fundSummary', () => {
+  it('keeps maintenance and sinking fund balances separate and excludes charges from cash', async () => {
+    const day = 86_400_000;
+    const from = new Date('2026-01-01T00:00:00.000Z');
+    const to = new Date('2026-01-31T23:59:59.999Z');
+    const prisma = {
+      ledgerEntry: {
+        findMany: vi.fn(async () => [
+          {
+            fund: 'MAINTENANCE',
+            type: 'CHARGE',
+            amount: 500,
+            occurredAt: new Date(from.getTime() + 5 * day),
+          },
+          {
+            fund: 'SINKING_FUND',
+            type: 'CHARGE',
+            amount: 100,
+            occurredAt: new Date(from.getTime() + 5 * day),
+          },
+          {
+            fund: 'MAINTENANCE',
+            type: 'PAYMENT',
+            amount: 400,
+            occurredAt: new Date(from.getTime() + 10 * day),
+          },
+          {
+            fund: 'SINKING_FUND',
+            type: 'PAYMENT',
+            amount: 100,
+            occurredAt: new Date(from.getTime() + 10 * day),
+          },
+          {
+            fund: 'DEPOSIT',
+            type: 'DEPOSIT',
+            amount: 1000,
+            occurredAt: new Date(from.getTime() + 12 * day),
+          },
+        ]),
+      },
+    } as unknown as PrismaService;
+    const svc = new LedgerService(prisma);
+
+    const report = await svc.fundSummary('c', from, to);
+
+    const maint = report.funds.find((f) => f.fund === 'MAINTENANCE');
+    const sink = report.funds.find((f) => f.fund === 'SINKING_FUND');
+    const deposit = report.funds.find((f) => f.fund === 'DEPOSIT');
+
+    expect(maint?.chargesIssued).toBeCloseTo(500);
+    expect(maint?.collections).toBeCloseTo(400);
+    expect(maint?.closingBalance).toBeCloseTo(400);
+    expect(sink?.closingBalance).toBeCloseTo(100);
+    expect(deposit?.closingBalance).toBeCloseTo(1000);
+    expect(maint?.closingBalance).not.toBe(sink?.closingBalance);
+  });
+});
+
 describe('LedgerService.arrearsAging', () => {
   it('buckets outstanding invoices by age and skips paid ones', async () => {
     const now = Date.now();

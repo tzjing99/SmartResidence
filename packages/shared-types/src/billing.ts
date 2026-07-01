@@ -637,6 +637,41 @@ export interface CollectionsSummary {
   byFund: FundBalance[];
 }
 
+/** Opening/closing cash position per fund for AGM and auditor exports. */
+export interface FundSummaryRow {
+  fund: LedgerFund;
+  openingBalance: number;
+  collections: number;
+  chargesIssued: number;
+  adjustments: number;
+  closingBalance: number;
+}
+
+export interface FundSummaryReport {
+  from: string;
+  to: string;
+  funds: FundSummaryRow[];
+}
+
+export interface IncomeExpenseCategoryRow {
+  code: string;
+  description: string;
+  fund: LedgerFund;
+  charges: number;
+  collections: number;
+}
+
+export interface IncomeExpenseReport {
+  from: string;
+  to: string;
+  byFund: Array<{
+    fund: LedgerFund;
+    collections: number;
+    charges: number;
+  }>;
+  byCategory: IncomeExpenseCategoryRow[];
+}
+
 export interface ArrearsAgingBucket {
   bucket: '0-30' | '31-60' | '61-90' | '90+';
   amount: number;

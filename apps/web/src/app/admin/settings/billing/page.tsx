@@ -1020,7 +1020,9 @@ export default function AdminBillingSettingsPage() {
             <h2 className="text-3xl font-bold tracking-tight">Billing & receipts</h2>
             <p className="sr-muted mt-2 max-w-3xl">
               Configure what gets charged, what appears on receipts, and which payment gateways
-              residents can use. Invoice automation lives in the Invoices tab.
+              residents can use. Maintenance and sinking fund rates are billed to separate ledger
+              accounts — required under the Strata Management Act 2013. Invoice automation lives in
+              the Invoices tab.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -1037,6 +1039,15 @@ export default function AdminBillingSettingsPage() {
           </div>
         </div>
       </header>
+
+      <Card className="!p-4 border-[rgb(var(--sr-border))]/70 bg-[rgb(var(--sr-bg))]/35">
+        <p className="text-sm sr-muted">
+          <span className="font-medium text-[rgb(var(--sr-fg))]">Auditor note:</span> MAINT and
+          SINKING invoice lines post to the maintenance account and sinking fund respectively.
+          Renovation and access-card deposits post to deposits held — never mixed with maintenance
+          cash. Review fund balances under Accounting.
+        </p>
+      </Card>
 
       <SettingsSection
         icon={Landmark}

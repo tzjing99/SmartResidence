@@ -70,15 +70,17 @@ import type {
   FormSubmission,
   FormTemplate,
   FundBalance,
+  FundSummaryReport,
   GatewayConnectionView,
   GeneralMeeting,
   HandoverTemplate,
+  IncomeExpenseReport,
   Invoice,
   LostFoundPost,
-  MeetingProxy,
-  MeetingResolution,
   McpConnectionTestResult,
   McpServerConnectionView,
+  MeetingProxy,
+  MeetingResolution,
   OpenResolutionVotingInput,
   Parcel,
   PatrolCheckpoint,
@@ -1052,6 +1054,24 @@ export class ApiClient {
   arrearsAging(condoId: string) {
     return this.request<ArrearsAging>('GET', `/api/billing/reports/condo/${condoId}/arrears`);
   }
+  fundSummary(condoId: string, params: { from?: string; to?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.request<FundSummaryReport>(
+      'GET',
+      `/api/billing/reports/condo/${condoId}/fund-summary${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  incomeExpense(condoId: string, params: { from?: string; to?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.request<IncomeExpenseReport>(
+      'GET',
+      `/api/billing/reports/condo/${condoId}/income-expense${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
   paymentIssues(condoId: string) {
     return this.request<PaymentIssue[]>('GET', `/api/billing/payments/condo/${condoId}/issues`);
   }
@@ -1066,6 +1086,94 @@ export class ApiClient {
   }
   unitStatement(unitId: string) {
     return this.request<UnitStatement>('GET', `/api/billing/statements/unit/${unitId}`);
+  }
+  private async downloadBillingBlob(path: string, accept: string): Promise<Blob> {
+    const headers: Record<string, string> = { Accept: accept };
+    const token = await this.cfg.getAccessToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const condoId = await this.cfg.getActiveCondoId?.();
+    if (condoId) headers['x-condo-id'] = condoId;
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const res = await fetchImpl(`${this.cfg.baseUrl}${path}`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = await res.json();
+      } catch {
+        /* ignore */
+      }
+      const message =
+        (parsed as { message?: string } | null)?.message ?? `HTTP ${res.status} ${res.statusText}`;
+      throw new ApiError(res.status, parsed, message);
+    }
+    return res.blob();
+  }
+  async downloadUnitStatementPdf(
+    condoId: string,
+    unitId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.downloadBillingBlob(
+      `/api/billing/condo/${condoId}/statements/unit/${unitId}.pdf${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'application/pdf',
+    );
+  }
+  async downloadCollectionsCsv(
+    condoId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.downloadBillingBlob(
+      `/api/billing/condo/${condoId}/exports/collections.csv${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'text/csv',
+    );
+  }
+  async downloadArrearsCsv(condoId: string): Promise<Blob> {
+    return this.downloadBillingBlob(
+      `/api/billing/condo/${condoId}/exports/arrears.csv`,
+      'text/csv',
+    );
+  }
+  async downloadFundSummaryPdf(
+    condoId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.downloadBillingBlob(
+      `/api/billing/condo/${condoId}/exports/fund-summary.pdf${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'application/pdf',
+    );
+  }
+  async downloadAuditTrailCsv(
+    condoId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.downloadBillingBlob(
+      `/api/billing/reports/condo/${condoId}/audit-trail.csv${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'text/csv',
+    );
   }
 
   // Payment gateways -------------------------------------------------
@@ -1651,6 +1759,131 @@ export class ApiClient {
   }
   collectParcel(id: string, input: CollectParcelInput = {}) {
     return this.request<Parcel>('POST', `/api/parcels/${id}/collect`, input);
+  }
+
+  // Governance — general meetings (AGM/EGM) --------------------------
+  meetingsForCondo(
+    condoId: string,
+    params: { manage?: boolean; limit?: number; offset?: number } = {},
+  ) {
+    const query = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => [k, String(v)] as [string, string]),
+    ).toString();
+    return this.request<{ items: GeneralMeeting[]; total: number }>(
+      'GET',
+      `/api/governance/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
+  }
+  meeting(id: string) {
+    return this.request<GeneralMeeting>('GET', `/api/governance/${id}`);
+  }
+  createMeeting(input: CreateGeneralMeetingInput) {
+    return this.request<GeneralMeeting>('POST', '/api/governance', input);
+  }
+  updateMeeting(id: string, data: UpdateGeneralMeetingInput) {
+    return this.request<GeneralMeeting>('PATCH', `/api/governance/${id}`, data);
+  }
+  publishMeetingNotice(id: string) {
+    return this.request<GeneralMeeting>('POST', `/api/governance/${id}/publish-notice`);
+  }
+  addMeetingResolution(meetingId: string, data: CreateMeetingResolutionInput) {
+    return this.request<MeetingResolution>(
+      'POST',
+      `/api/governance/${meetingId}/resolutions`,
+      data,
+    );
+  }
+  submitMeetingProxy(meetingId: string, data: SubmitMeetingProxyInput) {
+    return this.request<MeetingProxy>('POST', `/api/governance/${meetingId}/proxies`, data);
+  }
+  openResolutionVoting(resolutionId: string, data: OpenResolutionVotingInput = {}) {
+    return this.request<MeetingResolution>(
+      'POST',
+      `/api/governance/resolutions/${resolutionId}/open-voting`,
+      data,
+    );
+  }
+  closeResolutionVoting(resolutionId: string) {
+    return this.request<MeetingResolution>(
+      'POST',
+      `/api/governance/resolutions/${resolutionId}/close-voting`,
+    );
+  }
+  castResolutionVote(resolutionId: string, data: CastResolutionVoteInput) {
+    return this.request<PollMyVote[]>(
+      'POST',
+      `/api/governance/resolutions/${resolutionId}/vote`,
+      data,
+    );
+  }
+
+  // Platform console (super-admin) -----------------------------------
+  listPlatformCondos(params: { search?: string } = {}) {
+    const query = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => [k, String(v)] as [string, string]),
+    ).toString();
+    return this.request<PlatformCondoSummary[]>(
+      'GET',
+      `/api/platform/condos${query ? `?${query}` : ''}`,
+    );
+  }
+  platformCondoSummary(condoId: string) {
+    return this.request<PlatformCondoDetail>('GET', `/api/platform/condos/${condoId}/summary`);
+  }
+
+  // Lost & found -----------------------------------------------------
+  lostFoundForCondo(
+    condoId: string,
+    params: {
+      kind?: string;
+      status?: string;
+      openOnly?: boolean;
+      manage?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) {
+    const query = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => [k, String(v)] as [string, string]),
+    ).toString();
+    return this.request<{ items: LostFoundPost[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/lost-found/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
+  }
+  myLostFoundPosts(
+    params: { kind?: string; status?: string; limit?: number; offset?: number } = {},
+  ) {
+    const query = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => [k, String(v)] as [string, string]),
+    ).toString();
+    return this.request<{ items: LostFoundPost[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/lost-found/mine${query ? `?${query}` : ''}`,
+    );
+  }
+  lostFoundPost(id: string) {
+    return this.request<LostFoundPost>('GET', `/api/lost-found/${id}`);
+  }
+  createLostFoundPost(input: CreateLostFoundPostInput) {
+    return this.request<LostFoundPost>('POST', '/api/lost-found', input);
+  }
+  resolveLostFoundPost(id: string) {
+    return this.request<LostFoundPost>('POST', `/api/lost-found/${id}/resolve`);
+  }
+  removeLostFoundPost(id: string) {
+    return this.request<LostFoundPost>('POST', `/api/lost-found/${id}/remove`);
+  }
+  moderateRemoveLostFoundPost(id: string) {
+    return this.request<LostFoundPost>('POST', `/api/lost-found/${id}/moderate-remove`);
   }
 
   // Audit / transparency --------------------------------------------

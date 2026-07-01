@@ -8,29 +8,37 @@ import {
   useArrearsAging,
   useCollectionsSummary,
   useFundBalances,
+  useFundSummary,
+  useIncomeExpense,
   useMyCondos,
 } from '@smartresidence/api-client';
-import {
-  ARREARS_BUCKET_LABELS,
-  FUND_LABELS,
-  formatMoney,
-} from '@smartresidence/shared-types';
+import { ARREARS_BUCKET_LABELS, FUND_LABELS, formatMoney } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import * as React from 'react';
 
 const AccountingHeavyPanels = dynamic(
-  () =>
-    import('./accounting-heavy-panels').then((m) => ({ default: m.AccountingHeavyPanels })),
+  () => import('./accounting-heavy-panels').then((m) => ({ default: m.AccountingHeavyPanels })),
   { loading: () => <Skeleton className="h-96" /> },
 );
 
-function monthStartIso() {
-  const d = new Date();
+function monthStartIso(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function priorPeriod(from: string, to: string) {
+  const start = new Date(from);
+  const end = new Date(to);
+  const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1);
+  const priorEnd = new Date(start.getTime() - 86_400_000);
+  const priorStart = new Date(priorEnd.getTime() - (days - 1) * 86_400_000);
+  return {
+    from: priorStart.toISOString().slice(0, 10),
+    to: priorEnd.toISOString().slice(0, 10),
+  };
 }
 
 async function downloadBlob(blob: Blob, filename: string) {
@@ -46,25 +54,31 @@ export default function AdminAccountingPage() {
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
   const funds = useFundBalances(api, condoId);
-  const [collectionFrom, setCollectionFrom] = React.useState(monthStartIso);
-  const [collectionTo, setCollectionTo] = React.useState(todayIso);
-  const [exportingCollections, setExportingCollections] = React.useState(false);
-  const [exportingArrears, setExportingArrears] = React.useState(false);
+  const [reportFrom, setReportFrom] = React.useState(monthStartIso);
+  const [reportTo, setReportTo] = React.useState(todayIso);
+  const prior = React.useMemo(() => priorPeriod(reportFrom, reportTo), [reportFrom, reportTo]);
+  const fundSummary = useFundSummary(api, condoId, { from: reportFrom, to: reportTo });
+  const priorSummary = useFundSummary(api, condoId, { from: prior.from, to: prior.to });
+  const incomeExpense = useIncomeExpense(api, condoId, { from: reportFrom, to: reportTo });
   const collections = useCollectionsSummary(api, condoId, {
-    from: collectionFrom,
-    to: collectionTo,
+    from: reportFrom,
+    to: reportTo,
   });
   const arrears = useArrearsAging(api, condoId);
+  const [exportingCollections, setExportingCollections] = React.useState(false);
+  const [exportingArrears, setExportingArrears] = React.useState(false);
+  const [exportingFundPdf, setExportingFundPdf] = React.useState(false);
+  const [exportingAudit, setExportingAudit] = React.useState(false);
 
   async function exportCollectionsCsv() {
     if (!condoId) return;
     setExportingCollections(true);
     try {
       const blob = await api.downloadCollectionsCsv(condoId, {
-        from: collectionFrom,
-        to: collectionTo,
+        from: reportFrom,
+        to: reportTo,
       });
-      await downloadBlob(blob, `collections-${collectionFrom}-${collectionTo}.csv`);
+      await downloadBlob(blob, `collections-${reportFrom}-${reportTo}.csv`);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -85,68 +99,198 @@ export default function AdminAccountingPage() {
     }
   }
 
+  async function exportFundSummaryPdf() {
+    if (!condoId) return;
+    setExportingFundPdf(true);
+    try {
+      const blob = await api.downloadFundSummaryPdf(condoId, {
+        from: reportFrom,
+        to: reportTo,
+      });
+      await downloadBlob(blob, `fund-summary-${reportFrom}.pdf`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingFundPdf(false);
+    }
+  }
+
+  async function exportAuditTrailCsv() {
+    if (!condoId) return;
+    setExportingAudit(true);
+    try {
+      const blob = await api.downloadAuditTrailCsv(condoId, {
+        from: reportFrom,
+        to: reportTo,
+      });
+      await downloadBlob(blob, `audit-trail-${reportFrom}.csv`);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setExportingAudit(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Accounting</h1>
         <p className="sr-muted">
-          See fund balances, money collected, and unpaid invoices — maintenance and sinking fund
-          kept separate.
+          Fund balances, collections, and arrears for your JMB — maintenance account, sinking fund,
+          and deposits are kept separate for Strata Management Act audits.
         </p>
       </header>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {funds.isLoading
-          ? ['a', 'b', 'c', 'd'].map((k) => <Skeleton key={k} className="h-24" />)
-          : (funds.data ?? []).map((f) => (
-              <Card key={f.fund}>
-                <div className="text-xs uppercase sr-muted font-semibold">
-                  {FUND_LABELS[f.fund]}
-                </div>
-                <div className="text-2xl font-bold mt-1">{formatMoney(f.balance)}</div>
-              </Card>
-            ))}
+      <Card className="!p-4 border-[rgb(var(--sr-coral))]/20 bg-[rgb(var(--sr-bg))]/40">
+        <p className="text-sm">
+          <span className="font-semibold">Malaysian JMB compliance:</span> Maintenance and sinking
+          fund cash must not be commingled. Deposits (renovation, access card, etc.) sit in a
+          separate deposits-held account. Export the fund summary PDF and audit trail CSV for AGM
+          presentations and Commissioner of Buildings (COB) record-keeping.
+        </p>
+      </Card>
+
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="report-from" className="text-xs">
+              Report from
+            </Label>
+            <Input
+              id="report-from"
+              type="date"
+              className="h-8 text-xs"
+              value={reportFrom}
+              onChange={(e) => setReportFrom(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="report-to" className="text-xs">
+              To
+            </Label>
+            <Input
+              id="report-to"
+              type="date"
+              className="h-8 text-xs"
+              value={reportTo}
+              onChange={(e) => setReportTo(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!condoId || exportingFundPdf}
+            onClick={() => exportFundSummaryPdf()}
+          >
+            {exportingFundPdf ? 'Exporting…' : 'Fund summary PDF'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!condoId || exportingAudit}
+            onClick={() => exportAuditTrailCsv()}
+          >
+            {exportingAudit ? 'Exporting…' : 'Audit trail CSV'}
+          </Button>
+        </div>
       </section>
+
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {funds.isLoading || fundSummary.isLoading
+          ? ['a', 'b', 'c', 'd'].map((k) => <Skeleton key={k} className="h-28" />)
+          : (fundSummary.data?.funds ?? funds.data ?? []).map((f) => {
+              const current =
+                'closingBalance' in f ? f.closingBalance : (f as { balance: number }).balance;
+              const priorRow = priorSummary.data?.funds.find((p) => p.fund === f.fund);
+              const delta =
+                priorRow != null
+                  ? Math.round((current - priorRow.closingBalance) * 100) / 100
+                  : null;
+              return (
+                <Card key={f.fund}>
+                  <div className="text-xs uppercase sr-muted font-semibold">
+                    {FUND_LABELS[f.fund]}
+                  </div>
+                  <div className="text-2xl font-bold mt-1">{formatMoney(current)}</div>
+                  {delta != null ? (
+                    <div className="text-xs sr-muted mt-1">
+                      {delta >= 0 ? '+' : ''}
+                      {formatMoney(delta)} vs prior period
+                    </div>
+                  ) : null}
+                </Card>
+              );
+            })}
+      </section>
+
+      <Card>
+        <h3 className="font-semibold text-sm mb-3">Charges vs collections by fund</h3>
+        {incomeExpense.isLoading ? (
+          <Skeleton className="h-32" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-sm">
+              <thead>
+                <tr className="text-left text-xs sr-muted border-b border-[rgb(var(--sr-border))]/70">
+                  <th className="pb-2 pr-3 font-medium">Fund</th>
+                  <th className="pb-2 pr-3 font-medium text-right">Charges issued</th>
+                  <th className="pb-2 font-medium text-right">Collections</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(incomeExpense.data?.byFund ?? []).map((row) => (
+                  <tr
+                    key={row.fund}
+                    className="border-b border-[rgb(var(--sr-border))]/40 last:border-0"
+                  >
+                    <td className="py-2 pr-3">{FUND_LABELS[row.fund]}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">
+                      {formatMoney(row.charges)}
+                    </td>
+                    <td className="py-2 text-right tabular-nums">{formatMoney(row.collections)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {(incomeExpense.data?.byCategory.length ?? 0) > 0 ? (
+          <div className="mt-4 pt-4 border-t border-[rgb(var(--sr-border))]/50">
+            <h4 className="text-xs uppercase sr-muted font-semibold mb-2">By fee line</h4>
+            <div className="flex flex-col gap-1 text-sm">
+              {incomeExpense.data?.byCategory.slice(0, 8).map((row) => (
+                <div key={`${row.fund}-${row.code}`} className="flex justify-between gap-3">
+                  <span className="sr-muted truncate">
+                    {row.description}
+                    <span className="ml-1">({FUND_LABELS[row.fund]})</span>
+                  </span>
+                  <span className="tabular-nums shrink-0">
+                    {row.charges > 0 ? formatMoney(row.charges) : formatMoney(row.collections)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
             <h3 className="font-semibold text-sm">Collections</h3>
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="col-from" className="text-xs">
-                  From
-                </Label>
-                <Input
-                  id="col-from"
-                  type="date"
-                  className="h-8 text-xs"
-                  value={collectionFrom}
-                  onChange={(e) => setCollectionFrom(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="col-to" className="text-xs">
-                  To
-                </Label>
-                <Input
-                  id="col-to"
-                  type="date"
-                  className="h-8 text-xs"
-                  value={collectionTo}
-                  onChange={(e) => setCollectionTo(e.target.value)}
-                />
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={!condoId || exportingCollections}
-                onClick={() => exportCollectionsCsv()}
-              >
-                {exportingCollections ? 'Exporting…' : 'Export CSV'}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={!condoId || exportingCollections}
+              onClick={() => exportCollectionsCsv()}
+            >
+              {exportingCollections ? 'Exporting…' : 'Export CSV'}
+            </Button>
           </div>
           {collections.isLoading ? (
             <Skeleton className="h-32" />
@@ -173,7 +317,7 @@ export default function AdminAccountingPage() {
 
         <Card>
           <div className="flex items-center justify-between gap-3 mb-3">
-            <h3 className="font-semibold text-sm">Unpaid by age</h3>
+            <h3 className="font-semibold text-sm">Collections aging (unpaid invoices)</h3>
             <Button
               type="button"
               size="sm"

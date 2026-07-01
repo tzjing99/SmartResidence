@@ -207,7 +207,7 @@ export function BillingAutomationPanel({ condoId }: { condoId: string }) {
   const previewStatus = p ? getPreviewStatus(p) : null;
 
   return (
-    <Card className="!p-5 sm:!p-6">
+    <Card id="automation" className="!p-5 sm:!p-6 scroll-mt-24">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -339,11 +339,25 @@ export function BillingAutomationPanel({ condoId }: { condoId: string }) {
                 <p className="font-medium text-[rgb(var(--sr-fg))]">{previewStatus?.title}</p>
               </div>
               <p className="sr-muted mt-1">{previewStatus?.description}</p>
-              <p className="sr-muted mt-3">
-                Billing period: {fmtDate(p.periodStart)} through {fmtDate(p.periodEnd)}. Due date:{' '}
-                {fmtDate(p.dueDate)}.
-              </p>
-              <p className="sr-muted mt-1">{previewSentence(p)}</p>
+              <ul className="mt-3 flex flex-col gap-1 text-[rgb(var(--sr-fg))]">
+                <li>
+                  <span className="font-medium">Next run:</span>{' '}
+                  {p.dueToRun ? 'today' : fmtDate(p.runOnOrAfter)} (generates on day{' '}
+                  {draft.generationDay})
+                </li>
+                <li>
+                  <span className="font-medium">Creates invoices for:</span> up to {p.wouldCreate}{' '}
+                  {plural(p.wouldCreate, 'unit')}
+                </li>
+                <li>
+                  <span className="font-medium">Billing period:</span> {fmtDate(p.periodStart)} —{' '}
+                  {fmtDate(p.periodEnd)}
+                </li>
+                <li>
+                  <span className="font-medium">Due date:</span> {fmtDate(p.dueDate)}
+                </li>
+              </ul>
+              <p className="sr-muted mt-2">{previewSentence(p)}</p>
             </div>
           ) : null}
 

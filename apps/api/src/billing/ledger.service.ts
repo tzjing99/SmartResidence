@@ -12,6 +12,10 @@ import {
   type ArrearsAgingBucket,
   type CollectionsSummary,
   type FundBalance,
+  type FundSummaryReport,
+  type FundSummaryRow,
+  type IncomeExpenseCategoryRow,
+  type IncomeExpenseReport,
   type UnitStatement,
   type UnitStatementEntry,
   formatCompactUnitLabel,
@@ -61,6 +65,26 @@ export interface ArrearsExportRow {
   total: number;
   amountPaid: number;
   outstanding: number;
+}
+
+export interface AuditTrailExportRow {
+  id: string;
+  occurredAt: string;
+  fund: LedgerFund;
+  type: LedgerEntryType;
+  amount: number;
+  memo: string | null;
+  sourceType: string;
+  sourceId: string | null;
+  idempotencyKey: string | null;
+  createdByUserId: string | null;
+  createdByName: string | null;
+  reversalOfIdempotencyKey: string | null;
+}
+
+/** Whether a ledger entry affects condo fund cash (excludes unit charges). */
+function contributesToFundCash(type: LedgerEntryType): boolean {
+  return type !== LedgerEntryType.CHARGE;
 }
 
 function applyLedgerEntry(
@@ -300,8 +324,222 @@ export class LedgerService {
     );
     return (Object.values(LedgerFund) as LedgerFund[]).map((fund) => ({
       fund,
-      balance: map.get(fund) ?? 0,
+      balance: Math.round((map.get(fund) ?? 0) * 100) / 100,
     }));
+  }
+
+  async fundSummary(condoId: string, from: Date, to: Date): Promise<FundSummaryReport> {
+    const entries = await this.prisma.ledgerEntry.findMany({
+      where: { condoId },
+      select: { fund: true, type: true, amount: true, occurredAt: true },
+      orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+    });
+
+    const funds = Object.values(LedgerFund) as LedgerFund[];
+    const opening = new Map<LedgerFund, number>(funds.map((f) => [f, 0]));
+    const closing = new Map<LedgerFund, number>(funds.map((f) => [f, 0]));
+    const collections = new Map<LedgerFund, number>(funds.map((f) => [f, 0]));
+    const chargesIssued = new Map<LedgerFund, number>(funds.map((f) => [f, 0]));
+    const adjustments = new Map<LedgerFund, number>(funds.map((f) => [f, 0]));
+
+    for (const entry of entries) {
+      const amount = Number(entry.amount);
+      const fund = entry.fund;
+      const beforePeriod = entry.occurredAt < from;
+      const inPeriod = entry.occurredAt >= from && entry.occurredAt <= to;
+
+      if (entry.type === LedgerEntryType.PAYMENT && inPeriod) {
+        collections.set(fund, (collections.get(fund) ?? 0) + amount);
+      }
+      if (entry.type === LedgerEntryType.CHARGE && inPeriod) {
+        chargesIssued.set(fund, (chargesIssued.get(fund) ?? 0) + amount);
+      }
+      if (entry.type === LedgerEntryType.ADJUSTMENT && inPeriod) {
+        adjustments.set(fund, (adjustments.get(fund) ?? 0) + amount);
+      }
+
+      if (contributesToFundCash(entry.type)) {
+        if (beforePeriod) {
+          opening.set(fund, (opening.get(fund) ?? 0) + amount);
+        }
+        if (entry.occurredAt <= to) {
+          closing.set(fund, (closing.get(fund) ?? 0) + amount);
+        }
+      }
+    }
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const rows: FundSummaryRow[] = funds.map((fund) => ({
+      fund,
+      openingBalance: round(opening.get(fund) ?? 0),
+      collections: round(collections.get(fund) ?? 0),
+      chargesIssued: round(chargesIssued.get(fund) ?? 0),
+      adjustments: round(adjustments.get(fund) ?? 0),
+      closingBalance: round(closing.get(fund) ?? 0),
+    }));
+
+    return { from: from.toISOString(), to: to.toISOString(), funds: rows };
+  }
+
+  async incomeExpense(condoId: string, from: Date, to: Date): Promise<IncomeExpenseReport> {
+    const entries = await this.prisma.ledgerEntry.findMany({
+      where: {
+        condoId,
+        occurredAt: { gte: from, lte: to },
+        type: { in: [LedgerEntryType.PAYMENT, LedgerEntryType.CHARGE] },
+      },
+      select: {
+        fund: true,
+        type: true,
+        amount: true,
+        sourceType: true,
+        sourceId: true,
+        memo: true,
+      },
+    });
+
+    const funds = Object.values(LedgerFund) as LedgerFund[];
+    const byFund = new Map<LedgerFund, { collections: number; charges: number }>(
+      funds.map((f) => [f, { collections: 0, charges: 0 }]),
+    );
+
+    const chargeInvoiceIds = new Set<string>();
+    for (const entry of entries) {
+      const amount = Number(entry.amount);
+      const bucket = byFund.get(entry.fund);
+      if (!bucket) continue;
+      if (entry.type === LedgerEntryType.PAYMENT) {
+        bucket.collections += amount;
+      } else {
+        bucket.charges += amount;
+        if (entry.sourceType === 'Invoice' && entry.sourceId) {
+          chargeInvoiceIds.add(entry.sourceId);
+        }
+      }
+    }
+
+    const categoryMap = new Map<string, IncomeExpenseCategoryRow>();
+    if (chargeInvoiceIds.size > 0) {
+      const lines = await this.prisma.invoiceLine.findMany({
+        where: { invoiceId: { in: [...chargeInvoiceIds] } },
+        select: { code: true, description: true, amount: true, invoiceId: true },
+      });
+      for (const line of lines) {
+        const fund = LedgerService.fundOfCode(line.code);
+        const key = `${fund}:${line.code}`;
+        const existing = categoryMap.get(key);
+        const amount = Number(line.amount);
+        if (existing) {
+          existing.charges += amount;
+        } else {
+          categoryMap.set(key, {
+            code: line.code,
+            description: line.description,
+            fund,
+            charges: amount,
+            collections: 0,
+          });
+        }
+      }
+    }
+
+    for (const entry of entries) {
+      if (entry.type !== LedgerEntryType.PAYMENT) continue;
+      const code =
+        entry.memo?.includes('Sinking') || entry.memo?.includes('sinking')
+          ? 'SINKING'
+          : entry.memo?.includes('Maintenance') || entry.memo?.includes('maintenance')
+            ? 'MAINT'
+            : 'PAYMENT';
+      const fund = entry.fund;
+      const key = `${fund}:${code}:pay`;
+      const existing = categoryMap.get(key);
+      const amount = Number(entry.amount);
+      if (existing) {
+        existing.collections += amount;
+      } else {
+        categoryMap.set(key, {
+          code,
+          description: entry.memo ?? 'Payment',
+          fund,
+          charges: 0,
+          collections: amount,
+        });
+      }
+    }
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    return {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      byFund: funds.map((fund) => ({
+        fund,
+        collections: round(byFund.get(fund)?.collections ?? 0),
+        charges: round(byFund.get(fund)?.charges ?? 0),
+      })),
+      byCategory: [...categoryMap.values()]
+        .map((row) => ({
+          ...row,
+          charges: round(row.charges),
+          collections: round(row.collections),
+        }))
+        .sort((a, b) => b.charges + b.collections - (a.charges + a.collections)),
+    };
+  }
+
+  async auditTrailExportRows(
+    condoId: string,
+    from: Date,
+    to: Date,
+  ): Promise<AuditTrailExportRow[]> {
+    const entries = await this.prisma.ledgerEntry.findMany({
+      where: { condoId, occurredAt: { gte: from, lte: to } },
+      orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+    });
+    if (entries.length === 0) return [];
+
+    const userIds = [...new Set(entries.map((e) => e.createdByUserId).filter(Boolean))] as string[];
+    const users =
+      userIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+    const userNames = new Map(users.map((u) => [u.id, u.name]));
+
+    const chargeKeys = new Map<string, string>();
+    for (const entry of entries) {
+      if (entry.type === LedgerEntryType.CHARGE && entry.idempotencyKey) {
+        chargeKeys.set(entry.id, entry.idempotencyKey);
+      }
+    }
+
+    return entries.map((entry) => {
+      let reversalOfIdempotencyKey: string | null = null;
+      const key = entry.idempotencyKey ?? '';
+      const voidMatch = /^invoice:[^:]+:void:(.+)$/.exec(key);
+      if (voidMatch?.[1]) {
+        reversalOfIdempotencyKey = chargeKeys.get(voidMatch[1]) ?? null;
+      }
+
+      return {
+        id: entry.id,
+        occurredAt: entry.occurredAt.toISOString(),
+        fund: entry.fund,
+        type: entry.type,
+        amount: Number(entry.amount),
+        memo: entry.memo,
+        sourceType: entry.sourceType,
+        sourceId: entry.sourceId,
+        idempotencyKey: entry.idempotencyKey,
+        createdByUserId: entry.createdByUserId,
+        createdByName: entry.createdByUserId
+          ? (userNames.get(entry.createdByUserId) ?? null)
+          : null,
+        reversalOfIdempotencyKey,
+      };
+    });
   }
 
   async collectionsSummary(condoId: string, from: Date, to: Date): Promise<CollectionsSummary> {

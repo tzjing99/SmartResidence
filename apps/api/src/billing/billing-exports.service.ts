@@ -15,6 +15,7 @@ import {
   formatMoney,
 } from '@smartresidence/shared-types';
 import { buildCsv } from './csv-utils';
+import { buildFundSummaryPdf } from './fund-summary-pdf';
 import { LedgerService } from './ledger.service';
 import { parseReceiptTemplate } from './receipt-template';
 import { buildUnitStatementPdf } from './statement-pdf';
@@ -194,5 +195,73 @@ export class BillingExportsService {
 
     const date = new Date().toISOString().slice(0, 10);
     return { csv: buildCsv(csvRows), filename: `arrears-aging-${date}.csv` };
+  }
+
+  async fundSummaryPdf(
+    user: AuthenticatedUser,
+    condoId: string,
+    from?: string,
+    to?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    this.assertManagement(user, condoId);
+    const range = parseDateRange(from, to);
+    const { condo, template } = await this.loadCondoTemplate(condoId);
+    const report = await this.ledger.fundSummary(condoId, range.from, range.to);
+    const filename = `fund-summary-${range.from.toISOString().slice(0, 10)}-${range.to.toISOString().slice(0, 10)}.pdf`;
+    const buffer = buildFundSummaryPdf({
+      organizationName: template.organizationName || condo.name,
+      registrationNo: template.registrationNo || undefined,
+      report,
+    });
+    return { buffer, filename };
+  }
+
+  async auditTrailCsv(
+    user: AuthenticatedUser,
+    condoId: string,
+    from?: string,
+    to?: string,
+  ): Promise<{ csv: string; filename: string }> {
+    this.assertManagement(user, condoId);
+    const range = parseDateRange(from, to);
+    await this.loadCondoTemplate(condoId);
+
+    const rows = await this.ledger.auditTrailExportRows(condoId, range.from, range.to);
+    const csvRows: string[][] = [
+      ['Ledger audit trail'],
+      ['From', formatExportDate(range.from)],
+      ['To', formatExportDate(range.to)],
+      ['Entry count', String(rows.length)],
+      [],
+      [
+        'Date',
+        'Fund',
+        'Type',
+        'Amount',
+        'Description',
+        'Source type',
+        'Source id',
+        'Idempotency key',
+        'Reversal of key',
+        'User',
+        'Entry id',
+      ],
+      ...rows.map((r) => [
+        formatExportDate(new Date(r.occurredAt)),
+        FUND_LABELS[r.fund],
+        r.type,
+        formatMoney(r.amount),
+        r.memo ?? '',
+        r.sourceType,
+        r.sourceId ?? '',
+        r.idempotencyKey ?? '',
+        r.reversalOfIdempotencyKey ?? '',
+        r.createdByName ?? '',
+        r.id,
+      ]),
+    ];
+
+    const filename = `audit-trail-${range.from.toISOString().slice(0, 10)}-${range.to.toISOString().slice(0, 10)}.csv`;
+    return { csv: buildCsv(csvRows), filename };
   }
 }

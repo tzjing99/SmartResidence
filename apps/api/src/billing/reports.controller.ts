@@ -16,6 +16,66 @@ export class ReportsController {
     private readonly exports: BillingExportsService,
   ) {}
 
+  @Get('reports/condo/:condoId/fund-summary')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Opening/closing balance per fund for a date range' })
+  fundSummary(
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const now = new Date();
+    const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = to ? new Date(to) : now;
+    return this.ledger.fundSummary(condoId, start, end);
+  }
+
+  @Get('reports/condo/:condoId/income-expense')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Collections vs charges by fund and fee category' })
+  incomeExpense(
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const now = new Date();
+    const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = to ? new Date(to) : now;
+    return this.ledger.incomeExpense(condoId, start, end);
+  }
+
+  @Get('reports/condo/:condoId/audit-trail.csv')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Ledger audit trail CSV with idempotency and reversal links' })
+  async auditTrailCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.exports.auditTrailCsv(user, condoId, from, to);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
+  @Get('condo/:condoId/exports/fund-summary.pdf')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Download fund summary PDF for AGM / audit (management)' })
+  async fundSummaryPdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.exports.fundSummaryPdf(user, condoId, from, to);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
   @Get('reports/condo/:condoId/fund-balances')
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Cash balance per fund (maintenance / sinking / deposits)' })

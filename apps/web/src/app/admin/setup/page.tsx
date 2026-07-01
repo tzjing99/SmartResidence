@@ -357,7 +357,7 @@ export default function AdminSetupPage() {
                 </Button>
                 {activeStep.key === 'billing' ? (
                   <Button asChild variant="ghost">
-                    <Link href="/admin/automations">Invoice automation</Link>
+                    <Link href="/admin/invoices#automation">Invoice automation</Link>
                   </Button>
                 ) : null}
                 {activeStep.key === 'operations' ? (
@@ -435,11 +435,7 @@ export default function AdminSetupPage() {
                 <Button onClick={finish} disabled={completeSetup.isPending} size="lg">
                   <PartyPopper className="size-4" /> Finish setup
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={deferSetup}
-                  disabled={dismissSetup.isPending}
-                >
+                <Button variant="ghost" onClick={deferSetup} disabled={dismissSetup.isPending}>
                   Do this later
                 </Button>
               </div>

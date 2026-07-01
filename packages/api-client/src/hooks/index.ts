@@ -13,28 +13,27 @@ import type {
   CreateDeliveryPassInput,
   CreateFacilityInput,
   CreateFavouriteVisitorInput,
+  CreateGeneralMeetingInput,
   CreateHandoverReportInput,
   CreateLostFoundPostInput,
+  CreateMeetingResolutionInput,
   CreateParcelInput,
   CreatePatrolCheckpointInput,
   CreatePollInput,
-  CreateGeneralMeetingInput,
-  CreateMeetingResolutionInput,
   CreateUnitTypeInput,
   CreateUnitTypeSpaceInput,
   CreateVisitorInput,
+  OpenResolutionVotingInput,
   PatrolScanInput,
   RaiseSosInput,
-  OpenResolutionVotingInput,
   SubmitMeetingProxyInput,
   UpdateAnnouncementInput,
   UpdateDefectElementInput,
   UpdateDefectIssueInput,
   UpdateDefectSpaceTypeInput,
   UpdateFacilityInput,
-  UpdatePatrolCheckpointInput,
   UpdateGeneralMeetingInput,
-  UpdateMeetingResolutionInput,
+  UpdatePatrolCheckpointInput,
   UpdatePollInput,
   UpdateUnitTypeInput,
   UpdateUnitTypeSpaceInput,
@@ -107,6 +106,10 @@ export const queryKeys = {
   payableMethods: (condoId: string) => ['payment-methods', condoId] as const,
   feeExtraLines: (condoId: string) => ['fee-extra-lines', condoId] as const,
   fundBalances: (condoId: string) => ['accounting', 'fund-balances', condoId] as const,
+  fundSummary: (condoId: string, from?: string, to?: string) =>
+    ['accounting', 'fund-summary', condoId, from ?? '', to ?? ''] as const,
+  incomeExpense: (condoId: string, from?: string, to?: string) =>
+    ['accounting', 'income-expense', condoId, from ?? '', to ?? ''] as const,
   collections: (condoId: string, from?: string, to?: string) =>
     ['accounting', 'collections', condoId, from ?? '', to ?? ''] as const,
   arrears: (condoId: string) => ['accounting', 'arrears', condoId] as const,
@@ -445,9 +448,7 @@ export function useUnitInvoices(
       ? [...queryKeys.unitInvoices(unitId), opts.limit ?? 'all', opts.offset ?? 0]
       : ['invoices', 'unit', null],
     queryFn: () =>
-      unitId
-        ? api.invoicesForUnit(unitId, opts)
-        : Promise.resolve({ items: [], total: 0 }),
+      unitId ? api.invoicesForUnit(unitId, opts) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
     staleTime: LIST_VIEW_MS,
   });
@@ -1072,6 +1073,36 @@ export function useArrearsAging(api: ApiClient, condoId: string | null) {
   return useQuery({
     queryKey: condoId ? queryKeys.arrears(condoId) : ['accounting', 'arrears', null],
     queryFn: () => (condoId ? api.arrearsAging(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+    staleTime: REPORT_VIEW_MS,
+  });
+}
+
+export function useFundSummary(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { from?: string; to?: string },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.fundSummary(condoId, params?.from, params?.to)
+      : ['accounting', 'fund-summary', null],
+    queryFn: () => (condoId ? api.fundSummary(condoId, params ?? {}) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+    staleTime: REPORT_VIEW_MS,
+  });
+}
+
+export function useIncomeExpense(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { from?: string; to?: string },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.incomeExpense(condoId, params?.from, params?.to)
+      : ['accounting', 'income-expense', null],
+    queryFn: () => (condoId ? api.incomeExpense(condoId, params ?? {}) : Promise.resolve(null)),
     enabled: Boolean(condoId),
     staleTime: REPORT_VIEW_MS,
   });

@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminPageHeader } from '@/components/admin-ui';
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -14,11 +15,12 @@ import {
   usePublishMeetingNotice,
   useUpdateMeeting,
 } from '@smartresidence/api-client';
-import type { GeneralMeeting, GeneralMeetingKind, GeneralMeetingStatus } from '@smartresidence/shared-types';
-import {
-  MEETING_KIND_LABELS,
-  MEETING_STATUS_LABELS,
+import type {
+  GeneralMeeting,
+  GeneralMeetingKind,
+  GeneralMeetingStatus,
 } from '@smartresidence/shared-types';
+import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
 import {
   Badge,
   Button,
@@ -81,7 +83,9 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Badge tone={STATUS_TONE[status]}>{MEETING_STATUS_LABELS[status]}</Badge>
-            <span className="text-sm sr-muted">{MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]}</span>
+            <span className="text-sm sr-muted">
+              {MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]}
+            </span>
           </div>
           <h2 className="text-xl font-semibold">{meeting.title}</h2>
           <p className="text-sm sr-muted mt-1">Scheduled {fmtDate(meeting.scheduledAt)}</p>
@@ -139,7 +143,9 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
             <div className="flex justify-between items-start gap-2">
               <div>
                 <p className="font-medium">{res.title}</p>
-                {res.description ? <p className="text-sm sr-muted mt-1">{res.description}</p> : null}
+                {res.description ? (
+                  <p className="text-sm sr-muted mt-1">{res.description}</p>
+                ) : null}
                 {res.poll?.status ? (
                   <Badge tone={res.poll.status === 'OPEN' ? 'success' : 'neutral'} className="mt-2">
                     Voting {res.poll.status.toLowerCase()}
@@ -183,7 +189,7 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
             </div>
             {res.poll?.results ? (
               <div className="mt-3 text-sm sr-muted">
-                {(res.poll.results.totalVotes ?? 0)} units voted ·{' '}
+                {res.poll.results.totalVotes ?? 0} units voted ·{' '}
                 {(res.poll.results.totalWeight ?? 0).toFixed(1)}% share weight
               </div>
             ) : null}
@@ -226,7 +232,11 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
             rows={2}
           />
           <Button type="submit" disabled={addResolution.isPending || resolutionTitle.length < 4}>
-            {addResolution.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {addResolution.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             Add resolution
           </Button>
         </form>
@@ -252,16 +262,13 @@ export default function AdminGovernancePage() {
   const meetings = (meetingsQuery.data?.items ?? []) as GeneralMeeting[];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <Gavel className="h-6 w-6" />
-          Governance
-        </h1>
-        <p className="sr-muted mt-1">
-          Schedule AGM/EGM meetings, publish notices, and run share-weighted resolution voting.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 max-w-6xl">
+      <AdminPageHeader
+        eyebrow="Compliance"
+        icon={Gavel}
+        title="Governance"
+        description="Schedule AGM/EGM meetings, publish notices, and run share-weighted resolution voting."
+      />
 
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="space-y-4">
@@ -305,7 +312,11 @@ export default function AdminGovernancePage() {
               </div>
               <div>
                 <Label>Title</Label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="2026 AGM" />
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="2026 AGM"
+                />
               </div>
               <div>
                 <Label>Scheduled date & time</Label>
@@ -325,7 +336,11 @@ export default function AdminGovernancePage() {
                 />
               </div>
               <Button type="submit" disabled={createMeeting.isPending || title.length < 4}>
-                {createMeeting.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {createMeeting.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
                 Create draft
               </Button>
             </form>
@@ -336,7 +351,10 @@ export default function AdminGovernancePage() {
             {meetingsQuery.isLoading ? (
               <Skeleton className="h-24 w-full" />
             ) : meetings.length === 0 ? (
-              <EmptyState title="No meetings yet" description="Create an AGM or EGM to get started." />
+              <EmptyState
+                title="No meetings yet"
+                description="Create an AGM or EGM to get started."
+              />
             ) : (
               <ul className="divide-y divide-[rgb(var(--sr-border))]">
                 {meetings.map((m) => {
@@ -351,7 +369,8 @@ export default function AdminGovernancePage() {
                         <div>
                           <p className="font-medium">{m.title}</p>
                           <p className="text-sm sr-muted">
-                            {MEETING_KIND_LABELS[m.kind as GeneralMeetingKind]} · {fmtDate(m.scheduledAt)}
+                            {MEETING_KIND_LABELS[m.kind as GeneralMeetingKind]} ·{' '}
+                            {fmtDate(m.scheduledAt)}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">

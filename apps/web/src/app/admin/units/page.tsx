@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -11,7 +12,7 @@ import {
 } from '@smartresidence/api-client';
 import { Button, Card, EmptyState, Input, Label, Select, Skeleton } from '@smartresidence/ui-web';
 import { useQuery } from '@tanstack/react-query';
-import { Edit3, Eye } from 'lucide-react';
+import { Building2, Edit3, Eye } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 
@@ -94,12 +95,16 @@ export default function AdminUnitsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Residents & units</h1>
-          <p className="sr-muted">{units.data?.total ?? 0} units</p>
-        </div>
+    <div className="flex flex-col gap-6 max-w-6xl">
+      <AdminPageHeader
+        eyebrow="People"
+        icon={Building2}
+        title="Residents & units"
+        description="Browse units, assign types for billing, and update resident contact details."
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm sr-muted">{units.data?.total ?? 0} units</p>
         <div className="flex items-center gap-3">
           {(unitTypes.data?.length ?? 0) === 0 ? (
             <Link
@@ -117,7 +122,7 @@ export default function AdminUnitsPage() {
             />
           </div>
         </div>
-      </header>
+      </div>
 
       {units.isLoading ? (
         <Skeleton className="h-96" />

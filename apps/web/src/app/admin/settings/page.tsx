@@ -30,6 +30,9 @@ function AreaCard({ area }: { area: SettingsArea }) {
             <ChevronRight className="size-4 sr-muted transition-transform group-hover:translate-x-0.5" />
           </span>
           <span className="mt-1 block text-sm sr-muted">{area.description}</span>
+          <span className="mt-2 inline-block rounded-full bg-[rgb(var(--sr-bg))] px-2.5 py-0.5 text-[11px] font-medium sr-muted border border-[rgb(var(--sr-border))]/70">
+            For {area.audience.toLowerCase()}
+          </span>
         </span>
       </Link>
     </Card>

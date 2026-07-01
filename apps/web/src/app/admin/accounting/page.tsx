@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 
+import { AdminComplianceNote, AdminExportToolbar, AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -199,75 +200,81 @@ export default function AdminAccountingPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Accounting</h1>
-        <p className="sr-muted">
-          Fund balances, collections, and arrears for your JMB — maintenance account, sinking fund,
-          and deposits are kept separate for Strata Management Act audits.{' '}
-          <Link href="/admin/accounting/gl" className="underline font-medium">
-            Open general ledger & bank reconciliation
-          </Link>
-        </p>
-      </header>
+    <div className="flex flex-col gap-6 max-w-6xl">
+      <AdminPageHeader
+        eyebrow="Money"
+        title="Accounting"
+        description={
+          <>
+            Fund balances, collections, and arrears for your JMB.{' '}
+            <Link
+              href="/admin/accounting/gl"
+              className="text-coral-500 font-medium hover:underline"
+            >
+              Open general ledger & bank reconciliation
+            </Link>
+          </>
+        }
+      />
 
-      <Card className="!p-4 border-[rgb(var(--sr-coral))]/20 bg-[rgb(var(--sr-bg))]/40">
-        <p className="text-sm">
-          <span className="font-semibold">Malaysian JMB compliance:</span> Maintenance and sinking
-          fund cash must not be commingled. Deposits (renovation, access card, etc.) sit in a
-          separate deposits-held account. Export the fund summary PDF and audit trail CSV for AGM
-          presentations and Commissioner of Buildings (COB) record-keeping.
-        </p>
-      </Card>
+      <AdminComplianceNote
+        title="Malaysian JMB compliance"
+        summary="Maintenance, sinking fund, and deposits must stay in separate accounts."
+      >
+        Maintenance and sinking fund cash must not be commingled. Deposits (renovation, access card,
+        etc.) sit in a separate deposits-held account. Export the fund summary PDF and audit trail
+        CSV for AGM presentations and Commissioner of Buildings (COB) record-keeping.
+      </AdminComplianceNote>
 
-      <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="report-from" className="text-xs">
-              Report from
-            </Label>
-            <Input
-              id="report-from"
-              type="date"
-              className="h-8 text-xs"
-              value={reportFrom}
-              onChange={(e) => setReportFrom(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="report-to" className="text-xs">
-              To
-            </Label>
-            <Input
-              id="report-to"
-              type="date"
-              className="h-8 text-xs"
-              value={reportTo}
-              onChange={(e) => setReportTo(e.target.value)}
-            />
-          </div>
+      <AdminExportToolbar
+        exports={
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={!condoId || exportingFundPdf}
+              onClick={() => exportFundSummaryPdf()}
+            >
+              {exportingFundPdf ? 'Exporting…' : 'Fund summary PDF'}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={!condoId || exportingAudit}
+              onClick={() => exportAuditTrailCsv()}
+            >
+              {exportingAudit ? 'Exporting…' : 'Audit trail CSV'}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="report-from" className="text-xs">
+            Report from
+          </Label>
+          <Input
+            id="report-from"
+            type="date"
+            className="h-9"
+            value={reportFrom}
+            onChange={(e) => setReportFrom(e.target.value)}
+          />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={!condoId || exportingFundPdf}
-            onClick={() => exportFundSummaryPdf()}
-          >
-            {exportingFundPdf ? 'Exporting…' : 'Fund summary PDF'}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={!condoId || exportingAudit}
-            onClick={() => exportAuditTrailCsv()}
-          >
-            {exportingAudit ? 'Exporting…' : 'Audit trail CSV'}
-          </Button>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="report-to" className="text-xs">
+            To
+          </Label>
+          <Input
+            id="report-to"
+            type="date"
+            className="h-9"
+            value={reportTo}
+            onChange={(e) => setReportTo(e.target.value)}
+          />
         </div>
-      </section>
+      </AdminExportToolbar>
 
       <Card>
         <h3 className="font-semibold text-sm mb-1">Financial statements</h3>

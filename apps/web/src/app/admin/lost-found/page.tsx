@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminFilterBar, AdminFilterPill, AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -74,39 +75,34 @@ export default function AdminLostFoundPage() {
   const busy = resolvePost.isPending || moderateRemove.isPending;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Search className="size-6" />
-          Lost &amp; found moderation
-        </h1>
-        <p className="sr-muted text-sm mt-1">
-          Review community lost and found posts. This is not a marketplace — no sales or pricing.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 max-w-4xl">
+      <AdminPageHeader
+        eyebrow="More"
+        icon={Search}
+        title="Lost & found"
+        description="Review community lost and found posts. This is not a marketplace — no sales or pricing."
+      />
 
-      <div className="flex flex-wrap gap-2">
+      <AdminFilterBar>
         {(['OPEN', 'RESOLVED', 'REMOVED', 'ALL'] as const).map((f) => (
-          <Button
-            key={f}
-            type="button"
-            size="sm"
-            variant={statusFilter === f ? 'primary' : 'secondary'}
-            onClick={() => setStatusFilter(f)}
-          >
+          <AdminFilterPill key={f} active={statusFilter === f} onClick={() => setStatusFilter(f)}>
             {f === 'ALL' ? 'All statuses' : LOST_FOUND_STATUS_LABELS[f]}
-          </Button>
+          </AdminFilterPill>
         ))}
-      </div>
+      </AdminFilterBar>
 
       {postsQuery.isLoading ? (
         <Skeleton className="h-32 w-full rounded-2xl" />
       ) : (postsQuery.data?.items.length ?? 0) === 0 ? (
-        <EmptyState title="No posts" description="Lost and found posts will appear here." />
+        <EmptyState
+          icon={<Search className="size-8" />}
+          title="No posts in this view"
+          description="When residents report lost or found items, they'll appear here for moderation."
+        />
       ) : (
         <div className="space-y-3">
           {postsQuery.data?.items.map((post) => (
-            <Card key={post.id} className="p-4 space-y-3">
+            <Card key={post.id} className="!p-4 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <div className="font-medium">{post.title}</div>
@@ -123,34 +119,26 @@ export default function AdminLostFoundPage() {
                   </Badge>
                 </div>
               </div>
-              <p className="text-sm whitespace-pre-wrap">{post.description}</p>
-              {post.locationNote ? (
-                <p className="text-sm sr-muted">Where: {post.locationNote}</p>
+              {post.description ? (
+                <p className="text-sm sr-muted whitespace-pre-wrap">{post.description}</p>
               ) : null}
-              <p className="text-sm">
-                <span className="font-medium">Contact: </span>
-                {post.contactMethod}
-              </p>
-              {post.status !== 'REMOVED' ? (
-                <div className="flex flex-wrap gap-2">
-                  {post.status === 'OPEN' ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => void handleResolve(post.id)}
-                      disabled={busy}
-                    >
-                      Mark resolved
-                    </Button>
-                  ) : null}
+              {post.status === 'OPEN' ? (
+                <div className="flex flex-wrap gap-2 pt-1">
                   <Button
-                    type="button"
                     size="sm"
                     variant="secondary"
-                    onClick={() => void handleRemove(post.id)}
                     disabled={busy}
+                    onClick={() => handleResolve(post.id)}
                   >
-                    Remove from board
+                    Mark resolved
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => handleRemove(post.id)}
+                  >
+                    Remove post
                   </Button>
                 </div>
               ) : null}

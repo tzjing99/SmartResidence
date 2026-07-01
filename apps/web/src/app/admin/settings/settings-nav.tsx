@@ -17,6 +17,8 @@ import {
 export interface SettingsArea extends SettingsNavItem {
   /** Short, non-technical description of what this area controls. */
   description: string;
+  /** Who typically manages this area — shown on the hub card. */
+  audience: string;
   /** Lucide icon shown on the hub card. */
   icon: LucideIcon;
   /** Section the area belongs to on the landing hub. */
@@ -43,6 +45,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/unit-types',
     label: 'Unit types',
     description: 'Define layouts, sizes, and unit categories for the building.',
+    audience: 'Building admins',
     icon: Building2,
     group: 'Building setup',
     can: { action: 'manage', subject: 'UnitType' },
@@ -51,6 +54,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/taxonomy',
     label: 'Defect taxonomy',
     description: 'Categories and types used to classify maintenance defects.',
+    audience: 'Building admins',
     icon: Tags,
     group: 'Building setup',
     can: { action: 'manage', subject: 'DefectTaxonomy' },
@@ -59,6 +63,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/billing',
     label: 'Billing & receipts',
     description: 'Fee schedule, receipt template, and payment gateways.',
+    audience: 'Finance & billing admins',
     icon: ReceiptText,
     group: 'Money',
     can: { action: 'manage', subject: 'BillingSettings' },
@@ -67,6 +72,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/einvoice',
     label: 'E-invoicing (LHDN)',
     description: 'MyInvois supplier details and LHDN submission credentials.',
+    audience: 'Finance admins',
     icon: FileCheck2,
     group: 'Money',
     can: { action: 'manage', subject: 'EInvoice' },
@@ -75,6 +81,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/helpdesk',
     label: 'Helpdesk & SLA',
     description: 'Response-time targets and automatic ticket assignment.',
+    audience: 'Operations managers',
     icon: LifeBuoy,
     group: 'Operations',
     can: { action: 'read', subject: 'SlaPolicy' },
@@ -83,6 +90,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/visitors',
     label: 'Visitors',
     description: 'Overnight stay rules and visitor registration policy.',
+    audience: 'Front desk & security',
     icon: UserCheck,
     group: 'Operations',
     can: { action: 'manage-overnight-policy', subject: 'Visitor' },
@@ -91,6 +99,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/notifications',
     label: 'Notifications',
     description: 'Channels and delivery preferences for resident alerts.',
+    audience: 'All admins',
     icon: Bell,
     group: 'Operations',
   },
@@ -98,6 +107,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/integrations',
     label: 'Integrations (MCP)',
     description: 'Connect AI tools and external services via MCP.',
+    audience: 'Technical admins',
     icon: Plug,
     group: 'Operations',
     can: { action: 'manage', subject: 'McpServer' },
@@ -106,6 +116,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/roles',
     label: 'Roles & access',
     description: 'Assign roles and control who can do what.',
+    audience: 'Building admins',
     icon: ShieldCheck,
     group: 'Access & records',
     can: { action: 'manage', subject: 'RoleAssignment' },
@@ -114,6 +125,7 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     href: '/admin/settings/audit',
     label: 'Audit log',
     description: 'Review account, billing, and management activity.',
+    audience: 'Building admins & auditors',
     icon: History,
     group: 'Access & records',
     can: { action: 'read', subject: 'AuditLog' },

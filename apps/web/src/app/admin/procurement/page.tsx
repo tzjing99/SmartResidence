@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -105,7 +106,11 @@ function VendorList({ condoId }: { condoId: string }) {
       {vendors.isLoading ? (
         <Skeleton className="h-24 w-full" />
       ) : items.length === 0 ? (
-        <EmptyState title="No vendors" description="Add suppliers to record their invoices." />
+        <EmptyState
+          icon={<Receipt className="size-8" />}
+          title="No vendors yet"
+          description="Add your suppliers above — then you can record and pay their invoices."
+        />
       ) : (
         <ul className="grid gap-2">
           {items.map((v) => (
@@ -414,12 +419,11 @@ export default function ProcurementPage() {
 
   return (
     <div className="space-y-10 max-w-4xl">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Procurement</h1>
-        <p className="sr-muted mt-1">
-          Track vendor invoices and payments for JMB audits — management only.
-        </p>
-      </header>
+      <AdminPageHeader
+        eyebrow="Money"
+        title="Procurement"
+        description="Track vendor invoices and payments — useful for JMB audits and AGM reporting."
+      />
       <VendorList condoId={condoId} />
       <BillQueue condoId={condoId} />
     </div>

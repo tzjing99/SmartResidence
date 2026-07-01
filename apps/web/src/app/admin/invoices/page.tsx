@@ -1,6 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { AdminFilterBar, AdminFilterPill, AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
 import { toast } from '@/lib/toast';
@@ -33,6 +33,7 @@ import {
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { useQueryClient } from '@tanstack/react-query';
 import { CalendarClock, ChevronRight, Plus, Receipt, Trash2, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import * as React from 'react';
 
 const selectCls = 'sr-select';
@@ -805,27 +806,28 @@ export default function AdminInvoicesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
-          <p className="sr-muted">
-            {selectedUnit
-              ? `Billing for unit ${selectedUnit.identifier} — select an invoice for details.`
-              : 'Browse by unit, then open invoices to record payments or void.'}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" disabled={!condoId || sweep.isPending} onClick={onSweep}>
-            <CalendarClock className="size-4" />
-            {sweep.isPending ? 'Checking…' : 'Check overdue invoices'}
-          </Button>
-          <Button disabled={!condoId} onClick={() => setComposeOpen((v) => !v)}>
-            <Receipt className="size-4" />
-            Generate monthly invoices
-          </Button>
-        </div>
-      </header>
+    <div className="flex flex-col gap-6 max-w-6xl">
+      <AdminPageHeader
+        eyebrow="Money"
+        title="Invoices"
+        description={
+          selectedUnit
+            ? `Billing for unit ${selectedUnit.identifier} — select an invoice for details.`
+            : 'Browse by unit, then open invoices to record payments or void.'
+        }
+        actions={
+          <>
+            <Button variant="secondary" disabled={!condoId || sweep.isPending} onClick={onSweep}>
+              <CalendarClock className="size-4" />
+              {sweep.isPending ? 'Checking…' : 'Check overdue'}
+            </Button>
+            <Button disabled={!condoId} onClick={() => setComposeOpen((v) => !v)}>
+              <Receipt className="size-4" />
+              Generate invoices
+            </Button>
+          </>
+        }
+      />
 
       {condoId ? <BillingAutomationPanel condoId={condoId} /> : null}
 
@@ -858,22 +860,17 @@ export default function AdminInvoicesPage() {
         />
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      <AdminFilterBar>
         {STATUS_FILTERS.map((f) => (
-          <button
+          <AdminFilterPill
             key={f.value || 'all'}
-            type="button"
-            className={`rounded-full px-3.5 py-1.5 text-sm font-medium border transition-colors ${
-              status === f.value
-                ? 'border-[rgb(var(--sr-coral)/0.55)] bg-[rgb(var(--sr-coral)/0.08)] text-[rgb(var(--sr-coral))]'
-                : 'border-[rgb(var(--sr-border))] hover:border-[rgb(var(--sr-coral)/0.3)] sr-muted'
-            }`}
+            active={status === f.value}
             onClick={() => setStatus(f.value)}
           >
             {f.label}
-          </button>
+          </AdminFilterPill>
         ))}
-      </div>
+      </AdminFilterBar>
 
       {selectedUnitId ? (
         unitInvoices.isLoading ? (

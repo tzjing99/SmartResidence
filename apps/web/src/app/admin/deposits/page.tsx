@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -453,21 +454,18 @@ export default function AdminDepositsPage() {
   const visibleSummary = buildDepositSummary(items);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm sr-muted">Deposit register</p>
-          <h1 className="text-3xl font-bold tracking-tight">Deposits</h1>
-          <p className="sr-muted mt-1">
-            Track renovation, access card and other deposits by unit. Record refunds or forfeitures
-            and keep receipt copies on file.
-          </p>
-        </div>
-        <Button disabled={!condoId} onClick={() => setComposeOpen((v) => !v)}>
-          <Plus className="size-4" />
-          Record deposit
-        </Button>
-      </header>
+    <div className="flex flex-col gap-6 max-w-6xl">
+      <AdminPageHeader
+        eyebrow="Money"
+        title="Deposits"
+        description="Track renovation, access card and other deposits by unit. Record refunds or forfeitures and keep receipt copies on file."
+        actions={
+          <Button disabled={!condoId} onClick={() => setComposeOpen((v) => !v)}>
+            <Plus className="size-4" />
+            Record deposit
+          </Button>
+        }
+      />
 
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <SummaryCard

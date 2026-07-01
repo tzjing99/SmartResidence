@@ -3,7 +3,7 @@
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { NotificationBell } from '@/components/notification-bell';
 import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
-import { NavLinks, PageFade } from '@/components/shell-nav';
+import { type NavGroup, NavGroupLinks, type NavItem, PageFade } from '@/components/shell-nav';
 import { api, readSession } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
@@ -41,17 +41,13 @@ import {
 import Link from 'next/link';
 import * as React from 'react';
 
+type NavDef = NavItem & { can?: { action: string; subject: string } };
+
 /**
- * Management navigation. Items are filtered by the user's abilities so
- * MANAGEMENT_STAFF (no audit-log read, no role management) sees a narrower menu
- * than MANAGEMENT_ADMIN / SUPER_ADMIN.
+ * Management navigation definitions. Items are filtered by CASL abilities so
+ * MANAGEMENT_STAFF sees a narrower menu than MANAGEMENT_ADMIN / SUPER_ADMIN.
  */
-const NAV: Array<{
-  href: string;
-  label: string;
-  icon: typeof BarChart3;
-  can?: { action: string; subject: string };
-}> = [
+const NAV_DEFS: NavDef[] = [
   { href: '/admin', label: 'Dashboard', icon: BarChart3 },
   {
     href: '/admin/platform',
@@ -109,7 +105,7 @@ const NAV: Array<{
   },
   {
     href: '/admin/safety',
-    label: 'Safety / SOS',
+    label: 'Safety & SOS',
     icon: Siren,
     can: { action: 'read', subject: 'SosAlert' },
   },
@@ -177,6 +173,86 @@ const NAV: Array<{
   { href: '/admin/settings', label: 'Settings', icon: Settings2 },
 ];
 
+/** Map href → nav item for grouping. */
+const NAV_BY_HREF = Object.fromEntries(NAV_DEFS.map((d) => [d.href, d])) as Record<string, NavDef>;
+
+const NAV_GROUP_SPECS: Array<{ label: string; hrefs: string[]; defaultCollapsed?: boolean }> = [
+  {
+    label: 'Operations',
+    hrefs: [
+      '/admin/visitors',
+      '/admin/parcels',
+      '/admin/defects',
+      '/admin/helpdesk',
+      '/admin/announcements',
+      '/admin/facilities',
+      '/admin/safety',
+      '/admin/patrol',
+    ],
+  },
+  {
+    label: 'Money',
+    hrefs: ['/admin/invoices', '/admin/deposits', '/admin/accounting', '/admin/procurement'],
+  },
+  {
+    label: 'People',
+    hrefs: ['/admin/units'],
+  },
+  {
+    label: 'Compliance',
+    hrefs: ['/admin/compliance/cob', '/admin/governance', '/admin/polls'],
+  },
+  {
+    label: 'More',
+    defaultCollapsed: true,
+    hrefs: ['/admin/lost-found', '/admin/forms', '/admin/documents', '/admin/faq'],
+  },
+];
+
+function filterNavItem(
+  def: NavDef,
+  abilities: ReturnType<typeof useRoleGuard>['abilities'],
+): boolean {
+  return !def.can || hasAbility(abilities, def.can.action, def.can.subject);
+}
+
+function toNavItem(def: NavDef): NavItem {
+  return { href: def.href, label: def.label, icon: def.icon };
+}
+
+function buildNavStructure(
+  abilities: ReturnType<typeof useRoleGuard>['abilities'],
+  setupIncomplete: boolean,
+) {
+  const visible = NAV_DEFS.filter((d) => filterNavItem(d, abilities));
+
+  const topItems: NavItem[] = [];
+  if (setupIncomplete) {
+    topItems.push({ href: '/admin/setup', label: 'Finish setup', icon: Rocket });
+  }
+  const dashboard = NAV_BY_HREF['/admin'];
+  if (dashboard) topItems.push(toNavItem(dashboard));
+
+  const platform = visible.find((d) => d.href === '/admin/platform');
+  if (platform) topItems.push(toNavItem(platform));
+
+  const groups: NavGroup[] = NAV_GROUP_SPECS.map((spec) => ({
+    label: spec.label,
+    defaultCollapsed: spec.defaultCollapsed,
+    items: spec.hrefs
+      .map((href) => visible.find((d) => d.href === href))
+      .filter((d): d is NavDef => Boolean(d))
+      .map(toNavItem),
+  })).filter((g) => g.items.length > 0);
+
+  const settings = visible.find((d) => d.href === '/admin/settings');
+  const bottomItems = settings ? [toNavItem(settings)] : [];
+
+  const flatItems = [...topItems, ...groups.flatMap((g) => g.items), ...bottomItems];
+
+  return { topItems, groups, bottomItems, flatItems };
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { role, abilities, ready } = useRoleGuard('admin');
   const condos = useMyCondos(api);
@@ -184,24 +260,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const condo = condos.data?.find((c) => c.id === activeCondoId) ?? condos.data?.[0];
   const signOut = useSignOut();
 
-  // Only management admins can drive first-time setup; surface a Setup entry
-  // point until the building is marked configured.
   const canManageCondo = hasAbility(abilities, 'manage', 'Condo');
   const setup = useSetupStatus(api, canManageCondo ? (condo?.id ?? null) : null);
   const setupIncomplete = Boolean(setup.data && !setup.data.completedAt && !setup.data.dismissedAt);
 
-  // Incomplete setup is surfaced via the dashboard banner and optional "Finish setup"
-  // nav item — admins are never redirected away from other admin pages.
-
-  const navItems = React.useMemo(() => {
-    const items = NAV.filter(
-      (item) => !item.can || hasAbility(abilities, item.can.action, item.can.subject),
-    );
-    if (setupIncomplete) {
-      return [{ href: '/admin/setup', label: 'Finish setup', icon: Rocket }, ...items];
-    }
-    return items;
-  }, [abilities, setupIncomplete]);
+  const nav = React.useMemo(
+    () => buildNavStructure(abilities, setupIncomplete),
+    [abilities, setupIncomplete],
+  );
 
   if (!ready) {
     return (
@@ -210,7 +276,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="text-xl font-bold tracking-tight px-2 mb-6 mt-2">
             Smart<span className="text-coral-500">Residence</span>
           </div>
-          <ShellNavSkeleton count={NAV.length} />
+          <ShellNavSkeleton count={NAV_DEFS.length} />
         </aside>
         <main className="flex-1 min-w-0 p-6 md:p-10">
           <GenericPageSkeleton />
@@ -225,31 +291,36 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <Link href="/admin" className="text-xl font-bold tracking-tight px-2 mb-1 mt-2">
           Smart<span className="text-coral-500">Residence</span>
         </Link>
-        <div className="px-2 text-meta mb-6 flex items-center gap-1.5">
-          <ShieldAlert className="size-3" />{' '}
+        <div className="px-2 text-meta mb-4 flex items-center gap-1.5">
+          <ShieldAlert className="size-3" aria-hidden />
           {role === 'SUPER_ADMIN' ? 'Platform portal' : 'Management portal'}
         </div>
         {role ? (
-          <div className="px-2 text-meta -mt-4 mb-6 leading-none">{ROLE_LABEL[role]}</div>
+          <div className="px-2 text-meta -mt-2 mb-4 leading-none">{ROLE_LABEL[role]}</div>
         ) : null}
         {condo ? (
-          <div className="px-3 py-2 mb-4 rounded-xl bg-[rgb(var(--sr-card))] text-sm font-medium border border-[rgb(var(--sr-border))]">
+          <div className="px-3 py-2 mb-3 rounded-xl bg-[rgb(var(--sr-card))] text-sm font-medium border border-[rgb(var(--sr-border))] truncate">
             {condo.name}
           </div>
         ) : null}
-        <NavLinks items={navItems} />
+        <NavGroupLinks topItems={nav.topItems} groups={nav.groups} bottomItems={nav.bottomItems} />
         <button
           type="button"
           onClick={signOut}
-          className="flex items-center gap-2 px-3 py-2 mt-4 rounded-xl touch-manipulation transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/40 text-sm"
+          className="flex items-center gap-2 px-3 py-2 mt-3 rounded-xl touch-manipulation transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/40 text-sm"
         >
           <LogOut className="size-4" />
           Sign out
         </button>
       </aside>
       <main className="flex-1 min-w-0">
-        <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 md:px-10 py-3 flex items-center justify-end">
-          <NotificationBell />
+        <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/90 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 md:px-10 py-2.5 flex items-center justify-between gap-3">
+          <div className="min-w-0 md:hidden">
+            <p className="text-sm font-semibold truncate">{condo?.name ?? 'Management'}</p>
+          </div>
+          <div className="ml-auto">
+            <NotificationBell />
+          </div>
         </header>
         <div className="p-4 sm:p-6 md:p-10 pb-20 md:pb-10">
           {canManageCondo && setup.isError ? (
@@ -260,7 +331,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <AlertTriangle className="size-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
               <p>
                 Could not load setup status. Some reminders may be missing until the API is
-                available again ({'http://localhost:4000'}).
+                available again.
               </p>
             </div>
           ) : null}
@@ -269,7 +340,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </main>
       <MobileTabBar
         ariaLabel="Management navigation"
-        items={navItems.slice(0, 5).map((item) => ({
+        items={nav.flatItems.slice(0, 5).map((item) => ({
           href: item.href,
           label: item.label,
           isActive: (p) =>

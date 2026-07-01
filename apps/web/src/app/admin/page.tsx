@@ -10,10 +10,10 @@ import {
   useCondoAnnouncements,
   useCondoDefects,
   useCondoSosAlerts,
+  useDismissSetup,
   useMyCondos,
   usePaymentIssues,
   useSetupStatus,
-  useDismissSetup,
 } from '@smartresidence/api-client';
 import type { AutomationRunStatus } from '@smartresidence/shared-types';
 import {
@@ -32,6 +32,8 @@ import {
   CreditCard,
   GitBranch,
   Megaphone,
+  Package,
+  Plus,
   Rocket,
   ShieldCheck,
   Siren,
@@ -41,7 +43,6 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import * as React from 'react';
 
 function monthStartIso() {
   const now = new Date();
@@ -172,41 +173,32 @@ function SetupBanner({ condoId }: { condoId: string }) {
   };
 
   return (
-    <Card className="border-coral-500/30 bg-coral-500/5">
-      <div className="flex items-start gap-4">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-coral-500/10 text-coral-500">
-          <Rocket className="size-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold">
-            {fresh ? 'Welcome — let’s set up your building' : 'Finish setting up your building'}
-          </h2>
-          <p className="text-sm sr-muted mt-0.5">
-            {fresh
-              ? 'This is a blank building with no units yet. The guided setup walks you through blocks, billing, and resident invites step by step.'
-              : `${progress.completed} of ${progress.total} steps done. Continue the checklist to get billing and residents running.`}
-          </p>
-          <div className="flex flex-wrap items-center gap-3 mt-3">
-            <Button asChild size="sm">
-              <Link href="/admin/setup">
-                {fresh ? 'Start guided setup' : 'Continue setup'} <ChevronRight className="size-4" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={dismiss}>
-              Do this later
-            </Button>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Dismiss setup reminder"
-          className="sr-muted hover:text-[rgb(var(--sr-fg))] transition-colors"
-        >
-          <X className="size-4" />
-        </button>
+    <div className="flex items-center gap-3 rounded-xl border border-coral-500/25 bg-coral-500/5 px-4 py-3">
+      <Rocket className="size-5 shrink-0 text-coral-500" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">
+          {fresh ? 'New building — finish setup to start billing' : 'Setup in progress'}
+        </p>
+        <p className="text-xs sr-muted mt-0.5">
+          {fresh
+            ? 'Add units, billing, and invite residents step by step.'
+            : `${progress.completed} of ${progress.total} steps done.`}
+        </p>
       </div>
-    </Card>
+      <Button asChild size="sm" variant="secondary">
+        <Link href="/admin/setup">
+          {fresh ? 'Start setup' : 'Continue'} <ChevronRight className="size-4" />
+        </Link>
+      </Button>
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Dismiss setup reminder"
+        className="sr-muted hover:text-[rgb(var(--sr-fg))] transition-colors p-1"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
   );
 }
 
@@ -347,7 +339,7 @@ export default function AdminHome() {
     <div className="flex flex-col gap-6 max-w-7xl">
       {condo ? <SosBanner condoId={condo.id} /> : null}
       {condo ? <SetupBanner condoId={condo.id} /> : null}
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm sr-muted">Management dashboard</p>
           <h1 className="text-3xl font-bold tracking-tight">{condo?.name ?? 'Dashboard'}</h1>
@@ -357,6 +349,34 @@ export default function AdminHome() {
           {automation.isFetching ? 'Refreshing' : 'Live overview'}
         </Badge>
       </header>
+
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-wide sr-muted mb-2">
+          Quick actions
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/admin/invoices">
+              <CreditCard className="size-4" /> Invoices
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/admin/visitors">
+              <Users className="size-4" /> Visitors
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/admin/parcels">
+              <Package className="size-4" /> Parcels
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/admin/announcements">
+              <Megaphone className="size-4" /> Announce
+            </Link>
+          </Button>
+        </div>
+      </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-6">
         <Card>
@@ -494,7 +514,10 @@ export default function AdminHome() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm sr-muted">No upcoming visitors in the current list.</p>
+              <EmptyState
+                title="No upcoming visitors"
+                description="Visitor pre-registrations will show here when residents add them."
+              />
             )}
           </div>
         </Card>
@@ -507,7 +530,17 @@ export default function AdminHome() {
           {announcements.isLoading ? (
             <Skeleton className="h-28" />
           ) : latestAnnouncements.length === 0 ? (
-            <p className="text-sm sr-muted">No announcements yet.</p>
+            <EmptyState
+              title="No announcements yet"
+              description="Publish a notice to keep residents informed about building updates."
+              action={
+                <Button asChild size="sm" variant="secondary">
+                  <Link href="/admin/announcements">
+                    <Plus className="size-4" /> New announcement
+                  </Link>
+                </Button>
+              }
+            />
           ) : (
             <ul className="flex flex-col gap-2">
               {latestAnnouncements.slice(0, 4).map((a) => (

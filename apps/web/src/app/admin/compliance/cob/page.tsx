@@ -1,10 +1,11 @@
 'use client';
 
+import { AdminComplianceNote, AdminExportToolbar, AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useCobTemplates, useMyCondos } from '@smartresidence/api-client';
 import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { Download, FileWarning, Landmark, Loader2 } from 'lucide-react';
+import { Download, Landmark, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import * as React from 'react';
 
@@ -53,27 +54,22 @@ export default function AdminCobCompliancePage() {
   const prefill = cob.data?.prefill;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">COB compliance forms</h1>
-        <p className="sr-muted">
-          Pre-filled PDF templates for Commissioner of Buildings (COB) record-keeping. Download,
-          review, and complete any remaining fields before filing with your local COB office.
-        </p>
-      </header>
+    <div className="flex flex-col gap-6 max-w-4xl">
+      <AdminPageHeader
+        eyebrow="Compliance"
+        title="COB forms"
+        description="Pre-filled PDF templates for Commissioner of Buildings record-keeping. Download, review, and complete any remaining fields before filing."
+      />
 
-      <Card className="!p-4 border-amber-200/80 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/30">
-        <div className="flex gap-3">
-          <FileWarning className="size-5 shrink-0 text-amber-700 dark:text-amber-400 mt-0.5" />
-          <p className="text-sm">
-            <span className="font-semibold">Not legal advice.</span>{' '}
-            {cob.data?.disclaimer ??
-              'These templates are filing aids only. Verify all entries against your strata records and COB requirements before submission.'}
-          </p>
-        </div>
-      </Card>
+      <AdminComplianceNote
+        title="Not legal advice"
+        summary="Templates are pre-filled from your building data — verify before filing."
+      >
+        {cob.data?.disclaimer ??
+          'These forms are generated from your building records. Always verify figures and consult your management company or legal advisor before submitting to the COB office.'}
+      </AdminComplianceNote>
 
-      <section className="flex flex-wrap items-end gap-2">
+      <AdminExportToolbar>
         <div className="flex flex-col gap-1">
           <Label htmlFor="cob-from" className="text-xs">
             Reporting from
@@ -81,7 +77,7 @@ export default function AdminCobCompliancePage() {
           <Input
             id="cob-from"
             type="date"
-            className="h-8 text-xs"
+            className="h-9"
             value={reportFrom}
             onChange={(e) => setReportFrom(e.target.value)}
           />
@@ -93,12 +89,12 @@ export default function AdminCobCompliancePage() {
           <Input
             id="cob-to"
             type="date"
-            className="h-8 text-xs"
+            className="h-9"
             value={reportTo}
             onChange={(e) => setReportTo(e.target.value)}
           />
         </div>
-      </section>
+      </AdminExportToolbar>
 
       {cob.isLoading ? (
         <Skeleton className="h-48" />
@@ -193,7 +189,8 @@ export default function AdminCobCompliancePage() {
             <ul className="text-xs sr-muted space-y-1">
               {prefill.dataSources.map((s) => (
                 <li key={s.field}>
-                  <span className="font-medium text-[rgb(var(--sr-fg))]">{s.field}:</span> {s.source}
+                  <span className="font-medium text-[rgb(var(--sr-fg))]">{s.field}:</span>{' '}
+                  {s.source}
                 </li>
               ))}
             </ul>

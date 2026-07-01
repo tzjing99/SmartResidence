@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminFilterBar, AdminFilterPill, AdminPageHeader } from '@/components/admin-ui';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useCollectParcel, useCondoParcels, useMyCondos } from '@smartresidence/api-client';
@@ -56,39 +57,40 @@ export default function AdminParcelsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Package className="size-6" />
-          Parcel log
-        </h1>
-        <p className="sr-muted text-sm mt-1">
-          Lobby deliveries logged by guards — collection status.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 max-w-4xl">
+      <AdminPageHeader
+        eyebrow="Operations"
+        icon={Package}
+        title="Parcel log"
+        description="Lobby deliveries logged by guards — track collection status and follow up on overdue items."
+      />
 
-      <div className="flex gap-2 flex-wrap">
-        {(['pending', 'overdue', 'all'] as const).map((f) => (
-          <Button
-            key={f}
-            type="button"
-            size="sm"
-            variant={filter === f ? 'primary' : 'secondary'}
-            onClick={() => setFilter(f)}
-          >
-            {f === 'pending' ? 'Awaiting collection' : f === 'overdue' ? 'Overdue' : 'All'}
-          </Button>
+      <AdminFilterBar>
+        {(
+          [
+            { key: 'pending' as const, label: 'Awaiting collection' },
+            { key: 'overdue' as const, label: 'Overdue' },
+            { key: 'all' as const, label: 'All parcels' },
+          ] as const
+        ).map((f) => (
+          <AdminFilterPill key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>
+            {f.label}
+          </AdminFilterPill>
         ))}
-      </div>
+      </AdminFilterBar>
 
       {parcels.isLoading ? (
         <Skeleton className="h-40 w-full rounded-2xl" />
       ) : (parcels.data?.items.length ?? 0) === 0 ? (
-        <EmptyState title="No parcels" description="Nothing in this view yet." />
+        <EmptyState
+          icon={<Package className="size-8" />}
+          title="No parcels yet"
+          description="When a delivery arrives, guards can log it here. Parcels awaiting collection will show in this list."
+        />
       ) : (
         <div className="space-y-3">
           {parcels.data?.items.map((p) => (
-            <Card key={p.id} className="p-4 flex flex-wrap items-center justify-between gap-3">
+            <Card key={p.id} className="!p-4 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-medium">{p.recipientName}</div>
                 <div className="text-sm sr-muted">
@@ -103,12 +105,7 @@ export default function AdminParcelsPage() {
               <div className="flex items-center gap-2">
                 <Badge tone={STATUS_TONE[p.status]}>{PARCEL_STATUS_LABELS[p.status]}</Badge>
                 {p.status !== 'COLLECTED' ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => void markCollected(p.id)}
-                  >
+                  <Button size="sm" variant="secondary" onClick={() => markCollected(p.id)}>
                     Mark collected
                   </Button>
                 ) : null}

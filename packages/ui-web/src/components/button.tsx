@@ -3,6 +3,7 @@
 import { Slot } from '@radix-ui/react-slot';
 import { type VariantProps, cva } from 'class-variance-authority';
 import { motion, useReducedMotion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import * as React from 'react';
 import { cn } from '../lib/cn';
 import { tapScale, tapTransition } from '../motion';
@@ -41,12 +42,17 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  /** Shows a spinner and disables the button — the single source of truth for pending submit state. */
+  loading?: boolean;
 }
 
 const MotionButton = motion.button;
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, type = 'button', ...props }, ref) => {
+  (
+    { className, variant, size, asChild = false, type = 'button', loading = false, ...props },
+    ref,
+  ) => {
     const reduceMotion = useReducedMotion();
 
     if (asChild) {
@@ -55,17 +61,31 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
 
-    const { onDrag, onDragStart, onDragEnd, onAnimationStart, onAnimationEnd, ...rest } = props;
+    const {
+      onDrag,
+      onDragStart,
+      onDragEnd,
+      onAnimationStart,
+      onAnimationEnd,
+      children,
+      disabled,
+      ...rest
+    } = props;
 
     return (
       <MotionButton
         ref={ref}
         type={type}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
         whileTap={reduceMotion ? undefined : { scale: tapScale }}
         transition={tapTransition}
         className={cn(buttonVariants({ variant, size }), className)}
         {...rest}
-      />
+      >
+        {loading ? <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden /> : null}
+        {children}
+      </MotionButton>
     );
   },
 );

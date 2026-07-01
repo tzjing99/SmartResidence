@@ -8,8 +8,8 @@ import { formatTimeOnSite } from '@/lib/format-time-on-site';
 import { toast } from '@/lib/toast';
 import { useCheckOutVisitor } from '@smartresidence/api-client';
 import { type GuardLiveVisitor, guardCanCheckOutVisitor } from '@smartresidence/shared-types';
-import { Badge, Button, Card, iosSpring } from '@smartresidence/ui-web';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Badge, Button, Card, Dialog, iosSpring } from '@smartresidence/ui-web';
+import { motion, useReducedMotion } from 'framer-motion';
 import { LogOut, X } from 'lucide-react';
 import * as React from 'react';
 
@@ -201,58 +201,39 @@ export function GuardLiveVisitorDetail({
         </MotionDialog>
       </motion.div>
 
-      <AnimatePresence>
-        {confirmOpen ? (
-          <motion.div
-            key="guard-checkout-confirm"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={overlayTransition}
-          >
-            <button
-              type="button"
-              aria-label={t('visitors.guard.checkOutConfirmNo')}
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setConfirmOpen(false)}
-            />
-            <MotionDialog
-              open
-              aria-labelledby="guard-checkout-confirm-title"
-              className="relative z-10 m-0 w-full max-w-sm border-0 bg-transparent p-0 shadow-none"
-              initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.96, y: reduceMotion ? 0 : 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.96, y: reduceMotion ? 0 : 8 }}
-              transition={panelTransition}
-            >
-              <Card className="rounded-2xl p-0 shadow-2xl ring-1 ring-black/5">
-                <div className="flex flex-col gap-4 p-5">
-                  <div>
-                    <h3
-                      id="guard-checkout-confirm-title"
-                      className="text-lg font-semibold tracking-tight"
-                    >
-                      {t('visitors.guard.checkOutConfirmTitle')}
-                    </h3>
-                    <p className="text-sm sr-muted mt-2 leading-relaxed">
-                      {t('visitors.guard.checkOutConfirmBody')}
-                    </p>
-                  </div>
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-                      {t('visitors.guard.checkOutConfirmNo')}
-                    </Button>
-                    <Button onClick={() => void onConfirmCheckOut()} disabled={checkOut.isPending}>
-                      {t('visitors.guard.checkOutConfirmYes')}
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            </MotionDialog>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        labelledBy="guard-checkout-confirm-title"
+        closeLabel={t('visitors.guard.checkOutConfirmNo')}
+        className="max-w-sm"
+        lockScroll={false}
+        closeOnEscape={false}
+      >
+        <Card className="rounded-2xl p-0 shadow-2xl ring-1 ring-black/5">
+          <div className="flex flex-col gap-4 p-5">
+            <div>
+              <h3
+                id="guard-checkout-confirm-title"
+                className="text-lg font-semibold tracking-tight"
+              >
+                {t('visitors.guard.checkOutConfirmTitle')}
+              </h3>
+              <p className="text-sm sr-muted mt-2 leading-relaxed">
+                {t('visitors.guard.checkOutConfirmBody')}
+              </p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
+                {t('visitors.guard.checkOutConfirmNo')}
+              </Button>
+              <Button onClick={() => void onConfirmCheckOut()} disabled={checkOut.isPending}>
+                {t('visitors.guard.checkOutConfirmYes')}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </Dialog>
     </>
   );
 }

@@ -5,7 +5,7 @@ import {
   handoverReportEstimateSeconds,
   handoverSubmissionStatusMessage,
 } from '@smartresidence/shared-types';
-import { cn } from '@smartresidence/ui-web';
+import { Dialog, cn } from '@smartresidence/ui-web';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import * as React from 'react';
 
@@ -33,25 +33,24 @@ export function DefectSubmissionProgress({
     return () => clearInterval(id);
   }, [visible]);
 
-  if (!visible) return null;
-
   const progress = complete ? 100 : Math.min(95, (elapsedMs / 1000 / estimateSec) * 100);
   const remainingSec = Math.max(0, estimateSec - elapsedMs / 1000);
   const statusMessage = handoverSubmissionStatusMessage(itemCount, elapsedMs, complete);
   const showRemaining = !complete && remainingSec >= 4 && progress < 92;
 
   return (
-    <dialog
-      open
-      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center border-0 bg-black/45 p-4 backdrop-blur-[2px]"
-      aria-labelledby="defect-submit-progress-title"
-      aria-busy={!complete}
+    <Dialog
+      open={visible}
+      labelledBy="defect-submit-progress-title"
+      className="max-w-sm"
+      closeOnEscape={false}
     >
       <div
         className={cn(
-          'w-full max-w-sm rounded-2xl border border-[rgb(var(--sr-border))]',
+          'w-full rounded-2xl border border-[rgb(var(--sr-border))]',
           'bg-[rgb(var(--sr-card))] p-6 shadow-xl',
         )}
+        aria-busy={!complete}
       >
         <div className="flex items-start gap-3 mb-4">
           {complete ? (
@@ -103,6 +102,6 @@ export function DefectSubmissionProgress({
           </p>
         ) : null}
       </div>
-    </dialog>
+    </Dialog>
   );
 }

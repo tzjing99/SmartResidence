@@ -31,6 +31,10 @@ describe('LedgerService.recordPaymentAllocation', () => {
           created.push(data);
           return data;
         }),
+        createMany: vi.fn(async ({ data }: { data: Array<{ fund: string; amount: number }> }) => {
+          created.push(...data);
+          return { count: data.length };
+        }),
         upsert: vi.fn(async ({ create }: { create: { fund: string; amount: number } }) => {
           created.push(create);
           return create;

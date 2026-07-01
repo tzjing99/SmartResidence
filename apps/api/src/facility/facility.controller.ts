@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
-import { AvailabilityQueryDto, CreateFacilityDto, UpdateFacilityDto } from './dto/facility.dto';
+import { AvailabilityQueryDto, CreateFacilityDto, ListFacilitiesDto, UpdateFacilityDto } from './dto/facility.dto';
 import { FacilityService } from './facility.service';
 
 @ApiTags('Facilities')
@@ -29,11 +29,9 @@ export class FacilityController {
   forCondo(
     @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
-    @Query('includeInactive') includeInactive?: string,
+    @Query() query: ListFacilitiesDto,
   ) {
-    return this.facilities.listForCondo(user, condoId, {
-      includeInactive: includeInactive === 'true',
-    });
+    return this.facilities.listForCondo(user, condoId, query);
   }
 
   @Get(':id/availability')

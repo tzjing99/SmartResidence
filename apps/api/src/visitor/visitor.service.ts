@@ -1292,7 +1292,6 @@ export class VisitorService {
     unitId: string,
     opts: { limit: number; offset: number; view?: VisitorListView; status?: VisitorStatus },
   ) {
-    await this.expireStale();
     const viewStatuses = statusesForView(opts.view);
     const statusFilter = opts.status
       ? { status: opts.status }
@@ -1329,7 +1328,6 @@ export class VisitorService {
   }
 
   async getAdminVisitorStats(condoId: string) {
-    await this.expireStale(condoId);
     const tz = await this.condoTimezone(condoId);
     const { start, end } = condoDayBounds(tz);
     const [
@@ -1399,7 +1397,6 @@ export class VisitorService {
       viewer?: AuthenticatedUser;
     },
   ) {
-    await this.expireStale(condoId);
     const viewStatuses = statusesForView(opts.view);
     const statusFilter = opts.status
       ? { status: opts.status }
@@ -1470,7 +1467,6 @@ export class VisitorService {
   /** Checked-in visitors on site — privacy-scoped for guard gate duty. */
   async listLiveForGuard(guard: AuthenticatedUser) {
     const condoId = this.guardCondoId(guard);
-    await this.expireStale(condoId);
     await this.autoCloseStaleVisitors(condoId);
     const rawItems = await this.prisma.visitor.findMany({
       where: { condoId, status: VisitorStatus.CHECKED_IN },

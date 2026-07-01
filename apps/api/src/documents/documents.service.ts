@@ -139,22 +139,29 @@ export class DocumentsService {
   async listDocuments(
     actor: AuthenticatedUser,
     condoId: string,
-    opts: { folderId?: string; includeInactive?: boolean },
+    opts: { folderId?: string; includeInactive?: boolean; limit: number; offset: number },
   ) {
     this.assertCondoAccess(actor, condoId);
     const manage = this.isManagement(actor, condoId);
     const audiences = this.visibleAudiences(actor, condoId);
+    const where = {
+      condoId,
+      ...(opts.folderId ? { folderId: opts.folderId } : {}),
+      ...(manage && opts.includeInactive ? {} : { active: true }),
+      folder: manage ? undefined : { audience: { in: audiences }, active: true },
+    };
 
-    return this.prisma.document.findMany({
-      where: {
-        condoId,
-        ...(opts.folderId ? { folderId: opts.folderId } : {}),
-        ...(manage && opts.includeInactive ? {} : { active: true }),
-        folder: manage ? undefined : { audience: { in: audiences }, active: true },
-      },
-      include: documentInclude,
-      orderBy: [{ title: 'asc' }, { createdAt: 'desc' }],
-    });
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.document.findMany({
+        where,
+        include: documentInclude,
+        orderBy: [{ title: 'asc' }, { createdAt: 'desc' }],
+        take: opts.limit,
+        skip: opts.offset,
+      }),
+      this.prisma.document.count({ where }),
+    ]);
+    return { items, total, limit: opts.limit, offset: opts.offset };
   }
 
   async getDocument(actor: AuthenticatedUser, id: string) {

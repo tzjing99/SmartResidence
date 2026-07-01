@@ -172,7 +172,7 @@ export class ListFormSubmissionsDto extends PaginationDto {
   templateId?: string;
 }
 
-export class ListFormTemplatesDto {
+export class ListFormTemplatesDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Include inactive templates (management only)' })
   @IsOptional()
   @IsBoolean()

@@ -1490,10 +1490,15 @@ export function useFacilities(
     queryKey: condoId
       ? queryKeys.condoFacilities(condoId, opts.includeInactive)
       : ['facilities', 'condo', null],
-    queryFn: () =>
-      condoId
-        ? api.facilitiesForCondo(condoId, { includeInactive: opts.includeInactive })
-        : Promise.resolve([]),
+    queryFn: async () => {
+      if (!condoId) return [];
+      const page = await api.facilitiesForCondo(condoId, {
+        includeInactive: opts.includeInactive,
+        limit: 100,
+        offset: 0,
+      });
+      return page.items;
+    },
     enabled: Boolean(condoId),
   });
 }
@@ -1613,10 +1618,15 @@ export function useFormTemplates(
     queryKey: condoId
       ? queryKeys.condoFormTemplates(condoId, opts.includeInactive)
       : ['forms', 'templates', null],
-    queryFn: () =>
-      condoId
-        ? api.formTemplatesForCondo(condoId, { includeInactive: opts.includeInactive })
-        : Promise.resolve([]),
+    queryFn: async () => {
+      if (!condoId) return [];
+      const page = await api.formTemplatesForCondo(condoId, {
+        includeInactive: opts.includeInactive,
+        limit: 100,
+        offset: 0,
+      });
+      return page.items;
+    },
     enabled: Boolean(condoId),
   });
 }
@@ -1716,7 +1726,11 @@ export function useCondoDocuments(
 ) {
   return useQuery({
     queryKey: condoId ? queryKeys.condoDocuments(condoId, params) : ['documents', 'condo', null],
-    queryFn: () => (condoId ? api.condoDocuments(condoId, params) : Promise.resolve([])),
+    queryFn: async () => {
+      if (!condoId) return [];
+      const page = await api.condoDocuments(condoId, { ...params, limit: 100, offset: 0 });
+      return page.items;
+    },
     enabled: Boolean(condoId),
   });
 }

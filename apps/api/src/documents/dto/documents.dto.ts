@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DocumentFolderAudience } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
@@ -66,7 +67,7 @@ export class UpdateDocumentFolderDto {
   active?: boolean;
 }
 
-export class ListDocumentsDto {
+export class ListDocumentsDto extends PaginationDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

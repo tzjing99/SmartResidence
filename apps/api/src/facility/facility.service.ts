@@ -21,7 +21,7 @@ export class FacilityService {
   async listForCondo(
     actor: AuthenticatedUser,
     condoId: string,
-    opts: { includeInactive?: boolean },
+    opts: { includeInactive?: boolean; limit: number; offset: number },
   ) {
     this.assertCondoAccess(actor, condoId);
     const manage = this.isManagement(actor, condoId);
@@ -29,10 +29,16 @@ export class FacilityService {
       condoId,
       ...(manage && opts.includeInactive ? {} : { active: true }),
     };
-    return this.prisma.facility.findMany({
-      where,
-      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
-    });
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.facility.findMany({
+        where,
+        orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+        take: opts.limit,
+        skip: opts.offset,
+      }),
+      this.prisma.facility.count({ where }),
+    ]);
+    return { items, total, limit: opts.limit, offset: opts.offset };
   }
 
   async get(actor: AuthenticatedUser, id: string): Promise<Facility> {

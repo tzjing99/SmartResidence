@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { AppEnv } from '@/config/env.schema';
+import { CacheService } from '@/cache/cache.service';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   BadRequestException,
@@ -30,6 +31,8 @@ import {
 } from './user-preferences';
 
 const OTP_TTL_SECONDS = 10 * 60;
+/** Short TTL — roles change rarely but must refresh soon after revoke. */
+const AUTH_USER_TTL = 90;
 
 @Injectable()
 export class AuthService {
@@ -40,6 +43,7 @@ export class AuthService {
     private readonly sessions: SessionService,
     private readonly totp: TotpService,
     private readonly config: ConfigService<AppEnv, true>,
+    private readonly cache: CacheService,
   ) {}
 
   async signUp(dto: SignUpDto, info: DeviceInfo) {
@@ -103,6 +107,18 @@ export class AuthService {
 
   /** Resolve the AuthenticatedUser used in `req.ctx.user`. */
   async loadUser(userId: string, condoIdHint?: string | null): Promise<AuthenticatedUser> {
+    return this.cache.wrapNamespaced(
+      `auth:user:${userId}`,
+      condoIdHint ?? 'none',
+      AUTH_USER_TTL,
+      () => this.loadUserFromDb(userId, condoIdHint),
+    );
+  }
+
+  private async loadUserFromDb(
+    userId: string,
+    condoIdHint?: string | null,
+  ): Promise<AuthenticatedUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -288,6 +304,7 @@ export class AuthService {
         data: { revokedAt: new Date(), revokeReason: 'role-revoked' },
       }),
     ]);
+    await this.cache.invalidateNamespace(`auth:user:${assignment.userId}`);
   }
 
   async getProfile(userId: string) {

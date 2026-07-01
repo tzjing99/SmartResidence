@@ -41,7 +41,7 @@ export class FormsService {
   async listTemplates(
     actor: AuthenticatedUser,
     condoId: string,
-    opts: { includeInactive?: boolean },
+    opts: { includeInactive?: boolean; limit: number; offset: number },
   ) {
     this.assertCondoAccess(actor, condoId);
     await this.ensureDefaultTemplates(condoId);
@@ -52,10 +52,16 @@ export class FormsService {
       ...(manage && opts.includeInactive ? {} : { active: true }),
     };
 
-    return this.prisma.formTemplate.findMany({
-      where,
-      orderBy: [{ position: 'asc' }, { title: 'asc' }],
-    });
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.formTemplate.findMany({
+        where,
+        orderBy: [{ position: 'asc' }, { title: 'asc' }],
+        take: opts.limit,
+        skip: opts.offset,
+      }),
+      this.prisma.formTemplate.count({ where }),
+    ]);
+    return { items, total, limit: opts.limit, offset: opts.offset };
   }
 
   async getTemplate(actor: AuthenticatedUser, id: string) {

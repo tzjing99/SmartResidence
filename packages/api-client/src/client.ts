@@ -1308,9 +1308,19 @@ export class ApiClient {
   }
 
   // Facility / amenity booking (§4.6) --------------------------------
-  facilitiesForCondo(condoId: string, params: { includeInactive?: boolean } = {}) {
-    const qs = params.includeInactive ? '?includeInactive=true' : '';
-    return this.request<Facility[]>('GET', `/api/facilities/condo/${condoId}${qs}`);
+  facilitiesForCondo(
+    condoId: string,
+    params: { includeInactive?: boolean; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.includeInactive) qs.set('includeInactive', 'true');
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: Facility[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/facilities/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
   }
   facility(id: string) {
     return this.request<Facility>('GET', `/api/facilities/${id}`);
@@ -1376,9 +1386,19 @@ export class ApiClient {
   }
 
   // Condo forms & workflows -------------------------------------------
-  formTemplatesForCondo(condoId: string, params: { includeInactive?: boolean } = {}) {
-    const qs = params.includeInactive ? '?includeInactive=true' : '';
-    return this.request<FormTemplate[]>('GET', `/api/form-templates/condo/${condoId}${qs}`);
+  formTemplatesForCondo(
+    condoId: string,
+    params: { includeInactive?: boolean; limit?: number; offset?: number } = {},
+  ) {
+    const qs = new URLSearchParams();
+    if (params.includeInactive) qs.set('includeInactive', 'true');
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
+    const query = qs.toString();
+    return this.request<{ items: FormTemplate[]; total: number; limit: number; offset: number }>(
+      'GET',
+      `/api/form-templates/condo/${condoId}${query ? `?${query}` : ''}`,
+    );
   }
   formTemplate(id: string) {
     return this.request<FormTemplate>('GET', `/api/form-templates/${id}`);
@@ -1453,12 +1473,17 @@ export class ApiClient {
       `/api/document-folders/${id}`,
     );
   }
-  condoDocuments(condoId: string, params: { folderId?: string; includeInactive?: boolean } = {}) {
+  condoDocuments(
+    condoId: string,
+    params: { folderId?: string; includeInactive?: boolean; limit?: number; offset?: number } = {},
+  ) {
     const qs = new URLSearchParams();
     if (params.folderId) qs.set('folderId', params.folderId);
     if (params.includeInactive) qs.set('includeInactive', 'true');
+    if (params.limit != null) qs.set('limit', String(params.limit));
+    if (params.offset != null) qs.set('offset', String(params.offset));
     const query = qs.toString();
-    return this.request<Document[]>(
+    return this.request<{ items: Document[]; total: number; limit: number; offset: number }>(
       'GET',
       `/api/documents/condo/${condoId}${query ? `?${query}` : ''}`,
     );

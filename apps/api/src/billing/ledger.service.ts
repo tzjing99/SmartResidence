@@ -140,8 +140,10 @@ export class LedgerService {
     lines: Array<{ code: string; amount: number; description: string }>,
     actorUserId?: string | null,
   ) {
-    for (const [i, line] of lines.entries()) {
-      await this.record(client, {
+    if (lines.length === 0) return;
+    const occurredAt = invoice.issuedAt ?? new Date();
+    await client.ledgerEntry.createMany({
+      data: lines.map((line, i) => ({
         condoId: invoice.condoId,
         unitId: invoice.unitId,
         fund: LedgerService.fundOfCode(line.code),
@@ -151,10 +153,11 @@ export class LedgerService {
         sourceType: 'Invoice',
         sourceId: invoice.id,
         memo: line.description,
-        occurredAt: invoice.issuedAt ?? new Date(),
+        occurredAt,
         createdByUserId: actorUserId ?? null,
-      });
-    }
+      })),
+      skipDuplicates: true,
+    });
   }
 
   /** Write compensating entries for invoice charges when an unpaid invoice is voided. */
@@ -237,9 +240,10 @@ export class LedgerService {
       return { fund, share };
     });
 
-    for (const { fund, share } of allocations) {
-      if (Math.abs(share) < 0.005) continue;
-      await this.record(client, {
+    const occurredAt = opts.occurredAt ?? new Date();
+    const rows = allocations
+      .filter(({ share }) => Math.abs(share) >= 0.005)
+      .map(({ fund, share }) => ({
         condoId: invoice.condoId,
         unitId: invoice.unitId,
         fund,
@@ -249,9 +253,12 @@ export class LedgerService {
         sourceType: 'Payment',
         sourceId: opts.paymentId,
         memo: `Payment for ${invoice.number}`,
-        occurredAt: opts.occurredAt ?? new Date(),
-        actorUserId: opts.actorUserId,
-      } as LedgerEntryInput);
+        occurredAt,
+        createdByUserId: opts.actorUserId ?? null,
+      }));
+
+    if (rows.length > 0) {
+      await client.ledgerEntry.createMany({ data: rows, skipDuplicates: true });
     }
   }
 

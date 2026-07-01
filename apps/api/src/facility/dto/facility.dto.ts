@@ -178,6 +178,14 @@ export class UpdateFacilityDto {
   position?: number;
 }
 
+export class ListFacilitiesDto extends PaginationDto {
+  @ApiPropertyOptional({ description: 'Include inactive facilities (management only)' })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  includeInactive?: boolean;
+}
+
 export class AvailabilityQueryDto {
   @ApiProperty({ description: 'Day to inspect, ISO date (YYYY-MM-DD).' })
   @IsString()

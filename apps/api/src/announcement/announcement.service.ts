@@ -204,13 +204,80 @@ export class AnnouncementService {
     >();
     if (rows.length === 0) return statsById;
 
+    const condoUnits = await this.prisma.unit.findMany({
+      where: { condoId },
+      select: { id: true, blockId: true },
+    });
+    const condoUnitIds = condoUnits.map((u) => u.id);
+    const unitIdsByBlock = new Map<string, string[]>();
+    for (const unit of condoUnits) {
+      const list = unitIdsByBlock.get(unit.blockId) ?? [];
+      list.push(unit.id);
+      unitIdsByBlock.set(unit.blockId, list);
+    }
+
+    const unitIdsByAnnouncement = new Map<string, string[]>();
+    const allUnitIdsNeeded = new Set<string>();
+    for (const row of rows) {
+      let unitIds: string[];
+      switch (row.audienceScope) {
+        case AnnouncementAudienceScope.CONDO:
+          unitIds = condoUnitIds;
+          break;
+        case AnnouncementAudienceScope.BLOCKS:
+          unitIds = row.blocks.flatMap((b) => unitIdsByBlock.get(b.blockId) ?? []);
+          break;
+        case AnnouncementAudienceScope.UNITS:
+          unitIds = row.units.map((u) => u.unitId);
+          break;
+        default:
+          unitIds = [];
+      }
+      unitIds.forEach((id) => allUnitIdsNeeded.add(id));
+      unitIdsByAnnouncement.set(row.id, unitIds);
+    }
+
+    const unitIdList = [...allUnitIdsNeeded];
+    const [ownerships, tenancies, roles] =
+      unitIdList.length === 0
+        ? [[], [], []]
+        : await Promise.all([
+            this.prisma.ownership.findMany({
+              where: { unitId: { in: unitIdList }, status: 'ACTIVE' },
+              select: { unitId: true, userId: true },
+            }),
+            this.prisma.tenancy.findMany({
+              where: { unitId: { in: unitIdList }, status: 'ACTIVE' },
+              select: { unitId: true, userId: true },
+            }),
+            this.prisma.roleAssignment.findMany({
+              where: { condoId, unitId: { in: unitIdList }, revokedAt: null },
+              select: { unitId: true, userId: true },
+            }),
+          ]);
+
+    const usersByUnit = new Map<string, Set<string>>();
+    const linkUser = (unitId: string | null, userId: string) => {
+      if (!unitId) return;
+      const set = usersByUnit.get(unitId) ?? new Set<string>();
+      set.add(userId);
+      usersByUnit.set(unitId, set);
+    };
+    for (const row of [...ownerships, ...tenancies, ...roles]) {
+      linkUser(row.unitId, row.userId);
+    }
+
     const recipientIdsByAnnouncement = new Map<string, string[]>();
-    await Promise.all(
-      rows.map(async (row) => {
-        const recipientIds = await resolveAnnouncementRecipientUserIds(this.prisma, row, condoId);
-        recipientIdsByAnnouncement.set(row.id, recipientIds);
-      }),
-    );
+    for (const row of rows) {
+      const unitIds = unitIdsByAnnouncement.get(row.id) ?? [];
+      const recipientIds = new Set<string>();
+      for (const unitId of unitIds) {
+        for (const userId of usersByUnit.get(unitId) ?? []) {
+          recipientIds.add(userId);
+        }
+      }
+      recipientIdsByAnnouncement.set(row.id, [...recipientIds]);
+    }
 
     const allRecipientIds = [...new Set([...recipientIdsByAnnouncement.values()].flat())];
     const reads =

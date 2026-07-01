@@ -272,12 +272,15 @@ export function useUnitVisitors(
   api: ApiClient,
   unitId: string | null,
   view?: import('@smartresidence/shared-types').VisitorListView,
+  opts: { limit?: number; offset?: number } = {},
 ) {
   return useQuery({
-    queryKey: unitId ? queryKeys.unitVisitors(unitId, view) : ['visitors', 'unit', null],
+    queryKey: unitId
+      ? [...queryKeys.unitVisitors(unitId, view), opts.limit ?? 'all', opts.offset ?? 0]
+      : ['visitors', 'unit', null],
     queryFn: () =>
       unitId
-        ? api.visitorsForUnit(unitId, view ? { view } : {})
+        ? api.visitorsForUnit(unitId, { ...(view ? { view } : {}), ...opts })
         : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
     staleTime: LIST_VIEW_MS,
@@ -432,11 +435,19 @@ export function useDeleteFavouriteVisitor(api: ApiClient) {
   });
 }
 
-export function useUnitInvoices(api: ApiClient, unitId: string | null) {
+export function useUnitInvoices(
+  api: ApiClient,
+  unitId: string | null,
+  opts: { limit?: number; offset?: number } = {},
+) {
   return useQuery({
-    queryKey: unitId ? queryKeys.unitInvoices(unitId) : ['invoices', 'unit', null],
+    queryKey: unitId
+      ? [...queryKeys.unitInvoices(unitId), opts.limit ?? 'all', opts.offset ?? 0]
+      : ['invoices', 'unit', null],
     queryFn: () =>
-      unitId ? api.invoicesForUnit(unitId) : Promise.resolve({ items: [], total: 0 }),
+      unitId
+        ? api.invoicesForUnit(unitId, opts)
+        : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
     staleTime: LIST_VIEW_MS,
   });
@@ -1125,10 +1136,17 @@ export function useRecordPrepayment(api: ApiClient) {
   });
 }
 
-export function useUnitDefects(api: ApiClient, unitId: string | null) {
+export function useUnitDefects(
+  api: ApiClient,
+  unitId: string | null,
+  opts: { limit?: number; offset?: number } = {},
+) {
   return useQuery({
-    queryKey: unitId ? queryKeys.unitDefects(unitId) : ['defects', 'unit', null],
-    queryFn: () => (unitId ? api.defectsForUnit(unitId) : Promise.resolve({ items: [], total: 0 })),
+    queryKey: unitId
+      ? [...queryKeys.unitDefects(unitId), opts.limit ?? 'all', opts.offset ?? 0]
+      : ['defects', 'unit', null],
+    queryFn: () =>
+      unitId ? api.defectsForUnit(unitId, opts) : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(unitId),
     staleTime: LIST_VIEW_MS,
   });
@@ -1210,6 +1228,8 @@ export function useCondoAnnouncements(
     manage?: boolean;
     category?: import('@smartresidence/shared-types').AnnouncementCategory;
     includeStats?: boolean;
+    limit?: number;
+    offset?: number;
   } = {},
 ) {
   return useQuery({
@@ -1219,6 +1239,8 @@ export function useCondoAnnouncements(
           opts.manage ? 'manage' : 'resident',
           opts.category ?? 'all',
           opts.includeStats ? 'stats' : 'no-stats',
+          opts.limit ?? 'all',
+          opts.offset ?? 0,
         ]
       : ['announcements', 'condo', null],
     queryFn: () =>
@@ -1227,6 +1249,8 @@ export function useCondoAnnouncements(
             manage: opts.manage,
             category: opts.category,
             includeStats: opts.includeStats,
+            limit: opts.limit,
+            offset: opts.offset,
           })
         : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId),

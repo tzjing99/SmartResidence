@@ -1,6 +1,6 @@
 'use client';
 
-import { BillingAutomationPanel } from '@/components/billing-automation-panel';
+import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
 import { toast } from '@/lib/toast';
@@ -36,6 +36,14 @@ import { CalendarClock, ChevronRight, Plus, Receipt, Trash2, X } from 'lucide-re
 import * as React from 'react';
 
 const selectCls = 'sr-select';
+
+const BillingAutomationPanel = dynamic(
+  () =>
+    import('@/components/billing-automation-panel').then((m) => ({
+      default: m.BillingAutomationPanel,
+    })),
+  { loading: () => null },
+);
 
 const STATUS_TONE: Record<InvoiceStatus, 'success' | 'neutral' | 'info' | 'warning' | 'danger'> = {
   DRAFT: 'neutral',

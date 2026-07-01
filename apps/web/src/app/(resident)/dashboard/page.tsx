@@ -116,11 +116,11 @@ export default function DashboardPage() {
   const [selectedUnitId, setSelectedUnitId] = React.useState<string>('');
   const unit = unitItems.find((u) => u.id === selectedUnitId) ?? unitItems[0] ?? undefined;
   const condo = condos.data?.[0];
-  const visitors = useUnitVisitors(api, unit?.id ?? null, 'upcoming');
-  const invoices = useUnitInvoices(api, unit?.id ?? null);
+  const visitors = useUnitVisitors(api, unit?.id ?? null, 'upcoming', { limit: 5 });
+  const invoices = useUnitInvoices(api, unit?.id ?? null, { limit: 5 });
   const statement = useUnitStatement(api, unit?.id ?? null);
-  const defects = useUnitDefects(api, unit?.id ?? null);
-  const announcements = useCondoAnnouncements(api, condo?.id ?? null);
+  const defects = useUnitDefects(api, unit?.id ?? null, { limit: 5 });
+  const announcements = useCondoAnnouncements(api, condo?.id ?? null, { limit: 5 });
 
   React.useEffect(() => {
     if (!selectedUnitId && unitItems[0]) setSelectedUnitId(unitItems[0].id);

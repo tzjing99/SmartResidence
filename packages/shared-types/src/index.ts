@@ -23,6 +23,7 @@ export * from './documents';
 export * from './lost-found';
 export * from './whatsapp';
 export * from './platform';
+export * from './cob';
 
 export const APP_NAME = 'SmartResidence';
 export const APP_DEEPLINK_SCHEME = 'smartresidence';

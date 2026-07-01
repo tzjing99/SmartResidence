@@ -73,11 +73,14 @@ SmartResidence supports COB-ready exports:
 
 | Need | Where |
 |------|--------|
+| Pre-filled COB form pack (annual return, financial summary, minutes cover, insurance register) | **Admin → COB forms** (`/admin/compliance/cob`) — `GET /api/cob/condo/:condoId/templates` |
 | Ledger audit trail with user + timestamp | Audit trail CSV |
 | Idempotent, non-duplicated postings | `idempotencyKey` on every automated ledger write |
 | Void / reversal trace | Void adjustments link to original charge keys |
 | Receipt trail | Receipt register + PDF downloads |
 | Unit statements | Per-unit statement PDF/CSV |
+
+COB form PDFs pre-fill from condo settings (name, address, registration no.), block/unit counts, management admin role holders, and latest fund balances. They are **filing aids only** — not legal advice. Verify all entries before submitting to your local Commissioner of Buildings office.
 
 Retention policy (how long you keep exports) remains the JMB’s responsibility; export monthly and store in your document vault.
 
@@ -120,6 +123,7 @@ Residents and auditors can scan the QR / open the URL on the LHDN portal. Invoic
 ## Related UI
 
 - **Admin → Accounting** — fund dashboards, exports, compliance note
+- **Admin → COB forms** — pre-filled Commissioner of Buildings PDF templates
 - **Admin → Settings → Billing** — fee rates (MAINT/SINK separation), auditor note
 - **Admin → Invoices → Automatic invoice generation** — monthly cycle
 - **Admin → Settings → E-invoice** — MyInvois environment and credentials

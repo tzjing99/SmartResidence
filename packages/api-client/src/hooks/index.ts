@@ -113,6 +113,8 @@ export const queryKeys = {
   collections: (condoId: string, from?: string, to?: string) =>
     ['accounting', 'collections', condoId, from ?? '', to ?? ''] as const,
   arrears: (condoId: string) => ['accounting', 'arrears', condoId] as const,
+  cobTemplates: (condoId: string, from?: string, to?: string) =>
+    ['cob', 'templates', condoId, from ?? '', to ?? ''] as const,
   paymentIssues: (condoId: string) => ['accounting', 'payment-issues', condoId] as const,
   unitStatement: (unitId: string) => ['accounting', 'statement', unitId] as const,
   unitDefects: (unitId: string) => ['defects', 'unit', unitId] as const,
@@ -1088,6 +1090,21 @@ export function useFundSummary(
       ? queryKeys.fundSummary(condoId, params?.from, params?.to)
       : ['accounting', 'fund-summary', null],
     queryFn: () => (condoId ? api.fundSummary(condoId, params ?? {}) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+    staleTime: REPORT_VIEW_MS,
+  });
+}
+
+export function useCobTemplates(
+  api: ApiClient,
+  condoId: string | null,
+  params?: { from?: string; to?: string },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.cobTemplates(condoId, params?.from, params?.to)
+      : ['cob', 'templates', null],
+    queryFn: () => (condoId ? api.listCobTemplates(condoId, params ?? {}) : Promise.resolve(null)),
     enabled: Boolean(condoId),
     staleTime: REPORT_VIEW_MS,
   });

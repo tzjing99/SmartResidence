@@ -25,6 +25,7 @@ import { GovernanceModule } from './governance/governance.module';
 import { HandoverModule } from './handover/handover.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { LostFoundModule } from './lost-found/lost-found.module';
+import { CobModule } from './cob/cob.module';
 import { NotificationModule } from './notification/notification.module';
 import { OwnerModule } from './owner/owner.module';
 import { ParcelModule } from './parcel/parcel.module';
@@ -84,6 +85,7 @@ import { VisitorModule } from './visitor/visitor.module';
     FormsModule,
     DocumentsModule,
     LostFoundModule,
+    CobModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

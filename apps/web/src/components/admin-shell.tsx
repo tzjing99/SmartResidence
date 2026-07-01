@@ -95,6 +95,12 @@ const NAV: Array<{
     can: { action: 'read', subject: 'Ledger' },
   },
   {
+    href: '/admin/compliance/cob',
+    label: 'COB forms',
+    icon: FileText,
+    can: { action: 'read', subject: 'Ledger' },
+  },
+  {
     href: '/admin/safety',
     label: 'Safety / SOS',
     icon: Siren,

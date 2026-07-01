@@ -25,6 +25,7 @@ import type {
   CancelEInvoiceInput,
   CastPollVoteInput,
   CastResolutionVoteInput,
+  CobTemplateListResponse,
   CollectParcelInput,
   CollectionsSummary,
   CreateAdvancePaymentInput,
@@ -1173,6 +1174,32 @@ export class ApiClient {
         qs.toString() ? `?${qs.toString()}` : ''
       }`,
       'text/csv',
+    );
+  }
+
+  // COB compliance templates -----------------------------------------
+  listCobTemplates(condoId: string, params: { from?: string; to?: string } = {}) {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.request<CobTemplateListResponse>(
+      'GET',
+      `/api/cob/condo/${condoId}/templates${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  async downloadCobTemplatePdf(
+    condoId: string,
+    slug: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.downloadBillingBlob(
+      `/api/cob/condo/${condoId}/templates/${slug}.pdf${
+        qs.toString() ? `?${qs.toString()}` : ''
+      }`,
+      'application/pdf',
     );
   }
 

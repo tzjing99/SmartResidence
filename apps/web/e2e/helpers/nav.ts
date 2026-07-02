@@ -1,6 +1,6 @@
-import { expect, type Page } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 
-/** Owner-only nav item — visible in the desktop sidebar or the mobile overflow menu. */
+/** Owner-only surface — desktop sidebar link or mobile overflow menu entry. */
 export async function expectManageAccessNav(page: Page) {
   const desktopLink = page.locator('aside').getByRole('link', { name: /manage access/i });
   if (await desktopLink.isVisible()) {
@@ -8,10 +8,11 @@ export async function expectManageAccessNav(page: Page) {
     return;
   }
 
-  await page.getByRole('button', { name: /open menu/i }).click();
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Resident navigation' })
-      .getByRole('link', { name: /manage access/i }),
-  ).toBeVisible();
+  const menuButton = page.getByRole('button', { name: /open menu/i });
+  await expect(menuButton).toBeVisible({ timeout: 15_000 });
+  await menuButton.click();
+  const mobileNav = page.getByRole('navigation', { name: 'Resident navigation' });
+  await expect(mobileNav.getByRole('link', { name: /manage access/i })).toBeVisible({
+    timeout: 15_000,
+  });
 }

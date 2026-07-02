@@ -1,14 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { signIn, signOut } from './helpers/auth';
 import { expectManageAccessNav } from './helpers/nav';
-
-const PASSWORD = 'Demo!2026';
-
-async function signIn(page: import('@playwright/test').Page, email: string) {
-  await page.goto('/sign-in');
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/password/i).fill(PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).click();
-}
 
 test('sign-in form validates email + password', async ({ page }) => {
   await page.goto('/sign-in');
@@ -32,8 +24,7 @@ test('sign out clears session so the next user gets their own role', async ({ pa
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
   await expectManageAccessNav(page);
 
-  await page.getByRole('button', { name: /sign out/i }).click();
-  await expect(page).toHaveURL(/sign-in/, { timeout: 15_000 });
+  await signOut(page);
 
   await signIn(page, 'guard@acacia.demo');
   await expect(page).toHaveURL(/\/guard/, { timeout: 15_000 });

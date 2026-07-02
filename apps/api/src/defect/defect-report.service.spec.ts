@@ -16,6 +16,11 @@ const mgmt = {
   roles: [{ roleId: RoleId.MANAGEMENT_ADMIN, condoId: 'c1' }],
 } as unknown as AuthenticatedUser;
 
+const strangerResident = {
+  id: 'stranger-1',
+  roles: [{ roleId: RoleId.UNIT_OWNER, condoId: 'c2', unitId: 'u2' }],
+} as unknown as AuthenticatedUser;
+
 describe('DefectReportService.createHandover', () => {
   function makeService() {
     const tx = {
@@ -104,6 +109,25 @@ describe('DefectReportService.createHandover', () => {
 
     expect(result.itemCount).toBe(3);
     expect(result.statusCounts.NEW).toBe(3);
+  });
+
+  it('rejects a resident with no role on the target unit (cross-tenant IDOR)', async () => {
+    const { svc } = makeService();
+    await expect(
+      svc.createHandover(strangerResident, {
+        unitId: 'u1',
+        items: [{ spaceLabel: 'Bathroom 1', note: 'Crack' }],
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("allows management of the unit's condo even without a direct unit role", async () => {
+    const { svc, tx } = makeService();
+    await svc.createHandover(mgmt, {
+      unitId: 'u1',
+      items: [{ spaceLabel: 'Bathroom 1', note: 'Crack' }],
+    });
+    expect(tx.defectReport.create).toHaveBeenCalledTimes(1);
   });
 
   it('inserts defects in chunks for large submissions', async () => {

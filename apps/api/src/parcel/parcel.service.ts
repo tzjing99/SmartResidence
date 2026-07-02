@@ -87,7 +87,12 @@ export class ParcelService {
   }
 
   async listForUnit(user: AuthenticatedUser, unitId: string, query: ListParcelsDto) {
-    if (!this.userCanAccessUnit(user, unitId)) {
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { condoId: true },
+    });
+    if (!unit) throw new NotFoundException('Unit not found');
+    if (!this.userCanAccessUnit(user, unitId, unit.condoId)) {
       throw new ForbiddenException('No access to parcels for this unit');
     }
     return this.listWhere({ unitId }, query);
@@ -222,17 +227,14 @@ export class ParcelService {
     return { items, total, limit, offset };
   }
 
-  private userCanAccessUnit(user: AuthenticatedUser, unitId: string): boolean {
+  private userCanAccessUnit(user: AuthenticatedUser, unitId: string, condoId: string): boolean {
+    if (this.isGuardOrManagement(user, condoId)) return true;
     return user.roles.some(
       (r) =>
-        r.roleId === RoleId.SUPER_ADMIN ||
-        ((r.roleId === RoleId.UNIT_OWNER ||
+        (r.roleId === RoleId.UNIT_OWNER ||
           r.roleId === RoleId.TENANT ||
           r.roleId === RoleId.HOUSEHOLD_MEMBER) &&
-          r.unitId === unitId) ||
-        ((r.roleId === RoleId.MANAGEMENT_ADMIN || r.roleId === RoleId.MANAGEMENT_STAFF) &&
-          Boolean(r.condoId)) ||
-        (r.roleId === RoleId.SECURITY_GUARD && Boolean(r.condoId)),
+        r.unitId === unitId,
     );
   }
 

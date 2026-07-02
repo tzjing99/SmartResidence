@@ -67,6 +67,9 @@ export class DefectReportService {
 
     const unit = await this.prisma.unit.findUnique({ where: { id: dto.unitId } });
     if (!unit) throw new NotFoundException('Unit not found');
+    if (!user.roles.some((r) => r.unitId === unit.id) && !this.isManagement(user, unit.condoId)) {
+      throw new ForbiddenException('You cannot raise a handover report for this unit');
+    }
 
     // Resolve taxonomy names so each line item has a readable title that the
     // existing Defect lifecycle/board/export can use unchanged.

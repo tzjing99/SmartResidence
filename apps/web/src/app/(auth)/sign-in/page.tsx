@@ -123,9 +123,11 @@ export default function SignInPage() {
             Create an account
           </Link>
         </p>
-        <p className="mt-2 text-xs sr-muted">
-          Demo: <code>owner@acacia.demo</code> / <code>Demo!2026</code>
-        </p>
+        {process.env.NODE_ENV !== 'production' ? (
+          <p className="mt-2 text-xs sr-muted">
+            Demo: <code>owner@acacia.demo</code> / <code>Demo!2026</code>
+          </p>
+        ) : null}
       </Card>
     </div>
   );

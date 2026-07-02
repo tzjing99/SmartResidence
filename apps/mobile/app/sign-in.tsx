@@ -22,8 +22,10 @@ export default function SignInScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const signingInRef = useRef(false);
-  const [email, setEmail] = useState('owner@acacia.demo');
-  const [password, setPassword] = useState('Demo!2026');
+  // Never ship prefilled working credentials in a release build — only
+  // convenient for local/dev builds against the seeded demo dataset.
+  const [email, setEmail] = useState(__DEV__ ? 'owner@acacia.demo' : '');
+  const [password, setPassword] = useState(__DEV__ ? 'Demo!2026' : '');
   const [loading, setLoading] = useState(false);
 
   async function signIn() {
@@ -121,12 +123,19 @@ export default function SignInScreen() {
               />
             </View>
           </Card>
-          <AppText
-            style={{ marginTop: 24, color: palette.mutedLight, fontSize: 12, textAlign: 'center' }}
-          >
-            Demo accounts · password Demo!2026{'\n'}
-            Resident owner@acacia.demo · Gate guard@acacia.demo
-          </AppText>
+          {__DEV__ ? (
+            <AppText
+              style={{
+                marginTop: 24,
+                color: palette.mutedLight,
+                fontSize: 12,
+                textAlign: 'center',
+              }}
+            >
+              Demo accounts · password Demo!2026{'\n'}
+              Resident owner@acacia.demo · Gate guard@acacia.demo
+            </AppText>
+          ) : null}
         </FadeInView>
       </ScrollView>
     </KeyboardAvoidingView>

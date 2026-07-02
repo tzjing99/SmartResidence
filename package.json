@@ -58,7 +58,10 @@
     "overrides": {
       "react-native-worklets": "0.5.1",
       "@types/react": "~19.1.17",
-      "@types/react-dom": "~19.1.9"
+      "@types/react-dom": "~19.1.9",
+      "multer": "^2.2.0",
+      "ws": "^8.21.0",
+      "form-data": "^4.0.6"
     }
   }
 }

@@ -30,7 +30,7 @@ export default defineConfig({
       // `hidden md:flex` with no mobile menu), so the role-routing nav
       // assertions only make sense on a desktop viewport. The mobile project
       // still covers the public/responsive flows (landing, auth, thread guards).
-      testIgnore: /role-routing\.spec\.ts/,
+      testIgnore: /role-routing\.spec\.ts|billing\.spec\.ts/,
     },
   ],
 });

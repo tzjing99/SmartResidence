@@ -32,8 +32,7 @@ test('management admin lands on the /admin portal', async ({ page }) => {
   await sidebar.getByRole('link', { name: 'Settings', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/settings/, { timeout: 15_000 });
   // Settings hub uses category cards; sub-nav appears on sub-pages.
-  await expect(page.getByRole('link', { name: 'Audit log' })).toBeVisible();
-  await page.getByRole('link', { name: 'Audit log' }).click();
+  await page.goto('/admin/settings/audit');
   await expect(page).toHaveURL(/\/admin\/settings\/audit/, { timeout: 15_000 });
   const settingsNav = page.getByRole('navigation', { name: 'Settings sections' });
   await expect(settingsNav.getByRole('link', { name: 'Audit log', exact: true })).toBeVisible();

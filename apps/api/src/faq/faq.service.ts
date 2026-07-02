@@ -1,4 +1,5 @@
 import { CacheService } from '@/cache/cache.service';
+import { assertCondoManagement, assertCondoMember } from '@/common/authz/assert-condo-management';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -44,7 +45,8 @@ export class FaqService {
 
   // -- categories ----------------------------------------------------
 
-  listCategories(condoId: string) {
+  listCategories(user: AuthenticatedUser, condoId: string) {
+    assertCondoMember(user, condoId);
     return this.cache.wrapNamespaced(
       this.faqNamespace(condoId),
       'categories',
@@ -57,7 +59,8 @@ export class FaqService {
     );
   }
 
-  async createCategory(dto: CreateFaqCategoryDto) {
+  async createCategory(user: AuthenticatedUser, dto: CreateFaqCategoryDto) {
+    assertCondoManagement(user, dto.condoId);
     const created = await this.prisma.faqCategory.create({
       data: { condoId: dto.condoId, name: dto.name, position: dto.position ?? 0 },
     });
@@ -65,15 +68,17 @@ export class FaqService {
     return created;
   }
 
-  async updateCategory(id: string, dto: UpdateFaqCategoryDto) {
+  async updateCategory(user: AuthenticatedUser, id: string, dto: UpdateFaqCategoryDto) {
     const existing = await this.ensureCategory(id);
+    assertCondoManagement(user, existing.condoId);
     const updated = await this.prisma.faqCategory.update({ where: { id }, data: dto });
     await this.invalidate(existing.condoId);
     return updated;
   }
 
-  async deleteCategory(id: string) {
+  async deleteCategory(user: AuthenticatedUser, id: string) {
     const existing = await this.ensureCategory(id);
+    assertCondoManagement(user, existing.condoId);
     await this.prisma.faqCategory.delete({ where: { id } });
     await this.invalidate(existing.condoId);
     return { ok: true };
@@ -87,7 +92,8 @@ export class FaqService {
 
   // -- articles ------------------------------------------------------
 
-  async listPublished(condoId: string, dto: ListFaqDto) {
+  async listPublished(user: AuthenticatedUser, condoId: string, dto: ListFaqDto) {
+    assertCondoMember(user, condoId);
     const search = this.toSearch(dto.q);
     const keySuffix = `published:${JSON.stringify({
       categoryId: dto.categoryId ?? null,
@@ -121,7 +127,8 @@ export class FaqService {
     );
   }
 
-  async listAll(condoId: string, dto: ListFaqDto) {
+  async listAll(user: AuthenticatedUser, condoId: string, dto: ListFaqDto) {
+    assertCondoManagement(user, condoId);
     const where: Prisma.FaqArticleWhereInput = {
       condoId,
       ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
@@ -139,12 +146,13 @@ export class FaqService {
     return { items, total, limit: dto.limit, offset: dto.offset };
   }
 
-  async getArticle(id: string, opts: { countView?: boolean } = {}) {
+  async getArticle(user: AuthenticatedUser, id: string, opts: { countView?: boolean } = {}) {
     const article = await this.prisma.faqArticle.findUnique({
       where: { id },
       include: { category: true },
     });
     if (!article) throw new NotFoundException();
+    assertCondoMember(user, article.condoId);
     if (opts.countView) {
       await this.prisma.faqArticle.update({
         where: { id },
@@ -154,7 +162,14 @@ export class FaqService {
     return article;
   }
 
+  private async ensureArticle(id: string) {
+    const article = await this.prisma.faqArticle.findUnique({ where: { id } });
+    if (!article) throw new NotFoundException();
+    return article;
+  }
+
   async createArticle(user: AuthenticatedUser, dto: CreateFaqArticleDto) {
+    assertCondoManagement(user, dto.condoId);
     const created = await this.prisma.faqArticle.create({
       data: {
         condoId: dto.condoId,
@@ -172,8 +187,9 @@ export class FaqService {
     return created;
   }
 
-  async updateArticle(id: string, dto: UpdateFaqArticleDto) {
-    const existing = await this.getArticle(id);
+  async updateArticle(user: AuthenticatedUser, id: string, dto: UpdateFaqArticleDto) {
+    const existing = await this.ensureArticle(id);
+    assertCondoManagement(user, existing.condoId);
     const updated = await this.prisma.faqArticle.update({
       where: { id },
       data: {
@@ -190,15 +206,17 @@ export class FaqService {
     return updated;
   }
 
-  async deleteArticle(id: string) {
-    const existing = await this.getArticle(id);
+  async deleteArticle(user: AuthenticatedUser, id: string) {
+    const existing = await this.ensureArticle(id);
+    assertCondoManagement(user, existing.condoId);
     await this.prisma.faqArticle.delete({ where: { id } });
     await this.invalidate(existing.condoId);
     return { ok: true };
   }
 
-  async markHelpful(id: string) {
-    const existing = await this.getArticle(id);
+  async markHelpful(user: AuthenticatedUser, id: string) {
+    const existing = await this.ensureArticle(id);
+    assertCondoMember(user, existing.condoId);
     const updated = await this.prisma.faqArticle.update({
       where: { id },
       data: { helpfulCount: { increment: 1 } },
@@ -229,7 +247,13 @@ export class FaqService {
    * F4: strong FAQ match for compose deflection.
    * Returns top article when question tokens overlap strongly with FAQ question/answer.
    */
-  async matchForDeflection(condoId: string, subject: string, body: string) {
+  async matchForDeflection(
+    user: AuthenticatedUser,
+    condoId: string,
+    subject: string,
+    body: string,
+  ) {
+    assertCondoMember(user, condoId);
     const queryTokens = this.tokenize(`${subject} ${body}`);
     if (queryTokens.size === 0) return { match: null as null };
 

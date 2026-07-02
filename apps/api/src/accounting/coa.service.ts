@@ -1,5 +1,7 @@
+import { assertCondoManagement } from '@/common/authz/assert-condo-management';
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { GlAccountType, LedgerFund, Prisma } from '@prisma/client';
 import type { GlAccountNode } from '@smartresidence/shared-types';
 import { MALAYSIAN_JMB_COA } from './coa-template';
@@ -74,9 +76,17 @@ export class CoaService {
   }
 
   async updateAccount(
+    user: AuthenticatedUser,
     accountId: string,
     input: { name?: string; active?: boolean; parentId?: string | null },
   ) {
+    const existing = await this.prisma.glAccount.findUnique({
+      where: { id: accountId },
+      select: { condoId: true },
+    });
+    if (!existing) throw new NotFoundException('GL account not found');
+    assertCondoManagement(user, existing.condoId);
+
     return this.prisma.glAccount.update({
       where: { id: accountId },
       data: {

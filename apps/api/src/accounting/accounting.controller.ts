@@ -1,4 +1,5 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
+import { assertCondoManagement } from '@/common/authz/assert-condo-management';
 import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
@@ -32,14 +33,22 @@ export class AccountingController {
   @Get('condo/:condoId/coa')
   @CheckAbility({ action: 'read', subject: 'GeneralLedger' })
   @ApiOperation({ summary: 'Chart of accounts tree (auto-seeds Malaysian JMB template)' })
-  chartOfAccounts(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+  chartOfAccounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    assertCondoManagement(user, condoId);
     return this.coa.listTree(condoId);
   }
 
   @Get('condo/:condoId/bank-accounts')
   @CheckAbility({ action: 'read', subject: 'GeneralLedger' })
   @ApiOperation({ summary: 'GL cash accounts for bank reconciliation' })
-  bankAccounts(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+  bankAccounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    assertCondoManagement(user, condoId);
     return this.coa.listBankAccounts(condoId);
   }
 
@@ -48,9 +57,11 @@ export class AccountingController {
   @Audit({ action: AuditAction.CREATE, resourceType: 'GlAccount', resourceIdFrom: 'response.id' })
   @ApiOperation({ summary: 'Add a GL account to the chart' })
   createAccount(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Body() dto: CreateGlAccountDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.coa.createAccount(condoId, dto);
   }
 
@@ -63,10 +74,11 @@ export class AccountingController {
   })
   @ApiOperation({ summary: 'Update a GL account name or active flag' })
   updateAccount(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('accountId', new ParseUUIDPipe()) accountId: string,
     @Body() dto: UpdateGlAccountDto,
   ) {
-    return this.coa.updateAccount(accountId, dto);
+    return this.coa.updateAccount(user, accountId, dto);
   }
 
   // -- Journal entries ----------------------------------------------------
@@ -75,9 +87,11 @@ export class AccountingController {
   @CheckAbility({ action: 'read', subject: 'GeneralLedger' })
   @ApiOperation({ summary: 'List GL journal entries for a period' })
   listJournals(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query() query: ListJournalsQueryDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.gl.listJournals(condoId, query);
   }
 
@@ -85,9 +99,11 @@ export class AccountingController {
   @CheckAbility({ action: 'read', subject: 'GeneralLedger' })
   @ApiOperation({ summary: 'Journal entry detail with lines' })
   getJournal(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('entryId', new ParseUUIDPipe()) entryId: string,
   ) {
+    assertCondoManagement(user, condoId);
     return this.gl.getJournal(condoId, entryId);
   }
 
@@ -104,6 +120,7 @@ export class AccountingController {
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Body() dto: PostManualJournalDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.gl.postManual(user, condoId, dto);
   }
 
@@ -113,9 +130,11 @@ export class AccountingController {
   @CheckAbility({ action: 'read', subject: 'GeneralLedger' })
   @ApiOperation({ summary: 'List bank statement imports' })
   listBankImports(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('accountId') accountId?: string,
   ) {
+    assertCondoManagement(user, condoId);
     return this.bankRecon.listImports(condoId, accountId);
   }
 
@@ -132,6 +151,7 @@ export class AccountingController {
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Body() dto: ImportBankStatementDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.bankRecon.importCsv(user, condoId, dto);
   }
 
@@ -139,9 +159,11 @@ export class AccountingController {
   @CheckAbility({ action: 'read', subject: 'GeneralLedger' })
   @ApiOperation({ summary: 'Bank reconciliation worksheet — statement vs GL lines' })
   reconciliationWorksheet(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('importId', new ParseUUIDPipe()) importId: string,
   ) {
+    assertCondoManagement(user, condoId);
     return this.bankRecon.worksheet(condoId, importId);
   }
 
@@ -154,10 +176,12 @@ export class AccountingController {
   })
   @ApiOperation({ summary: 'Match or unmatch a statement line to a GL journal line' })
   matchBankLine(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('lineId', new ParseUUIDPipe()) lineId: string,
     @Body() dto: MatchBankLineDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.bankRecon.matchLine(condoId, lineId, dto.journalLineId ?? null);
   }
 }

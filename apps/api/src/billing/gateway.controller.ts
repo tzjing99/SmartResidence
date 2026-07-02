@@ -1,4 +1,5 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
+import { assertCondoManagement, assertCondoMember } from '@/common/authz/assert-condo-management';
 import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
@@ -17,7 +18,11 @@ export class GatewayController {
   @Get('settings/condo/:condoId/billing/gateways')
   @CheckAbility({ action: 'read', subject: 'BillingSettings' })
   @ApiOperation({ summary: 'List payment gateway connections (secrets never returned)' })
-  list(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    assertCondoManagement(user, condoId);
     return this.gateways.listForCondo(condoId);
   }
 
@@ -34,6 +39,7 @@ export class GatewayController {
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Body() dto: UpsertGatewayDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.gateways.upsert(condoId, dto, user.id);
   }
 
@@ -46,10 +52,12 @@ export class GatewayController {
   })
   @ApiOperation({ summary: 'Enable or disable a payment gateway connection' })
   setEnabled(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: SetGatewayEnabledDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.gateways.setEnabled(condoId, id, dto.enabled);
   }
 
@@ -62,16 +70,23 @@ export class GatewayController {
   })
   @ApiOperation({ summary: 'Remove a payment gateway connection' })
   remove(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    assertCondoManagement(user, condoId);
     return this.gateways.remove(condoId, id);
   }
 
   @Get('billing/condo/:condoId/payment-methods')
   @CheckAbility({ action: 'read', subject: 'Invoice' })
   @ApiOperation({ summary: 'Enabled payment methods residents can pay with' })
-  payableMethods(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+  payableMethods(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    // Any member of the condo (not just management) needs this to pay invoices.
+    assertCondoMember(user, condoId);
     return this.gateways.payableMethods(condoId);
   }
 }

@@ -1,5 +1,7 @@
+import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { RoleId } from '@prisma/client';
 import type { HandoverTemplate } from '@smartresidence/shared-types';
 import type {
   CreateDefectElementDto,
@@ -18,6 +20,24 @@ import type {
 export class HandoverConfigService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * `@CheckAbility({ action: 'manage', subject: 'UnitType' | 'DefectTaxonomy' })`
+   * only proves the caller manages *some* condo — the mutated row's condoId
+   * isn't visible to CASL at the route level. Every write below must
+   * additionally confirm the caller manages *this* condo (resolved either
+   * from the request body or the resource being mutated), otherwise a
+   * MANAGEMENT_ADMIN of one condo could edit/delete another condo's
+   * handover configuration by guessing/iterating ids (cross-tenant IDOR).
+   */
+  private assertManagement(user: AuthenticatedUser, condoId: string): void {
+    const allowed = user.roles.some(
+      (r) =>
+        r.roleId === RoleId.SUPER_ADMIN ||
+        (r.roleId === RoleId.MANAGEMENT_ADMIN && r.condoId === condoId),
+    );
+    if (!allowed) throw new ForbiddenException('Management access required for this condo');
+  }
+
   // -- Unit types -----------------------------------------------------
 
   listUnitTypes(condoId: string) {
@@ -33,7 +53,8 @@ export class HandoverConfigService {
     });
   }
 
-  createUnitType(dto: CreateUnitTypeDto) {
+  createUnitType(user: AuthenticatedUser, dto: CreateUnitTypeDto) {
+    this.assertManagement(user, dto.condoId);
     return this.prisma.unitType.create({
       data: {
         condoId: dto.condoId,
@@ -44,8 +65,9 @@ export class HandoverConfigService {
     });
   }
 
-  async updateUnitType(id: string, dto: UpdateUnitTypeDto) {
-    await this.ensureUnitType(id);
+  async updateUnitType(user: AuthenticatedUser, id: string, dto: UpdateUnitTypeDto) {
+    const ut = await this.ensureUnitType(id);
+    this.assertManagement(user, ut.condoId);
     return this.prisma.unitType.update({
       where: { id },
       data: {
@@ -56,8 +78,9 @@ export class HandoverConfigService {
     });
   }
 
-  async deleteUnitType(id: string) {
-    await this.ensureUnitType(id);
+  async deleteUnitType(user: AuthenticatedUser, id: string) {
+    const ut = await this.ensureUnitType(id);
+    this.assertManagement(user, ut.condoId);
     await this.prisma.unitType.delete({ where: { id } });
     return { ok: true };
   }
@@ -70,8 +93,9 @@ export class HandoverConfigService {
 
   // -- Unit type spaces (room template rows) --------------------------
 
-  async addSpace(unitTypeId: string, dto: CreateUnitTypeSpaceDto) {
-    await this.ensureUnitType(unitTypeId);
+  async addSpace(user: AuthenticatedUser, unitTypeId: string, dto: CreateUnitTypeSpaceDto) {
+    const ut = await this.ensureUnitType(unitTypeId);
+    this.assertManagement(user, ut.condoId);
     return this.prisma.unitTypeSpace.create({
       data: {
         unitTypeId,
@@ -83,9 +107,13 @@ export class HandoverConfigService {
     });
   }
 
-  async updateSpace(id: string, dto: UpdateUnitTypeSpaceDto) {
-    const existing = await this.prisma.unitTypeSpace.findUnique({ where: { id } });
+  async updateSpace(user: AuthenticatedUser, id: string, dto: UpdateUnitTypeSpaceDto) {
+    const existing = await this.prisma.unitTypeSpace.findUnique({
+      where: { id },
+      include: { unitType: true },
+    });
     if (!existing) throw new NotFoundException('Room not found');
+    this.assertManagement(user, existing.unitType.condoId);
     return this.prisma.unitTypeSpace.update({
       where: { id },
       data: {
@@ -97,9 +125,13 @@ export class HandoverConfigService {
     });
   }
 
-  async deleteSpace(id: string) {
-    const existing = await this.prisma.unitTypeSpace.findUnique({ where: { id } });
+  async deleteSpace(user: AuthenticatedUser, id: string) {
+    const existing = await this.prisma.unitTypeSpace.findUnique({
+      where: { id },
+      include: { unitType: true },
+    });
     if (!existing) throw new NotFoundException('Room not found');
+    this.assertManagement(user, existing.unitType.condoId);
     await this.prisma.unitTypeSpace.delete({ where: { id } });
     return { ok: true };
   }
@@ -121,15 +153,17 @@ export class HandoverConfigService {
     });
   }
 
-  createSpaceType(dto: CreateDefectSpaceTypeDto) {
+  createSpaceType(user: AuthenticatedUser, dto: CreateDefectSpaceTypeDto) {
+    this.assertManagement(user, dto.condoId);
     return this.prisma.defectSpaceType.create({
       data: { condoId: dto.condoId, name: dto.name, position: dto.position ?? 0 },
     });
   }
 
-  async updateSpaceType(id: string, dto: UpdateDefectSpaceTypeDto) {
+  async updateSpaceType(user: AuthenticatedUser, id: string, dto: UpdateDefectSpaceTypeDto) {
     const existing = await this.prisma.defectSpaceType.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Space type not found');
+    this.assertManagement(user, existing.condoId);
     return this.prisma.defectSpaceType.update({
       where: { id },
       data: {
@@ -139,18 +173,20 @@ export class HandoverConfigService {
     });
   }
 
-  async deleteSpaceType(id: string) {
+  async deleteSpaceType(user: AuthenticatedUser, id: string) {
     const existing = await this.prisma.defectSpaceType.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Space type not found');
+    this.assertManagement(user, existing.condoId);
     await this.prisma.defectSpaceType.delete({ where: { id } });
     return { ok: true };
   }
 
-  async createElement(dto: CreateDefectElementDto) {
+  async createElement(user: AuthenticatedUser, dto: CreateDefectElementDto) {
     const spaceType = await this.prisma.defectSpaceType.findUnique({
       where: { id: dto.spaceTypeId },
     });
     if (!spaceType) throw new NotFoundException('Space type not found');
+    this.assertManagement(user, spaceType.condoId);
     return this.prisma.defectElement.create({
       data: {
         condoId: spaceType.condoId,
@@ -161,9 +197,10 @@ export class HandoverConfigService {
     });
   }
 
-  async updateElement(id: string, dto: UpdateDefectElementDto) {
+  async updateElement(user: AuthenticatedUser, id: string, dto: UpdateDefectElementDto) {
     const existing = await this.prisma.defectElement.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Element not found');
+    this.assertManagement(user, existing.condoId);
     return this.prisma.defectElement.update({
       where: { id },
       data: {
@@ -173,16 +210,18 @@ export class HandoverConfigService {
     });
   }
 
-  async deleteElement(id: string) {
+  async deleteElement(user: AuthenticatedUser, id: string) {
     const existing = await this.prisma.defectElement.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Element not found');
+    this.assertManagement(user, existing.condoId);
     await this.prisma.defectElement.delete({ where: { id } });
     return { ok: true };
   }
 
-  async createIssue(dto: CreateDefectIssueDto) {
+  async createIssue(user: AuthenticatedUser, dto: CreateDefectIssueDto) {
     const element = await this.prisma.defectElement.findUnique({ where: { id: dto.elementId } });
     if (!element) throw new NotFoundException('Element not found');
+    this.assertManagement(user, element.condoId);
     return this.prisma.defectIssue.create({
       data: {
         condoId: element.condoId,
@@ -193,9 +232,10 @@ export class HandoverConfigService {
     });
   }
 
-  async updateIssue(id: string, dto: UpdateDefectIssueDto) {
+  async updateIssue(user: AuthenticatedUser, id: string, dto: UpdateDefectIssueDto) {
     const existing = await this.prisma.defectIssue.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Issue not found');
+    this.assertManagement(user, existing.condoId);
     return this.prisma.defectIssue.update({
       where: { id },
       data: {
@@ -205,16 +245,23 @@ export class HandoverConfigService {
     });
   }
 
-  async deleteIssue(id: string) {
+  async deleteIssue(user: AuthenticatedUser, id: string) {
     const existing = await this.prisma.defectIssue.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Issue not found');
+    this.assertManagement(user, existing.condoId);
     await this.prisma.defectIssue.delete({ where: { id } });
     return { ok: true };
   }
 
   // -- Unit type assignment + handover template -----------------------
 
-  async setUnitType(condoId: string, unitId: string, unitTypeId: string | null) {
+  async setUnitType(
+    user: AuthenticatedUser,
+    condoId: string,
+    unitId: string,
+    unitTypeId: string | null,
+  ) {
+    this.assertManagement(user, condoId);
     const unit = await this.prisma.unit.findUnique({ where: { id: unitId } });
     if (!unit || unit.condoId !== condoId) throw new NotFoundException('Unit not found');
     if (unitTypeId) {
@@ -230,7 +277,24 @@ export class HandoverConfigService {
     });
   }
 
-  async handoverTemplate(unitId: string): Promise<HandoverTemplate> {
+  async handoverTemplate(user: AuthenticatedUser, unitId: string): Promise<HandoverTemplate> {
+    const isMember = user.roles.some((r) => r.roleId === RoleId.SUPER_ADMIN || r.unitId === unitId);
+    if (!isMember) {
+      const unitCondo = await this.prisma.unit.findUnique({
+        where: { id: unitId },
+        select: { condoId: true },
+      });
+      if (
+        !unitCondo ||
+        !user.roles.some(
+          (r) =>
+            (r.roleId === RoleId.MANAGEMENT_ADMIN || r.roleId === RoleId.MANAGEMENT_STAFF) &&
+            r.condoId === unitCondo.condoId,
+        )
+      ) {
+        throw new ForbiddenException('You do not have access to this unit');
+      }
+    }
     const unit = await this.prisma.unit.findUnique({
       where: { id: unitId },
       include: {

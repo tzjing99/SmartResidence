@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TenantService } from '../src/tenant/tenant.service';
 
+const member = (condoId: string) =>
+  ({
+    id: 'user-1',
+    name: 'Test User',
+    activeRole: 'MANAGEMENT_STAFF',
+    roles: [{ roleId: 'MANAGEMENT_STAFF', condoId, unitId: null, permissions: [] }],
+  }) as any;
+
 function service() {
   const prisma: any = {
     unit: {
@@ -30,7 +38,7 @@ describe('TenantService.listUnits', () => {
 
   it('searches by unit identifier, block name, and resident name', async () => {
     const { svc, prisma } = service();
-    await svc.listUnits('condo-1', { limit: 20, offset: 0, search: '  Tan  ' });
+    await svc.listUnits(member('condo-1'), 'condo-1', { limit: 20, offset: 0, search: '  Tan  ' });
 
     const findManyArgs = prisma.unit.findMany.mock.calls[0][0];
     expect(findManyArgs.where).toMatchObject({
@@ -53,7 +61,7 @@ describe('TenantService.listUnits', () => {
 
   it('matches composite block-floor-unit labels like A-01-1', async () => {
     const { svc, prisma } = service();
-    await svc.listUnits('condo-1', { limit: 20, offset: 0, search: 'A-01-1' });
+    await svc.listUnits(member('condo-1'), 'condo-1', { limit: 20, offset: 0, search: 'A-01-1' });
 
     const findManyArgs = prisma.unit.findMany.mock.calls[0][0];
     expect(findManyArgs.where.OR).toEqual(
@@ -76,7 +84,7 @@ describe('TenantService.listUnits', () => {
 
   it('lists all condo units when search is empty', async () => {
     const { svc, prisma } = service();
-    await svc.listUnits('condo-1', { limit: 10, offset: 0, search: '   ' });
+    await svc.listUnits(member('condo-1'), 'condo-1', { limit: 10, offset: 0, search: '   ' });
 
     expect(prisma.unit.findMany.mock.calls[0][0].where).toEqual({ condoId: 'condo-1' });
   });

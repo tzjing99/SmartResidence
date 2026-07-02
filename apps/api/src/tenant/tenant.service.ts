@@ -43,7 +43,8 @@ export class TenantService {
     });
   }
 
-  async getCondo(condoId: string) {
+  async getCondo(user: AuthenticatedUser, condoId: string) {
+    this.assertCondoMember(user, condoId);
     const condo = await this.cache.wrap(`condo:${condoId}`, CONDO_TTL, () =>
       this.prisma.condo.findUnique({
         where: { id: condoId },
@@ -56,7 +57,12 @@ export class TenantService {
     return condo;
   }
 
-  async listUnits(condoId: string, opts: { limit: number; offset: number; search?: string }) {
+  async listUnits(
+    user: AuthenticatedUser,
+    condoId: string,
+    opts: { limit: number; offset: number; search?: string },
+  ) {
+    this.assertCondoMember(user, condoId);
     const term = opts.search ? normalizeUnitSearchTerm(opts.search) : undefined;
     const where = buildUnitListWhere(condoId, term);
     const [items, total] = await this.prisma.$transaction([
@@ -78,7 +84,8 @@ export class TenantService {
     return { items, total, limit: opts.limit, offset: opts.offset };
   }
 
-  async listBlocks(condoId: string) {
+  async listBlocks(user: AuthenticatedUser, condoId: string) {
+    this.assertCondoMember(user, condoId);
     return this.cache.wrap(`blocks:${condoId}`, BLOCKS_TTL, () =>
       this.prisma.block.findMany({
         where: { condoId },
@@ -205,6 +212,20 @@ export class TenantService {
         block: membership.unit.block,
       },
     };
+  }
+
+  /**
+   * `@CheckAbility` only proves the caller can read *some* condo — it isn't
+   * handed the `:id`/`:condoId` route param — so every condo-scoped read
+   * must additionally confirm the caller has a role in *this* condo,
+   * otherwise any authenticated user could enumerate another condo's units,
+   * blocks, and resident names/emails by guessing/iterating condo ids (IDOR).
+   */
+  private assertCondoMember(user: AuthenticatedUser, condoId: string) {
+    const allowed = user.roles.some(
+      (r) => r.roleId === RoleId.SUPER_ADMIN || r.condoId === condoId,
+    );
+    if (!allowed) throw new ForbiddenException('You do not have access to this condo');
   }
 
   private assertManagement(user: AuthenticatedUser, condoId: string) {

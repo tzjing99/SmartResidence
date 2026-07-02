@@ -119,6 +119,10 @@ export class RefreshDto {
 }
 
 export class EnableTotpDto {
+  @ApiProperty({ description: 'The base32 secret returned by /totp/enroll/start' })
+  @IsString()
+  secret!: string;
+
   @ApiProperty()
   @IsString()
   @MinLength(6)

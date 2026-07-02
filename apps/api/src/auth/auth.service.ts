@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma, RoleId, UserStatus, VerificationPurpose } from '@prisma/client';
 import { isValidMalaysiaPhone, normalizeMalaysiaPhone } from '@smartresidence/shared-types';
 import * as argon2 from 'argon2';
+import { PASSWORD_HASH_OPTIONS } from './crypto/argon2-options';
 import type {
   RequestOtpDto,
   SignInDto,
@@ -53,7 +54,7 @@ export class AuthService {
         'Enter a valid Malaysia mobile number (e.g. +60123456789 or 012-345 6789)',
       );
     }
-    const passwordHash = await argon2.hash(dto.password);
+    const passwordHash = await argon2.hash(dto.password, PASSWORD_HASH_OPTIONS);
     try {
       const user = await this.prisma.user.create({
         data: {
@@ -198,7 +199,11 @@ export class AuthService {
 
     // The notification service handles actual delivery. In development the
     // console output is the delivery channel — see Mailpit at :8025 too.
-    this.logger.debug(`OTP for ${dto.identifier} (${dto.purpose}): ${code}`);
+    // Gated on NODE_ENV (not just LOG_LEVEL) so a misconfigured log level can
+    // never leak a live OTP code into production logs.
+    if (this.config.get('NODE_ENV', { infer: true }) !== 'production') {
+      this.logger.debug(`OTP for ${dto.identifier} (${dto.purpose}): ${code}`);
+    }
     return { ok: true };
   }
 

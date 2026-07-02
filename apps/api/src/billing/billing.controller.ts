@@ -4,11 +4,13 @@ import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import type { AuthenticatedUser } from '@/common/types/request-context';
+import type { AppEnv } from '@/config/env.schema';
 import {
   Body,
   Controller,
   Get,
   Headers,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
@@ -16,6 +18,7 @@ import {
   RawBody,
   Res,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   AuditAction,
@@ -245,7 +248,10 @@ export class BillingController {
 @ApiTags('Billing')
 @Controller('webhooks/payments')
 export class PaymentWebhookController {
-  constructor(private readonly billing: BillingService) {}
+  constructor(
+    private readonly billing: BillingService,
+    private readonly config: ConfigService<AppEnv, true>,
+  ) {}
 
   @Public()
   @Post('stripe')
@@ -320,12 +326,18 @@ export class PaymentWebhookController {
 
   /**
    * Sandbox seam: simulate DuitNow QR settlement in TEST when no webhook secret is
-   * configured (same pattern as MyInvois sandbox — no real PayNet call).
+   * configured (same pattern as MyInvois sandbox — no real PayNet call). This
+   * lets anyone forge a "successful payment" event, so it must never be
+   * reachable in production regardless of whether a webhook secret happens
+   * to be configured.
    */
   @Public()
   @Post('duitnow-qr/sandbox/settle')
-  @ApiOperation({ summary: '[SANDBOX] Simulate DuitNow QR payment success' })
+  @ApiOperation({ summary: '[SANDBOX] Simulate DuitNow QR payment success (non-production only)' })
   async duitnowSandboxSettle(@Body() body: Record<string, unknown>) {
+    if (this.config.get('NODE_ENV', { infer: true }) === 'production') {
+      throw new NotFoundException();
+    }
     return this.billing.handleGatewayCallback(
       PaymentProvider.DUITNOW_QR,
       {
@@ -337,11 +349,22 @@ export class PaymentWebhookController {
     );
   }
 
-  /** Accept http(s) app URLs and mobile deep links after hosted gateway return. */
+  /**
+   * Accept only our own web app origins or the mobile deep-link scheme after
+   * a hosted gateway return — otherwise `?next=` becomes an open redirect
+   * (an attacker could send a resident a legitimate-looking payment link
+   * that bounces through our domain to a phishing site).
+   */
   private gatewayReturnTarget(next: string | undefined): string {
-    const fallback = 'http://localhost:3000/billing';
+    const allowedOrigins = this.config.get('CORS_ORIGINS', { infer: true });
+    const fallback = allowedOrigins[0]
+      ? `${allowedOrigins[0]}/billing`
+      : 'http://localhost:3000/billing';
     if (!next) return fallback;
-    if (next.startsWith('http') || next.startsWith('smartresidence://')) return next;
+    if (next.startsWith('smartresidence://')) return next;
+    if (allowedOrigins.some((origin) => next === origin || next.startsWith(`${origin}/`))) {
+      return next;
+    }
     return fallback;
   }
 }

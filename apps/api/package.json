@@ -45,6 +45,7 @@
     "class-validator": "^0.14.1",
     "date-holidays": "^3.30.2",
     "expo-server-sdk": "^3.13.0",
+    "express": "4.22.1",
     "ioredis": "^5.4.1",
     "jose": "^5.9.6",
     "minio": "^8.0.2",
@@ -74,6 +75,7 @@
     "@types/node": "^22.9.0",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",
+    "@vitest/ui": "^2.1.5",
     "prisma": "^5.22.0",
     "supertest": "^7.0.0",
     "ts-loader": "^9.5.1",
@@ -81,7 +83,6 @@
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "unplugin-swc": "^1.5.9",
-    "vitest": "^2.1.5",
-    "@vitest/ui": "^2.1.5"
+    "vitest": "^2.1.5"
   }
 }

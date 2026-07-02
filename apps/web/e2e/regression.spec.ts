@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { signIn } from './helpers/auth';
+import { expectManageAccessNav } from './helpers/nav';
 
 test.describe('Regression smoke: role home routes', () => {
   test('management admin lands on /admin', async ({ page }) => {
@@ -11,7 +12,7 @@ test.describe('Regression smoke: role home routes', () => {
   test('unit owner lands on resident dashboard', async ({ page }) => {
     await signIn(page, 'owner@acacia.demo');
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-    await expect(page.getByRole('link', { name: /manage access/i })).toBeVisible();
+    await expectManageAccessNav(page);
   });
 
   test('security guard lands on gate view', async ({ page }) => {

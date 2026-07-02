@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectManageAccessNav } from './helpers/nav';
 
 const PASSWORD = 'Demo!2026';
 
@@ -13,7 +14,7 @@ test('unit owner lands on the resident dashboard with owner-empowerment nav', as
   await signIn(page, 'owner@acacia.demo');
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
   // Owner-only surface (revoke RoleAssignment) is visible…
-  await expect(page.getByRole('link', { name: /manage access/i })).toBeVisible();
+  await expectManageAccessNav(page);
   // …and management-only nav is absent; SLA history is nested under Settings.
   await expect(page.getByRole('link', { name: /audit log/i })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
@@ -30,6 +31,10 @@ test('management admin lands on the /admin portal', async ({ page }) => {
 
   await sidebar.getByRole('link', { name: 'Settings', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/settings/, { timeout: 15_000 });
+  // Settings hub uses category cards; sub-nav appears on sub-pages.
+  await expect(page.getByRole('link', { name: 'Audit log' })).toBeVisible();
+  await page.getByRole('link', { name: 'Audit log' }).click();
+  await expect(page).toHaveURL(/\/admin\/settings\/audit/, { timeout: 15_000 });
   const settingsNav = page.getByRole('navigation', { name: 'Settings sections' });
   await expect(settingsNav.getByRole('link', { name: 'Audit log', exact: true })).toBeVisible();
   await expect(

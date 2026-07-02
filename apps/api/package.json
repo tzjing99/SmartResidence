@@ -45,6 +45,7 @@
     "class-validator": "^0.14.1",
     "date-holidays": "^3.30.2",
     "expo-server-sdk": "^3.13.0",
+    "express": "4.22.1",
     "helmet": "^8.2.0",
     "ioredis": "^5.4.1",
     "jose": "^5.9.6",

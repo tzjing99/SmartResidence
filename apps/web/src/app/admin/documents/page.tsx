@@ -12,7 +12,11 @@ import {
   usePublishDocumentVersion,
   useUpdateDocumentFolder,
 } from '@smartresidence/api-client';
-import type { Document, DocumentFolder, DocumentFolderAudience } from '@smartresidence/shared-types';
+import type {
+  Document,
+  DocumentFolder,
+  DocumentFolderAudience,
+} from '@smartresidence/shared-types';
 import { DOCUMENT_FOLDER_AUDIENCE_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { FileText, FolderOpen, Loader2, Upload } from 'lucide-react';

@@ -144,7 +144,6 @@ export default function GuardWalkInPage() {
         <p className="sr-muted text-sm mt-2">{t('visitors.guard.walkInBlurb')}</p>
       </header>
 
-
       {blacklistAlert ? (
         <Card className="border-red-500/40 bg-red-500/5 p-4 flex gap-3 items-start">
           <Ban className="size-5 text-red-600 shrink-0 mt-0.5" />

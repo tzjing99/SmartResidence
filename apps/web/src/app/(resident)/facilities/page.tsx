@@ -20,7 +20,7 @@ import type {
 } from '@smartresidence/shared-types';
 import { BOOKING_STATUS_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Label, Skeleton } from '@smartresidence/ui-web';
-import { CalendarDays, ChevronRight, Clock, Loader2, Users, Wallet } from 'lucide-react';
+import { CalendarDays, ChevronRight, Clock, Users, Wallet } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<BookingStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {

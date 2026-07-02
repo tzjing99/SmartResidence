@@ -180,7 +180,9 @@ export default function GuardCheckInPage() {
               </div>
             ) : null}
             {!isRecurring ? (
-              <p className="text-xs sr-muted mt-1">{guardVisitorStatusLabel((pass as VerifiedVisitor).status)}</p>
+              <p className="text-xs sr-muted mt-1">
+                {guardVisitorStatusLabel((pass as VerifiedVisitor).status)}
+              </p>
             ) : null}
           </div>
           <Button onClick={allowEntry} disabled={busy || !canCheckIn}>

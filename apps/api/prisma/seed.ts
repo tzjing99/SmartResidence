@@ -127,7 +127,8 @@ async function main() {
 
   const sqftSizes = [950, 1100, 1250, 1400, 1650];
   for (const blockName of blocks) {
-    const block = blockRecords[blockName]!;
+    const block = blockRecords[blockName];
+    if (!block) continue;
     for (let floor = 1; floor <= 10; floor++) {
       for (let unitNum = 1; unitNum <= 4; unitNum++) {
         const identifier = `${blockName}-${floor.toString().padStart(2, '0')}-${unitNum}`;
@@ -1023,7 +1024,8 @@ async function main() {
 
     const spaceTypeIdByName: Record<string, string> = {};
     for (let s = 0; s < taxonomy.length; s++) {
-      const st = taxonomy[s]!;
+      const st = taxonomy[s];
+      if (!st) continue;
       const created = await prisma.defectSpaceType.create({
         data: {
           condoId: condo.id,
@@ -1084,7 +1086,8 @@ async function main() {
 
     const unitTypeIds: string[] = [];
     for (let t = 0; t < unitTypeDefs.length; t++) {
-      const ut = unitTypeDefs[t]!;
+      const ut = unitTypeDefs[t];
+      if (!ut) continue;
       const created = await prisma.unitType.create({
         data: {
           condoId: condo.id,

@@ -1,21 +1,13 @@
 import { expect, test } from '@playwright/test';
+import { signIn } from './helpers/auth';
 import { expectManageAccessNav } from './helpers/nav';
-
-const PASSWORD = 'Demo!2026';
-
-async function signIn(page: import('@playwright/test').Page, email: string) {
-  await page.goto('/sign-in');
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/password/i).fill(PASSWORD);
-  await page.getByRole('button', { name: /sign in/i }).click();
-}
 
 test('unit owner lands on the resident dashboard with owner-empowerment nav', async ({ page }) => {
   await signIn(page, 'owner@acacia.demo');
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-  // Owner-only surface (revoke RoleAssignment) is visible…
+  // Owner-only surface (revoke RoleAssignment) is visible.
   await expectManageAccessNav(page);
-  // …and management-only nav is absent; SLA history is nested under Settings.
+  // .and management-only nav is absent; SLA history is nested under Settings.
   await expect(page.getByRole('link', { name: /audit log/i })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
 });

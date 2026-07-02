@@ -102,8 +102,7 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
     const providerRef = `reg-idem-${Date.now()}`;
     await prisma.payment.create({
       data: {
-        sourceType: 'Invoice',
-        sourceId: invoice.id,
+        invoiceId: invoice.id,
         userId: fx.userIds.admin,
         amount: 100,
         currencyCode: 'MYR',

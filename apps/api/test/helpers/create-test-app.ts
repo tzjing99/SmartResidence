@@ -12,6 +12,16 @@ const mockRedisClient = {
   get: async () => null,
   del: async () => 1,
   eval: async () => 1,
+  exists: async () => 0,
+};
+
+/** Minimal RedisService stand-in for integration tests (no real Redis required). */
+const mockRedisService = {
+  client: mockRedisClient,
+  onModuleInit: async () => {},
+  onModuleDestroy: async () => {},
+  isTokenBlocked: async (_jti: string) => false,
+  blocklistToken: async (_jti: string, _ttlSeconds?: number) => {},
 };
 
 /** Bootstrap a NestJS app configured like production (global prefix, validation pipes). */
@@ -22,11 +32,7 @@ export async function createTestApp(): Promise<{
   const { AppModule } = await import('../../src/app.module');
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(RedisService)
-    .useValue({
-      client: mockRedisClient,
-      onModuleInit: async () => {},
-      onModuleDestroy: async () => {},
-    })
+    .useValue(mockRedisService)
     .overrideProvider(DistributedLockService)
     .useValue({
       withLock: async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn(),

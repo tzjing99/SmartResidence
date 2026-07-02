@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectManageAccessNav } from './helpers/nav';
 
 const PASSWORD = 'Demo!2026';
 
@@ -29,7 +30,7 @@ test('shows informative error on bad credentials', async ({ page }) => {
 test('sign out clears session so the next user gets their own role', async ({ page }) => {
   await signIn(page, 'owner@acacia.demo');
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-  await expect(page.getByRole('link', { name: /manage access/i })).toBeVisible();
+  await expectManageAccessNav(page);
 
   await page.getByRole('button', { name: /sign out/i }).click();
   await expect(page).toHaveURL(/sign-in/, { timeout: 15_000 });

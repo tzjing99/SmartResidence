@@ -6,7 +6,7 @@ test('resident can open lost & found and see the post form', async ({ page }) =>
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
 
   await page.goto('/lost-found');
-  await expect(page.getByRole('heading', { name: /lost & found/i })).toBeVisible({
+  await expect(page.getByRole('heading', { level: 1, name: /lost & found/i })).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByRole('heading', { name: 'Post to the board' })).toBeVisible();

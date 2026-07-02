@@ -5,10 +5,10 @@ test('landing page renders SmartResidence branding and CTAs', async ({ page }) =
   await expect(page).toHaveTitle(/SmartResidence/i);
   // Brand wordmark (rendered as a styled element, split across text nodes).
   await expect(page.getByText('SmartResidence').first()).toBeVisible();
-  // Hero headline.
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(/condo management/i);
+  // Hero headline (badge still mentions condo management; h1 is product-led).
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/run your building/i);
   await expect(page.getByRole('link', { name: /sign in/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /get started|sign up/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /get started/i })).toBeVisible();
 });
 
 test('navigates to sign-in page', async ({ page }) => {

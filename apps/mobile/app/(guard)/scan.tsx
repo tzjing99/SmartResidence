@@ -225,7 +225,10 @@ export default function ScanScreen() {
       >
         <View style={{ width: '100%', maxWidth: scannerMaxWidth, flex: 1, gap: 14 }}>
           <GuardBrandBar />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }} accessibilityRole="header">
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+            accessibilityRole="header"
+          >
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 22, fontWeight: '800', color: colors.fg }}>
                 Scan visitor pass

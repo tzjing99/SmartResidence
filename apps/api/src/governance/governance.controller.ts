@@ -38,6 +38,15 @@ export class GovernanceController {
     });
   }
 
+  @Get(':id/proxies')
+  @CheckAbility({ action: 'read', subject: 'MeetingProxy' })
+  listProxies(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.governance.listMeetingProxies(user, id);
+  }
+
   @Get(':id/my-proxies')
   @CheckAbility({ action: 'read', subject: 'GeneralMeeting' })
   myProxies(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {

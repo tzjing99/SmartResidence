@@ -92,6 +92,7 @@ import type {
   McpConnectionTestResult,
   McpServerConnectionView,
   MeetingProxy,
+  MeetingProxyAdmin,
   MeetingResolution,
   OpenResolutionVotingInput,
   Parcel,
@@ -2026,6 +2027,9 @@ export class ApiClient {
   }
   submitMeetingProxy(meetingId: string, data: SubmitMeetingProxyInput) {
     return this.request<MeetingProxy>('POST', `/api/governance/${meetingId}/proxies`, data);
+  }
+  listMeetingProxies(meetingId: string) {
+    return this.request<MeetingProxyAdmin[]>('GET', `/api/governance/${meetingId}/proxies`);
   }
   openResolutionVoting(resolutionId: string, data: OpenResolutionVotingInput = {}) {
     return this.request<MeetingResolution>(

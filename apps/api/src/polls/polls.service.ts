@@ -272,11 +272,81 @@ export class PollsService {
       throw new BadRequestException('This unit is not in the poll audience');
     }
 
+    return this.recordVote(user, poll, option, ownership, dto);
+  }
+
+  async castVoteWithOwnership(
+    user: AuthenticatedUser,
+    pollId: string,
+    dto: CastPollVoteDto,
+    ownership: {
+      id: string;
+      sharePercent: Prisma.Decimal;
+      unit: { id: string; condoId: string; blockId: string; identifier: string };
+    },
+    auditExtra?: Record<string, unknown>,
+  ) {
+    const poll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+      include: { options: true },
+    });
+    if (!poll) throw new NotFoundException();
+
+    const status = await this.maybeAutoClose(poll);
+    if (status !== PollStatus.OPEN) {
+      throw new BadRequestException('This poll is not open for voting');
+    }
+
+    const now = new Date();
+    if (poll.opensAt && poll.opensAt.getTime() > now.getTime()) {
+      throw new BadRequestException('Voting has not opened yet');
+    }
+    if (poll.closesAt && poll.closesAt.getTime() <= now.getTime()) {
+      throw new BadRequestException('Voting has closed');
+    }
+
+    const option = poll.options.find((o) => o.id === dto.optionId);
+    if (!option) throw new BadRequestException('Invalid poll option');
+
+    if (ownership.unit.id !== dto.unitId) {
+      throw new BadRequestException('Ownership does not match the selected unit');
+    }
+    if (ownership.unit.condoId !== poll.condoId) {
+      throw new BadRequestException('Unit does not belong to this poll');
+    }
+    if (!this.unitMatchesAudience(poll, ownership.unit.blockId)) {
+      throw new BadRequestException('This unit is not in the poll audience');
+    }
+
+    return this.recordVote(user, poll, option, ownership, dto, auditExtra);
+  }
+
+  async computeResultsSnapshot(pollId: string, includeBreakdown = false) {
+    const poll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+      include: { options: { orderBy: { position: 'asc' } } },
+    });
+    if (!poll) throw new NotFoundException();
+    return this.computeResults(pollId, poll.options, includeBreakdown);
+  }
+
+  private async recordVote(
+    user: AuthenticatedUser,
+    poll: Poll & { options: PollOption[] },
+    option: PollOption,
+    ownership: {
+      id: string;
+      sharePercent: Prisma.Decimal;
+      unit: { id: string; condoId: string; blockId: string; identifier: string };
+    },
+    dto: CastPollVoteDto,
+    auditExtra?: Record<string, unknown>,
+  ) {
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.pollVote.create({
           data: {
-            pollId,
+            pollId: poll.id,
             optionId: dto.optionId,
             unitId: dto.unitId,
             userId: user.id,
@@ -293,12 +363,13 @@ export class PollsService {
             actorRole: user.activeRole ?? undefined,
             action: AuditAction.CREATE,
             resourceType: 'PollVote',
-            resourceId: pollId,
+            resourceId: poll.id,
             metadata: {
               optionId: dto.optionId,
               optionLabel: option.label,
               ownershipId: ownership.id,
               weight: Number(ownership.sharePercent),
+              ...auditExtra,
             },
           },
         });
@@ -310,7 +381,7 @@ export class PollsService {
       throw err;
     }
 
-    return this.getMyVotes(user, pollId);
+    return this.getMyVotes(user, poll.id);
   }
 
   async getMyVotes(user: AuthenticatedUser, pollId: string) {

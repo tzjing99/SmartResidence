@@ -143,6 +143,11 @@ export class SubmitMeetingProxyDto {
   @IsString()
   @MaxLength(120)
   proxyHolderContact?: string;
+
+  @ApiPropertyOptional({ description: 'Registered condo user appointed as proxy holder' })
+  @IsOptional()
+  @IsUUID()
+  proxyHolderUserId?: string;
 }
 
 export class CastResolutionVoteDto {

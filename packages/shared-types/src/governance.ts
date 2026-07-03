@@ -34,11 +34,32 @@ export const MeetingProxySchema = z.object({
   meetingId: z.string().uuid(),
   unitId: z.string().uuid(),
   unitIdentifier: z.string().optional(),
+  proxyHolderUserId: z.string().uuid().nullable().optional(),
   proxyHolderName: z.string(),
   proxyHolderContact: z.string().optional(),
   submittedAt: z.coerce.date(),
 });
 export type MeetingProxy = z.infer<typeof MeetingProxySchema>;
+
+export const MeetingProxyAdminSchema = MeetingProxySchema.extend({
+  ownerUserId: z.string().uuid(),
+  ownerName: z.string(),
+  ownerEmail: z.string(),
+  proxyHolderAccountName: z.string().nullable().optional(),
+});
+export type MeetingProxyAdmin = z.infer<typeof MeetingProxyAdminSchema>;
+
+export const MeetingProxyAssignmentSchema = z.object({
+  id: z.string().uuid(),
+  meetingId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  unitIdentifier: z.string().optional(),
+  ownerUserId: z.string().uuid(),
+  ownerName: z.string(),
+  proxyHolderName: z.string(),
+  submittedAt: z.coerce.date(),
+});
+export type MeetingProxyAssignment = z.infer<typeof MeetingProxyAssignmentSchema>;
 
 export const MeetingResolutionPollSummarySchema = z.object({
   id: z.string().uuid(),
@@ -60,6 +81,7 @@ export const MeetingResolutionSchema = z.object({
   votingClosesAt: z.coerce.date().nullable().optional(),
   position: z.number().int().optional(),
   poll: MeetingResolutionPollSummarySchema.nullable().optional(),
+  resultsSnapshot: PollResultsSchema.nullable().optional(),
 });
 export type MeetingResolution = z.infer<typeof MeetingResolutionSchema>;
 
@@ -87,6 +109,7 @@ export const GeneralMeetingSchema = z.object({
   proxyCount: z.number().int().optional(),
   resolutions: z.array(MeetingResolutionSchema).optional(),
   myProxies: z.array(MeetingProxySchema).optional(),
+  myProxyAssignments: z.array(MeetingProxyAssignmentSchema).optional(),
 });
 export type GeneralMeeting = z.infer<typeof GeneralMeetingSchema>;
 
@@ -134,6 +157,7 @@ export const SubmitMeetingProxyInputSchema = z.object({
   unitId: z.string().uuid(),
   proxyHolderName: z.string().min(2).max(120),
   proxyHolderContact: z.string().max(120).optional(),
+  proxyHolderUserId: z.string().uuid().optional(),
 });
 export type SubmitMeetingProxyInput = z.infer<typeof SubmitMeetingProxyInputSchema>;
 
@@ -150,5 +174,6 @@ export const ResolutionResultsSchema = z.object({
   votingOpensAt: z.coerce.date().nullable().optional(),
   votingClosesAt: z.coerce.date().nullable().optional(),
   poll: PollSchema,
+  resultsSnapshot: PollResultsSchema.nullable().optional(),
 });
 export type ResolutionResults = z.infer<typeof ResolutionResultsSchema>;

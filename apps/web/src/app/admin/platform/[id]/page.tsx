@@ -7,14 +7,7 @@ import { useRoleGuard } from '@/lib/use-role-guard';
 import { usePlatformCondoHealth, usePlatformCondoSummary } from '@smartresidence/api-client';
 import { setupProgress } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Building2,
-  ChevronRight,
-  Receipt,
-  Users,
-} from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, ChevronRight, Receipt, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -188,7 +181,10 @@ export default function PlatformCondoDetailPage() {
                     <p className="font-medium">
                       {event.action} · {event.resourceType}
                       {event.resourceId ? (
-                        <span className="sr-muted font-normal"> ({event.resourceId.slice(0, 8)}…)</span>
+                        <span className="sr-muted font-normal">
+                          {' '}
+                          ({event.resourceId.slice(0, 8)}…)
+                        </span>
                       ) : null}
                     </p>
                     <p className="sr-muted mt-0.5">{event.actorName ?? 'System'}</p>

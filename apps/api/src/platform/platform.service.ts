@@ -8,7 +8,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AuditAction, DefectStatus, InvoiceStatus, RoleId, type Prisma } from '@prisma/client';
+import { AuditAction, DefectStatus, InvoiceStatus, type Prisma, RoleId } from '@prisma/client';
 import type {
   CreatePlatformCondoResult,
   PlatformCondoDetail,

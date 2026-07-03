@@ -105,10 +105,7 @@ function makeService() {
         { condoId: CONDO_ID, userId: 'user-1' },
         { condoId: CONDO_ID, userId: 'user-2' },
       ]),
-      count: vi
-        .fn()
-        .mockResolvedValueOnce(30)
-        .mockResolvedValueOnce(3),
+      count: vi.fn().mockResolvedValueOnce(30).mockResolvedValueOnce(3),
     },
     defect: {
       groupBy: vi.fn(async () => [{ condoId: CONDO_ID, _count: { _all: 5 } }]),

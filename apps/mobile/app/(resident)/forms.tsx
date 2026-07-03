@@ -204,7 +204,11 @@ export default function FormsScreen() {
 
   if (!unit) {
     return (
-      <ResidentScreen eyebrow={tr('nav.sections.services')} title={tr('nav.screens.forms')} subtitle="Condo management forms">
+      <ResidentScreen
+        eyebrow={tr('nav.sections.services')}
+        title={tr('nav.screens.forms')}
+        subtitle="Condo management forms"
+      >
         <EmptyState
           title="No unit linked"
           description="Your account needs a unit to submit forms."

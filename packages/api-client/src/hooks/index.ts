@@ -26,8 +26,8 @@ import type {
   CreateVendorInput,
   CreateVisitorInput,
   OpenResolutionVotingInput,
-  PublishMeetingMinutesInput,
   PatrolScanInput,
+  PublishMeetingMinutesInput,
   RaiseSosInput,
   SubmitMeetingProxyInput,
   UpdateAnnouncementInput,
@@ -1599,7 +1599,6 @@ export function useUpdateMeeting(api: ApiClient) {
     },
   });
 }
-
 
 export function usePublishMeetingMinutes(api: ApiClient) {
   const qc = useQueryClient();

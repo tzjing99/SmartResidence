@@ -747,6 +747,7 @@ enum PaymentProvider {
   IPAY88
   RAZER
   DUITNOW_QR
+  TNG
   MANUAL
 }
 

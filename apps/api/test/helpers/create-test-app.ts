@@ -52,5 +52,6 @@ export async function createTestApp(): Promise<{
     }),
   );
   await app.init();
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
   return { app, prisma: app.get(PrismaService) };
 }

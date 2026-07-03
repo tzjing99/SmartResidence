@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { TEST_PASSWORD, authHeaders, ensureIntegrationEnv } from '../helpers/integration-env';
+import { TEST_PASSWORD, authHeaders, ensureIntegrationEnv, signInTestIp } from '../helpers/integration-env';
 import type { IntegrationFixtures } from '../helpers/integration-types';
 
 const integrationReady = ensureIntegrationEnv();
@@ -26,6 +26,7 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())
       .post('/api/auth/sign-in')
+      .set('X-Forwarded-For', signInTestIp('auth-sign-in-success'))
       .send({ email: fx.emails.owner, password: TEST_PASSWORD })
       .expect(200);
 
@@ -36,6 +37,7 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())
       .post('/api/auth/sign-in')
+      .set('X-Forwarded-For', signInTestIp('auth-sign-in-invalid'))
       .send({ email: fx.emails.owner, password: 'wrong-password' })
       .expect(401);
     expect(res.body.message ?? res.body.error).toBeTruthy();
@@ -79,6 +81,7 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
 
     const extra = await supertest(server)
       .post('/api/auth/sign-in')
+      .set('X-Forwarded-For', signInTestIp('auth-extra-session'))
       .set('User-Agent', 'IntegrationTest/ExtraSession')
       .send({ email: fx.emails.owner, password: TEST_PASSWORD })
       .expect(200);

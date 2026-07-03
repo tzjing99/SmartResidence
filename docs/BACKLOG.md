@@ -8,6 +8,11 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
+- ✅ **GV1 — Governance core (v0.6 partial)** — `GovernanceModule` (`apps/api/src/governance/**`): `GeneralMeeting` (AGM/EGM), notice workflow, `MeetingProxy`, `MeetingResolution` with share-weighted e-voting via linked `Poll` (For/Against/Abstain); admin `/admin/governance`, resident `/(resident)/governance`, mobile `(resident)/governance`; migration `20260702170000_governance`; e2e `governance.spec.ts`. **Remaining:** minutes publication + financial/budget transparency (see ROADMAP §4.8).
+- ✅ **LF1 — Lost & found board** — `LostFoundModule` (`apps/api/src/lost-found/**`): `LostFoundPost` with kind/status + photo attachments; admin `/admin/lost-found`, resident `/(resident)/lost-found`, mobile `(resident)/lost-found`; migration `20260702160000_lost_found`; e2e `lost-found.spec.ts`.
+- ✅ **F2 (partial) — Platform console basics** — `PlatformModule` + web `/admin/platform` (condo list/search, per-condo detail, setup status badges, open-condo-admin context switch) for `SUPER_ADMIN`. Full provisioning/plans/impersonation still future.
+- ✅ **SEC1 — Security hardening (PR #5, merge `2db9666`)** — Helmet/CSP headers, auth rate limiting, argon2/TOTP hardening, JWT on Socket.IO, Swagger gated to non-prod, billing webhook/redirect hardening, dependency patches, and broad IDOR remediation across visitor, defects, billing, announcements, FAQ, MCP, parcels, and related controllers. See ROADMAP §4.12.
+- ✅ **V5 — Visitor RBAC correction** — `ability.factory.ts` now grants management **read-only** visitor access (plus overnight-policy abilities for admins); unit-scoped approve/reject remains owner/tenant only. Covered by `ability.factory.spec.ts` ("lets management read the visitor log but not approve or reject visitors").
 - ✅ **Ops batch (`6dd4f00`) + follow-on (`a4baa2a`)** — DuitNow QR + gateway UI, facility booking, parcels, forms/workflows, safety/SOS + guard patrol, first-time setup wizard (no forced redirect), delivery/e-hailing passes, documents vault, WhatsApp notifications, production MyInvois e-Invoice seam; **community marketplace cancelled** (product decision). **Guard on-site admit kept** (see ROADMAP §2.1).
 - ✅ **N1 — Real-time notifications (web toast + bell + mobile push fix)** — notification dispatch now emits an enriched `notification.created` event (title/body/data) that `realtime.gateway` forwards as `notification:new` to the recipient's `user:*` room. Web shows an in-app toast (`realtime-provider.tsx`) plus a notification bell with unread badge + dropdown (`notification-bell.tsx`) wired into `app-shell` and `admin-shell`; api-client gains `useNotifications`/`useMarkNotificationsRead` (+ `listNotifications`/`markNotificationsRead`/`registerPushToken`). Mobile push now registers via the authenticated `api.registerPushToken` (`src/lib/push.ts`, `use-push-registration.ts`, `push-navigation.ts`, `push-navigation-bridge.tsx`).
 - ✅ **GP1 — Governance-lite polls (owner-verified MC voting)** — `PollsModule` (`apps/api/src/polls/**`) with active-ownership-verified voting (only unit owners may vote; ownership + condo checked at vote time); admin authoring `/admin/polls` + resident `/(resident)/polls` on web, mobile `(resident)/polls.tsx`; `packages/shared-types/src/polls.ts`; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM e-voting (still future).
@@ -375,12 +380,12 @@ When a resident opens a thread, the system should assign it to the right managem
 | ID | Priority | Roadmap | Description |
 | --- | --- | --- | --- |
 | **F1** | ✅ Done | v0.3 | Visitor Collaboration v2 — two-path visitor flow. |
-| **F2** | P3 | future | Dedicated `SUPER_ADMIN` platform / multi-condo view. |
-| **F4** | P1 | 🟡 In progress | First-time setup / onboarding wizard — guided condo bootstrap for a brand-new deployment. |
+| **F2** | 🟡 Partial | v1.0 | Dedicated `SUPER_ADMIN` platform / multi-condo view — basics at `/admin/platform`. |
+| **F4** | ✅ Done | v0.5 | First-time setup / onboarding wizard — guided condo bootstrap for a brand-new deployment. |
 
 ### F4 — First-time setup / onboarding wizard
 
-> **Status:** ✅ Done · shipped in 6dd4f00; redirect trap removed in 4baa2a (banner + **Finish setup** nav only) · **Priority:** P1 · **Area:** api + web
+> **Status:** ✅ Done · shipped in `6dd4f00`; redirect trap removed in `a4baa2a` (banner + **Finish setup** nav only) · **Priority:** P1 · **Area:** api + web
 
 When SmartResidence is deployed for a brand-new JMB/MC with an empty database (no demo seed), an admin needs a guided, foolproof way to stand the building up — today this only happens via the seed script. Build a **first-time setup wizard** that detects a fresh/unconfigured condo and walks the first admin through the essentials, in order, with validation and the ability to resume.
 
@@ -418,7 +423,9 @@ Future sub-items: vehicle plate / ANPR field, ~~blacklist~~ ✅ (shipped, V4), ~
 
 ### F2 — Dedicated SUPER_ADMIN platform / multi-condo view
 
-Super admin currently reuses the `/admin` dashboard labeled "Platform portal"; a real multi-condo oversight section is future work.
+> **Status:** 🟡 Partial · **Area:** api + web · **Shipped:** `PlatformModule` + `/admin/platform` (condo list/search, detail, setup badges, open-condo-admin switch)
+
+Super admin currently has a dedicated **Platform console** at `/admin/platform` for cross-condo list/search and per-condo detail. **Still future:** condo provisioning, plan/usage, feature flags, support impersonation (audited), aggregate health.
 
 ## Tech debt
 

@@ -7,7 +7,7 @@ import { toast } from '@/lib/toast';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useCreatePlatformCondo, usePlatformCondos } from '@smartresidence/api-client';
 import type { PlatformCondoSummary } from '@smartresidence/shared-types';
-import { Badge, Button, Card, EmptyState, Input, Skeleton } from '@smartresidence/ui-web';
+import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import {
   AlertTriangle,
   Building2,
@@ -146,45 +146,49 @@ export default function PlatformCondosPage() {
         <Card className="p-5 space-y-4">
           <h2 className="font-semibold">Provision new condo</h2>
           <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleProvision}>
-            <label className="space-y-1 text-sm">
-              <span className="sr-muted">Name</span>
+            <div className="space-y-1 text-sm">
+              <Label htmlFor="provision-name">Name</Label>
               <Input
+                id="provision-name"
                 value={provisionForm.name}
                 onChange={(e) => setProvisionForm((f) => ({ ...f, name: e.target.value }))}
                 required
                 minLength={2}
                 placeholder="Acacia Residences"
               />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="sr-muted">Slug</span>
+            </div>
+            <div className="space-y-1 text-sm">
+              <Label htmlFor="provision-slug">Slug</Label>
               <Input
+                id="provision-slug"
                 value={provisionForm.slug}
                 onChange={(e) => setProvisionForm((f) => ({ ...f, slug: e.target.value }))}
                 required
                 minLength={2}
                 placeholder="acacia-residences"
               />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <span className="sr-muted">Address</span>
+            </div>
+            <div className="space-y-1 text-sm sm:col-span-2">
+              <Label htmlFor="provision-address">Address</Label>
               <Input
+                id="provision-address"
                 value={provisionForm.address}
                 onChange={(e) => setProvisionForm((f) => ({ ...f, address: e.target.value }))}
                 required
                 minLength={5}
                 placeholder="12 Jalan Demo, Kuala Lumpur"
               />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="sr-muted">Timezone</span>
+            </div>
+            <div className="space-y-1 text-sm">
+              <Label htmlFor="provision-timezone">Timezone</Label>
               <Input
+                id="provision-timezone"
                 value={provisionForm.timezone}
                 onChange={(e) => setProvisionForm((f) => ({ ...f, timezone: e.target.value }))}
                 required
                 placeholder="Asia/Kuala_Lumpur"
               />
-            </label>
+            </div>
             <div className="flex items-end">
               <Button type="submit" variant="primary" disabled={createCondo.isPending}>
                 {createCondo.isPending ? 'Creating…' : 'Create condo'}
@@ -274,7 +278,11 @@ export default function PlatformCondosPage() {
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                    <Button type="button" variant="primary" onClick={() => openCondoAdmin(condo.id)}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => openCondoAdmin(condo.id)}
+                    >
                       Open admin
                     </Button>
                     <Button type="button" variant="secondary" asChild>

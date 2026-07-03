@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { DistributedLockService } from '../../src/redis/distributed-lock.service';
 import { RedisService } from '../../src/redis/redis.service';
@@ -37,6 +38,8 @@ export async function createTestApp(): Promise<{
     .useValue({
       withLock: async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn(),
     })
+    .overrideGuard(ThrottlerGuard)
+    .useValue({ canActivate: () => true })
     .compile();
   const app = moduleRef.createNestApplication();
   app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });

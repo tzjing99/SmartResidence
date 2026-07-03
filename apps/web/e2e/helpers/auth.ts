@@ -9,6 +9,7 @@ export async function signIn(page: Page, email: string, password = E2E_PASSWORD)
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(password);
   await page.getByRole('button', { name: /sign in/i }).click();
+  await page.waitForURL((url) => !url.pathname.startsWith('/sign-in'), { timeout: 30_000 });
 }
 
 /** Desktop uses the sidebar control; mobile calls the API then opens sign-in. */

@@ -23,7 +23,7 @@ type TabBarButtonProps = {
   [key: string]: unknown;
 };
 
-const ACTIVE_TINT = '#FF385C'; // Airbnb pink
+const ACTIVE_TINT = '#FF5A5F'; // Brand coral — matches palette.coralPrimary
 const INACTIVE_TINT = '#717171'; // Modern grey
 /** Matches resident/guard screen shells — avoids default RN tab navigator grey. */
 export const TAB_SCENE_BACKGROUND = '#FFF8F6';

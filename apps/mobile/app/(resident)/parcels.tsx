@@ -1,17 +1,26 @@
 import { useCollectParcel, useMyUnits, useUnitParcels } from '@smartresidence/api-client';
 import type { ParcelStatus } from '@smartresidence/shared-types';
 import { PARCEL_STATUS_LABELS } from '@smartresidence/shared-types';
-import { AppText, Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
-import { useCallback } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
 import {
-  RESIDENT_CORAL,
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  FadeInView,
+  Pill,
+  SkeletonList,
+  palette,
+} from '@smartresidence/ui-mobile';
+import { useCallback } from 'react';
+import { Alert, View } from 'react-native';
+import {
   ResidentScreen,
   ResidentSectionHeader,
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticError, hapticSuccess } from '../../src/lib/haptics';
 
 const STATUS_TONE: Record<ParcelStatus, 'neutral' | 'warning' | 'success' | 'danger'> = {
   RECEIVED: 'neutral',
@@ -47,10 +56,14 @@ export default function ParcelsScreen() {
         onPress: () => {
           void collectParcel
             .mutateAsync({ id })
-            .then(() => Alert.alert('Done', 'Thanks — marked as collected.'))
-            .catch((err) =>
-              Alert.alert('Error', err instanceof Error ? err.message : 'Could not update'),
-            );
+            .then(() => {
+              hapticSuccess();
+              Alert.alert('Done', 'Thanks — marked as collected.');
+            })
+            .catch((err) => {
+              hapticError();
+              Alert.alert('Error', err instanceof Error ? err.message : 'Could not update');
+            });
         },
       },
     ]);
@@ -64,7 +77,7 @@ export default function ParcelsScreen() {
       scrollProps={{ refreshControl }}
     >
       {parcels.isLoading ? (
-        <ActivityIndicator color={RESIDENT_CORAL} />
+        <SkeletonList rows={2} rowHeight={100} />
       ) : (parcels.data?.items.length ?? 0) === 0 ? (
         <EmptyState
           title="No parcels waiting"
@@ -73,37 +86,39 @@ export default function ParcelsScreen() {
       ) : (
         <View style={{ gap: 12 }}>
           <ResidentSectionHeader title="Awaiting pickup" />
-          {parcels.data?.items.map((p) => (
-            <Card key={p.id} style={[residentStyles.card, { gap: 8 }]}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <AppText variant="label">{p.recipientName}</AppText>
-                <Pill tone={STATUS_TONE[p.status]} label={PARCEL_STATUS_LABELS[p.status]} />
-              </View>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                {p.carrier ?? 'Delivery'}
-                {p.trackingRef ? ` · ${p.trackingRef}` : ''}
-              </AppText>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                Received {fmtDateTime(p.receivedAt)}
-              </AppText>
-              {p.notes ? (
-                <AppText variant="bodySm" style={{ color: palette.mutedLight }}>
-                  {p.notes}
+          {parcels.data?.items.map((p, index) => (
+            <FadeInView key={p.id} index={index}>
+              <Card style={[residentStyles.card, { gap: 8 }]}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <AppText variant="label">{p.recipientName}</AppText>
+                  <Pill tone={STATUS_TONE[p.status]} label={PARCEL_STATUS_LABELS[p.status]} />
+                </View>
+                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  {p.carrier ?? 'Delivery'}
+                  {p.trackingRef ? ` · ${p.trackingRef}` : ''}
                 </AppText>
-              ) : null}
-              <Button
-                title="I collected this"
-                onPress={() => confirmCollect(p.id)}
-                disabled={collectParcel.isPending}
-              />
-            </Card>
+                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  Received {fmtDateTime(p.receivedAt)}
+                </AppText>
+                {p.notes ? (
+                  <AppText variant="bodySm" style={{ color: palette.mutedLight }}>
+                    {p.notes}
+                  </AppText>
+                ) : null}
+                <Button
+                  title="I collected this"
+                  onPress={() => confirmCollect(p.id)}
+                  disabled={collectParcel.isPending}
+                />
+              </Card>
+            </FadeInView>
           ))}
         </View>
       )}

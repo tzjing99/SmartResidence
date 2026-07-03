@@ -1029,16 +1029,13 @@ export default function AdminAnnouncementsPage() {
                 type="submit"
                 className="w-full sm:w-auto"
                 disabled={!title.trim() || !body.trim() || create.isPending || update.isPending}
+                loading={editingId ? update.isPending : create.isPending}
               >
                 {editingId
-                  ? update.isPending
-                    ? 'Saving…'
-                    : 'Save changes'
-                  : create.isPending
-                    ? 'Saving…'
-                    : publishMode === 'schedule'
-                      ? 'Schedule notice'
-                      : 'Publish notice'}
+                  ? 'Save changes'
+                  : publishMode === 'schedule'
+                    ? 'Schedule notice'
+                    : 'Publish notice'}
               </Button>
             </div>
           </form>

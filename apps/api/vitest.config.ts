@@ -9,7 +9,7 @@ import { defineConfig } from 'vitest/config';
 try {
   loadEnvFile(resolve(dirname(fileURLToPath(import.meta.url)), '.env'));
 } catch {
-  // No local .env — integration tests skip unless DATABASE_URL is exported in the shell.
+  // No local .env ΓÇö integration tests skip unless DATABASE_URL is exported in the shell.
 }
 
 export default defineConfig({

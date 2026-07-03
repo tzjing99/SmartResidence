@@ -340,9 +340,27 @@ export class VisitorService {
   private userIsManagement(user: AuthenticatedUser, condoId: string): boolean {
     return user.roles.some(
       (r) =>
-        (r.roleId === RoleId.MANAGEMENT_ADMIN || r.roleId === RoleId.MANAGEMENT_STAFF) &&
-        r.condoId === condoId,
+        r.roleId === RoleId.SUPER_ADMIN ||
+        ((r.roleId === RoleId.MANAGEMENT_ADMIN || r.roleId === RoleId.MANAGEMENT_STAFF) &&
+          r.condoId === condoId),
     );
+  }
+
+  private userIsCondoMember(user: AuthenticatedUser, condoId: string): boolean {
+    return user.roles.some((r) => r.roleId === RoleId.SUPER_ADMIN || r.condoId === condoId);
+  }
+
+  /** Household-scoped access OR management access to the unit's condo. */
+  private async assertUnitAccess(user: AuthenticatedUser, unitId: string): Promise<void> {
+    if (this.userCanManageUnit(user, unitId)) return;
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { condoId: true },
+    });
+    if (!unit) throw new NotFoundException('Unit not found');
+    if (!this.userIsManagement(user, unit.condoId)) {
+      throw new ForbiddenException('You cannot access visitors for this unit');
+    }
   }
 
   private mapWalkInPurpose(purpose?: string): VisitorPurpose {
@@ -407,7 +425,10 @@ export class VisitorService {
     }
   }
 
-  async overnightPreview(condoId: string, expectedAt: Date) {
+  async overnightPreview(user: AuthenticatedUser, condoId: string, expectedAt: Date) {
+    if (!this.userIsCondoMember(user, condoId)) {
+      throw new ForbiddenException('You cannot access overnight rules for this condo');
+    }
     const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
     if (!condo) throw new NotFoundException('Condo not found');
     const occupied = await this.countOvernightSlots(condoId, expectedAt);
@@ -966,7 +987,9 @@ export class VisitorService {
 
   async getGuardWalkInPolicy(guard: AuthenticatedUser) {
     const condoId = this.guardCondoId(guard);
-    const settings = await this.getVisitorSettings(condoId);
+    const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
+    if (!condo) throw new NotFoundException('Condo not found');
+    const settings = parseCondoVisitorSettings(condo.settings);
     return {
       walkInRequireOwnerApproval: settings.walkInRequireOwnerApproval,
       walkInApprovalMinutes: settings.walkInApprovalMinutes,
@@ -1289,9 +1312,11 @@ export class VisitorService {
   }
 
   async listForUnit(
+    user: AuthenticatedUser,
     unitId: string,
     opts: { limit: number; offset: number; view?: VisitorListView; status?: VisitorStatus },
   ) {
+    await this.assertUnitAccess(user, unitId);
     const viewStatuses = statusesForView(opts.view);
     const statusFilter = opts.status
       ? { status: opts.status }
@@ -1327,7 +1352,10 @@ export class VisitorService {
     };
   }
 
-  async getAdminVisitorStats(condoId: string) {
+  async getAdminVisitorStats(user: AuthenticatedUser, condoId: string) {
+    if (!this.userIsManagement(user, condoId)) {
+      throw new ForbiddenException('You cannot view visitor stats for this condo');
+    }
     const tz = await this.condoTimezone(condoId);
     const { start, end } = condoDayBounds(tz);
     const [
@@ -1397,6 +1425,9 @@ export class VisitorService {
       viewer?: AuthenticatedUser;
     },
   ) {
+    if (opts.viewer && !this.userIsCondoMember(opts.viewer, condoId)) {
+      throw new ForbiddenException('You cannot view visitors for this condo');
+    }
     const viewStatuses = statusesForView(opts.view);
     const statusFilter = opts.status
       ? { status: opts.status }
@@ -1745,7 +1776,8 @@ export class VisitorService {
     return updated;
   }
 
-  async listFavourites(unitId: string) {
+  async listFavourites(user: AuthenticatedUser, unitId: string) {
+    await this.assertUnitAccess(user, unitId);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.favouriteVisitor.findMany({
         where: { unitId },
@@ -1804,13 +1836,23 @@ export class VisitorService {
     await this.prisma.favouriteVisitor.delete({ where: { id } });
   }
 
-  async getVisitorSettings(condoId: string) {
+  async getVisitorSettings(user: AuthenticatedUser, condoId: string) {
+    if (!this.userIsManagement(user, condoId)) {
+      throw new ForbiddenException('You cannot view visitor settings for this condo');
+    }
     const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
     if (!condo) throw new NotFoundException('Condo not found');
     return parseCondoVisitorSettings(condo.settings);
   }
 
-  async updateVisitorSettings(condoId: string, dto: UpdateVisitorSettingsDto) {
+  async updateVisitorSettings(
+    user: AuthenticatedUser,
+    condoId: string,
+    dto: UpdateVisitorSettingsDto,
+  ) {
+    if (!this.userIsManagement(user, condoId)) {
+      throw new ForbiddenException('You cannot update visitor settings for this condo');
+    }
     const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
     if (!condo) throw new NotFoundException('Condo not found');
     const patch: Partial<CondoVisitorSettings> = {};
@@ -1873,7 +1915,10 @@ export class VisitorService {
     return parseCondoVisitorSettings(settings);
   }
 
-  async getOvernightOwnerSummary(condoId: string, month?: string) {
+  async getOvernightOwnerSummary(user: AuthenticatedUser, condoId: string, month?: string) {
+    if (!this.userIsManagement(user, condoId)) {
+      throw new ForbiddenException('You cannot view overnight summaries for this condo');
+    }
     const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
     if (!condo) throw new NotFoundException('Condo not found');
     const range = parseMonthParam(month);

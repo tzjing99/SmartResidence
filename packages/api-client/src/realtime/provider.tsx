@@ -129,6 +129,7 @@ export function RealtimeProvider({
   const me = useMe(api, { enabled });
   const condos = useMyCondos(api, { enabled });
   const [ready, setReady] = React.useState(false);
+  const [token, setToken] = React.useState<string | null>(null);
 
   const userId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
   const condoId = condos.data?.[0]?.id as string | undefined;
@@ -140,12 +141,26 @@ export function RealtimeProvider({
   }, [onNotification]);
 
   React.useEffect(() => {
-    if (!enabled || !userId || !condoId) {
+    if (!enabled || !userId) {
+      setToken(null);
+      return;
+    }
+    let cancelled = false;
+    void api.getAccessToken().then((t) => {
+      if (!cancelled) setToken(t);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, userId, api]);
+
+  React.useEffect(() => {
+    if (!enabled || !userId || !token) {
       setReady(false);
       return;
     }
 
-    const cfg: RealtimeConnectConfig = { baseUrl, condoId, userId };
+    const cfg: RealtimeConnectConfig = { baseUrl, token, condoId };
     const socket = connectRealtime(cfg);
     setReady(true);
 
@@ -158,7 +173,7 @@ export function RealtimeProvider({
       disconnectRealtime();
       setReady(false);
     };
-  }, [enabled, userId, condoId, baseUrl, api, qc]);
+  }, [enabled, userId, token, condoId, baseUrl, api, qc]);
 
   return <RealtimeCtx.Provider value={ready}>{children}</RealtimeCtx.Provider>;
 }

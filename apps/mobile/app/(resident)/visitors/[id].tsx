@@ -1,9 +1,18 @@
 import { useMyUnits, useUnitVisitors, useVisitorQr } from '@smartresidence/api-client';
 import type { Visitor } from '@smartresidence/shared-types';
-import { Button, Card, EmptyState, Pill, palette, radius } from '@smartresidence/ui-mobile';
+import {
+  Button,
+  Card,
+  EmptyState,
+  Pill,
+  Skeleton,
+  SkeletonList,
+  palette,
+  radius,
+} from '@smartresidence/ui-mobile';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { api } from '../../../src/lib/api';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
@@ -92,7 +101,7 @@ export default function VisitorPassScreen() {
         </Pressable>
 
         {!visitor ? (
-          <ActivityIndicator color={palette.coralPrimary} />
+          <SkeletonList rows={3} rowHeight={70} />
         ) : (
           <>
             <View>
@@ -168,7 +177,11 @@ export default function VisitorPassScreen() {
             ) : null}
 
             {qr.isLoading ? (
-              <ActivityIndicator color={palette.coralPrimary} />
+              <Card>
+                <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                  <Skeleton width={200} height={200} radius={radius.md} />
+                </View>
+              </Card>
             ) : qrPayload ? (
               <Card>
                 <View style={{ alignItems: 'center', gap: 12, paddingVertical: 8 }}>

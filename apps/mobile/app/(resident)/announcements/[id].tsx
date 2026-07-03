@@ -11,6 +11,7 @@ import {
   AppText,
   Button,
   Card,
+  Skeleton,
   Stack,
   palette,
   spacing,
@@ -70,9 +71,12 @@ export default function AnnouncementDetailScreen() {
       }
     >
       {detail.isLoading ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading...
-        </AppText>
+        <Stack gap={spacing.sm}>
+          <Skeleton height={22} width="70%" />
+          <Skeleton height={120} radius={16} />
+          <Skeleton height={16} width="90%" />
+          <Skeleton height={16} width="60%" />
+        </Stack>
       ) : detail.isError || !item ? (
         <Stack gap={spacing.md}>
           <AppText variant="meta">

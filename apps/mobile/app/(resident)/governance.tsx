@@ -13,9 +13,21 @@ import type {
   MeetingResolution,
 } from '@smartresidence/shared-types';
 import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
-import { AppText, Button, Card, EmptyState, Input, Pill, palette } from '@smartresidence/ui-mobile';
+import {
+  AnimatedPressable,
+  AppText,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  FadeInView,
+  Input,
+  Pill,
+  SkeletonList,
+  palette,
+} from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import {
   ResidentScreen,
   ResidentSectionHeader,
@@ -23,6 +35,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
 const STATUS_TONE: Record<GeneralMeetingStatus, 'neutral' | 'success' | 'warning' | 'info'> = {
   DRAFT: 'neutral',
@@ -71,11 +84,7 @@ export default function GovernanceScreen() {
       {selectedId ? (
         <MeetingDetail meetingId={selectedId} />
       ) : meetingsQuery.isLoading ? (
-        <Card style={residentStyles.card}>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
-            Loading meetings…
-          </AppText>
-        </Card>
+        <SkeletonList rows={3} rowHeight={76} />
       ) : meetings.length === 0 ? (
         <EmptyState
           title="No meetings scheduled"
@@ -84,8 +93,10 @@ export default function GovernanceScreen() {
       ) : (
         <>
           <ResidentSectionHeader title="Upcoming & recent" />
-          {meetings.map((m) => (
-            <MeetingListItem key={m.id} meeting={m} onSelect={() => m.id && setSelectedId(m.id)} />
+          {meetings.map((m, index) => (
+            <FadeInView key={m.id} index={index}>
+              <MeetingListItem meeting={m} onSelect={() => m.id && setSelectedId(m.id)} />
+            </FadeInView>
           ))}
         </>
       )}
@@ -102,7 +113,7 @@ function MeetingListItem({
 }) {
   const status = meeting.status ?? 'DRAFT';
   return (
-    <Pressable onPress={onSelect}>
+    <AnimatedPressable onPress={onSelect}>
       <Card style={residentStyles.card}>
         <View
           style={{
@@ -121,7 +132,7 @@ function MeetingListItem({
           <Pill label={MEETING_STATUS_LABELS[status]} tone={STATUS_TONE[status]} />
         </View>
       </Card>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -152,13 +163,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
   }, [unitsQuery.data, existingProxyUnits]);
 
   if (meetingQuery.isLoading || !meeting) {
-    return (
-      <Card style={residentStyles.card}>
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading…
-        </AppText>
-      </Card>
-    );
+    return <SkeletonList rows={2} rowHeight={90} />;
   }
 
   const status = meeting.status ?? 'DRAFT';
@@ -186,14 +191,19 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
         <Card style={[residentStyles.card, { marginTop: 12 }]}>
           <AppText variant="subheading">Submit proxy</AppText>
           <View style={{ marginTop: 8, gap: 8 }}>
-            {ownedUnits.map((u) => (
-              <Pressable key={u.id} onPress={() => u.id && setUnitId(u.id)}>
-                <Pill
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {ownedUnits.map((u) => (
+                <Chip
+                  key={u.id}
                   label={u.identifier ?? u.id ?? ''}
-                  tone={unitId === u.id ? 'primary' : 'neutral'}
+                  active={unitId === u.id}
+                  onPress={() => {
+                    hapticSelection();
+                    if (u.id) setUnitId(u.id);
+                  }}
                 />
-              </Pressable>
-            ))}
+              ))}
+            </View>
             <Input
               placeholder="Proxy holder name"
               value={holderName}
@@ -202,6 +212,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
             <Button
               title="Submit proxy"
               disabled={submitProxy.isPending || !unitId || holderName.length < 2}
+              loading={submitProxy.isPending}
               onPress={() =>
                 submitProxy.mutate(
                   {
@@ -210,10 +221,14 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
                   },
                   {
                     onSuccess: () => {
+                      hapticSuccess();
                       Alert.alert('Proxy submitted');
                       setHolderName('');
                     },
-                    onError: (e) => Alert.alert('Error', e.message),
+                    onError: (e) => {
+                      hapticError();
+                      Alert.alert('Error', e.message);
+                    },
                   },
                 )
               }
@@ -269,28 +284,49 @@ function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
 
       {pollOpen && ownedUnits.length > 0 ? (
         <View style={{ marginTop: 12, gap: 8 }}>
-          {ownedUnits.map((u) => (
-            <Pressable key={u.id} onPress={() => u.id && setUnitId(u.id)}>
-              <Pill label={u.identifier ?? ''} tone={unitId === u.id ? 'primary' : 'neutral'} />
-            </Pressable>
-          ))}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {ownedUnits.map((u) => (
+              <Chip
+                key={u.id}
+                label={u.identifier ?? ''}
+                active={unitId === u.id}
+                onPress={() => {
+                  hapticSelection();
+                  if (u.id) setUnitId(u.id);
+                }}
+              />
+            ))}
+          </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {(resolution.poll?.options ?? []).map((opt) => (
-              <Pressable key={opt.id} onPress={() => opt.id && setOptionId(opt.id)}>
-                <Pill label={opt.label ?? ''} tone={optionId === opt.id ? 'primary' : 'neutral'} />
-              </Pressable>
+              <Chip
+                key={opt.id}
+                label={opt.label ?? ''}
+                active={optionId === opt.id}
+                onPress={() => {
+                  hapticSelection();
+                  if (opt.id) setOptionId(opt.id);
+                }}
+              />
             ))}
           </View>
           <Button
             title="Cast vote"
             disabled={castVote.isPending || !unitId || !optionId}
+            loading={castVote.isPending}
             onPress={() =>
               resolution.id &&
               castVote.mutate(
                 { resolutionId: resolution.id, data: { unitId, optionId } },
                 {
-                  onSuccess: () => Alert.alert('Vote recorded'),
-                  onError: (e) => Alert.alert('Error', e.message),
+                  onSuccess: () => {
+                    hapticSuccess();
+                    Alert.alert('Vote recorded');
+                  },
+                  onError: (e) => {
+                    hapticError();
+                    Alert.alert('Error', e.message);
+                  },
                 },
               )
             }

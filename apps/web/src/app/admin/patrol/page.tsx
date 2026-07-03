@@ -17,7 +17,7 @@ import type {
   PatrolScan,
 } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { Copy, Loader2, MapPin, Pencil, Plus, RefreshCw, Route, Trash2 } from 'lucide-react';
+import { Copy, MapPin, Pencil, Plus, RefreshCw, Route, Trash2 } from 'lucide-react';
 import * as React from 'react';
 
 function fmtDateTime(d: Date | string | null | undefined) {
@@ -140,8 +140,7 @@ function CheckpointForm({
           Active (guards can scan this checkpoint)
         </label>
         <div className="flex gap-2">
-          <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : null}
+          <Button type="submit" loading={pending}>
             {editing ? 'Save changes' : 'Create checkpoint'}
           </Button>
           <Button type="button" variant="ghost" onClick={onDone}>
@@ -255,13 +254,9 @@ function CheckpointCard({
               size="sm"
               variant="ghost"
               onClick={handleRegenerate}
-              disabled={regenerate.isPending}
+              loading={regenerate.isPending}
             >
-              {regenerate.isPending ? (
-                <Loader2 className="size-4 animate-spin mr-1.5" />
-              ) : (
-                <RefreshCw className="size-4 mr-1.5" />
-              )}
+              <RefreshCw className="size-4 mr-1.5" />
               Rotate code
             </Button>
           </div>

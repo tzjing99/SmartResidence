@@ -7,7 +7,8 @@ import {
   useMarkNotificationsRead,
   useNotifications,
 } from '@smartresidence/api-client';
-import { Badge } from '@smartresidence/ui-web';
+import { Badge, Skeleton, iosSpring } from '@smartresidence/ui-web';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -33,6 +34,7 @@ export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
 
   const notifications = useNotifications(api, { limit: 20 });
   const markRead = useMarkNotificationsRead(api);
@@ -91,73 +93,99 @@ export function NotificationBell() {
         ) : null}
       </button>
 
-      {open ? (
-        <div className="absolute right-0 mt-2 w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] shadow-xl z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[rgb(var(--sr-border))]">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold">Notifications</span>
-              {unreadCount > 0 ? (
-                <Badge tone="primary">{unreadCount > 9 ? '9+' : unreadCount}</Badge>
-              ) : null}
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            key="panel"
+            initial={
+              reduceMotion
+                ? undefined
+                : { opacity: 0, scale: 0.95, y: -6, transformOrigin: 'top right' }
+            }
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, scale: 0.95, y: -6 }}
+            transition={reduceMotion ? { duration: 0 } : iosSpring.snappy}
+            className="absolute right-0 mt-2 w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] shadow-xl z-50 overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgb(var(--sr-border))]">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold">Notifications</span>
+                {unreadCount > 0 ? (
+                  <Badge tone="primary">{unreadCount > 9 ? '9+' : unreadCount}</Badge>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={markAllRead}
+                disabled={unreadCount === 0 || markRead.isPending}
+                className="text-xs font-medium text-[rgb(var(--sr-coral))] hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-default"
+              >
+                Mark all read
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={markAllRead}
-              disabled={unreadCount === 0 || markRead.isPending}
-              className="text-xs font-medium text-[rgb(var(--sr-coral))] hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-default"
-            >
-              Mark all read
-            </button>
-          </div>
 
-          <div className="max-h-[70vh] sm:max-h-[420px] overflow-y-auto">
-            {notifications.isLoading ? (
-              <div className="px-4 py-10 text-center text-sm sr-muted">Loading…</div>
-            ) : items.length === 0 ? (
-              <div className="px-4 py-10 text-center text-sm sr-muted">You're all caught up.</div>
-            ) : (
-              <ul className="divide-y divide-[rgb(var(--sr-border))]">
-                {items.map((item) => {
-                  const unread = item.readAt == null;
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => handleItemClick(item)}
-                        className="w-full text-left px-4 py-3 flex gap-3 transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/30"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={`mt-1.5 size-2 shrink-0 rounded-full ${
-                            unread ? 'bg-[rgb(var(--sr-coral))]' : 'bg-transparent'
-                          }`}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-start justify-between gap-2">
-                            <span
-                              className={`text-sm truncate ${unread ? 'font-semibold' : 'font-medium'}`}
-                            >
-                              {item.title}
-                            </span>
-                            <span className="text-[11px] sr-muted shrink-0 whitespace-nowrap">
-                              {formatRelativeTime(item.createdAt)}
-                            </span>
-                          </span>
-                          {item.body ? (
-                            <span className="mt-0.5 block text-xs sr-muted line-clamp-2">
-                              {item.body}
-                            </span>
-                          ) : null}
-                        </span>
-                      </button>
+            <div className="max-h-[70vh] sm:max-h-[420px] overflow-y-auto">
+              {notifications.isLoading ? (
+                <ul className="divide-y divide-[rgb(var(--sr-border))]">
+                  {['sk-1', 'sk-2', 'sk-3', 'sk-4'].map((key) => (
+                    <li key={key} className="px-4 py-3 flex gap-3">
+                      <Skeleton className="mt-1 size-2 shrink-0 rounded-full" />
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <Skeleton className="h-3.5 w-32" />
+                          <Skeleton className="h-3 w-10 shrink-0" />
+                        </div>
+                        <Skeleton className="h-3 w-full max-w-[220px]" />
+                      </div>
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-      ) : null}
+                  ))}
+                </ul>
+              ) : items.length === 0 ? (
+                <div className="px-4 py-10 text-center text-sm sr-muted">You're all caught up.</div>
+              ) : (
+                <ul className="divide-y divide-[rgb(var(--sr-border))]">
+                  {items.map((item) => {
+                    const unread = item.readAt == null;
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          onClick={() => handleItemClick(item)}
+                          className="w-full text-left px-4 py-3 flex gap-3 transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/30"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`mt-1.5 size-2 shrink-0 rounded-full ${
+                              unread ? 'bg-[rgb(var(--sr-coral))]' : 'bg-transparent'
+                            }`}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-start justify-between gap-2">
+                              <span
+                                className={`text-sm truncate ${unread ? 'font-semibold' : 'font-medium'}`}
+                              >
+                                {item.title}
+                              </span>
+                              <span className="text-[11px] sr-muted shrink-0 whitespace-nowrap">
+                                {formatRelativeTime(item.createdAt)}
+                              </span>
+                            </span>
+                            {item.body ? (
+                              <span className="mt-0.5 block text-xs sr-muted line-clamp-2">
+                                {item.body}
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

@@ -5,6 +5,7 @@ export * from './components/select';
 export * from './components/badge';
 export * from './components/switch';
 export * from './components/skeleton';
+export * from './components/dialog';
 export * from './components/empty-state';
 export * from './components/photo-upload';
 export * from './lib/cn';

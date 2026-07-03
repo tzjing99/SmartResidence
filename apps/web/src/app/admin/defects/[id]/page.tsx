@@ -201,8 +201,12 @@ export default function AdminDefectDetailPage() {
                   />
                   Internal note
                 </label>
-                <Button type="submit" disabled={addUpdate.isPending || !comment.trim()}>
-                  {addUpdate.isPending ? 'Sending…' : 'Post'}
+                <Button
+                  type="submit"
+                  disabled={addUpdate.isPending || !comment.trim()}
+                  loading={addUpdate.isPending}
+                >
+                  Post
                 </Button>
               </div>
             </form>

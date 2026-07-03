@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, tapScale, tapTransition } from '@smartresidence/ui-web';
+import { cn, pillTransition, tapScale, tapTransition } from '@smartresidence/ui-web';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 
@@ -59,9 +59,7 @@ export function PillTabs<T extends string>({
                   layoutId={`${groupId}-pill-active`}
                   aria-hidden
                   className="absolute inset-0 rounded-full bg-coral-500/10 dark:bg-coral-500/15 border border-coral-500/20"
-                  transition={
-                    reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }
-                  }
+                  transition={pillTransition(reduceMotion)}
                 />
               ) : null}
               <motion.span

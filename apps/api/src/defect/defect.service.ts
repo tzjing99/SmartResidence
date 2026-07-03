@@ -37,6 +37,9 @@ export class DefectService {
   async create(user: AuthenticatedUser, dto: CreateDefectDto) {
     const unit = await this.prisma.unit.findUnique({ where: { id: dto.unitId } });
     if (!unit) throw new NotFoundException('Unit not found');
+    if (!this.userHasUnitRole(user, unit.id) && !this.isManagement(user, unit.condoId)) {
+      throw new ForbiddenException('You cannot raise defects for this unit');
+    }
 
     const defect = await this.prisma.defect.create({
       data: {
@@ -71,7 +74,12 @@ export class DefectService {
     return defect;
   }
 
-  async listForUnit(unitId: string, opts: { limit: number; offset: number }) {
+  async listForUnit(
+    user: AuthenticatedUser,
+    unitId: string,
+    opts: { limit: number; offset: number },
+  ) {
+    await this.assertUnitAccess(user, unitId);
     const where = { unitId, reportId: null };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.defect.findMany({
@@ -91,9 +99,11 @@ export class DefectService {
   }
 
   async listForCondo(
+    user: AuthenticatedUser,
     condoId: string,
     opts: { limit: number; offset: number; status?: DefectStatus },
   ) {
+    this.assertCondoAccess(user, condoId);
     const where = { condoId, ...(opts.status ? { status: opts.status } : {}) };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.defect.findMany({
@@ -121,6 +131,43 @@ export class DefectService {
         MANAGEMENT_ROLES.includes(r.roleId) &&
         (r.roleId === RoleId.SUPER_ADMIN || r.condoId === condoId),
     );
+  }
+
+  private userHasUnitRole(user: AuthenticatedUser, unitId: string): boolean {
+    return user.roles.some((r) => r.unitId === unitId);
+  }
+
+  /** Household-scoped access to a unit's defects OR management access to its condo. */
+  private async assertUnitAccess(user: AuthenticatedUser, unitId: string): Promise<void> {
+    if (this.userHasUnitRole(user, unitId)) return;
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { condoId: true },
+    });
+    if (!unit) throw new NotFoundException('Unit not found');
+    if (!this.isManagement(user, unit.condoId)) {
+      throw new ForbiddenException('You cannot access defects for this unit');
+    }
+  }
+
+  private assertCondoAccess(user: AuthenticatedUser, condoId: string): void {
+    if (!this.isManagement(user, condoId)) {
+      throw new ForbiddenException('You cannot access defects for this condo');
+    }
+  }
+
+  /**
+   * Access to a specific defect: management of its condo, a role on its unit,
+   * or the contractor/staff it is directly assigned to.
+   */
+  private assertDefectAccess(
+    user: AuthenticatedUser,
+    defect: { condoId: string; unitId: string | null; assignedToUserId?: string | null },
+  ): void {
+    if (this.isManagement(user, defect.condoId)) return;
+    if (defect.unitId && this.userHasUnitRole(user, defect.unitId)) return;
+    if (defect.assignedToUserId && defect.assignedToUserId === user.id) return;
+    throw new ForbiddenException('You cannot access this defect');
   }
 
   /**
@@ -188,7 +235,7 @@ export class DefectService {
     return { buffer, filename: `defects-${safeName}-${date}.pdf` };
   }
 
-  async getOne(id: string) {
+  async getOne(user: AuthenticatedUser, id: string) {
     const defect = await this.prisma.defect.findUnique({
       where: { id },
       include: {
@@ -203,12 +250,14 @@ export class DefectService {
       },
     });
     if (!defect) throw new NotFoundException();
+    this.assertDefectAccess(user, defect);
     return defect;
   }
 
   async transition(id: string, user: AuthenticatedUser, dto: TransitionDefectDto) {
     const defect = await this.prisma.defect.findUnique({ where: { id } });
     if (!defect) throw new NotFoundException();
+    this.assertDefectAccess(user, defect);
     if (!canTransitionDefect(defect.status, dto.status)) {
       throw new BadRequestException(`Cannot move from ${defect.status} to ${dto.status}`);
     }
@@ -254,6 +303,7 @@ export class DefectService {
   async addUpdate(id: string, user: AuthenticatedUser, dto: AddDefectUpdateDto) {
     const defect = await this.prisma.defect.findUnique({ where: { id } });
     if (!defect) throw new NotFoundException();
+    this.assertDefectAccess(user, defect);
 
     const update = await this.prisma.$transaction(async (tx) => {
       const created = await tx.defectUpdate.create({

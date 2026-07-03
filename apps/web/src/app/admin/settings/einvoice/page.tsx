@@ -302,8 +302,8 @@ function EInvoiceForm({ condoId }: { condoId: string }) {
       </SettingsSection>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={update.isPending}>
-          {update.isPending ? 'Saving…' : 'Save settings'}
+        <Button type="submit" loading={update.isPending}>
+          Save settings
         </Button>
       </div>
     </form>

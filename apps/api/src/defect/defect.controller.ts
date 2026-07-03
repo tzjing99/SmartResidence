@@ -36,18 +36,23 @@ export class DefectController {
 
   @Get('unit/:unitId')
   @CheckAbility({ action: 'read', subject: 'Defect' })
-  forUnit(@Param('unitId', new ParseUUIDPipe()) unitId: string, @Query() page: PaginationDto) {
-    return this.defects.listForUnit(unitId, page);
+  forUnit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Query() page: PaginationDto,
+  ) {
+    return this.defects.listForUnit(user, unitId, page);
   }
 
   @Get('condo/:condoId')
   @CheckAbility({ action: 'read', subject: 'Defect' })
   forCondo(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query() page: PaginationDto,
     @Query('status') status?: DefectStatus,
   ) {
-    return this.defects.listForCondo(condoId, { ...page, status });
+    return this.defects.listForCondo(user, condoId, { ...page, status });
   }
 
   @Get('condo/:condoId/export.pdf')
@@ -73,8 +78,8 @@ export class DefectController {
 
   @Get(':id')
   @CheckAbility({ action: 'read', subject: 'Defect' })
-  getOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.defects.getOne(id);
+  getOne(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.defects.getOne(user, id);
   }
 
   @Patch(':id/status')

@@ -272,9 +272,10 @@ function AdvanceMaintenancePayment({
             type="button"
             className="self-start"
             disabled={createAdvance.isPending || !provider || (methods.data?.length ?? 0) === 0}
+            loading={createAdvance.isPending}
             onClick={() => void startAdvancePayment()}
           >
-            {createAdvance.isPending ? 'Starting...' : 'Pay maintenance in advance'}
+            Pay maintenance in advance
           </Button>
         </div>
       )}

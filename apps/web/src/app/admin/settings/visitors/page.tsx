@@ -684,9 +684,13 @@ export default function VisitorSettingsPage() {
                 Discard
               </Button>
             ) : null}
-            <Button onClick={onSave} disabled={!dirty || update.isPending}>
+            <Button
+              onClick={onSave}
+              disabled={!dirty || update.isPending}
+              loading={update.isPending}
+            >
               <Save className="size-4" />
-              {update.isPending ? 'Saving…' : 'Save changes'}
+              Save changes
             </Button>
           </div>
         </div>

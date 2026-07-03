@@ -8,16 +8,20 @@ import {
 import type { Poll, PollStatus } from '@smartresidence/shared-types';
 import { POLL_STATUS_LABELS, effectivePollStatus } from '@smartresidence/shared-types';
 import {
+  AnimatedPressable,
   AppText,
   Button,
   Card,
+  Chip,
   EmptyState,
+  FadeInView,
   Pill,
+  SkeletonList,
   palette,
   radius,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import {
   RESIDENT_CORAL,
   RESIDENT_SOFT_CORAL,
@@ -27,6 +31,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
 type OwnedUnit = { id: string; identifier: string };
 
@@ -78,11 +83,7 @@ export default function PollsScreen() {
       {selectedId ? (
         <VotePanel pollId={selectedId} />
       ) : pollsQuery.isLoading ? (
-        <Card style={residentStyles.card}>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
-            Loading polls…
-          </AppText>
-        </Card>
+        <SkeletonList rows={3} rowHeight={76} />
       ) : polls.length === 0 ? (
         <EmptyState
           title="No polls right now"
@@ -93,16 +94,20 @@ export default function PollsScreen() {
           {openPolls.length > 0 ? (
             <>
               <ResidentSectionHeader title="Open for voting" />
-              {openPolls.map((p) => (
-                <PollListItem key={p.id} poll={p} onSelect={() => p.id && setSelectedId(p.id)} />
+              {openPolls.map((p, index) => (
+                <FadeInView key={p.id} index={index}>
+                  <PollListItem poll={p} onSelect={() => p.id && setSelectedId(p.id)} />
+                </FadeInView>
               ))}
             </>
           ) : null}
           {closedPolls.length > 0 ? (
             <>
               <ResidentSectionHeader title="Recent results" />
-              {closedPolls.map((p) => (
-                <PollListItem key={p.id} poll={p} onSelect={() => p.id && setSelectedId(p.id)} />
+              {closedPolls.map((p, index) => (
+                <FadeInView key={p.id} index={index}>
+                  <PollListItem poll={p} onSelect={() => p.id && setSelectedId(p.id)} />
+                </FadeInView>
               ))}
             </>
           ) : null}
@@ -115,7 +120,7 @@ export default function PollsScreen() {
 function PollListItem({ poll, onSelect }: { poll: Poll; onSelect: () => void }) {
   const status = effectivePollStatus(poll);
   return (
-    <Pressable onPress={onSelect}>
+    <AnimatedPressable onPress={onSelect}>
       <Card style={residentStyles.card}>
         <View
           style={{
@@ -141,7 +146,7 @@ function PollListItem({ poll, onSelect }: { poll: Poll; onSelect: () => void }) 
           <AppText style={{ color: palette.mutedLight, fontSize: 20 }}>›</AppText>
         </View>
       </Card>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -173,13 +178,7 @@ function VotePanel({ pollId }: { pollId: string }) {
   const availableUnits = ownedUnits.filter((u) => !votedUnitIds.has(u.id));
 
   if (pollQuery.isLoading || !poll) {
-    return (
-      <Card style={residentStyles.card}>
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading poll…
-        </AppText>
-      </Card>
-    );
+    return <SkeletonList rows={2} rowHeight={90} />;
   }
 
   const status = effectivePollStatus(poll);
@@ -199,8 +198,10 @@ function VotePanel({ pollId }: { pollId: string }) {
       });
       setUnitId('');
       setOptionId('');
+      hapticSuccess();
       Alert.alert('Vote recorded', 'Your vote has been recorded for your unit.');
     } catch (err) {
+      hapticError();
       Alert.alert('Could not record vote', (err as Error).message);
     }
   }
@@ -265,7 +266,10 @@ function VotePanel({ pollId }: { pollId: string }) {
                       key={u.id}
                       label={u.identifier}
                       active={active}
-                      onPress={() => setUnitId(u.id)}
+                      onPress={() => {
+                        hapticSelection();
+                        setUnitId(u.id);
+                      }}
                     />
                   );
                 })}
@@ -277,9 +281,12 @@ function VotePanel({ pollId }: { pollId: string }) {
               {(poll.options ?? []).map((o) => {
                 const active = effectiveOptionId === o.id;
                 return (
-                  <Pressable
+                  <AnimatedPressable
                     key={o.id}
-                    onPress={() => setOptionId(o.id)}
+                    onPress={() => {
+                      hapticSelection();
+                      setOptionId(o.id);
+                    }}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -314,7 +321,7 @@ function VotePanel({ pollId }: { pollId: string }) {
                       ) : null}
                     </View>
                     <AppText style={{ flex: 1, color: palette.textLight }}>{o.label}</AppText>
-                  </Pressable>
+                  </AnimatedPressable>
                 );
               })}
             </View>
@@ -370,33 +377,5 @@ function VotePanel({ pollId }: { pollId: string }) {
         </Card>
       ) : null}
     </View>
-  );
-}
-
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: radius.full,
-        backgroundColor: active ? RESIDENT_SOFT_CORAL : palette.surfaceLight,
-        borderWidth: 1,
-        borderColor: active ? 'rgba(255, 56, 92, 0.25)' : palette.borderLight,
-      }}
-    >
-      <AppText style={{ fontWeight: '600', color: active ? RESIDENT_CORAL : palette.textLight }}>
-        {label}
-      </AppText>
-    </Pressable>
   );
 }

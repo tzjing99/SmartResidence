@@ -113,8 +113,8 @@ export default function SignInPage() {
               <Input id="totp" inputMode="numeric" maxLength={6} {...form.register('totp')} />
             </div>
           ) : null}
-          <Button type="submit" disabled={form.formState.isSubmitting} className="mt-2">
-            {form.formState.isSubmitting ? 'Signing in…' : 'Sign in'}
+          <Button type="submit" loading={form.formState.isSubmitting} className="mt-2">
+            Sign in
           </Button>
         </form>
         <p className="mt-6 text-sm sr-muted">
@@ -123,9 +123,11 @@ export default function SignInPage() {
             Create an account
           </Link>
         </p>
-        <p className="mt-2 text-xs sr-muted">
-          Demo: <code>owner@acacia.demo</code> / <code>Demo!2026</code>
-        </p>
+        {process.env.NODE_ENV !== 'production' ? (
+          <p className="mt-2 text-xs sr-muted">
+            Demo: <code>owner@acacia.demo</code> / <code>Demo!2026</code>
+          </p>
+        ) : null}
       </Card>
     </div>
   );

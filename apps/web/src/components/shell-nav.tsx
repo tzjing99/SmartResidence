@@ -1,8 +1,8 @@
 'use client';
 
 import { resolveActiveHref } from '@/lib/nav';
-import { cn } from '@smartresidence/ui-web';
-import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import { cn, iosSpring, pillTransition } from '@smartresidence/ui-web';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
@@ -96,9 +96,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
                   layoutId="nav-active-pill"
                   aria-hidden
                   className="absolute inset-0 rounded-xl bg-coral-500/10"
-                  transition={
-                    reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }
-                  }
+                  transition={pillTransition(reduceMotion)}
                 />
               ) : null}
               <Icon className="size-4 relative z-10" />
@@ -148,9 +146,7 @@ function NavLinkItem({
           layoutId="nav-active-pill"
           aria-hidden
           className="absolute inset-0 rounded-xl bg-coral-500/10"
-          transition={
-            reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }
-          }
+          transition={pillTransition(reduceMotion)}
         />
       ) : null}
       <Icon className="size-4 relative z-10" />
@@ -262,9 +258,20 @@ export function NavGroupLinks({
                   {group.label}
                 </div>
               )}
-              {!isCollapsed ? (
-                <div className="flex flex-col gap-0.5">{group.items.map(renderItem)}</div>
-              ) : null}
+              <AnimatePresence initial={false}>
+                {!isCollapsed ? (
+                  <motion.div
+                    key="content"
+                    initial={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                    transition={reduceMotion ? { duration: 0 } : iosSpring.default}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex flex-col gap-0.5">{group.items.map(renderItem)}</div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>
           );
         })}

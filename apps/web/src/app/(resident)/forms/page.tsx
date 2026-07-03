@@ -21,7 +21,7 @@ import {
   FORM_TEMPLATE_KIND_LABELS,
 } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Label, Skeleton } from '@smartresidence/ui-web';
-import { ChevronRight, ClipboardList, Loader2 } from 'lucide-react';
+import { ChevronRight, ClipboardList } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<FormSubmissionStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
@@ -169,8 +169,7 @@ function SubmitPanel({
         <Button type="button" variant="secondary" onClick={onDone}>
           Back
         </Button>
-        <Button type="button" onClick={submit} disabled={create.isPending}>
-          {create.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+        <Button type="button" onClick={submit} loading={create.isPending}>
           Submit for review
         </Button>
       </div>

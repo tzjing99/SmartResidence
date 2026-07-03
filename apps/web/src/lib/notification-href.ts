@@ -10,8 +10,12 @@ export function webHrefForNotification(payload: {
   const data = payload.data ?? {};
   const deeplink = typeof data.deeplink === 'string' ? data.deeplink : null;
   if (deeplink?.startsWith('smartresidence://')) {
-    const path = deeplink.slice('smartresidence://'.length);
-    if (path.startsWith('admin/')) return `/${path}`;
+    // Strip *all* leading slashes, not just the scheme separator — otherwise
+    // a payload like `smartresidence:////evil.com` yields `path = "//evil.com"`
+    // and `router.push('///evil.com')`, which browsers can treat as a
+    // protocol-relative redirect off our own domain (open redirect).
+    const path = deeplink.slice('smartresidence://'.length).replace(/^\/+/, '');
+    if (!path) return null;
     return `/${path}`;
   }
   if (typeof data.invoiceId === 'string') return `/billing/${data.invoiceId}`;

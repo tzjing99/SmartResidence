@@ -6,7 +6,10 @@ import { DefectStatus, RoleId } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { DefectService } from './defect.service';
 
-const actor = { id: 'staff-1' } as AuthenticatedUser;
+const actor = {
+  id: 'staff-1',
+  roles: [{ roleId: RoleId.MANAGEMENT_STAFF, condoId: 'c1', unitId: null, permissions: [] }],
+} as unknown as AuthenticatedUser;
 
 function makeService(defect: Record<string, unknown> | null) {
   const tx = {

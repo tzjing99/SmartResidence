@@ -26,7 +26,10 @@ function service() {
   return { svc: new FaqService(prisma, cache), prisma };
 }
 
-const user: any = { id: 'admin1' };
+const user: any = {
+  id: 'admin1',
+  roles: [{ roleId: 'MANAGEMENT_ADMIN', condoId: 'c1', unitId: null, permissions: [] }],
+};
 
 describe('FaqService', () => {
   it('creates an article with sensible defaults', async () => {
@@ -47,7 +50,7 @@ describe('FaqService', () => {
     const { svc, prisma } = service();
     prisma.faqArticle.findUnique.mockResolvedValueOnce({ id: 'a1', condoId: 'c1' });
     prisma.faqArticle.update.mockResolvedValueOnce({ id: 'a1', helpfulCount: 1 });
-    await svc.markHelpful('a1');
+    await svc.markHelpful(user, 'a1');
     expect(prisma.faqArticle.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { helpfulCount: { increment: 1 } } }),
     );
@@ -56,14 +59,14 @@ describe('FaqService', () => {
   it('throws when an article is missing', async () => {
     const { svc, prisma } = service();
     prisma.faqArticle.findUnique.mockResolvedValueOnce(null);
-    await expect(svc.getArticle('missing')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.getArticle(user, 'missing')).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('counts a view when requested', async () => {
     const { svc, prisma } = service();
-    prisma.faqArticle.findUnique.mockResolvedValueOnce({ id: 'a1' });
+    prisma.faqArticle.findUnique.mockResolvedValueOnce({ id: 'a1', condoId: 'c1' });
     prisma.faqArticle.update.mockResolvedValueOnce({ id: 'a1' });
-    await svc.getArticle('a1', { countView: true });
+    await svc.getArticle(user, 'a1', { countView: true });
     expect(prisma.faqArticle.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { viewCount: { increment: 1 } } }),
     );

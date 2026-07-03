@@ -45,6 +45,7 @@ export class VisitorController {
   @CheckAbility({ action: 'read', subject: 'Visitor' })
   @ApiOperation({ summary: 'Preview overnight rules, slots, and helper message for a date' })
   overnightPreview(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('expectedAt') expectedAtRaw: string,
   ) {
@@ -52,40 +53,48 @@ export class VisitorController {
     if (Number.isNaN(expectedAt.getTime())) {
       throw new BadRequestException('expectedAt query param must be a valid ISO date-time');
     }
-    return this.visitors.overnightPreview(condoId, expectedAt);
+    return this.visitors.overnightPreview(user, condoId, expectedAt);
   }
 
   @Get('admin/stats/:condoId')
   @CheckAbility({ action: 'read', subject: 'Visitor' })
   @ApiOperation({ summary: 'Management visitor insight metrics for today' })
-  adminVisitorStats(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
-    return this.visitors.getAdminVisitorStats(condoId);
+  adminVisitorStats(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    return this.visitors.getAdminVisitorStats(user, condoId);
   }
 
   @Get('admin/overnight-summary/:condoId')
   @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
   @ApiOperation({ summary: 'Monthly overnight usage summary per unit owner' })
   overnightOwnerSummary(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('month') month?: string,
   ) {
-    return this.visitors.getOvernightOwnerSummary(condoId, month);
+    return this.visitors.getOvernightOwnerSummary(user, condoId, month);
   }
 
   @Get('admin/visitor-settings/:condoId')
   @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
-  visitorSettings(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
-    return this.visitors.getVisitorSettings(condoId);
+  visitorSettings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    return this.visitors.getVisitorSettings(user, condoId);
   }
 
   @Patch('admin/visitor-settings/:condoId')
   @CheckAbility({ action: 'manage-overnight-policy', subject: 'Visitor' })
   @Audit({ action: AuditAction.UPDATE, resourceType: 'Condo', resourceIdFrom: 'params.condoId' })
   updateVisitorSettings(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Body() dto: UpdateVisitorSettingsDto,
   ) {
-    return this.visitors.updateVisitorSettings(condoId, dto);
+    return this.visitors.updateVisitorSettings(user, condoId, dto);
   }
 
   @Patch('admin/overnight-policy/:unitId/suspend')
@@ -256,8 +265,11 @@ export class VisitorController {
   @Get('favourites/unit/:unitId')
   @CheckAbility({ action: 'read', subject: 'FavouriteVisitor' })
   @ApiOperation({ summary: 'List saved visitor templates for a unit' })
-  favouritesForUnit(@Param('unitId', new ParseUUIDPipe()) unitId: string) {
-    return this.visitors.listFavourites(unitId);
+  favouritesForUnit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+  ) {
+    return this.visitors.listFavourites(user, unitId);
   }
 
   @Post('favourites')
@@ -304,11 +316,12 @@ export class VisitorController {
   @Get('unit/:unitId')
   @CheckAbility({ action: 'read', subject: 'Visitor' })
   forUnit(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('unitId', new ParseUUIDPipe()) unitId: string,
     @Query() query: ListVisitorsQueryDto,
   ) {
     const { view, status, ...page } = query;
-    return this.visitors.listForUnit(unitId, { ...page, view, status });
+    return this.visitors.listForUnit(user, unitId, { ...page, view, status });
   }
 
   @Get('condo/:condoId')

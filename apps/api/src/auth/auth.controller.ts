@@ -16,6 +16,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuditAction } from '@prisma/client';
 import type { Request } from 'express';
 import { AbilityFactory } from './abilities/ability.factory';
@@ -41,7 +42,11 @@ export class AuthController {
     private readonly abilities: AbilityFactory,
   ) {}
 
+  // Auth endpoints get tighter, endpoint-specific limits on top of the global
+  // throttler — the default (10 req/s, 120 req/min) is far too loose to slow
+  // down credential stuffing / OTP-bombing against a single account or IP.
   @Public()
+  @Throttle({ short: { limit: 3, ttl: 1_000 }, medium: { limit: 10, ttl: 60_000 } })
   @Post('sign-up')
   @ApiOperation({ summary: 'Create a new user account' })
   signUp(@Body() dto: SignUpDto, @Req() req: Request) {
@@ -49,6 +54,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ short: { limit: 5, ttl: 1_000 }, medium: { limit: 10, ttl: 60_000 } })
   @Post('sign-in')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Sign in with email + password (+ optional TOTP)' })
@@ -67,6 +73,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ short: { limit: 5, ttl: 1_000 }, medium: { limit: 20, ttl: 60_000 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshDto) {
@@ -74,6 +81,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ short: { limit: 2, ttl: 1_000 }, medium: { limit: 5, ttl: 60_000 } })
   @Post('otp/request')
   @HttpCode(HttpStatus.OK)
   requestOtp(@Body() dto: RequestOtpDto) {
@@ -81,6 +89,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ short: { limit: 5, ttl: 1_000 }, medium: { limit: 10, ttl: 60_000 } })
   @Post('otp/verify')
   @HttpCode(HttpStatus.OK)
   verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
@@ -161,12 +170,7 @@ export class AuthController {
   @Post('totp/enroll/confirm')
   @HttpCode(HttpStatus.NO_CONTENT)
   confirmTotp(@CurrentUser() user: AuthenticatedUser, @Body() dto: EnableTotpDto) {
-    // Real flow: client sends back the secret it received from /start.
-    // For brevity we expect it in the body via `code`'s sibling field.
-    // (This is a simplified scaffold; production flow stores the pending
-    // secret in Redis keyed by user id during enrollment.)
-    const secret = dto.code; // placeholder: extend DTO with `secret` in v0.2
-    return this.auth.confirmTotp(user.id, secret, dto.code);
+    return this.auth.confirmTotp(user.id, dto.secret, dto.code);
   }
 
   @UseGuards(AuthGuard)

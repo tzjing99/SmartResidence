@@ -9,7 +9,7 @@ import { useCastPollVote, useCondoPolls, useMyCondos, usePoll } from '@smartresi
 import type { Poll, PollStatus } from '@smartresidence/shared-types';
 import { POLL_STATUS_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Label, Skeleton } from '@smartresidence/ui-web';
-import { ChevronRight, Loader2, Vote } from 'lucide-react';
+import { ChevronRight, Vote } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<PollStatus, 'neutral' | 'success' | 'warning'> = {
@@ -158,15 +158,12 @@ function VotePanel({ pollId, canVote }: { pollId: string; canVote: boolean }) {
               ))}
             </select>
           </div>
-          <Button type="submit" disabled={castVote.isPending || !unitId}>
-            {castVote.isPending ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-1.5" />
-                Submitting…
-              </>
-            ) : (
-              'Cast vote'
-            )}
+          <Button
+            type="submit"
+            disabled={castVote.isPending || !unitId}
+            loading={castVote.isPending}
+          >
+            Cast vote
           </Button>
         </form>
       ) : !canVote && isOpen ? (

@@ -1,6 +1,11 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   type Announcement,
@@ -9,6 +14,7 @@ import {
   AttachmentOwner,
   AttachmentStatus,
   type Prisma,
+  RoleId,
   type User,
 } from '@prisma/client';
 import type { AnnouncementCategory } from '@prisma/client';
@@ -63,6 +69,7 @@ export class AnnouncementService {
     },
   ) {
     const now = new Date();
+    const manage = Boolean(opts.manage) && isManagementForCondo(user, condoId);
     const where: Prisma.AnnouncementWhereInput = {
       condoId,
       deletedAt: null,
@@ -72,9 +79,12 @@ export class AnnouncementService {
       where.category = opts.category;
     }
 
-    if (opts.manage) {
+    if (manage) {
       where.OR = [{ publishedAt: { not: null } }, { publishedAt: null }];
     } else {
+      if (!user.roles.some((r) => r.roleId === RoleId.SUPER_ADMIN || r.condoId === condoId)) {
+        throw new ForbiddenException('You cannot view announcements for this condo');
+      }
       where.publishedAt = { not: null, lte: now };
       const audienceCtx = await this.getResidentAudienceContext(user, condoId);
       where.AND = [
@@ -98,7 +108,7 @@ export class AnnouncementService {
       this.prisma.announcement.count({ where }),
     ]);
 
-    const includeStats = opts.manage === true && opts.includeStats === true;
+    const includeStats = manage && opts.includeStats === true;
     const statsById = includeStats
       ? await this.batchReadStats(
           items as Array<
@@ -114,7 +124,7 @@ export class AnnouncementService {
     return {
       items: items.map((row) =>
         this.serialize(row as AnnouncementRow, user.id, {
-          manage: opts.manage,
+          manage,
           readStats: statsById?.get(row.id),
         }),
       ),
@@ -310,6 +320,9 @@ export class AnnouncementService {
   }
 
   async create(user: AuthenticatedUser, dto: CreateAnnouncementDto) {
+    if (!isManagementForCondo(user, dto.condoId)) {
+      throw new ForbiddenException('Only management can publish announcements for this condo');
+    }
     if (dto.attachmentIds?.length) {
       await this.validateAttachments(user.id, dto.attachmentIds);
     }
@@ -385,6 +398,9 @@ export class AnnouncementService {
       },
     });
     if (!existing) throw new NotFoundException();
+    if (!isManagementForCondo(user, existing.condoId)) {
+      throw new ForbiddenException('Only management can update announcements for this condo');
+    }
 
     const nextAudienceScope = dto.audienceScope ?? existing.audienceScope;
     const nextBlockIds = dto.blockIds ?? existing.blocks.map((b) => b.blockId);
@@ -453,11 +469,14 @@ export class AnnouncementService {
     return this.getOne(user, id, { manage: true });
   }
 
-  async softDelete(_user: AuthenticatedUser, id: string) {
+  async softDelete(user: AuthenticatedUser, id: string) {
     const existing = await this.prisma.announcement.findFirst({
       where: { id, deletedAt: null },
     });
     if (!existing) throw new NotFoundException();
+    if (!isManagementForCondo(user, existing.condoId)) {
+      throw new ForbiddenException('Only management can delete announcements for this condo');
+    }
     await this.prisma.announcement.update({
       where: { id },
       data: { deletedAt: new Date() },

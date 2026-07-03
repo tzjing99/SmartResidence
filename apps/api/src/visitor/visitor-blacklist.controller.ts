@@ -32,8 +32,11 @@ export class VisitorBlacklistController {
   @Get('admin/blacklist/:condoId')
   @CheckAbility({ action: 'manage', subject: 'VisitorBlacklist' })
   @ApiOperation({ summary: 'List visitor blacklist entries for a condo' })
-  list(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
-    return this.blacklist.listForCondo(condoId);
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    return this.blacklist.listForCondo(user, condoId);
   }
 
   @Post('admin/blacklist/:condoId')

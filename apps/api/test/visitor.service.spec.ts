@@ -1356,7 +1356,7 @@ describe('VisitorService', () => {
     prisma.visitor.updateMany.mockResolvedValue({ count: 0 });
     prisma.visitor.findMany.mockResolvedValueOnce([]);
     prisma.visitor.count.mockResolvedValueOnce(0);
-    await svc.listForUnit('u1', { limit: 20, offset: 0, view: 'live' });
+    await svc.listForUnit(host, 'u1', { limit: 20, offset: 0, view: 'live' });
     expect(prisma.visitor.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { unitId: 'u1', status: { in: ['CHECKED_IN'] } },

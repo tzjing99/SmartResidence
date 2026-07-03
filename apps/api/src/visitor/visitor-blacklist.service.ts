@@ -1,3 +1,4 @@
+import { assertCondoManagement } from '@/common/authz/assert-condo-management';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
@@ -33,7 +34,8 @@ function normalizeName(name?: string | null): string | null {
 export class VisitorBlacklistService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listForCondo(condoId: string) {
+  async listForCondo(user: AuthenticatedUser, condoId: string) {
+    assertCondoManagement(user, condoId);
     const items = await this.prisma.visitorBlacklist.findMany({
       where: { condoId },
       orderBy: [{ active: 'desc' }, { createdAt: 'desc' }],
@@ -43,6 +45,7 @@ export class VisitorBlacklistService {
   }
 
   async create(condoId: string, user: AuthenticatedUser, dto: CreateVisitorBlacklistDto) {
+    assertCondoManagement(user, condoId);
     const phone = dto.phone ? this.normalizePhone(dto.phone) : null;
     const vehiclePlate = normalizePlate(dto.vehiclePlate);
     const name = dto.name?.trim() || null;
@@ -85,6 +88,7 @@ export class VisitorBlacklistService {
   async update(entryId: string, user: AuthenticatedUser, dto: UpdateVisitorBlacklistDto) {
     const existing = await this.prisma.visitorBlacklist.findUnique({ where: { id: entryId } });
     if (!existing) throw new NotFoundException('Blacklist entry not found');
+    assertCondoManagement(user, existing.condoId);
 
     const data: Record<string, unknown> = {};
     if (dto.reason !== undefined) data.reason = dto.reason.trim();
@@ -118,6 +122,7 @@ export class VisitorBlacklistService {
   async remove(entryId: string, user: AuthenticatedUser) {
     const existing = await this.prisma.visitorBlacklist.findUnique({ where: { id: entryId } });
     if (!existing) throw new NotFoundException('Blacklist entry not found');
+    assertCondoManagement(user, existing.condoId);
 
     await this.prisma.visitorBlacklist.delete({ where: { id: entryId } });
 

@@ -1,9 +1,18 @@
+import { isManagementForCondo } from '@/announcement/announcement-audience';
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import { Controller, Get, Param, ParseUUIDPipe, Query, Res } from '@nestjs/common';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { LedgerFund } from '@prisma/client';
+import { LedgerFund, RoleId } from '@prisma/client';
 import type { Response } from 'express';
 import { BillingExportsService } from './billing-exports.service';
 import { LedgerService } from './ledger.service';
@@ -17,14 +26,29 @@ export class ReportsController {
     private readonly exports: BillingExportsService,
   ) {}
 
+  /**
+   * `@CheckAbility` only proves the caller can read *some* condo's ledger —
+   * CASL isn't handed the `condoId` from the URL. Every handler below must
+   * additionally confirm the caller manages *this* condo before the ledger
+   * service runs the query, otherwise any management user could read another
+   * condo's financials by swapping the `:condoId` path segment (IDOR).
+   */
+  private assertManagement(user: AuthenticatedUser, condoId: string): void {
+    const isSuperAdmin = user.roles.some((r) => r.roleId === RoleId.SUPER_ADMIN);
+    if (isSuperAdmin || isManagementForCondo(user, condoId)) return;
+    throw new ForbiddenException('Management access required');
+  }
+
   @Get('reports/condo/:condoId/fund-summary')
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Opening/closing balance per fund for a date range' })
   fundSummary(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
+    this.assertManagement(user, condoId);
     const now = new Date();
     const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
     const end = to ? new Date(to) : now;
@@ -35,10 +59,12 @@ export class ReportsController {
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Collections vs charges by fund and fee category' })
   incomeExpense(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
+    this.assertManagement(user, condoId);
     const now = new Date();
     const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
     const end = to ? new Date(to) : now;
@@ -49,11 +75,13 @@ export class ReportsController {
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Profit & loss (income statement) for a date range' })
   profitLoss(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('fund') fund?: string,
   ) {
+    this.assertManagement(user, condoId);
     const now = new Date();
     const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
     const end = to ? new Date(to) : now;
@@ -68,9 +96,11 @@ export class ReportsController {
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Balance sheet as at a single date' })
   balanceSheet(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('asOf') asOf?: string,
   ) {
+    this.assertManagement(user, condoId);
     const date = asOf ? new Date(asOf) : new Date();
     return this.ledger.balanceSheet(condoId, date);
   }
@@ -174,7 +204,11 @@ export class ReportsController {
   @Get('reports/condo/:condoId/fund-balances')
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Cash balance per fund (maintenance / sinking / deposits)' })
-  fundBalances(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+  fundBalances(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    this.assertManagement(user, condoId);
     return this.ledger.fundBalances(condoId);
   }
 
@@ -182,10 +216,12 @@ export class ReportsController {
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Collections summary for a period, grouped by fund' })
   collections(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
+    this.assertManagement(user, condoId);
     const now = new Date();
     const start = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
     const end = to ? new Date(to) : now;
@@ -195,7 +231,11 @@ export class ReportsController {
   @Get('reports/condo/:condoId/arrears')
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Outstanding arrears bucketed by age' })
-  arrears(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+  arrears(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    this.assertManagement(user, condoId);
     return this.ledger.arrearsAging(condoId);
   }
 

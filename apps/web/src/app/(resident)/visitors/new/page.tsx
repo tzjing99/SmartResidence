@@ -453,8 +453,9 @@ export default function NewVisitorPage() {
           <Button
             type="submit"
             disabled={form.formState.isSubmitting || slotsBlocked || uploadingPhoto}
+            loading={form.formState.isSubmitting}
           >
-            {form.formState.isSubmitting ? 'Submitting…' : 'Create pass'}
+            Create pass
           </Button>
         </div>
       </form>

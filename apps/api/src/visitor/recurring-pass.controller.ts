@@ -29,15 +29,21 @@ export class RecurringPassController {
   @Get('unit/:unitId')
   @CheckAbility({ action: 'read', subject: 'RecurringPass' })
   @ApiOperation({ summary: 'List recurring passes for a unit (resident)' })
-  forUnit(@Param('unitId', new ParseUUIDPipe()) unitId: string) {
-    return this.recurringPasses.listForUnit(unitId);
+  forUnit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+  ) {
+    return this.recurringPasses.listForUnit(user, unitId);
   }
 
   @Get('condo/:condoId')
   @CheckAbility({ action: 'read', subject: 'RecurringPass' })
   @ApiOperation({ summary: 'List all recurring passes in a condo (management)' })
-  forCondo(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
-    return this.recurringPasses.listForCondo(condoId);
+  forCondo(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    return this.recurringPasses.listForCondo(user, condoId);
   }
 
   @Post()

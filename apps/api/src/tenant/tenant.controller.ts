@@ -20,20 +20,24 @@ export class TenantController {
 
   @Get(':id')
   @CheckAbility({ action: 'read', subject: 'Condo' })
-  getOne(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.tenant.getCondo(id);
+  getOne(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.tenant.getCondo(user, id);
   }
 
   @Get(':id/units')
   @CheckAbility({ action: 'read', subject: 'Unit' })
-  listUnits(@Param('id', new ParseUUIDPipe()) id: string, @Query() query: ListUnitsQueryDto) {
-    return this.tenant.listUnits(id, query);
+  listUnits(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query() query: ListUnitsQueryDto,
+  ) {
+    return this.tenant.listUnits(user, id, query);
   }
 
   @Get(':id/blocks')
   @CheckAbility({ action: 'read', subject: 'Block' })
-  listBlocks(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.tenant.listBlocks(id);
+  listBlocks(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.tenant.listBlocks(user, id);
   }
 }
 

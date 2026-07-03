@@ -58,7 +58,17 @@
     "overrides": {
       "react-native-worklets": "0.5.1",
       "@types/react": "~19.1.17",
-      "@types/react-dom": "~19.1.9"
+      "@types/react-dom": "~19.1.9",
+      "multer": "^2.2.0",
+      "ws": "^8.21.0",
+      "form-data": "^4.0.6",
+      "lodash": "^4.18.0",
+      "qs": "^6.15.2",
+      "file-type": "^21.3.2",
+      "postcss": "^8.5.10",
+      "@nestjs/swagger>js-yaml": "^4.2.0",
+      "linkify-it": "^5.0.1",
+      "uuid": "^11.1.1"
     }
   }
 }

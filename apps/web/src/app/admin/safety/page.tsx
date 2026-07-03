@@ -12,7 +12,7 @@ import {
 import type { SosAlert, SosKind, SosStatus } from '@smartresidence/shared-types';
 import { SOS_KIND_LABELS, SOS_STATUS_LABELS, isSosOpen } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { Loader2, MapPin, ShieldCheck, Siren } from 'lucide-react';
+import { MapPin, ShieldCheck, Siren } from 'lucide-react';
 
 const STATUS_TONE: Record<SosStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
   ACTIVE: 'danger',
@@ -112,13 +112,22 @@ function OpenAlertCard({ alert }: { alert: SosAlert }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {alert.status === 'ACTIVE' ? (
-            <Button size="sm" onClick={handleAcknowledge} disabled={pending}>
-              {acknowledge.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : null}
+            <Button
+              size="sm"
+              onClick={handleAcknowledge}
+              disabled={pending}
+              loading={acknowledge.isPending}
+            >
               Acknowledge
             </Button>
           ) : null}
-          <Button size="sm" variant="secondary" onClick={handleResolve} disabled={pending}>
-            {resolve.isPending ? <Loader2 className="size-4 animate-spin mr-1.5" /> : null}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleResolve}
+            disabled={pending}
+            loading={resolve.isPending}
+          >
             Resolve
           </Button>
           <Button size="sm" variant="ghost" onClick={handleCancel} disabled={pending}>

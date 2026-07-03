@@ -431,8 +431,8 @@ function GenerateCycleForm({ condoId, onDone }: { condoId: string; onDone: () =>
           <Button type="button" variant="ghost" onClick={onDone}>
             Cancel
           </Button>
-          <Button type="submit" disabled={generate.isPending}>
-            {generate.isPending ? 'Generating…' : 'Generate invoices'}
+          <Button type="submit" loading={generate.isPending}>
+            Generate invoices
           </Button>
         </div>
       </form>
@@ -708,8 +708,8 @@ function InvoiceDetail({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={recordPayment.isPending}>
-              {recordPayment.isPending ? 'Recording…' : 'Record payment'}
+            <Button type="submit" loading={recordPayment.isPending}>
+              Record payment
             </Button>
             <Button type="button" variant="ghost" disabled={voidInvoice.isPending} onClick={onVoid}>
               Void invoice
@@ -817,9 +817,14 @@ export default function AdminInvoicesPage() {
         }
         actions={
           <>
-            <Button variant="secondary" disabled={!condoId || sweep.isPending} onClick={onSweep}>
+            <Button
+              variant="secondary"
+              disabled={!condoId || sweep.isPending}
+              loading={sweep.isPending}
+              onClick={onSweep}
+            >
               <CalendarClock className="size-4" />
-              {sweep.isPending ? 'Checking…' : 'Check overdue'}
+              Check overdue
             </Button>
             <Button disabled={!condoId} onClick={() => setComposeOpen((v) => !v)}>
               <Receipt className="size-4" />

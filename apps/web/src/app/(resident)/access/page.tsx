@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
+  Skeleton,
 } from '@smartresidence/ui-web';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../../lib/api';
@@ -65,9 +66,23 @@ export default function AccessPage() {
       </header>
 
       {loading ? (
-        <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">Loading…</CardContent>
-        </Card>
+        <div className="grid gap-3">
+          {['sk-1', 'sk-2', 'sk-3'].map((key) => (
+            <Card key={key}>
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-56" />
+                  <div className="flex gap-2 pt-1">
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                  </div>
+                </div>
+                <Skeleton className="h-9 w-24 rounded-xl shrink-0" />
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
       ) : grants.length === 0 ? (
         <Card>
           <CardContent className="py-10">

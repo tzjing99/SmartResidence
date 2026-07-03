@@ -63,8 +63,5 @@ export const shadow = {
   modal: '0 24px 48px -12px rgb(0 0 0 / 0.18)',
 } as const;
 
-export const spring = {
-  default: { type: 'spring' as const, stiffness: 320, damping: 30 },
-  gentle: { type: 'spring' as const, stiffness: 200, damping: 26 },
-  snappy: { type: 'spring' as const, stiffness: 480, damping: 32 },
-} as const;
+// Animation spring presets live in `./motion` (`iosSpring`) — that is the
+// single source of truth for framer-motion transitions across the web app.

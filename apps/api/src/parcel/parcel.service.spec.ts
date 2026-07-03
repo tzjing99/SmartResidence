@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { ParcelStatus, RoleId } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
@@ -30,6 +30,18 @@ function owner(): AuthenticatedUser {
     activeCondoId: CONDO,
     activeRole: RoleId.UNIT_OWNER,
     roles: [{ roleId: RoleId.UNIT_OWNER, condoId: CONDO, unitId: UNIT, permissions: [] }],
+  };
+}
+
+function guardOfOtherCondo(): AuthenticatedUser {
+  return {
+    id: 'guard-2',
+    email: 'g2@b.c',
+    name: 'Guard Two',
+    locale: 'en',
+    activeCondoId: 'condo-2',
+    activeRole: RoleId.SECURITY_GUARD,
+    roles: [{ roleId: RoleId.SECURITY_GUARD, condoId: 'condo-2', unitId: null, permissions: [] }],
   };
 }
 
@@ -122,6 +134,18 @@ describe('ParcelService', () => {
       condoId: CONDO,
       unitId: UNIT,
     });
+  });
+
+  it('rejects listForUnit for a guard from a different condo (cross-tenant IDOR)', async () => {
+    const { service } = makeService();
+    await expect(service.listForUnit(guardOfOtherCondo(), UNIT, {})).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it("allows listForUnit for a guard managing the unit's own condo", async () => {
+    const { service } = makeService();
+    await expect(service.listForUnit(guard(), UNIT, {})).resolves.toBeDefined();
   });
 
   it('flags overdue parcels and emits parcel.overdue', async () => {

@@ -217,8 +217,8 @@ export default function NewMessagePage() {
             <Button type="button" variant="ghost" onClick={() => router.back()}>
               {t('actions.cancel')}
             </Button>
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? t('messages.sending') : t('messages.send')}
+            <Button type="submit" loading={create.isPending}>
+              {t('messages.send')}
             </Button>
           </div>
         </form>

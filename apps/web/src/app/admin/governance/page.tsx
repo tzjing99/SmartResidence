@@ -31,7 +31,7 @@ import {
   Skeleton,
   Textarea,
 } from '@smartresidence/ui-web';
-import { ChevronRight, Gavel, Loader2, Plus, X } from 'lucide-react';
+import { ChevronRight, Gavel, Plus, X } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<GeneralMeetingStatus, 'neutral' | 'success' | 'warning' | 'info'> = {
@@ -106,6 +106,7 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
         {status === 'DRAFT' ? (
           <Button
             disabled={publishNotice.isPending || !meeting.noticeBody?.trim()}
+            loading={publishNotice.isPending}
             onClick={() =>
               publishNotice.mutate(meetingId, {
                 onSuccess: () => toast.success('Notice published — owners notified'),
@@ -113,7 +114,6 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
               })
             }
           >
-            {publishNotice.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Publish notice
           </Button>
         ) : null}
@@ -231,12 +231,12 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
             onChange={(e) => setResolutionDesc(e.target.value)}
             rows={2}
           />
-          <Button type="submit" disabled={addResolution.isPending || resolutionTitle.length < 4}>
-            {addResolution.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
+          <Button
+            type="submit"
+            disabled={addResolution.isPending || resolutionTitle.length < 4}
+            loading={addResolution.isPending}
+          >
+            <Plus className="h-4 w-4" />
             Add resolution
           </Button>
         </form>
@@ -335,12 +335,12 @@ export default function AdminGovernancePage() {
                   placeholder="Meeting agenda, venue, quorum requirements…"
                 />
               </div>
-              <Button type="submit" disabled={createMeeting.isPending || title.length < 4}>
-                {createMeeting.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
+              <Button
+                type="submit"
+                disabled={createMeeting.isPending || title.length < 4}
+                loading={createMeeting.isPending}
+              >
+                <Plus className="h-4 w-4" />
                 Create draft
               </Button>
             </form>

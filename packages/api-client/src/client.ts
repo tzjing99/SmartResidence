@@ -395,6 +395,11 @@ export class ApiError extends Error {
 export class ApiClient {
   constructor(private readonly cfg: ApiClientConfig) {}
 
+  /** Current access token, if any (used to authenticate the realtime socket). */
+  async getAccessToken(): Promise<string | null> {
+    return (await this.cfg.getAccessToken?.()) ?? null;
+  }
+
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = {
       Accept: 'application/json',

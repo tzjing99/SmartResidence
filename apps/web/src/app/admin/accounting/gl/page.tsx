@@ -166,8 +166,8 @@ function BankImportForm({ condoId }: { condoId: string }) {
           onChange={(e) => setCsv(e.target.value)}
         />
       </div>
-      <Button type="submit" disabled={importMut.isPending}>
-        {importMut.isPending ? 'Importing…' : 'Import statement'}
+      <Button type="submit" loading={importMut.isPending}>
+        Import statement
       </Button>
     </form>
   );

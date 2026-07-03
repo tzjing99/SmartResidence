@@ -1,13 +1,6 @@
 import { useCondoAnnouncements, useMyCondos } from '@smartresidence/api-client';
 import type { AnnouncementCategory } from '@smartresidence/shared-types';
-import {
-  AppText,
-  EmptyState,
-  FadeInView,
-  Stack,
-  palette,
-  spacing,
-} from '@smartresidence/ui-mobile';
+import { EmptyState, FadeInView, SkeletonList, Stack, spacing } from '@smartresidence/ui-mobile';
 import { useCallback, useState } from 'react';
 import {
   AnnouncementCategoryFilter,
@@ -38,9 +31,7 @@ export default function AnnouncementsScreen() {
       <AnnouncementCategoryFilter value={categoryFilter} onChange={setCategoryFilter} />
 
       {list.isLoading && !list.data ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading notices...
-        </AppText>
+        <SkeletonList rows={4} rowHeight={80} />
       ) : list.isError ? (
         <EmptyState
           title="Couldn't load notices"

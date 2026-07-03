@@ -287,9 +287,13 @@ export default function AdminThreadPage() {
                 />
                 Internal note
               </label>
-              <Button type="submit" disabled={post.isPending || !body.trim()}>
+              <Button
+                type="submit"
+                disabled={post.isPending || !body.trim()}
+                loading={post.isPending}
+              >
                 <Send className="size-4" />
-                {post.isPending ? 'Sending…' : internal ? 'Add note' : 'Reply'}
+                {internal ? 'Add note' : 'Reply'}
               </Button>
             </div>
           </form>

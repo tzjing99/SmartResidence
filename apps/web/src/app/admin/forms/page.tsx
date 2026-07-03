@@ -20,7 +20,7 @@ import {
   FORM_TEMPLATE_KIND_LABELS,
 } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { ClipboardList, Loader2 } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<FormSubmissionStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
@@ -165,8 +165,7 @@ function SubmissionQueue({ condoId }: { condoId: string }) {
             <Button variant="secondary" onClick={() => setRejectId(null)}>
               Cancel
             </Button>
-            <Button onClick={doReject} disabled={reject.isPending}>
-              {reject.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+            <Button onClick={doReject} loading={reject.isPending}>
               Confirm reject
             </Button>
           </div>

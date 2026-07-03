@@ -172,8 +172,12 @@ export function DeliveryPassQuickForm() {
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={create.isPending || !unit?.id}>
-              {create.isPending ? 'Creating…' : 'Create pass'}
+            <Button
+              type="submit"
+              disabled={create.isPending || !unit?.id}
+              loading={create.isPending}
+            >
+              Create pass
             </Button>
           </div>
         </form>

@@ -36,60 +36,78 @@ export class FaqController {
   @Get('condo/:condoId')
   @CheckAbility({ action: 'read', subject: 'Faq' })
   listPublished(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Query() query: ListFaqDto,
   ) {
-    return this.faq.listPublished(condoId, query);
+    return this.faq.listPublished(user, condoId, query);
   }
 
   @Get('condo/:condoId/categories')
   @CheckAbility({ action: 'read', subject: 'Faq' })
-  listCategories(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
-    return this.faq.listCategories(condoId);
+  listCategories(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    return this.faq.listCategories(user, condoId);
   }
 
   @Get('condo/:condoId/manage')
   @CheckAbility({ action: 'manage', subject: 'Faq' })
-  listAll(@Param('condoId', new ParseUUIDPipe()) condoId: string, @Query() query: ListFaqDto) {
-    return this.faq.listAll(condoId, query);
+  listAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+    @Query() query: ListFaqDto,
+  ) {
+    return this.faq.listAll(user, condoId, query);
   }
 
   @Get('articles/:id')
   @CheckAbility({ action: 'read', subject: 'Faq' })
-  getArticle(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.faq.getArticle(id, { countView: true });
+  getArticle(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.faq.getArticle(user, id, { countView: true });
   }
 
   @Post('articles/:id/helpful')
   @CheckAbility({ action: 'read', subject: 'Faq' })
-  markHelpful(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.faq.markHelpful(id);
+  markHelpful(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.faq.markHelpful(user, id);
   }
 
   @Post('deflect-match')
   @CheckAbility({ action: 'read', subject: 'Faq' })
-  deflectMatch(@Body() dto: DeflectMatchDto) {
-    return this.faq.matchForDeflection(dto.condoId, dto.subject, dto.body);
+  deflectMatch(@CurrentUser() user: AuthenticatedUser, @Body() dto: DeflectMatchDto) {
+    return this.faq.matchForDeflection(user, dto.condoId, dto.subject, dto.body);
   }
 
   // -- management CRUD ----------------------------------------------
 
   @Post('categories')
   @CheckAbility({ action: 'manage', subject: 'Faq' })
-  createCategory(@Body() dto: CreateFaqCategoryDto) {
-    return this.faq.createCategory(dto);
+  createCategory(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateFaqCategoryDto) {
+    return this.faq.createCategory(user, dto);
   }
 
   @Patch('categories/:id')
   @CheckAbility({ action: 'manage', subject: 'Faq' })
-  updateCategory(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateFaqCategoryDto) {
-    return this.faq.updateCategory(id, dto);
+  updateCategory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateFaqCategoryDto,
+  ) {
+    return this.faq.updateCategory(user, id, dto);
   }
 
   @Delete('categories/:id')
   @CheckAbility({ action: 'manage', subject: 'Faq' })
-  deleteCategory(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.faq.deleteCategory(id);
+  deleteCategory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.faq.deleteCategory(user, id);
   }
 
   @Post('articles')
@@ -101,13 +119,20 @@ export class FaqController {
 
   @Patch('articles/:id')
   @CheckAbility({ action: 'manage', subject: 'Faq' })
-  updateArticle(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: UpdateFaqArticleDto) {
-    return this.faq.updateArticle(id, dto);
+  updateArticle(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateFaqArticleDto,
+  ) {
+    return this.faq.updateArticle(user, id, dto);
   }
 
   @Delete('articles/:id')
   @CheckAbility({ action: 'manage', subject: 'Faq' })
-  deleteArticle(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.faq.deleteArticle(id);
+  deleteArticle(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.faq.deleteArticle(user, id);
   }
 }

@@ -55,7 +55,11 @@ describe('VisitorBlacklistService', () => {
     const { svc, prisma } = service();
     prisma.visitorBlacklist.create.mockResolvedValue({ id: 'bl-1' });
 
-    const user: any = { id: 'admin-1', activeRole: 'MANAGEMENT_ADMIN' };
+    const user: any = {
+      id: 'admin-1',
+      activeRole: 'MANAGEMENT_ADMIN',
+      roles: [{ roleId: 'MANAGEMENT_ADMIN', condoId: 'c1', unitId: null, permissions: [] }],
+    };
     await svc.create('c1', user, {
       name: 'Encik Razak',
       phone: '012-345 6789',

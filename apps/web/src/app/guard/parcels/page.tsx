@@ -12,7 +12,7 @@ import {
 import type { Parcel, ParcelStatus } from '@smartresidence/shared-types';
 import { PARCEL_STATUS_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
-import { Loader2, Package, Plus } from 'lucide-react';
+import { Package, Plus } from 'lucide-react';
 import * as React from 'react';
 
 const STATUS_TONE: Record<ParcelStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
@@ -152,8 +152,7 @@ export default function GuardParcelsPage() {
             />
           </div>
           <div className="flex gap-2">
-            <Button type="button" onClick={() => void submit()} disabled={createParcel.isPending}>
-              {createParcel.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+            <Button type="button" onClick={() => void submit()} loading={createParcel.isPending}>
               Save & notify resident
             </Button>
             <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>

@@ -10,7 +10,7 @@ import {
 } from '@/lib/visitor-pass-share';
 import { useMyUnits, useUnitVisitors, useVisitorQr } from '@smartresidence/api-client';
 import type { Visitor } from '@smartresidence/shared-types';
-import { Badge, Button, Card, Skeleton } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Dialog, Skeleton } from '@smartresidence/ui-web';
 import { AlertTriangle, ArrowLeft, Copy, Download, Share2, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -156,13 +156,15 @@ export default function VisitorPassPage() {
         </>
       )}
 
-      {shareFallbackOpen && visitor?.accessCode && qr.data?.png ? (
-        <dialog
-          open
-          className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-black/40 p-4 sm:items-center"
-          aria-labelledby="share-fallback-title"
-        >
-          <Card className="w-full max-w-sm flex flex-col gap-4 p-5 relative">
+      <Dialog
+        open={Boolean(shareFallbackOpen && visitor?.accessCode && qr.data?.png)}
+        onClose={() => setShareFallbackOpen(false)}
+        labelledBy="share-fallback-title"
+        closeLabel={t('visitors.pass.close')}
+        className="max-w-sm"
+      >
+        {visitor?.accessCode && qr.data?.png ? (
+          <Card className="w-full flex flex-col gap-4 p-5 relative">
             <button
               type="button"
               onClick={() => setShareFallbackOpen(false)}
@@ -207,8 +209,8 @@ export default function VisitorPassPage() {
               </Button>
             </div>
           </Card>
-        </dialog>
-      ) : null}
+        ) : null}
+      </Dialog>
     </div>
   );
 }

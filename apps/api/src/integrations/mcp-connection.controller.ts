@@ -1,4 +1,5 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
+import { assertCondoManagement } from '@/common/authz/assert-condo-management';
 import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
@@ -17,7 +18,11 @@ export class McpConnectionController {
   @Get('settings/condo/:condoId/integrations/mcp')
   @CheckAbility({ action: 'read', subject: 'McpServer' })
   @ApiOperation({ summary: 'List MCP server connections (secrets never returned)' })
-  list(@Param('condoId', new ParseUUIDPipe()) condoId: string) {
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('condoId', new ParseUUIDPipe()) condoId: string,
+  ) {
+    assertCondoManagement(user, condoId);
     return this.mcp.listForCondo(condoId);
   }
 
@@ -34,6 +39,7 @@ export class McpConnectionController {
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Body() dto: UpsertMcpServerDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.mcp.upsert(condoId, dto, user.id);
   }
 
@@ -46,9 +52,11 @@ export class McpConnectionController {
   })
   @ApiOperation({ summary: 'Test MCP server handshake (initialize + tools/list)' })
   test(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    assertCondoManagement(user, condoId);
     return this.mcp.testConnection(condoId, id);
   }
 
@@ -61,10 +69,12 @@ export class McpConnectionController {
   })
   @ApiOperation({ summary: 'Enable or disable an MCP connection' })
   setEnabled(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: SetMcpServerEnabledDto,
   ) {
+    assertCondoManagement(user, condoId);
     return this.mcp.setEnabled(condoId, id, dto.enabled);
   }
 
@@ -77,9 +87,11 @@ export class McpConnectionController {
   })
   @ApiOperation({ summary: 'Remove an MCP server connection' })
   remove(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('condoId', new ParseUUIDPipe()) condoId: string,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    assertCondoManagement(user, condoId);
     return this.mcp.remove(condoId, id);
   }
 }

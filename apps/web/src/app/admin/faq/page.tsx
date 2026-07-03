@@ -131,8 +131,8 @@ export default function AdminFaqPage() {
             </label>
           </div>
           <div className="flex justify-end pt-2 border-t border-[rgb(var(--sr-border))]/70">
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? 'Saving…' : 'Add article'}
+            <Button type="submit" loading={create.isPending}>
+              Add article
             </Button>
           </div>
         </form>

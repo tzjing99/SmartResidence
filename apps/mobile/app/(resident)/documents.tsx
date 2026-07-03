@@ -1,7 +1,16 @@
 import { useCondoDocuments, useDocumentFolders, useMyCondos } from '@smartresidence/api-client';
 import type { Document, DocumentFolder } from '@smartresidence/shared-types';
 import { DOCUMENT_FOLDER_AUDIENCE_LABELS } from '@smartresidence/shared-types';
-import { AppText, Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  FadeInView,
+  Pill,
+  SkeletonList,
+  palette,
+} from '@smartresidence/ui-mobile';
 import * as Linking from 'expo-linking';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
@@ -12,6 +21,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticError, hapticSelection } from '../../src/lib/haptics';
 
 function fmtBytes(n: number) {
   if (n < 1024) return `${n} B`;
@@ -60,6 +70,7 @@ export default function DocumentsScreen() {
       const res = await api.documentVersionDownloadUrl(versionId);
       await Linking.openURL(res.url);
     } catch (err) {
+      hapticError();
       Alert.alert('Download failed', (err as Error).message);
     }
   };
@@ -73,9 +84,7 @@ export default function DocumentsScreen() {
     >
       <ResidentSectionHeader title="Folders" />
       {folders.isLoading ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading…
-        </AppText>
+        <SkeletonList rows={1} rowHeight={36} />
       ) : folderRows.length === 0 ? (
         <EmptyState
           title="No documents yet"
@@ -85,7 +94,13 @@ export default function DocumentsScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={{ flexDirection: 'row', gap: 8, paddingBottom: 4 }}>
             {folderRows.map((f) => (
-              <Pressable key={f.id} onPress={() => setFolderId(f.id)}>
+              <Pressable
+                key={f.id}
+                onPress={() => {
+                  hapticSelection();
+                  setFolderId(f.id);
+                }}
+              >
                 <Pill tone={activeFolderId === f.id ? 'success' : 'neutral'} label={f.name} />
               </Pressable>
             ))}
@@ -101,37 +116,39 @@ export default function DocumentsScreen() {
 
       <ResidentSectionHeader title="Files" />
       {docs.isLoading ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading…
-        </AppText>
+        <SkeletonList rows={3} rowHeight={104} />
       ) : docRows.length === 0 ? (
         <EmptyState title="No documents in this folder" />
       ) : (
         <View style={{ gap: 12 }}>
-          {docRows.map((doc) => (
-            <Card key={doc.id} style={[residentStyles.card, { gap: 8 }]}>
-              <AppText style={{ fontWeight: '700', color: palette.textLight }}>{doc.title}</AppText>
-              {doc.description ? (
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                  {doc.description}
+          {docRows.map((doc, index) => (
+            <FadeInView key={doc.id} index={index}>
+              <Card style={[residentStyles.card, { gap: 8 }]}>
+                <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                  {doc.title}
                 </AppText>
-              ) : null}
-              {doc.currentVersion ? (
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                  v{doc.currentVersion.versionNumber} · {fmtDate(doc.currentVersion.publishedAt)} ·{' '}
-                  {fmtBytes(doc.currentVersion.sizeBytes)}
-                </AppText>
-              ) : (
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                  Not published yet
-                </AppText>
-              )}
-              <Button
-                title="Download PDF"
-                disabled={!doc.currentVersion}
-                onPress={() => void download(doc)}
-              />
-            </Card>
+                {doc.description ? (
+                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                    {doc.description}
+                  </AppText>
+                ) : null}
+                {doc.currentVersion ? (
+                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                    v{doc.currentVersion.versionNumber} · {fmtDate(doc.currentVersion.publishedAt)}{' '}
+                    · {fmtBytes(doc.currentVersion.sizeBytes)}
+                  </AppText>
+                ) : (
+                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                    Not published yet
+                  </AppText>
+                )}
+                <Button
+                  title="Download PDF"
+                  disabled={!doc.currentVersion}
+                  onPress={() => void download(doc)}
+                />
+              </Card>
+            </FadeInView>
           ))}
         </View>
       )}

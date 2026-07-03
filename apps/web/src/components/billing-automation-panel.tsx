@@ -369,8 +369,8 @@ export function BillingAutomationPanel({ condoId }: { condoId: string }) {
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={update.isPending}>
-              {update.isPending ? 'Saving...' : 'Save settings'}
+            <Button type="submit" loading={update.isPending}>
+              Save settings
             </Button>
             <Button
               type="button"

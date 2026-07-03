@@ -15,7 +15,17 @@ import {
   FORM_SUBMISSION_STATUS_LABELS,
   FORM_TEMPLATE_KIND_LABELS,
 } from '@smartresidence/shared-types';
-import { AppText, Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import {
+  AnimatedPressable,
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  FadeInView,
+  Pill,
+  SkeletonList,
+  palette,
+} from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
 import {
@@ -26,6 +36,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { hapticError, hapticSuccess } from '../../src/lib/haptics';
 
 const STATUS_TONE: Record<FormSubmissionStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
   DRAFT: 'neutral',
@@ -129,9 +140,11 @@ function SubmitPanel({
               answers,
               submit: true,
             });
+            hapticSuccess();
             Alert.alert('Submitted', 'Your form is awaiting management review.');
             onBack();
           } catch (err) {
+            hapticError();
             Alert.alert('Could not submit', (err as Error).message);
           }
         },
@@ -227,57 +240,59 @@ export default function FormsScreen() {
     >
       <ResidentSectionHeader title="Available forms" />
       {templatesQuery.isLoading ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading…
-        </AppText>
+        <SkeletonList rows={3} rowHeight={64} />
       ) : templates.length === 0 ? (
         <EmptyState title="No forms" description="Management has not published any forms yet." />
       ) : (
         <View style={{ gap: 10 }}>
-          {templates.map((t) => (
-            <Pressable key={t.id} onPress={() => setSelectedId(t.id)}>
-              <Card style={[residentStyles.card, { gap: 4 }]}>
-                <AppText style={{ fontWeight: '700', color: palette.textLight }}>{t.title}</AppText>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                  {FORM_TEMPLATE_KIND_LABELS[t.kind]}
-                </AppText>
-              </Card>
-            </Pressable>
+          {templates.map((t, index) => (
+            <FadeInView key={t.id} index={index}>
+              <AnimatedPressable onPress={() => setSelectedId(t.id)}>
+                <Card style={[residentStyles.card, { gap: 4 }]}>
+                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                    {t.title}
+                  </AppText>
+                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                    {FORM_TEMPLATE_KIND_LABELS[t.kind]}
+                  </AppText>
+                </Card>
+              </AnimatedPressable>
+            </FadeInView>
           ))}
         </View>
       )}
 
       <ResidentSectionHeader title="My submissions" />
       {submissionsQuery.isLoading ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
-          Loading…
-        </AppText>
+        <SkeletonList rows={2} rowHeight={80} />
       ) : myItems.length === 0 ? (
         <EmptyState title="No submissions yet" />
       ) : (
         <View style={{ gap: 10 }}>
-          {myItems.map((s) => (
-            <Card key={s.id} style={[residentStyles.card, { gap: 8 }]}>
-              <View
-                style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}
-              >
-                <AppText style={{ fontWeight: '700', color: palette.textLight }}>
-                  {s.template?.title ?? 'Form'}
+          {myItems.map((s, index) => (
+            <FadeInView key={s.id} index={index}>
+              <Card style={[residentStyles.card, { gap: 8 }]}>
+                <View
+                  style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}
+                >
+                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                    {s.template?.title ?? 'Form'}
+                  </AppText>
+                  <Pill
+                    tone={STATUS_TONE[s.status]}
+                    label={FORM_SUBMISSION_STATUS_LABELS[s.status]}
+                  />
+                </View>
+                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  {s.unit?.identifier} · {fmtDate(s.submittedAt ?? s.createdAt)}
                 </AppText>
-                <Pill
-                  tone={STATUS_TONE[s.status]}
-                  label={FORM_SUBMISSION_STATUS_LABELS[s.status]}
-                />
-              </View>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
-                {s.unit?.identifier} · {fmtDate(s.submittedAt ?? s.createdAt)}
-              </AppText>
-              {s.reviewNote ? (
-                <AppText variant="bodySm" style={{ color: RESIDENT_CORAL }}>
-                  {s.reviewNote}
-                </AppText>
-              ) : null}
-            </Card>
+                {s.reviewNote ? (
+                  <AppText variant="bodySm" style={{ color: RESIDENT_CORAL }}>
+                    {s.reviewNote}
+                  </AppText>
+                ) : null}
+              </Card>
+            </FadeInView>
           ))}
         </View>
       )}

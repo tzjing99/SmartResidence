@@ -2,8 +2,10 @@ import { type Socket, io } from 'socket.io-client';
 
 export interface RealtimeConnectConfig {
   baseUrl: string;
-  condoId: string;
-  userId: string;
+  /** Access token used to authenticate the socket (server derives room membership from it). */
+  token: string;
+  /** Hint for which condo room to join if the caller is a platform (super admin) user. */
+  condoId?: string;
 }
 
 let sharedSocket: Socket | null = null;
@@ -11,7 +13,7 @@ let sharedKey: string | null = null;
 
 /** Singleton Socket.IO client for the `/realtime` namespace. */
 export function connectRealtime(cfg: RealtimeConnectConfig): Socket {
-  const key = `${cfg.baseUrl}|${cfg.condoId}|${cfg.userId}`;
+  const key = `${cfg.baseUrl}|${cfg.token}|${cfg.condoId ?? ''}`;
   if (sharedSocket && sharedKey === key) {
     if (!sharedSocket.connected) sharedSocket.connect();
     return sharedSocket;
@@ -24,10 +26,8 @@ export function connectRealtime(cfg: RealtimeConnectConfig): Socket {
     autoConnect: true,
     reconnection: true,
     reconnectionDelayMax: 5000,
-    query: {
-      condoId: cfg.condoId,
-      userId: cfg.userId,
-    },
+    auth: { token: cfg.token },
+    query: cfg.condoId ? { condoId: cfg.condoId } : undefined,
   });
 
   return sharedSocket;

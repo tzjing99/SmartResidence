@@ -40,7 +40,17 @@ export class RecurringPassService {
     private readonly events: EventEmitter2,
   ) {}
 
-  async listForUnit(unitId: string) {
+  async listForUnit(user: AuthenticatedUser, unitId: string) {
+    if (!this.userCanManageUnit(user, unitId)) {
+      const unit = await this.prisma.unit.findUnique({
+        where: { id: unitId },
+        select: { condoId: true },
+      });
+      if (!unit) throw new NotFoundException('Unit not found');
+      if (!this.userIsManagement(user, unit.condoId)) {
+        throw new ForbiddenException('You cannot access recurring passes for this unit');
+      }
+    }
     const items = await this.prisma.recurringPass.findMany({
       where: { unitId },
       orderBy: [{ active: 'desc' }, { validFrom: 'desc' }],
@@ -49,7 +59,10 @@ export class RecurringPassService {
     return { items, total: items.length };
   }
 
-  async listForCondo(condoId: string) {
+  async listForCondo(user: AuthenticatedUser, condoId: string) {
+    if (!this.userIsManagement(user, condoId)) {
+      throw new ForbiddenException('You cannot access recurring passes for this condo');
+    }
     const items = await this.prisma.recurringPass.findMany({
       where: { condoId },
       orderBy: [{ active: 'desc' }, { validFrom: 'desc' }],
@@ -361,6 +374,15 @@ export class RecurringPassService {
   private userCanManageUnit(user: AuthenticatedUser, unitId: string): boolean {
     return user.roles.some(
       (r) => r.unitId === unitId && (r.roleId === RoleId.UNIT_OWNER || r.roleId === RoleId.TENANT),
+    );
+  }
+
+  private userIsManagement(user: AuthenticatedUser, condoId: string): boolean {
+    return user.roles.some(
+      (r) =>
+        r.roleId === RoleId.SUPER_ADMIN ||
+        ((r.roleId === RoleId.MANAGEMENT_ADMIN || r.roleId === RoleId.MANAGEMENT_STAFF) &&
+          r.condoId === condoId),
     );
   }
 

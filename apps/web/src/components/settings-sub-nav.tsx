@@ -2,7 +2,7 @@
 
 import { resolveActiveHref } from '@/lib/nav';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
-import { cn, tapScale, tapTransition } from '@smartresidence/ui-web';
+import { cn, pillTransition, tapScale, tapTransition } from '@smartresidence/ui-web';
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import { Settings2 } from 'lucide-react';
 import Link from 'next/link';
@@ -87,11 +87,7 @@ export function SettingsSubNav({
                     layoutId="settings-subnav-active"
                     aria-hidden
                     className="absolute inset-0 rounded-full bg-coral-500/10 dark:bg-coral-500/15 border border-coral-500/20"
-                    transition={
-                      reduceMotion
-                        ? { duration: 0 }
-                        : { type: 'spring', stiffness: 420, damping: 34 }
-                    }
+                    transition={pillTransition(reduceMotion)}
                   />
                 ) : null}
                 <motion.span

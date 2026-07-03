@@ -107,6 +107,7 @@ import type {
   PostManualJournalInput,
   ProfitLossReport,
   PublishDocumentVersionInput,
+  PublishMeetingMinutesInput,
   RaiseSosInput,
   Receipt,
   ReceiptTemplateConfig,
@@ -1961,6 +1962,9 @@ export class ApiClient {
   }
   publishMeetingNotice(id: string) {
     return this.request<GeneralMeeting>('POST', `/api/governance/${id}/publish-notice`);
+  }
+  publishMeetingMinutes(id: string, data: PublishMeetingMinutesInput = {}) {
+    return this.request<GeneralMeeting>('POST', `/api/governance/${id}/publish-minutes`, data);
   }
   addMeetingResolution(meetingId: string, data: CreateMeetingResolutionInput) {
     return this.request<MeetingResolution>(

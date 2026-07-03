@@ -40,6 +40,7 @@ export default function PlatformCondosPage() {
   }, [search]);
 
   const condos = usePlatformCondos(api, { search: debounced }, { enabled: ready && canView });
+  const items = condos.data?.items ?? [];
 
   React.useEffect(() => {
     if (ready && !canView) router.replace('/admin');
@@ -80,7 +81,7 @@ export default function PlatformCondosPage() {
           <Skeleton className="h-28 w-full rounded-2xl" />
           <Skeleton className="h-28 w-full rounded-2xl" />
         </div>
-      ) : (condos.data?.length ?? 0) === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyState
           title="No condos found"
           description={
@@ -89,7 +90,7 @@ export default function PlatformCondosPage() {
         />
       ) : (
         <div className="space-y-3">
-          {condos.data?.map((condo) => (
+          {items.map((condo) => (
             <Card key={condo.id} className="p-4 sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">

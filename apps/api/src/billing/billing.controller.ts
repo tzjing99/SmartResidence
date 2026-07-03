@@ -349,6 +349,42 @@ export class PaymentWebhookController {
     );
   }
 
+  @Public()
+  @Post('tng/return')
+  async tngReturn(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: Record<string, string | string[]>,
+    @Query('next') next: string | undefined,
+    @Res() res: Response,
+  ) {
+    await this.billing.handleGatewayCallback(PaymentProvider.TNG, body, headers);
+    res.redirect(302, this.gatewayReturnTarget(next));
+  }
+
+  @Public()
+  @Post('tng')
+  @ApiOperation({ summary: "Touch 'n Go eWallet payment notification (server-to-server)" })
+  async tngWebhook(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: Record<string, string | string[]>,
+  ) {
+    return this.billing.handleGatewayCallback(PaymentProvider.TNG, body, headers);
+  }
+
+  @Public()
+  @Post('tng/sandbox/settle')
+  @ApiOperation({ summary: '[SANDBOX] Simulate TNG payment success (non-production only)' })
+  async tngSandboxSettle(@Body() body: Record<string, unknown>) {
+    if (this.config.get('NODE_ENV', { infer: true }) === 'production') {
+      throw new NotFoundException();
+    }
+    return this.billing.handleGatewayCallback(
+      PaymentProvider.TNG,
+      { ...body, status: body.status ?? 'SUCCESS', sandbox: true },
+      {},
+    );
+  }
+
   /**
    * Accept only our own web app origins or the mobile deep-link scheme after
    * a hosted gateway return — otherwise `?next=` becomes an open redirect

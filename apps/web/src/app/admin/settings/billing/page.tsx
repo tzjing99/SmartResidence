@@ -1024,6 +1024,16 @@ function GatewayProviderCard({
             .
           </p>
         ) : null}
+        {provider === 'TNG' ? (
+          <p className="sm:col-span-2 text-xs sr-muted">
+            TEST mode without Merchant ID / API key returns a local sandbox redirect (no TNG call).
+            Simulate settlement with{' '}
+            <code className="text-[11px]">POST /api/webhooks/payments/tng/sandbox/settle</code> and
+            body{' '}
+            <code className="text-[11px]">{`{ "orderid": "<ref from redirect>", "amount": "100.00" }`}</code>
+            .
+          </p>
+        ) : null}
       </div>
       <div className="mt-4 flex flex-col-reverse gap-2 border-t border-[rgb(var(--sr-border))]/70 pt-3 sm:flex-row sm:justify-end">
         <Button size="sm" disabled={upsert.isPending} onClick={() => void save()}>

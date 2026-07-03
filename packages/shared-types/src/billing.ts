@@ -928,6 +928,11 @@ export const GATEWAY_CREDENTIAL_FIELDS: Record<string, { key: string; label: str
     { key: 'clientSecret', label: 'API client secret' },
     { key: 'webhookSecret', label: 'Webhook signing secret' },
   ],
+  TNG: [
+    { key: 'merchantId', label: 'Merchant ID' },
+    { key: 'apiKey', label: 'API key (request signing)' },
+    { key: 'webhookSecret', label: 'Webhook signing secret' },
+  ],
 };
 
 /** Sanitised gateway connection (never includes decrypted secrets). */

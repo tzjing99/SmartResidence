@@ -1241,6 +1241,34 @@ export class ApiClient {
       'application/pdf',
     );
   }
+  async downloadUnitStatementCsv(
+    unitId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.downloadBillingBlob(
+      `/api/billing/units/${unitId}/statement.csv${qs.toString() ? `?${qs.toString()}` : ''}`,
+      'text/csv',
+    );
+  }
+  unitStatementCsvDownloadSource(
+    unitId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.authDownloadSource(
+      `/api/billing/units/${unitId}/statement.csv${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  receiptPdfDownloadSource(
+    receiptId: string,
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    return this.authDownloadSource(`/api/receipts/${receiptId}/pdf`);
+  }
   async downloadCollectionsCsv(
     condoId: string,
     params: { from?: string; to?: string } = {},

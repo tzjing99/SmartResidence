@@ -26,6 +26,7 @@ import type {
   CreateVendorInput,
   CreateVisitorInput,
   OpenResolutionVotingInput,
+  PublishMeetingMinutesInput,
   PatrolScanInput,
   RaiseSosInput,
   SubmitMeetingProxyInput,
@@ -1592,6 +1593,19 @@ export function useUpdateMeeting(api: ApiClient) {
   return useMutation({
     mutationFn: (vars: { id: string; data: UpdateGeneralMeetingInput }) =>
       api.updateMeeting(vars.id, vars.data),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
+      if (data?.id) qc.setQueryData(queryKeys.meeting(data.id), data);
+    },
+  });
+}
+
+
+export function usePublishMeetingMinutes(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; data?: PublishMeetingMinutesInput }) =>
+      api.publishMeetingMinutes(vars.id, vars.data ?? {}),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['governance'] });
       if (data?.id) qc.setQueryData(queryKeys.meeting(data.id), data);

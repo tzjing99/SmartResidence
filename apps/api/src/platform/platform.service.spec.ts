@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
 import type { SetupService } from '@/setup/setup.service';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { RoleId } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { PlatformService } from './platform.service';
@@ -57,9 +57,22 @@ function makeService() {
   } as unknown as SetupService;
 
   const prisma = {
+    $transaction: vi.fn(async (arg: unknown) => {
+      if (typeof arg === 'function') {
+        return arg(prisma);
+      }
+      return Promise.all(arg as Promise<unknown>[]);
+    }),
     condo: {
       findMany: vi.fn(async () => [condoRow]),
       findFirst: vi.fn(async () => condoRow),
+      findUnique: vi.fn(async () => null),
+      count: vi.fn(async () => 1),
+      create: vi.fn(async (args: { data: Record<string, unknown> }) => ({
+        id: CONDO_ID,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        ...args.data,
+      })),
     },
     unit: {
       groupBy: vi.fn(async () => [{ condoId: CONDO_ID, _count: { _all: 42 } }]),
@@ -75,12 +88,38 @@ function makeService() {
         { condoId: CONDO_ID, _max: { createdAt: new Date('2026-06-20T00:00:00.000Z') } },
       ]),
       aggregate: vi.fn(async () => ({ _max: { createdAt: new Date('2026-06-20T00:00:00.000Z') } })),
+      findMany: vi.fn(async () => [
+        {
+          id: 'audit-1',
+          action: 'CREATE',
+          resourceType: 'Unit',
+          resourceId: 'unit-1',
+          createdAt: new Date('2026-06-20T00:00:00.000Z'),
+          actor: { name: 'Admin User' },
+        },
+      ]),
+      create: vi.fn(async () => ({})),
     },
     roleAssignment: {
+      groupBy: vi.fn(async () => [
+        { condoId: CONDO_ID, userId: 'user-1' },
+        { condoId: CONDO_ID, userId: 'user-2' },
+      ]),
       count: vi
         .fn()
-        .mockResolvedValueOnce(30) // residents
-        .mockResolvedValueOnce(3), // management
+        .mockResolvedValueOnce(30)
+        .mockResolvedValueOnce(3),
+    },
+    defect: {
+      groupBy: vi.fn(async () => [{ condoId: CONDO_ID, _count: { _all: 5 } }]),
+      count: vi.fn(async () => 5),
+    },
+    invoice: {
+      groupBy: vi.fn(async () => [{ condoId: CONDO_ID, _count: { _all: 2 } }]),
+      findMany: vi.fn(async () => [
+        { total: 100, amountPaid: 20 },
+        { total: 50, amountPaid: 0 },
+      ]),
     },
   } as unknown as PrismaService;
 
@@ -89,25 +128,34 @@ function makeService() {
 }
 
 describe('PlatformService', () => {
-  it('returns empty list when no condos match', async () => {
+  it('returns empty paginated list when no condos match', async () => {
     const { service, prisma } = makeService();
     vi.mocked(prisma.condo.findMany).mockResolvedValueOnce([]);
-    await expect(service.listCondos(superAdmin(), {})).resolves.toEqual([]);
+    vi.mocked(prisma.condo.count).mockResolvedValueOnce(0);
+    await expect(service.listCondos(superAdmin(), { limit: 25, offset: 0 })).resolves.toEqual({
+      items: [],
+      total: 0,
+      limit: 25,
+      offset: 0,
+    });
   });
 
-  it('lists condos with unit counts and setup readiness', async () => {
+  it('lists condos with health counts and setup readiness', async () => {
     const { service, setup } = makeService();
-    const rows = await service.listCondos(superAdmin(), { search: 'acacia' });
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({
+    const page = await service.listCondos(superAdmin(), { search: 'acacia', limit: 25, offset: 0 });
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0]).toMatchObject({
       id: CONDO_ID,
       slug: 'acacia',
       unitCount: 42,
+      userCount: 2,
       enabledGatewayCount: 1,
+      openDefectCount: 5,
+      overdueInvoiceCount: 2,
       setupReady: true,
     });
     expect(setup.buildStatusForCondo).toHaveBeenCalled();
-    expect(rows[0]?.lastActivityAt).toBe('2026-06-20T00:00:00.000Z');
+    expect(page.items[0]?.lastActivityAt).toBe('2026-06-20T00:00:00.000Z');
   });
 
   it('returns drill-down summary for a condo', async () => {
@@ -122,6 +170,54 @@ describe('PlatformService', () => {
       enabledGatewayCount: 1,
     });
     expect(setup.getStatus).toHaveBeenCalledWith(superAdmin(), CONDO_ID);
+  });
+
+  it('returns health dashboard for a condo', async () => {
+    const { service } = makeService();
+    const health = await service.getCondoHealth(superAdmin(), CONDO_ID);
+    expect(health).toMatchObject({
+      condoId: CONDO_ID,
+      userCount: 2,
+      unitCount: 42,
+      openDefectCount: 5,
+      billing: {
+        overdueInvoiceCount: 2,
+        overdueAmount: 130,
+        currencyCode: 'MYR',
+      },
+    });
+    expect(health.recentAuditEvents).toHaveLength(1);
+  });
+
+  it('provisions a condo and writes an audit log', async () => {
+    const { service, prisma } = makeService();
+    const created = await service.provisionCondo(superAdmin(), {
+      name: 'New Tower',
+      slug: 'new-tower',
+      address: '2 Demo Road',
+      timezone: 'Asia/Kuala_Lumpur',
+    });
+    expect(created).toMatchObject({
+      slug: 'new-tower',
+      name: 'New Tower',
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalled();
+  });
+
+  it('rejects duplicate slug on provision', async () => {
+    const { service, prisma } = makeService();
+    vi.mocked(prisma.condo.findUnique).mockResolvedValueOnce({
+      id: 'existing',
+      slug: 'new-tower',
+    } as never);
+    await expect(
+      service.provisionCondo(superAdmin(), {
+        name: 'New Tower',
+        slug: 'new-tower',
+        address: '2 Demo Road',
+        timezone: 'Asia/Kuala_Lumpur',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('throws when condo is missing', async () => {

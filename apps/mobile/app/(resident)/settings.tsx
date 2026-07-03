@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useMe, usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
 import {
   AlignRow,
@@ -12,6 +11,7 @@ import {
   spacing,
   useTheme,
 } from '@smartresidence/ui-mobile';
+import * as FileSystem from 'expo-file-system/legacy';
 import { type Href, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, Switch, View } from 'react-native';

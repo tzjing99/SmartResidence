@@ -380,7 +380,7 @@ export class DefectReportService {
           dto.assignedToUserId !== undefined && dto.assignedToUserId !== d.assignedToUserId;
         if (!willTransition && !willAssign) continue;
 
-        const nextStatus = willTransition && dto.status ? dto.status : d.status;
+        const nextStatus = willTransition && dto.status !== undefined ? dto.status : d.status;
         await tx.defect.update({
           where: { id: d.id },
           data: {

@@ -1710,7 +1710,9 @@ export function useSubmitMeetingProxy(api: ApiClient) {
 
 export function useMeetingProxies(api: ApiClient, meetingId: string | null) {
   return useQuery({
-    queryKey: meetingId ? [...queryKeys.meeting(meetingId), 'proxies'] : ['governance', 'proxies', null],
+    queryKey: meetingId
+      ? [...queryKeys.meeting(meetingId), 'proxies']
+      : ['governance', 'proxies', null],
     queryFn: () => (meetingId ? api.listMeetingProxies(meetingId) : Promise.resolve([])),
     enabled: Boolean(meetingId),
   });

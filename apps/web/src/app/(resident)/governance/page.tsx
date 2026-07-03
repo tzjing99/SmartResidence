@@ -1,6 +1,5 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
 import { Markdown } from '@/components/markdown';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
@@ -126,10 +125,10 @@ function ProxyForm({
         );
       }}
     >
-      <h3 className="font-medium">{t("governance.submitProxyCta")}</h3>
+      <h3 className="font-medium">{t('governance.submitProxyCta')}</h3>
       <p className="text-sm sr-muted">
-        Appoint someone to vote on your behalf. One proxy per unit — after submitting a proxy,
-        only your proxy holder may vote for that unit (not you).
+        Appoint someone to vote on your behalf. One proxy per unit — after submitting a proxy, only
+        your proxy holder may vote for that unit (not you).
       </p>
       {ownedUnits.length === 0 ? (
         <p className="text-sm sr-muted">All your units already have a proxy submitted.</p>
@@ -163,7 +162,7 @@ function ProxyForm({
             disabled={submitProxy.isPending || !unitId || holderName.length < 2}
             loading={submitProxy.isPending}
           >
-            {t("governance.submitProxyCta")}
+            {t('governance.submitProxyCta')}
           </Button>
         </>
       )}
@@ -208,7 +207,7 @@ function ResolutionVotePanel({
         <p className="text-sm sr-muted mt-1">{resolution.description}</p>
       ) : null}
 
-      {resolution.poll?.results ?? resolution.resultsSnapshot ? (
+      {(resolution.poll?.results ?? resolution.resultsSnapshot) ? (
         <div className="mt-3 space-y-2">
           {((resolution.poll?.results ?? resolution.resultsSnapshot)?.options ?? []).map((opt) => (
             <div key={opt.id} className="text-sm">

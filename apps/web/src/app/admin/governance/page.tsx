@@ -1,6 +1,5 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
 import { AdminPageHeader } from '@/components/admin-ui';
 import { Markdown } from '@/components/markdown';
 import { useT } from '@/i18n/locale-provider';
@@ -369,7 +368,9 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
       ) : null}
 
       <div className="border-t pt-4 mt-4">
-        <h3 className="font-medium mb-2">Proxies ({proxiesQuery.data?.length ?? meeting.proxyCount ?? 0})</h3>
+        <h3 className="font-medium mb-2">
+          Proxies ({proxiesQuery.data?.length ?? meeting.proxyCount ?? 0})
+        </h3>
         {proxiesQuery.isLoading ? (
           <Skeleton className="h-16 w-full" />
         ) : (proxiesQuery.data?.length ?? 0) === 0 ? (

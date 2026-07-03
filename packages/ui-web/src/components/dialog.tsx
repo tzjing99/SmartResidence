@@ -60,17 +60,18 @@ export function Dialog({
     previouslyFocused.current = document.activeElement as HTMLElement | null;
     const trapRoot = overlayRef.current;
     if (!trapRoot) return;
+    const root: HTMLDivElement = trapRoot;
 
     const focusTimer = window.setTimeout(() => {
-      const panel = trapRoot.querySelector('dialog');
-      const focusables = getFocusable(trapRoot);
+      const panel = root.querySelector('dialog');
+      const focusables = getFocusable(root);
       const firstInPanel = focusables.find((el) => panel?.contains(el));
       (firstInPanel ?? focusables[0])?.focus();
     }, 0);
 
     function trapTab(e: KeyboardEvent) {
       if (e.key !== 'Tab') return;
-      const focusables = getFocusable(trapRoot);
+      const focusables = getFocusable(root);
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];

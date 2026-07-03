@@ -40,6 +40,7 @@ import {
   plainLabel,
 } from '../../src/components/guard-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
@@ -51,11 +52,13 @@ const TAB_VIEWS: Record<ExpectedTab, VisitorListView> = {
   history: 'history',
 };
 
-const TAB_LABELS: Record<ExpectedTab, string> = {
-  expected: 'Expected',
-  no_show: 'No-shows',
-  history: 'History',
-};
+function tabLabels(t: ReturnType<typeof useT>): Record<ExpectedTab, string> {
+  return {
+    expected: t('visitors.guard.tabs.expected'),
+    no_show: t('visitors.guard.tabs.noShow'),
+    history: t('visitors.guard.tabs.history'),
+  };
+}
 
 const TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   hour: 'numeric',
@@ -80,29 +83,29 @@ function formatVisitTime(date: Date): string {
   return TIME_FORMATTER.format(date).replace(/\s/g, '\u00A0');
 }
 
-function visitDateLabel(date: Date): string {
-  return isToday(date) ? 'Today' : SHORT_DATE_FORMATTER.format(date);
+function visitDateLabel(date: Date, t: ReturnType<typeof useT>): string {
+  return isToday(date) ? t('visitors.guard.tabs.today') : SHORT_DATE_FORMATTER.format(date);
 }
 
-function visitMetaPrefix(variant: ExpectedTab): string {
+function visitMetaPrefix(variant: ExpectedTab, t: ReturnType<typeof useT>): string {
   switch (variant) {
     case 'expected':
-      return 'Due';
+      return t('visitors.guard.statusApproved');
     case 'no_show':
-      return 'Missed';
+      return t('visitors.guard.noShowBadge');
     case 'history':
-      return 'Visited';
+      return t('visitors.guard.tabs.history');
   }
 }
 
-function visitTypeLabel(visitType: string): string {
+function visitTypeLabel(visitType: string, t: ReturnType<typeof useT>): string {
   switch (visitType) {
     case 'PRE_REG':
-      return 'Pre-registered';
+      return t('visitors.guard.visitTypePreReg');
     case 'WALKIN_UNIT':
-      return 'Walk-in';
+      return t('visitors.guard.visitTypeWalkInUnit');
     case 'WALKIN_OFFICE':
-      return 'Management office';
+      return t('visitors.guard.visitTypeWalkInOffice');
     default:
       return plainLabel(visitType);
   }
@@ -131,11 +134,17 @@ function getVisitorArrivalHighlight(
   return getArrivalHighlight(new Date(visitor.expectedAt), now);
 }
 
-function arrivalLabel(highlight: 'soon' | 'overdue' | null, expectedAt: Date): string | null {
+function arrivalLabel(
+  highlight: 'soon' | 'overdue' | null,
+  expectedAt: Date,
+  t: ReturnType<typeof useT>,
+): string | null {
   if (!highlight) return null;
-  if (highlight === 'overdue') return 'Overdue';
+  if (highlight === 'overdue') return t('visitors.guard.overdue');
   const minutes = Math.max(0, Math.round((expectedAt.getTime() - Date.now()) / 60_000));
-  return minutes <= 1 ? 'Arriving soon' : `Arriving in ${minutes}m`;
+  return minutes <= 1
+    ? t('visitors.guard.arrivingSoon')
+    : t('visitors.guard.arrivingIn', { minutes });
 }
 
 function toCardVisitor(
@@ -160,11 +169,13 @@ function toCardVisitor(
 }
 
 function ExpectedVisitorCard({
+  t,
   visitor,
   variant,
   onAcknowledgeWalkIn,
   acknowledging,
 }: {
+  t: ReturnType<typeof useT>;
   visitor: GuardExpectedVisitor;
   variant: ExpectedTab;
   onAcknowledgeWalkIn?: (visitorId: string, name: string) => void;
@@ -172,10 +183,10 @@ function ExpectedVisitorCard({
 }) {
   const expectedAt = new Date(visitor.expectedAt);
   const highlight = variant === 'expected' ? getVisitorArrivalHighlight(visitor) : null;
-  const chip = variant === 'expected' ? arrivalLabel(highlight, expectedAt) : null;
+  const chip = variant === 'expected' ? arrivalLabel(highlight, expectedAt, t) : null;
   const timeLabel = formatVisitTime(expectedAt);
-  const dateLabel = visitDateLabel(expectedAt);
-  const metaPrefix = visitMetaPrefix(variant);
+  const dateLabel = visitDateLabel(expectedAt, t);
+  const metaPrefix = visitMetaPrefix(variant, t);
   const canAcknowledge =
     variant === 'expected' && guardCanAcknowledgeWalkIn(visitor) && onAcknowledgeWalkIn;
 
@@ -209,7 +220,7 @@ function ExpectedVisitorCard({
                 }
               />
             ) : null}
-            <Pill tone="neutral" label={visitTypeLabel(visitor.visitType)} />
+            <Pill tone="neutral" label={visitTypeLabel(visitor.visitType, t)} />
             {visitor.vehiclePlate ? <Pill tone="info" label={visitor.vehiclePlate} /> : null}
             {visitor.overnight ? <Pill tone="warning" label="Overnight" /> : null}
             {chip ? (
@@ -256,6 +267,8 @@ function ExpectedVisitorCard({
 }
 
 export default function ExpectedScreen() {
+  const t = useT();
+  const TAB_LABELS = tabLabels(t);
   const insets = useSafeAreaInsets();
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
   const [tab, setTab] = useState<ExpectedTab>('expected');
@@ -299,7 +312,7 @@ export default function ExpectedScreen() {
     async (visitorId: string, name: string) => {
       try {
         await acknowledgeWalkIn.mutateAsync(visitorId);
-        Alert.alert('Acknowledged', `${name} recorded on site.`);
+        Alert.alert(t('mobile.guard.expected.acknowledgedTitle'), t('mobile.guard.expected.acknowledgedMessage', { name }));
         await Promise.all(visitors.map((q) => q.refetch()));
       } catch (err) {
         Alert.alert('Could not acknowledge', (err as Error).message);
@@ -312,6 +325,7 @@ export default function ExpectedScreen() {
     ({ item }: ListRenderItemInfo<GuardExpectedVisitor>) => (
       <View style={twoColumn ? styles.gridItem : styles.listItem}>
         <ExpectedVisitorCard
+          t={t}
           visitor={item}
           variant={tab}
           onAcknowledgeWalkIn={handleAcknowledgeWalkIn}
@@ -325,9 +339,9 @@ export default function ExpectedScreen() {
   const listHeader = (
     <View style={styles.headerStack}>
       <GuardHeader
-        eyebrow="Guard arrivals"
-        title="Expected visitors"
-        subtitle="Review approved visitors, missed arrivals, and recent guardhouse history."
+        eyebrow={t('mobile.guard.expected.eyebrow')}
+        title={t('visitors.guard.expectedTitle')}
+        subtitle={t('mobile.guard.expected.subtitle')}
       />
       <View style={styles.tabRail}>
         {(['expected', 'no_show', 'history'] as ExpectedTab[]).map((id, i) => {

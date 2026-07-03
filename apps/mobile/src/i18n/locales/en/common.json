@@ -592,13 +592,5 @@
         "subtitle": "Use this for guests already at the guardhouse. Owner approval is requested when the condo policy requires it."
       }
     }
-  },
-  "account": {
-    "privacyTitle": "Privacy & data",
-    "privacyDesc": "Download a copy of your personal data held by SmartResidence (PDPA data access request).",
-    "downloadMyData": "Download my data",
-    "downloadMyDataPending": "Preparing download…",
-    "downloadMyDataSuccess": "Download started",
-    "downloadMyDataError": "Could not prepare your data export"
   }
 }

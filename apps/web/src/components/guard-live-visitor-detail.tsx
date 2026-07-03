@@ -192,8 +192,7 @@ export function GuardLiveVisitorDetail({
                 </Button>
               ) : (
                 <p className="text-sm sr-muted text-center leading-relaxed">
-                  Walk-in visit — record only. Closes automatically at end of day; no manual
-                  checkout.
+                  {t('visitors.guard.recordOnlyHint')}
                 </p>
               )}
             </footer>

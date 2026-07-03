@@ -592,13 +592,5 @@
         "subtitle": "Gunakan ini untuk tetamu yang sudah berada di pos pengawal. Kelulusan pemilik diminta jika dasar condo memerlukannya."
       }
     }
-  },
-  "account": {
-    "privacyTitle": "Privasi & data",
-    "privacyDesc": "Muat turun salinan data peribadi anda yang disimpan oleh SmartResidence (permintaan akses data PDPA).",
-    "downloadMyData": "Muat turun data saya",
-    "downloadMyDataPending": "Menyediakan muat turun…",
-    "downloadMyDataSuccess": "Muat turun dimulakan",
-    "downloadMyDataError": "Tidak dapat menyediakan eksport data anda"
   }
 }

@@ -3,7 +3,14 @@
   "actions": {
     "cancel": "取消",
     "submit": "提交",
-    "send": "发送"
+    "send": "发送",
+    "checkIn": "登记入场",
+    "close": "关闭",
+    "confirm": "确认",
+    "save": "保存",
+    "yes": "是",
+    "no": "否",
+    "ok": "确定"
   },
   "nav": {
     "home": "首页",
@@ -17,7 +24,18 @@
     "whoViewed": "谁查看了我",
     "helpdesk": "服务台",
     "settings": "设置",
-    "signOut": "登出"
+    "signOut": "登出",
+    "guard": {
+      "live": "实时",
+      "expected": "预期到访",
+      "checkIn": "登记入场",
+      "walkIn": "Walk-in",
+      "parcels": "包裹",
+      "settings": "设置",
+      "gateHome": "SmartResidence 门卫首页",
+      "gateNav": "门卫导航",
+      "gateBrand": "门卫"
+    }
   },
   "messages": {
     "title": "消息",
@@ -151,7 +169,32 @@
     "signIn": "登录",
     "signUp": "创建账户",
     "welcomeBack": "欢迎回来",
-    "signInBlurb": "登录以管理您单元的访客、费用和维修。"
+    "signInBlurb": "登录以管理您单元的访客、费用和维修。",
+    "signInSubtitle": "欢迎回来，请登录继续。",
+    "email": "电子邮箱",
+    "password": "密码",
+    "totp": "双重验证码",
+    "fullName": "姓名",
+    "mobilePhone": "手机号码",
+    "phoneHint": "Malaysia mobile — guards may call you for walk-in approvals.",
+    "passwordHint": "10+ chars, mix of upper/lower/digit.",
+    "createAccountTitle": "Create your account",
+    "signUpBlurb": "Your management office will link this account to your unit.",
+    "newHere": "New here?",
+    "alreadyHaveAccount": "Already have an account?",
+    "signedInToast": "登录成功",
+    "welcomeToast": "欢迎",
+    "totpPrompt": "请输入双重验证码以继续",
+    "required": "必填",
+    "passwordMinLength": "At least 10 characters",
+    "passwordUppercase": "Add an uppercase letter",
+    "passwordLowercase": "Add a lowercase letter",
+    "passwordDigit": "Add a digit",
+    "demoHint": "Demo: {email} / {password}",
+    "signInFailed": "登录失败",
+    "signingIn": "正在登录…",
+    "faceIdPrompt": "Confirm to enable Face ID for SmartResidence",
+    "demoAccounts": "Demo accounts · password {password}"
   },
   "billing": {
     "outstanding": "未付费用",
@@ -364,7 +407,25 @@
       "tableUnit": "单元",
       "tableExpected": "预期时间",
       "tableStatus": "状态",
-      "tableActions": "操作"
+      "tableActions": "操作",
+      "checkInTitle": "访客登记入场",
+      "checkInBlurb": "Enter the visitor's access code or scan their QR code (one-off visit or weekly pass).",
+      "blockedTitle": "访客已被拦截",
+      "accessCodeLabel": "Access code / QR",
+      "accessCodePlaceholder": "e.g. K7M3P9",
+      "lookingUp": "Looking up…",
+      "lookUpPass": "Look up pass",
+      "unitPrefix": "Unit: {unit}",
+      "managementOffice": "Management office",
+      "recurringPassMeta": "Recurring pass · {message}",
+      "withinSchedule": "Within schedule",
+      "driveIn": "Drive in",
+      "walkInEntry": "Walk in",
+      "allowEntry": "允许进入",
+      "checkedInToast": "{name} 已登记入场",
+      "outsideSchedule": "Outside recurring pass schedule",
+      "walkInTypeAria": "Walk-in type",
+      "recordOnlyHint": "Walk-in 访问——仅作记录。当天结束自动关闭；无需手动离场登记。"
     },
     "settings": {
       "title": "访客设置",
@@ -460,6 +521,75 @@
         "historyDesc": "已离场、已过期和已取消的访问记录在这里。",
         "filteredTitle": "无匹配结果",
         "filteredDesc": "请尝试调整搜索或筛选条件。"
+      }
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "emptyTitle": "Nothing here yet",
+    "emptyHint": "Check back later or adjust your filters."
+  },
+  "mobile": {
+    "guard": {
+      "tabs": {
+        "scan": "扫描",
+        "live": "在场",
+        "patrol": "巡逻",
+        "alerts": "警报",
+        "expected": "预期到访",
+        "manual": "手动",
+        "walkIn": "Walk-in",
+        "parcels": "包裹",
+        "settings": "设置"
+      },
+      "scan": {
+        "title": "门卫扫描",
+        "subtitle": "准备好使用相机时，在门卫处验证访客通行证。",
+        "scanPassTitle": "扫描访客通行证",
+        "scanPassHint": "将 QR 码放入框内。",
+        "queued": "{count} 条排队",
+        "online": "在线",
+        "confirmCheckIn": "确认登记入场",
+        "welcomeCheckedIn": "欢迎",
+        "checkedInMessage": "{name} 已登记入场。",
+        "queuedTitle": "已排队",
+        "queuedMessage": "网络不可用——登记入场将自动同步。"
+      },
+      "live": {
+        "eyebrow": "门卫实时看板",
+        "subtitle": "当前在物业内的活跃访客。Walk-in 仅作记录，当天结束自动关闭。",
+        "visitorOnSite": "位访客在场",
+        "visitorsOnSite": "位访客在场",
+        "live": "实时",
+        "clear": "清空",
+        "justIn": "刚入场",
+        "unitNotShown": "未显示单元",
+        "onSiteMeta": "在场",
+        "callVisitor": "致电访客 {phone}",
+        "callOwner": "致电 {name}",
+        "recordOnly": "仅记录",
+        "emptyDesc": "已登记入场的预登记访客会显示在这里。Walk-in 仅作记录并自动关闭。",
+        "checkOutTitle": "访客离场登记？",
+        "checkOutBody": "确定吗？他们将离开实时看板。",
+        "checkOutYes": "是，登记离场",
+        "checkedOutTitle": "已离场",
+        "checkedOutMessage": "{name} 已离开物业。",
+        "checkOutFailedTitle": "无法登记离场"
+      },
+      "expected": {
+        "eyebrow": "门卫到访",
+        "subtitle": "查看已批准访客、未到场记录和近期门卫历史。",
+        "expectedHint": "即将到场的访客一目了然。",
+        "noShowHint": "未登记入场的过期通行证。",
+        "historyHint": "近期访客和已完成的门卫活动。",
+        "acknowledgedTitle": "已确认",
+        "acknowledgedMessage": "{name} 已记录在场。",
+        "ackFailedTitle": "无法确认"
+      },
+      "walkin": {
+        "eyebrow": "门卫 Walk-in",
+        "title": "登记 Walk-in 访客",
+        "subtitle": "用于已在门卫处的访客。若 condo 政策要求，会向业主请求审批。"
       }
     }
   }

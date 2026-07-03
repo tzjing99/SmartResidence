@@ -3,7 +3,14 @@
   "actions": {
     "cancel": "Cancel",
     "submit": "Submit",
-    "send": "Send"
+    "send": "Send",
+    "checkIn": "Check in",
+    "close": "Close",
+    "confirm": "Confirm",
+    "save": "Save",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
   },
   "nav": {
     "home": "Home",
@@ -17,7 +24,18 @@
     "whoViewed": "Who viewed me",
     "helpdesk": "Helpdesk",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "guard": {
+      "live": "Live",
+      "expected": "Expected",
+      "checkIn": "Check-in",
+      "walkIn": "Walk-in",
+      "parcels": "Parcels",
+      "settings": "Settings",
+      "gateHome": "SmartResidence Gate home",
+      "gateNav": "Gate navigation",
+      "gateBrand": "Gate"
+    }
   },
   "messages": {
     "title": "Messages",
@@ -151,7 +169,32 @@
     "signIn": "Sign in",
     "signUp": "Create account",
     "welcomeBack": "Welcome back",
-    "signInBlurb": "Sign in to manage visitors, fees, and defects for your unit."
+    "signInBlurb": "Sign in to manage visitors, fees, and defects for your unit.",
+    "signInSubtitle": "Welcome back. Sign in to continue.",
+    "email": "Email",
+    "password": "Password",
+    "totp": "2FA code",
+    "fullName": "Full name",
+    "mobilePhone": "Mobile phone",
+    "phoneHint": "Malaysia mobile — guards may call you for walk-in approvals.",
+    "passwordHint": "10+ chars, mix of upper/lower/digit.",
+    "createAccountTitle": "Create your account",
+    "signUpBlurb": "Your management office will link this account to your unit.",
+    "newHere": "New here?",
+    "alreadyHaveAccount": "Already have an account?",
+    "signedInToast": "Signed in",
+    "welcomeToast": "Welcome",
+    "totpPrompt": "Enter your 2FA code to continue",
+    "required": "Required",
+    "passwordMinLength": "At least 10 characters",
+    "passwordUppercase": "Add an uppercase letter",
+    "passwordLowercase": "Add a lowercase letter",
+    "passwordDigit": "Add a digit",
+    "demoHint": "Demo: {email} / {password}",
+    "signInFailed": "Sign in failed",
+    "signingIn": "Signing in…",
+    "faceIdPrompt": "Confirm to enable Face ID for SmartResidence",
+    "demoAccounts": "Demo accounts · password {password}"
   },
   "billing": {
     "outstanding": "Outstanding fee",
@@ -364,7 +407,25 @@
       "tableUnit": "Unit",
       "tableExpected": "Expected",
       "tableStatus": "Status",
-      "tableActions": "Actions"
+      "tableActions": "Actions",
+      "checkInTitle": "Check in visitor",
+      "checkInBlurb": "Enter the visitor's access code or scan their QR code (one-off visit or weekly pass).",
+      "blockedTitle": "Visitor blocked",
+      "accessCodeLabel": "Access code / QR",
+      "accessCodePlaceholder": "e.g. K7M3P9",
+      "lookingUp": "Looking up…",
+      "lookUpPass": "Look up pass",
+      "unitPrefix": "Unit: {unit}",
+      "managementOffice": "Management office",
+      "recurringPassMeta": "Recurring pass · {message}",
+      "withinSchedule": "Within schedule",
+      "driveIn": "Drive in",
+      "walkInEntry": "Walk in",
+      "allowEntry": "Allow entry",
+      "checkedInToast": "{name} checked in",
+      "outsideSchedule": "Outside recurring pass schedule",
+      "walkInTypeAria": "Walk-in type",
+      "recordOnlyHint": "Walk-in visit — record only. Closes automatically at end of day; no manual checkout."
     },
     "settings": {
       "title": "Visitor settings",
@@ -460,6 +521,75 @@
         "historyDesc": "Checked-out, expired, and cancelled visits are logged here.",
         "filteredTitle": "No matches",
         "filteredDesc": "Try adjusting your search or filters."
+      }
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "emptyTitle": "Nothing here yet",
+    "emptyHint": "Check back later or adjust your filters."
+  },
+  "mobile": {
+    "guard": {
+      "tabs": {
+        "scan": "Scan",
+        "live": "On site",
+        "patrol": "Patrol",
+        "alerts": "Alerts",
+        "expected": "Expected",
+        "manual": "Manual",
+        "walkIn": "Walk-in",
+        "parcels": "Parcels",
+        "settings": "Settings"
+      },
+      "scan": {
+        "title": "Guard scan",
+        "subtitle": "Verify visitor passes at the gate when you are ready to use the camera.",
+        "scanPassTitle": "Scan visitor pass",
+        "scanPassHint": "Place the QR code inside the frame.",
+        "queued": "{count} queued",
+        "online": "online",
+        "confirmCheckIn": "Confirm check-in",
+        "welcomeCheckedIn": "Welcome",
+        "checkedInMessage": "{name} checked in.",
+        "queuedTitle": "Queued",
+        "queuedMessage": "Network unavailable — check-in will sync automatically."
+      },
+      "live": {
+        "eyebrow": "Guard live board",
+        "subtitle": "Active visitors currently inside the property. Walk-ins are record-only and close automatically at end of day.",
+        "visitorOnSite": "visitor on site",
+        "visitorsOnSite": "visitors on site",
+        "live": "Live",
+        "clear": "Clear",
+        "justIn": "Just in",
+        "unitNotShown": "Unit not shown",
+        "onSiteMeta": "on site",
+        "callVisitor": "Call visitor {phone}",
+        "callOwner": "Call {name}",
+        "recordOnly": "Record only",
+        "emptyDesc": "Checked-in pre-registered visitors appear here. Walk-ins are logged for the record and close automatically.",
+        "checkOutTitle": "Check out visitor?",
+        "checkOutBody": "Are you sure? They will leave the live board.",
+        "checkOutYes": "Yes, check out",
+        "checkedOutTitle": "Checked out",
+        "checkedOutMessage": "{name} has left the premises.",
+        "checkOutFailedTitle": "Could not check out"
+      },
+      "expected": {
+        "eyebrow": "Guard arrivals",
+        "subtitle": "Review approved visitors, missed arrivals, and recent guardhouse history.",
+        "expectedHint": "Visitors due soon stay easy to spot.",
+        "noShowHint": "Expired passes that did not check in.",
+        "historyHint": "Recent visitors and completed gate activity.",
+        "acknowledgedTitle": "Acknowledged",
+        "acknowledgedMessage": "{name} recorded on site.",
+        "ackFailedTitle": "Could not acknowledge"
+      },
+      "walkin": {
+        "eyebrow": "Guard walk-in",
+        "title": "Register walk-in visitor",
+        "subtitle": "Use this for guests already at the guardhouse. Owner approval is requested when the condo policy requires it."
       }
     }
   }

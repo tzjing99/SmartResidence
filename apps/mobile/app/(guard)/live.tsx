@@ -27,32 +27,34 @@ import {
   guardStyles,
 } from '../../src/components/guard-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
-function formatTimeOnSite(checkedInAt: Date, now = new Date()): string {
+function formatTimeOnSite(checkedInAt: Date, t: ReturnType<typeof useT>, now = new Date()): string {
   const mins = Math.max(0, Math.floor((now.getTime() - checkedInAt.getTime()) / 60_000));
-  if (mins < 1) return 'Just in';
+  if (mins < 1) return t('mobile.guard.live.justIn');
   if (mins < 60) return `${mins}m`;
   const hours = Math.floor(mins / 60);
   const rem = mins % 60;
   return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
 }
 
-function visitTypeLabel(visitType: string): string {
+function visitTypeLabel(visitType: string, t: ReturnType<typeof useT>): string {
   switch (visitType) {
     case 'PRE_REG':
-      return 'Pre-reg';
+      return t('visitors.guard.visitTypePreReg');
     case 'WALKIN_UNIT':
-      return 'Walk-in';
+      return t('visitors.guard.visitTypeWalkInUnit');
     case 'WALKIN_OFFICE':
-      return 'Office';
+      return t('visitors.guard.visitTypeWalkInOffice');
     default:
       return visitType;
   }
 }
 
 export default function LiveScreen() {
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
   const condos = useMyCondos(api);
@@ -71,21 +73,21 @@ export default function LiveScreen() {
 
   const confirmCheckOut = useCallback(
     (visitorId: string, name: string) => {
-      Alert.alert('Check out visitor?', 'Are you sure? They will leave the live board.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('mobile.guard.live.checkOutTitle'), t('mobile.guard.live.checkOutBody'), [
+        { text: t('actions.cancel'), style: 'cancel' },
         {
-          text: 'Yes, check out',
+          text: t('mobile.guard.live.checkOutYes'),
           style: 'destructive',
           onPress: () => {
             void checkOut.mutateAsync(visitorId).then(
-              () => Alert.alert('Checked out', `${name} has left the premises.`),
-              (err: Error) => Alert.alert('Could not check out', err.message),
+              () => Alert.alert(t('mobile.guard.live.checkedOutTitle'), t('mobile.guard.live.checkedOutMessage', { name })),
+              (err: Error) => Alert.alert(t('mobile.guard.live.checkOutFailedTitle'), err.message),
             );
           },
         },
       ]);
     },
-    [checkOut],
+    [checkOut, t],
   );
 
   const renderItem = useCallback(
@@ -107,10 +109,10 @@ export default function LiveScreen() {
                   {v.name}
                 </AppText>
                 <AppText variant="meta" numberOfLines={2} style={styles.cardMeta}>
-                  {v.unitLabel ?? 'Unit not shown'} · on site {formatTimeOnSite(checkedInAt)}
+                  {v.unitLabel ?? t('mobile.guard.live.unitNotShown')} · {t('mobile.guard.live.onSiteMeta')} {formatTimeOnSite(checkedInAt, t)}
                 </AppText>
                 <View style={styles.pillRow}>
-                  <Pill tone="neutral" label={visitTypeLabel(v.visitType)} />
+                  <Pill tone="neutral" label={visitTypeLabel(v.visitType, t)} />
                   {v.overnight ? <Pill tone="warning" label="Overnight" /> : null}
                   {v.vehiclePlate ? <Pill tone="neutral" label={v.vehiclePlate} /> : null}
                 </View>
@@ -137,7 +139,7 @@ export default function LiveScreen() {
               ) : null}
               {canCheckOut ? (
                 <Button
-                  title="Check out"
+                  title={t("visitors.guard.checkOut")}
                   size="sm"
                   variant="soft-primary"
                   loading={checkOut.isPending}
@@ -152,7 +154,7 @@ export default function LiveScreen() {
         </View>
       );
     },
-    [callPhone, checkOut.isPending, confirmCheckOut, twoColumn],
+    [callPhone, checkOut.isPending, confirmCheckOut, twoColumn, t],
   );
 
   return (
@@ -176,8 +178,8 @@ export default function LiveScreen() {
       ListHeaderComponent={
         <View style={styles.headerStack}>
           <GuardHeader
-            eyebrow="Guard live board"
-            title="On site now"
+            eyebrow={t("mobile.guard.live.eyebrow")}
+            title={t("visitors.guard.liveTitle")}
             subtitle="Active visitors currently inside the property. Walk-ins are record-only and close automatically at end of day."
           />
           <Card style={[guardStyles.card, styles.summaryCard]}>
@@ -202,7 +204,7 @@ export default function LiveScreen() {
       ListEmptyComponent={
         live.isLoading ? null : (
           <EmptyState
-            title="No visitors on site"
+            title={t("visitors.guard.liveEmpty")}
             description="Checked-in pre-registered visitors appear here. Walk-ins are logged for the record and close automatically."
           />
         )

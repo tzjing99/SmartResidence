@@ -27,6 +27,7 @@ import {
   guardStyles,
 } from '../../src/components/guard-screen';
 import { type UnitSearchItem, UnitSearchPicker } from '../../src/components/unit-search-picker';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
@@ -68,6 +69,7 @@ function callOwner(contacts: Visitor['ownerContacts']) {
 }
 
 export default function WalkInScreen() {
+  const t = useT();
   const { twoColumn } = useTabletLayout();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -270,9 +272,9 @@ export default function WalkInScreen() {
 
   return (
     <GuardScreen
-      eyebrow="Guard walk-in"
-      title="Register walk-in visitor"
-      subtitle="Use this for guests already at the guardhouse. Owner approval is requested when the condo policy requires it."
+      eyebrow={t('mobile.guard.walkin.eyebrow')}
+      title={t('mobile.guard.walkin.title')}
+      subtitle={t('mobile.guard.walkin.subtitle')}
     >
       <Card style={[guardStyles.card, styles.policyCard]}>
         <View style={styles.policyIcon}>

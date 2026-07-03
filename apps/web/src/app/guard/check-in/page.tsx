@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import type { RecurringPassVerify } from '@smartresidence/shared-types';
@@ -30,7 +31,7 @@ type VerifiedVisitor = {
 
 type VerifiedPass = VerifiedVisitor | (RecurringPassVerify & { name?: string });
 
-function unitLabel(v: VerifiedPass) {
+function unitLabel(v: VerifiedPass, t: ReturnType<typeof useT>) {
   if ('passType' in v && v.passType === 'recurring') {
     return v.unitLabel ?? '—';
   }
@@ -38,7 +39,9 @@ function unitLabel(v: VerifiedPass) {
   const block = visitor.unit?.block?.name;
   const unit = visitor.unit?.identifier;
   if (block && unit) return `${block} · ${unit}`;
-  return unit ?? (visitor.visitType === 'WALKIN_OFFICE' ? 'Management office' : '—');
+  if (unit) return unit;
+  if (visitor.visitType === 'WALKIN_OFFICE') return t('visitors.guard.managementOffice');
+  return '—';
 }
 
 function displayName(v: VerifiedPass): string {
@@ -47,6 +50,7 @@ function displayName(v: VerifiedPass): string {
 }
 
 export default function GuardCheckInPage() {
+  const t = useT();
   const [code, setCode] = useState('');
   const [pass, setPass] = useState<VerifiedPass | null>(null);
   const [busy, setBusy] = useState(false);
@@ -85,14 +89,14 @@ export default function GuardCheckInPage() {
     try {
       if ('passType' in pass && pass.passType === 'recurring') {
         if (!pass.withinSchedule) {
-          toast.error(pass.scheduleMessage ?? 'Outside recurring pass schedule');
+          toast.error(pass.scheduleMessage ?? t('visitors.guard.outsideSchedule'));
           return;
         }
         await api.checkInRecurringPass(code.trim(), { gateLocation: 'Main gate (web)' });
       } else {
         await api.checkInVisitor(code.trim(), { gateLocation: 'Main gate (web)' });
       }
-      toast.success(`${displayName(pass)} checked in`);
+      toast.success(t('visitors.guard.checkedInToast', { name: displayName(pass) }));
       setPass(null);
       setCode('');
     } catch (err) {
@@ -111,17 +115,15 @@ export default function GuardCheckInPage() {
   return (
     <div className="max-w-md flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Check in visitor</h1>
-        <p className="sr-muted text-sm mt-1">
-          Enter the visitor&apos;s access code or scan their QR code (one-off visit or weekly pass).
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t('visitors.guard.checkInTitle')}</h1>
+        <p className="sr-muted text-sm mt-1">{t('visitors.guard.checkInBlurb')}</p>
       </header>
 
       {blacklistAlert ? (
         <Card className="border-red-500/40 bg-red-500/5 p-4 flex gap-3 items-start">
           <Ban className="size-5 text-red-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-red-700">Visitor blocked</p>
+            <p className="font-semibold text-red-700">{t('visitors.guard.blockedTitle')}</p>
             <p className="text-sm text-red-700/90 mt-1">{blacklistAlert}</p>
           </div>
         </Card>
@@ -129,17 +131,17 @@ export default function GuardCheckInPage() {
 
       <Card className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="pass">Access code / QR</Label>
+          <Label htmlFor="pass">{t('visitors.guard.accessCodeLabel')}</Label>
           <Input
             id="pass"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="e.g. K7M3P9"
+            placeholder={t('visitors.guard.accessCodePlaceholder')}
             autoCapitalize="characters"
           />
         </div>
         <Button onClick={lookup} disabled={busy || !code.trim()}>
-          {busy && !pass ? 'Looking up…' : 'Look up pass'}
+          {busy && !pass ? t('visitors.guard.lookingUp') : t('visitors.guard.lookUpPass')}
         </Button>
       </Card>
 
@@ -157,10 +159,10 @@ export default function GuardCheckInPage() {
                 })()}
               </span>
             ) : null}
-            <p className="text-sm sr-muted">Unit: {unitLabel(pass)}</p>
+            <p className="text-sm sr-muted">{t('visitors.guard.unitPrefix', { unit: unitLabel(pass, t) })}</p>
             {isRecurring ? (
               <p className="text-xs sr-muted mt-1">
-                Recurring pass · {pass.scheduleMessage ?? 'Within schedule'}
+                {t('visitors.guard.recurringPassMeta', { message: pass.scheduleMessage ?? t('visitors.guard.withinSchedule') })}
               </p>
             ) : null}
             {pass.accessCode ? (
@@ -169,7 +171,7 @@ export default function GuardCheckInPage() {
             {!isRecurring && (pass as VerifiedVisitor).entryMode ? (
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="inline-flex items-center rounded-full border border-[rgb(var(--sr-border))] px-2 py-0.5 text-xs font-medium">
-                  {(pass as VerifiedVisitor).entryMode === 'DRIVE_IN' ? 'Drive in' : 'Walk in'}
+                  {(pass as VerifiedVisitor).entryMode === 'DRIVE_IN' ? t('visitors.guard.driveIn') : t('visitors.guard.walkInEntry')}
                 </span>
                 {(pass as VerifiedVisitor).entryMode === 'DRIVE_IN' &&
                 (pass as VerifiedVisitor).vehiclePlate ? (
@@ -186,7 +188,7 @@ export default function GuardCheckInPage() {
             ) : null}
           </div>
           <Button onClick={allowEntry} disabled={busy || !canCheckIn}>
-            Allow entry
+            {t('visitors.guard.allowEntry')}
           </Button>
         </Card>
       ) : null}

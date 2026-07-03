@@ -8,6 +8,15 @@ import { iosSpring } from '../motion';
 
 const MotionDialog = motion.create('dialog');
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function getFocusable(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) => el.tabIndex !== -1 && !el.hasAttribute('disabled') && el.getClientRects().length > 0,
+  );
+}
+
 export interface DialogProps {
   open: boolean;
   /** Omit for a non-dismissible dialog (e.g. a blocking progress modal). */
@@ -27,9 +36,8 @@ export interface DialogProps {
 /**
  * Shared animated dialog — backdrop fade + panel scale/rise, tuned to the same
  * curves everywhere so every modal in the app feels identical. Wraps a native
- * `<dialog>` element (via framer-motion) for correct top-layer stacking and
- * built-in focus containment, but leaves content entirely up to the caller
- * (usually a `Card`).
+ * `<dialog>` element (via framer-motion) for top-layer stacking, with an overlay
+ * focus trap (backdrop + panel). Content is up to the caller (usually a `Card`).
  */
 export function Dialog({
   open,
@@ -44,6 +52,47 @@ export function Dialog({
   closeOnEscape = true,
 }: DialogProps) {
   const reduceMotion = useReducedMotion();
+  const overlayRef = React.useRef<HTMLDivElement>(null);
+  const previouslyFocused = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    const trapRoot = overlayRef.current;
+    if (!trapRoot) return;
+
+    const focusTimer = window.setTimeout(() => {
+      const panel = trapRoot.querySelector('dialog');
+      const focusables = getFocusable(trapRoot);
+      const firstInPanel = focusables.find((el) => panel?.contains(el));
+      (firstInPanel ?? focusables[0])?.focus();
+    }, 0);
+
+    function trapTab(e: KeyboardEvent) {
+      if (e.key !== 'Tab') return;
+      const focusables = getFocusable(trapRoot);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', trapTab);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', trapTab);
+      previouslyFocused.current?.focus();
+    };
+  }, [open]);
 
   React.useEffect(() => {
     if (!open || !lockScroll) return;
@@ -73,6 +122,7 @@ export function Dialog({
     <AnimatePresence>
       {open ? (
         <motion.div
+          ref={overlayRef}
           className={cn(
             'fixed inset-0 flex items-center justify-center p-4 sm:p-6',
             zIndexClassName,

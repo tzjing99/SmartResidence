@@ -88,5 +88,42 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
     const votes = voteRes.body.data ?? voteRes.body;
     expect(Array.isArray(votes)).toBe(true);
     expect(votes.length).toBeGreaterThan(0);
+
+    const publishedMeeting = publishRes.body.data ?? publishRes.body;
+    expect(publishedMeeting.financialSnapshot?.fundBalances).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ fund: expect.any(String), balance: expect.any(Number) }),
+      ]),
+    );
+
+    await supertest(server)
+      .post(`/api/governance/resolutions/${resolution.id}/close-voting`)
+      .set(adminHeaders)
+      .expect(201);
+
+    await supertest(server)
+      .patch(`/api/governance/${meeting.id}`)
+      .set(adminHeaders)
+      .send({ minutesBody: 'Integration test AGM minutes.' })
+      .expect(200);
+
+    const minutesRes = await supertest(server)
+      .post(`/api/governance/${meeting.id}/publish-minutes`)
+      .set(adminHeaders)
+      .send({})
+      .expect(201);
+
+    const withMinutes = minutesRes.body.data ?? minutesRes.body;
+    expect(withMinutes.minutesPublishedAt).toBeTruthy();
+    expect(withMinutes.minutesBody).toContain('Integration test AGM minutes');
+
+    const ownerMeetingRes = await supertest(server)
+      .get(`/api/governance/${meeting.id}`)
+      .set(ownerHeaders)
+      .expect(200);
+
+    const ownerView = ownerMeetingRes.body.data ?? ownerMeetingRes.body;
+    expect(ownerView.minutesBody).toContain('Integration test AGM minutes');
+    expect(ownerView.financialSnapshot?.fundBalances?.length).toBeGreaterThan(0);
   });
 });

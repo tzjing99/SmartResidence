@@ -51,6 +51,8 @@ import type {
   CreateMeetingResolutionInput,
   CreateParcelInput,
   CreatePatrolCheckpointInput,
+  CreatePlatformCondoInput,
+  CreatePlatformCondoResult,
   CreatePollInput,
   CreateRecurringPassInput,
   CreateUnitTypeInput,
@@ -101,12 +103,14 @@ import type {
   PaymentIntentResponse,
   PaymentIssue,
   PlatformCondoDetail,
-  PlatformCondoSummary,
+  PlatformCondoHealth,
+  PlatformCondosPage,
   Poll,
   PollMyVote,
   PostManualJournalInput,
   ProfitLossReport,
   PublishDocumentVersionInput,
+  PublishMeetingMinutesInput,
   RaiseSosInput,
   Receipt,
   ReceiptTemplateConfig,
@@ -1962,6 +1966,9 @@ export class ApiClient {
   publishMeetingNotice(id: string) {
     return this.request<GeneralMeeting>('POST', `/api/governance/${id}/publish-notice`);
   }
+  publishMeetingMinutes(id: string, data: PublishMeetingMinutesInput = {}) {
+    return this.request<GeneralMeeting>('POST', `/api/governance/${id}/publish-minutes`, data);
+  }
   addMeetingResolution(meetingId: string, data: CreateMeetingResolutionInput) {
     return this.request<MeetingResolution>(
       'POST',
@@ -1994,19 +2001,25 @@ export class ApiClient {
   }
 
   // Platform console (super-admin) -----------------------------------
-  listPlatformCondos(params: { search?: string } = {}) {
+  listPlatformCondos(params: { search?: string; limit?: number; offset?: number } = {}) {
     const query = new URLSearchParams(
       Object.entries(params)
         .filter(([, v]) => v !== undefined && v !== null)
         .map(([k, v]) => [k, String(v)] as [string, string]),
     ).toString();
-    return this.request<PlatformCondoSummary[]>(
+    return this.request<PlatformCondosPage>(
       'GET',
       `/api/platform/condos${query ? `?${query}` : ''}`,
     );
   }
   platformCondoSummary(condoId: string) {
     return this.request<PlatformCondoDetail>('GET', `/api/platform/condos/${condoId}/summary`);
+  }
+  platformCondoHealth(condoId: string) {
+    return this.request<PlatformCondoHealth>('GET', `/api/platform/condos/${condoId}/health`);
+  }
+  createPlatformCondo(data: CreatePlatformCondoInput) {
+    return this.request<CreatePlatformCondoResult>('POST', '/api/platform/condos', data);
   }
 
   // Lost & found -----------------------------------------------------

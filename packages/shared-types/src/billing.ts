@@ -690,6 +690,11 @@ export interface FundBalance {
   balance: number;
 }
 
+export const FundBalanceSchema = z.object({
+  fund: LedgerFund,
+  balance: z.number(),
+});
+
 export interface CollectionsSummary {
   from: string;
   to: string;

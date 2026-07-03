@@ -11,6 +11,7 @@ import {
   CreateMeetingResolutionDto,
   ListMeetingsQueryDto,
   OpenResolutionVotingDto,
+  PublishMeetingMinutesDto,
   SubmitMeetingProxyDto,
   UpdateGeneralMeetingDto,
   UpdateMeetingResolutionDto,
@@ -87,6 +88,21 @@ export class GovernanceController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.governance.publishNotice(user, id);
+  }
+
+  @Post(':id/publish-minutes')
+  @CheckAbility({ action: 'manage', subject: 'GeneralMeeting' })
+  @Audit({
+    action: AuditAction.UPDATE,
+    resourceType: 'GeneralMeeting',
+    resourceIdFrom: 'params.id',
+  })
+  publishMinutes(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: PublishMeetingMinutesDto,
+  ) {
+    return this.governance.publishMinutes(user, id, dto);
   }
 
   @Post(':id/resolutions')

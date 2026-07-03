@@ -1908,9 +1908,12 @@ model GeneralMeeting {
   kind            GeneralMeetingKind
   title           String
   scheduledAt     DateTime
-  noticeBody      String               @default("")
-  status          GeneralMeetingStatus @default(DRAFT)
-  createdByUserId String               @db.Uuid
+  noticeBody          String               @default("")
+  minutesBody         String               @default("")
+  minutesPublishedAt  DateTime?
+  financialSnapshot   Json?
+  status              GeneralMeetingStatus @default(DRAFT)
+  createdByUserId     String               @db.Uuid
   createdBy       User                 @relation("meetingAuthor", fields: [createdByUserId], references: [id])
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt

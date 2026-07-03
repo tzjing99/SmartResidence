@@ -69,4 +69,23 @@ describe.skipIf(!integrationReady)('Integration: billing', () => {
     expect(res.headers['content-type']).toMatch(/application\/pdf/);
     expect(res.body.subarray(0, 5).toString()).toBe('%PDF-');
   });
+
+  it('GET /api/billing/units/:unitId/statement.csv returns CSV for the unit owner', async () => {
+    const supertest = (await import('supertest')).default;
+    const res = await supertest(app.getHttpServer())
+      .get(`/api/billing/units/${fx.unitId}/statement.csv`)
+      .set(authHeaders(fx.tokens.owner, fx.condoId))
+      .expect(200);
+
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+    expect(res.text).toContain('Unit account statement');
+  });
+
+  it('GET /api/billing/units/:unitId/statement.csv returns 403 for another unit', async () => {
+    const supertest = (await import('supertest')).default;
+    await supertest(app.getHttpServer())
+      .get(`/api/billing/units/${fx.secondUnitId}/statement.csv`)
+      .set(authHeaders(fx.tokens.owner, fx.condoId))
+      .expect(403);
+  });
 });

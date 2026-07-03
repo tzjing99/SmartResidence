@@ -6,7 +6,10 @@ import {
   usePollDuitNowAdvanceStatus,
   usePollDuitNowInvoiceStatus,
   useUnitInvoices,
+  useUnitReceipts,
+  useUnitStatement,
 } from '@smartresidence/api-client';
+import type { ReceiptListItem } from '@smartresidence/api-client';
 import {
   GATEWAY_PROVIDER_SHORT_LABELS,
   formatMoney,
@@ -28,6 +31,7 @@ import {
 } from '@smartresidence/ui-mobile';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import QRCode from 'react-native-qrcode-svg';
 import {
   HostedPaymentBrowser,
@@ -49,6 +53,37 @@ import {
 } from '../../src/lib/payment-return-url';
 
 const ADVANCE_PRESETS = [100, 200, 400, 1000];
+
+async function openDownloadedFile(uri: string, filename: string) {
+  const canOpen = await Linking.canOpenURL(uri);
+  if (canOpen) {
+    await Linking.openURL(uri);
+    return;
+  }
+  Alert.alert('Download ready', `${filename} saved to your device cache.`);
+}
+
+async function downloadStatementCsv(unitId: string, label: string) {
+  try {
+    const { uri, headers } = await api.unitStatementCsvDownloadSource(unitId);
+    const path = `${FileSystem.cacheDirectory}statement-${label.replace(/[^\w.-]+/g, '-')}.csv`;
+    const downloaded = await FileSystem.downloadAsync(uri, path, { headers });
+    await openDownloadedFile(downloaded.uri, `statement-${label}.csv`);
+  } catch (err) {
+    Alert.alert('Download failed', (err as Error).message);
+  }
+}
+
+async function downloadReceiptPdf(receiptId: string, number: string) {
+  try {
+    const { uri, headers } = await api.receiptPdfDownloadSource(receiptId);
+    const path = `${FileSystem.cacheDirectory}${number}.pdf`;
+    const downloaded = await FileSystem.downloadAsync(uri, path, { headers });
+    await openDownloadedFile(downloaded.uri, `${number}.pdf`);
+  } catch (err) {
+    Alert.alert('Download failed', (err as Error).message);
+  }
+}
 
 type QrSession = {
   qrPayload: string;
@@ -109,10 +144,14 @@ function DuitNowQrCard({
 
 export default function BillingScreen() {
   const units = useMyUnits(api);
-  const unit = units.data?.[0] as { id: string; condoId?: string } | undefined;
+  const unit = units.data?.[0] as { id: string; condoId?: string; identifier?: string } | undefined;
   const invoices = useUnitInvoices(api, unit?.id ?? null);
+  const receipts = useUnitReceipts(api, unit?.id ?? null);
+  const statement = useUnitStatement(api, unit?.id ?? null);
   const pay = usePayInvoice(api);
   const items = (invoices.data?.items as any[]) ?? [];
+  const receiptItems = (receipts.data?.items ?? []) as ReceiptListItem[];
+  const [downloadingStatement, setDownloadingStatement] = useState(false);
   const openItems = items.filter((inv) => inv.status !== 'PAID' && inv.status !== 'VOID');
   const condoId = unit?.condoId ?? openItems[0]?.condoId ?? items[0]?.condoId ?? null;
   const methods = usePayableMethods(api, condoId);
@@ -121,7 +160,13 @@ export default function BillingScreen() {
   const [qrSession, setQrSession] = useState<QrSession | null>(null);
   const [hostedSession, setHostedSession] = useState<HostedPaymentSession | null>(null);
   const { refreshControl } = usePullToRefresh(
-    useCallback(() => invoices.refetch().then(() => undefined), [invoices]),
+    useCallback(
+      () =>
+        Promise.all([invoices.refetch(), receipts.refetch(), statement.refetch()]).then(
+          () => undefined,
+        ),
+      [invoices, receipts, statement],
+    ),
   );
 
   async function handlePay(id: string, provider: string, amountLabel: string) {
@@ -211,6 +256,28 @@ export default function BillingScreen() {
             ? 'No active invoices need payment right now.'
             : `${openItems.length} active invoice(s). Pay the invoice that is due soonest first.`}
         </AppText>
+        {statement.data ? (
+          <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+            Account credit: {formatMoney(statement.data.creditBalance)}
+          </AppText>
+        ) : null}
+        {unit?.id ? (
+          <Button
+            title={downloadingStatement ? 'Downloading…' : 'Download statement (CSV)'}
+            variant="secondary"
+            size="sm"
+            disabled={downloadingStatement}
+            onPress={async () => {
+              setDownloadingStatement(true);
+              try {
+                await downloadStatementCsv(unit.id, unit.identifier ?? unit.id);
+              } finally {
+                setDownloadingStatement(false);
+              }
+            }}
+            style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
+          />
+        ) : null}
       </Card>
 
       <ResidentSectionHeader
@@ -363,6 +430,46 @@ export default function BillingScreen() {
       {unit?.id && condoId && payableMethods.length > 0 ? (
         <AdvanceMaintenancePayment unitId={unit.id} condoId={condoId} />
       ) : null}
+
+      <ResidentSectionHeader
+        title="Receipts"
+        subtitle="Download official PDF receipts for payments on your unit."
+      />
+      {receipts.isLoading ? (
+        <SkeletonList rows={2} rowHeight={72} />
+      ) : receiptItems.length === 0 ? (
+        <EmptyState title="No receipts yet" description="Receipts appear here once issued." />
+      ) : (
+        receiptItems.map((r, index) => (
+          <FadeInView key={r.id} index={index}>
+            <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                }}
+              >
+                <View style={{ flex: 1, minWidth: 160 }}>
+                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>{r.number}</AppText>
+                  <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+                    {new Date(r.issuedAt).toLocaleDateString()} ·{' '}
+                    {formatMoney(r.amount, r.currencyCode ?? 'MYR')}
+                  </AppText>
+                </View>
+                <Button
+                  title="Download PDF"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => downloadReceiptPdf(r.id, r.number)}
+                />
+              </View>
+            </Card>
+          </FadeInView>
+        ))
+      )}
     </ResidentScreen>
   );
 }

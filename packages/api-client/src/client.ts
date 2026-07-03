@@ -100,8 +100,11 @@ import type {
   PayableMethod,
   PaymentIntentResponse,
   PaymentIssue,
+  CreatePlatformCondoInput,
+  CreatePlatformCondoResult,
   PlatformCondoDetail,
-  PlatformCondoSummary,
+  PlatformCondoHealth,
+  PlatformCondosPage,
   Poll,
   PollMyVote,
   PostManualJournalInput,
@@ -1212,6 +1215,17 @@ export class ApiClient {
     }
     return res.blob();
   }
+  /** Auth headers + URL for native download (Expo FileSystem.downloadAsync). */
+  private async authDownloadSource(
+    path: string,
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    const token = await this.cfg.getAccessToken?.();
+    const condoId = await this.cfg.getActiveCondoId?.();
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (condoId) headers['x-condo-id'] = condoId;
+    return { uri: `${this.cfg.baseUrl}${path}`, headers };
+  }
   async downloadUnitStatementPdf(
     condoId: string,
     unitId: string,
@@ -1994,19 +2008,25 @@ export class ApiClient {
   }
 
   // Platform console (super-admin) -----------------------------------
-  listPlatformCondos(params: { search?: string } = {}) {
+  listPlatformCondos(params: { search?: string; limit?: number; offset?: number } = {}) {
     const query = new URLSearchParams(
       Object.entries(params)
         .filter(([, v]) => v !== undefined && v !== null)
         .map(([k, v]) => [k, String(v)] as [string, string]),
     ).toString();
-    return this.request<PlatformCondoSummary[]>(
+    return this.request<PlatformCondosPage>(
       'GET',
       `/api/platform/condos${query ? `?${query}` : ''}`,
     );
   }
   platformCondoSummary(condoId: string) {
     return this.request<PlatformCondoDetail>('GET', `/api/platform/condos/${condoId}/summary`);
+  }
+  platformCondoHealth(condoId: string) {
+    return this.request<PlatformCondoHealth>('GET', `/api/platform/condos/${condoId}/health`);
+  }
+  createPlatformCondo(data: CreatePlatformCondoInput) {
+    return this.request<CreatePlatformCondoResult>('POST', '/api/platform/condos', data);
   }
 
   // Lost & found -----------------------------------------------------

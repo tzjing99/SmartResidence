@@ -20,6 +20,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection } from '../../src/lib/haptics';
 
@@ -38,6 +39,7 @@ function fmtDate(d: Date | string) {
 }
 
 export default function DocumentsScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
   const folders = useDocumentFolders(api, condoId);
@@ -77,8 +79,8 @@ export default function DocumentsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Services"
-      title="Documents"
+      eyebrow={t('nav.sections.services')}
+      title={t('nav.screens.documents')}
       subtitle="House rules, AGM minutes, bylaws, and circulars"
       scrollProps={{ refreshControl }}
     >

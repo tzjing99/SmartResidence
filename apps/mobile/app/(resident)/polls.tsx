@@ -30,6 +30,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
@@ -51,6 +52,7 @@ function fmtDate(d: Date | string | null | undefined) {
 }
 
 export default function PollsScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const pollsQuery = useCondoPolls(api, condo?.id ?? null);
@@ -65,8 +67,8 @@ export default function PollsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="MC polls"
-      title="Owner consultations"
+      eyebrow={t('nav.polls')}
+      title={t('nav.screens.polls')}
       subtitle="One vote per unit you own. Results stay transparent to all residents."
       scrollProps={{ refreshControl }}
       headerAction={

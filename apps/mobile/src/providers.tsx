@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { LocaleProvider } from './i18n/locale-provider';
 import { PushNavigationBridge } from './push-navigation-bridge';
 import { MobileRealtimeProvider } from './realtime-provider';
 import '../global.css';
@@ -26,11 +27,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
-          <MobileRealtimeProvider>
-            <PushNavigationBridge />
-            <StatusBar style="auto" />
-            {children}
-          </MobileRealtimeProvider>
+          <LocaleProvider>
+            <MobileRealtimeProvider>
+              <PushNavigationBridge />
+              <StatusBar style="auto" />
+              {children}
+            </MobileRealtimeProvider>
+          </LocaleProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

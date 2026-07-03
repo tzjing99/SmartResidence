@@ -34,6 +34,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
@@ -54,6 +55,7 @@ function fmtDate(d: Date | string | null | undefined) {
 }
 
 export default function GovernanceScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const meetingsQuery = useCondoMeetings(api, condo?.id ?? null);
@@ -66,8 +68,8 @@ export default function GovernanceScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Governance"
-      title="AGM & EGM"
+      eyebrow={t('nav.governance')}
+      title={t('nav.screens.governance')}
       subtitle="Meeting notices, proxy forms, and resolution voting."
       scrollProps={{ refreshControl }}
       headerAction={

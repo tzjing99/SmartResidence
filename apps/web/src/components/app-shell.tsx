@@ -5,6 +5,7 @@ import { NotificationBell } from '@/components/notification-bell';
 import { ResidentMobileMenu } from '@/components/resident-mobile-menu';
 import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { type NavGroup, NavGroupLinks, PageFade } from '@/components/shell-nav';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { resolveActiveHref } from '@/lib/nav';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
@@ -36,94 +37,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as React from 'react';
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Home',
-    items: [
-      { href: '/dashboard', label: 'Home', icon: Home },
-      {
-        href: '/visitors',
-        label: 'Visitors',
-        icon: CalendarClock,
-      },
-      {
-        href: '/parcels',
-        label: 'Parcels',
-        icon: Package,
-      },
-      {
-        href: '/billing',
-        label: 'Fees',
-        icon: CreditCard,
-      },
-      {
-        href: '/defects',
-        label: 'Defects',
-        icon: Wrench,
-      },
-      {
-        href: '/messages',
-        label: 'Messages',
-        icon: MessageSquare,
-      },
-    ],
-  },
-  {
-    label: 'Community',
-    items: [
-      {
-        href: '/announcements',
-        label: 'Announcements',
-        icon: Megaphone,
-      },
-      {
-        href: '/polls',
-        label: 'Polls',
-        icon: Vote,
-      },
-      {
-        href: '/lost-found',
-        label: 'Lost & found',
-        icon: Search,
-      },
-      {
-        href: '/governance',
-        label: 'Governance',
-        icon: Gavel,
-      },
-      {
-        href: '/facilities',
-        label: 'Facilities',
-        icon: CalendarDays,
-      },
-      {
-        href: '/forms',
-        label: 'Forms',
-        icon: ClipboardList,
-      },
-      {
-        href: '/documents',
-        label: 'Documents',
-        icon: FileText,
-      },
-      { href: '/faq', label: 'Help', icon: HelpCircle },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { href: '/settings', label: 'Settings', icon: Settings2 },
-      { href: '/activity', label: 'My activity', icon: History },
-      { href: '/who-viewed', label: 'Who viewed me', icon: Eye },
-      {
-        href: '/access',
-        label: 'Manage access',
-        icon: KeyRound,
-      },
-    ],
-  },
-];
-
 /** Ability gates — filtered before rendering nav. */
 const NAV_CAN: Record<string, { action: string; subject: string }> = {
   '/visitors': { action: 'read', subject: 'Visitor' },
@@ -144,6 +57,48 @@ const NAV_CAN: Record<string, { action: string; subject: string }> = {
 
 const MOBILE_TAB_HREFS = ['/dashboard', '/visitors', '/parcels', '/billing', '/defects'] as const;
 
+function useResidentNavGroups(): NavGroup[] {
+  const t = useT();
+  return React.useMemo(
+    () => [
+      {
+        label: t('nav.sections.home'),
+        items: [
+          { href: '/dashboard', label: t('nav.home'), icon: Home },
+          { href: '/visitors', label: t('nav.visitors'), icon: CalendarClock },
+          { href: '/parcels', label: t('nav.parcels'), icon: Package },
+          { href: '/billing', label: t('nav.billing'), icon: CreditCard },
+          { href: '/defects', label: t('nav.defects'), icon: Wrench },
+          { href: '/messages', label: t('nav.messages'), icon: MessageSquare },
+        ],
+      },
+      {
+        label: t('nav.sections.community'),
+        items: [
+          { href: '/announcements', label: t('nav.announcements'), icon: Megaphone },
+          { href: '/polls', label: t('nav.polls'), icon: Vote },
+          { href: '/lost-found', label: t('nav.lostFound'), icon: Search },
+          { href: '/governance', label: t('nav.governance'), icon: Gavel },
+          { href: '/facilities', label: t('nav.facilities'), icon: CalendarDays },
+          { href: '/forms', label: t('nav.forms'), icon: ClipboardList },
+          { href: '/documents', label: t('nav.documents'), icon: FileText },
+          { href: '/faq', label: t('nav.help'), icon: HelpCircle },
+        ],
+      },
+      {
+        label: t('nav.sections.account'),
+        items: [
+          { href: '/settings', label: t('nav.settings'), icon: Settings2 },
+          { href: '/activity', label: t('nav.activity'), icon: History },
+          { href: '/who-viewed', label: t('nav.whoViewed'), icon: Eye },
+          { href: '/access', label: t('nav.manageAccess'), icon: KeyRound },
+        ],
+      },
+    ],
+    [t],
+  );
+}
+
 function filterNavGroups(groups: NavGroup[], abilities: AbilityRule[]) {
   return groups
     .map((group) => ({
@@ -162,13 +117,15 @@ function flattenNavItems(groups: NavGroup[]) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const t = useT();
+  const navGroups = useResidentNavGroups();
   const { me, abilities, ready } = useRoleGuard('resident');
   const condos = useMyCondos(api);
   const signOut = useSignOut();
 
   const navSections = React.useMemo(
-    () => filterNavGroups(NAV_GROUPS, abilities ?? []),
-    [abilities],
+    () => filterNavGroups(navGroups, abilities ?? []),
+    [navGroups, abilities],
   );
   const navItems = React.useMemo(() => flattenNavItems(navSections), [navSections]);
 
@@ -188,7 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           pathname,
           navItems.map((n) => n.href),
         ),
-    )?.label ?? 'SmartResidence';
+    )?.label ?? t('appName');
 
   const condo = condos.data?.[0];
 
@@ -199,7 +156,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="text-xl font-bold tracking-tight px-2 mb-6 mt-2">
             Smart<span className="text-coral-500">Residence</span>
           </div>
-          <ShellNavSkeleton count={flattenNavItems(NAV_GROUPS).length} />
+          <ShellNavSkeleton count={flattenNavItems(navGroups).length} />
         </aside>
         <main className="flex-1 min-w-0">
           <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3">
@@ -236,7 +193,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-2 px-3 py-2 rounded-xl touch-manipulation transition-[background-color] duration-100 hover:bg-[rgb(var(--sr-border))]/40 text-sm"
           >
             <LogOut className="size-4" />
-            Sign out
+            {t('nav.signOut')}
           </button>
         </div>
       </aside>
@@ -256,7 +213,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <MobileTabBar
-        ariaLabel="Resident navigation"
+        ariaLabel={t('nav.residentNavAria')}
         items={mobileTabItems.map((item) => ({
           href: item.href,
           label: item.label,

@@ -46,6 +46,7 @@ import {
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../../src/lib/haptics';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
@@ -57,6 +58,7 @@ function liveTabLabel(count: number): string {
 }
 
 export default function VisitorsScreen() {
+  const t = useT();
   const router = useRouter();
   const { twoColumn } = useTabletLayout();
   const [tab, setTab] = useState<VisitorTab>('upcoming');
@@ -103,8 +105,8 @@ export default function VisitorsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Visitors"
-      title="Guest access"
+      eyebrow={t('nav.visitors')}
+      title={t('nav.screens.visitors')}
       subtitle="Pre-register guests for a fast gate pass, or track walk-ins waiting for approval."
       scrollProps={{ refreshControl }}
       headerAction={

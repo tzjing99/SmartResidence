@@ -40,6 +40,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 import {
@@ -108,6 +109,7 @@ function DuitNowQrCard({
 }
 
 export default function BillingScreen() {
+  const t = useT();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; condoId?: string } | undefined;
   const invoices = useUnitInvoices(api, unit?.id ?? null);
@@ -165,8 +167,8 @@ export default function BillingScreen() {
   if (units.isLoading || invoices.isLoading) {
     return (
       <ResidentScreen
-        eyebrow="Fees"
-        title="Maintenance fees"
+        eyebrow={t('nav.billing')}
+        title={t('nav.screens.billing')}
         subtitle="Review statements, formulas, and payment options without hidden surprises."
       >
         <SkeletonList rows={3} rowHeight={120} />
@@ -176,8 +178,8 @@ export default function BillingScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Fees"
-      title="Maintenance fees"
+      eyebrow={t('nav.billing')}
+      title={t('nav.screens.billing')}
       subtitle="Review statements, formulas, and payment options without hidden surprises."
       scrollProps={{ refreshControl }}
     >

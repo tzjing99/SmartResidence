@@ -1,0 +1,64 @@
+{
+  "guard": {
+    "tabs": {
+      "scan": "扫描",
+      "live": "在场",
+      "patrol": "巡逻",
+      "alerts": "警报",
+      "expected": "预期到访",
+      "manual": "手动",
+      "walkIn": "Walk-in",
+      "parcels": "包裹",
+      "settings": "设置"
+    },
+    "scan": {
+      "title": "门卫扫描",
+      "subtitle": "准备好使用相机时，在门卫处验证访客通行证。",
+      "scanPassTitle": "扫描访客通行证",
+      "scanPassHint": "将 QR 码放入框内。",
+      "queued": "{count} 条排队",
+      "online": "在线",
+      "confirmCheckIn": "确认登记入场",
+      "welcomeCheckedIn": "欢迎",
+      "checkedInMessage": "{name} 已登记入场。",
+      "queuedTitle": "已排队",
+      "queuedMessage": "网络不可用——登记入场将自动同步。"
+    },
+    "live": {
+      "eyebrow": "门卫实时看板",
+      "subtitle": "当前在物业内的活跃访客。Walk-in 仅作记录，当天结束自动关闭。",
+      "visitorOnSite": "位访客在场",
+      "visitorsOnSite": "位访客在场",
+      "live": "实时",
+      "clear": "清空",
+      "justIn": "刚入场",
+      "unitNotShown": "未显示单元",
+      "onSiteMeta": "在场",
+      "callVisitor": "致电访客 {phone}",
+      "callOwner": "致电 {name}",
+      "recordOnly": "仅记录",
+      "emptyDesc": "已登记入场的预登记访客会显示在这里。Walk-in 仅作记录并自动关闭。",
+      "checkOutTitle": "访客离场登记？",
+      "checkOutBody": "确定吗？他们将离开实时看板。",
+      "checkOutYes": "是，登记离场",
+      "checkedOutTitle": "已离场",
+      "checkedOutMessage": "{name} 已离开物业。",
+      "checkOutFailedTitle": "无法登记离场"
+    },
+    "expected": {
+      "eyebrow": "门卫到访",
+      "subtitle": "查看已批准访客、未到场记录和近期门卫历史。",
+      "expectedHint": "即将到场的访客一目了然。",
+      "noShowHint": "未登记入场的过期通行证。",
+      "historyHint": "近期访客和已完成的门卫活动。",
+      "acknowledgedTitle": "已确认",
+      "acknowledgedMessage": "{name} 已记录在场。",
+      "ackFailedTitle": "无法确认"
+    },
+    "walkin": {
+      "eyebrow": "门卫 Walk-in",
+      "title": "登记 Walk-in 访客",
+      "subtitle": "用于已在门卫处的访客。若 condo 政策要求，会向业主请求审批。"
+    }
+  }
+}

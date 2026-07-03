@@ -25,11 +25,13 @@ import {
   VisitorGuardPassCard,
   guardPassSummary,
 } from '../../src/components/visitor-guard-pass';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { enqueueCheckIn, flushQueue, pendingCount } from '../../src/lib/guard-queue';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
 export default function ScanScreen() {
+  const t = useT();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { isTablet, isLandscape, contentMaxWidth, horizontalPadding, twoColumn } =
@@ -54,7 +56,10 @@ export default function ScanScreen() {
   async function confirmCheckIn(pass: string, v: GuardVerifiedVisitor) {
     try {
       await api.checkInVisitor(pass, { gateLocation: 'Main gate' });
-      Alert.alert('Welcome', `${v.name} checked in.`);
+      Alert.alert(
+        t('mobile.guard.scan.welcomeCheckedIn'),
+        t('mobile.guard.scan.checkedInMessage', { name: v.name }),
+      );
       setVisitor(null);
       setScannedPass(null);
       setActiveScanning(false);
@@ -62,13 +67,13 @@ export default function ScanScreen() {
       const message = (err as Error).message;
       if (isVisitorBlacklistError(message)) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Visitor blocked', message);
+        Alert.alert(t('visitors.guard.blockedTitle'), message);
         setVisitor(null);
         setScannedPass(null);
         return;
       }
       await enqueueCheckIn({ qrCode: pass, gateLocation: 'Main gate' });
-      Alert.alert('Queued', 'Network unavailable — check-in will sync automatically.');
+      Alert.alert(t('mobile.guard.scan.queuedTitle'), t('mobile.guard.scan.queuedMessage'));
       setPending(await pendingCount());
     }
   }
@@ -148,7 +153,7 @@ export default function ScanScreen() {
       const message = (err as Error).message;
       if (isVisitorBlacklistError(message)) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Visitor blocked', message);
+        Alert.alert(t('visitors.guard.blockedTitle'), message);
         setVisitor(null);
         setScannedPass(null);
       } else {
@@ -226,7 +231,11 @@ export default function ScanScreen() {
             </View>
             <Pill
               tone={pending > 0 ? 'warning' : 'success'}
-              label={pending > 0 ? `${pending} queued` : 'online'}
+              label={
+                pending > 0
+                  ? t('mobile.guard.scan.queued', { count: pending })
+                  : t('mobile.guard.scan.online')
+              }
             />
           </View>
 
@@ -248,6 +257,8 @@ export default function ScanScreen() {
               facing="back"
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               onBarcodeScanned={busy ? undefined : (e) => void onScan(e.data)}
+              accessibilityLabel="QR code scanner camera"
+              accessibilityHint="Point the camera at a visitor pass QR code"
             />
             <View
               pointerEvents="none"
@@ -308,18 +319,22 @@ export default function ScanScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <GuardBrandBar />
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: 6 }} accessibilityRole="header">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Text style={{ flex: 1, fontSize: 24, fontWeight: '800', color: palette.textLight }}>
-            Guard scan
+            {t('mobile.guard.scan.title')}
           </Text>
           <Pill
             tone={pending > 0 ? 'warning' : 'success'}
-            label={pending > 0 ? `${pending} queued` : 'online'}
+            label={
+              pending > 0
+                ? t('mobile.guard.scan.queued', { count: pending })
+                : t('mobile.guard.scan.online')
+            }
           />
         </View>
         <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
-          Verify visitor passes at the gate when you are ready to use the camera.
+          {t('mobile.guard.scan.subtitle')}
         </Text>
       </View>
 

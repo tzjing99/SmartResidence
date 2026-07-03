@@ -1,6 +1,11 @@
 import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { TEST_PASSWORD, authHeaders, ensureIntegrationEnv, signInTestIp } from '../helpers/integration-env';
+import {
+  TEST_PASSWORD,
+  authHeaders,
+  ensureIntegrationEnv,
+  signInTestIp,
+} from '../helpers/integration-env';
 import type { IntegrationFixtures } from '../helpers/integration-types';
 
 const integrationReady = ensureIntegrationEnv();

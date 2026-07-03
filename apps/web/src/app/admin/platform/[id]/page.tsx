@@ -5,7 +5,7 @@ import { api, setActiveCondo } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { usePlatformCondoHealth, usePlatformCondoSummary } from '@smartresidence/api-client';
-import { setupProgress, type PlatformAuditEvent } from '@smartresidence/shared-types';
+import { type PlatformAuditEvent, setupProgress } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { AlertTriangle, ArrowLeft, Building2, ChevronRight, Receipt, Users } from 'lucide-react';
 import Link from 'next/link';

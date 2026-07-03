@@ -26,7 +26,6 @@ import type {
   CreateVendorInput,
   CreateVisitorInput,
   OpenResolutionVotingInput,
-  PublishMeetingMinutesInput,
   PatrolScanInput,
   RaiseSosInput,
   SubmitMeetingProxyInput,
@@ -61,8 +60,10 @@ const REPORT_VIEW_MS = 3 * 60_000;
 export const queryKeys = {
   me: ['me'] as const,
   myCondos: ['condos', 'mine'] as const,
-  platformCondos: (search?: string) => ['platform', 'condos', search ?? ''] as const,
+  platformCondos: (params?: { search?: string; limit?: number; offset?: number }) =>
+    ['platform', 'condos', params ?? {}] as const,
   platformCondoSummary: (condoId: string) => ['platform', 'condos', condoId, 'summary'] as const,
+  platformCondoHealth: (condoId: string) => ['platform', 'condos', condoId, 'health'] as const,
   myUnits: ['units', 'mine'] as const,
   unitVisitors: (unitId: string, view?: string) =>
     ['visitors', 'unit', unitId, view ?? 'all'] as const,
@@ -246,13 +247,14 @@ export function useMyCondos(api: ApiClient, options?: { enabled?: boolean }) {
 
 export function usePlatformCondos(
   api: ApiClient,
-  params: { search?: string } = {},
+  params: { search?: string; limit?: number; offset?: number } = {},
   options?: { enabled?: boolean },
 ) {
   const search = params.search?.trim() || undefined;
+  const queryParams = { search, limit: params.limit, offset: params.offset };
   return useQuery({
-    queryKey: queryKeys.platformCondos(search),
-    queryFn: () => api.listPlatformCondos({ search }),
+    queryKey: queryKeys.platformCondos(queryParams),
+    queryFn: () => api.listPlatformCondos(queryParams),
     enabled: options?.enabled ?? true,
     staleTime: LIST_VIEW_MS,
     placeholderData: keepPreviousData,
@@ -270,6 +272,31 @@ export function usePlatformCondoSummary(
       condoId ? api.platformCondoSummary(condoId) : Promise.reject(new Error('no condo')),
     enabled: (options?.enabled ?? true) && Boolean(condoId),
     staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function usePlatformCondoHealth(
+  api: ApiClient,
+  condoId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.platformCondoHealth(condoId) : ['platform', 'condos', null],
+    queryFn: () =>
+      condoId ? api.platformCondoHealth(condoId) : Promise.reject(new Error('no condo')),
+    enabled: (options?.enabled ?? true) && Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreatePlatformCondo(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<ApiClient['createPlatformCondo']>[0]) =>
+      api.createPlatformCondo(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['platform', 'condos'] });
+    },
   });
 }
 
@@ -1593,19 +1620,6 @@ export function useUpdateMeeting(api: ApiClient) {
   return useMutation({
     mutationFn: (vars: { id: string; data: UpdateGeneralMeetingInput }) =>
       api.updateMeeting(vars.id, vars.data),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['governance'] });
-      if (data?.id) qc.setQueryData(queryKeys.meeting(data.id), data);
-    },
-  });
-}
-
-
-export function usePublishMeetingMinutes(api: ApiClient) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { id: string; data?: PublishMeetingMinutesInput }) =>
-      api.publishMeetingMinutes(vars.id, vars.data ?? {}),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['governance'] });
       if (data?.id) qc.setQueryData(queryKeys.meeting(data.id), data);

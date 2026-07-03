@@ -14,7 +14,7 @@ import {
   useThread,
 } from '@smartresidence/api-client';
 import { useThreadRoom } from '@smartresidence/api-client/realtime';
-import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Label, Skeleton, Textarea } from '@smartresidence/ui-web';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -48,6 +48,10 @@ export default function ResidentThreadPage() {
   const [moreOpen, setMoreOpen] = React.useState(false);
   const moreRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const rejectReasonId = React.useId();
+  const rejectExpectationId = React.useId();
+  const appealReasonId = React.useId();
+  const replyBodyId = React.useId();
 
   React.useEffect(() => {
     if (!moreOpen) return;
@@ -168,6 +172,7 @@ export default function ResidentThreadPage() {
               onClick={() => setMoreOpen((open) => !open)}
               aria-expanded={moreOpen}
               aria-haspopup="menu"
+              aria-label={tr('messages.threadActions')}
             >
               <MoreHorizontal className="size-4" />
             </Button>
@@ -245,18 +250,28 @@ export default function ResidentThreadPage() {
       {rejectMode ? (
         <Card className="p-4 flex flex-col gap-3">
           <div className="font-medium text-sm">{tr('helpdesk.resident.rejectHeading')}</div>
-          <Textarea
-            rows={2}
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            placeholder={tr('helpdesk.resident.rejectReasonPlaceholder')}
-          />
-          <Textarea
-            rows={2}
-            value={rejectExpectation}
-            onChange={(e) => setRejectExpectation(e.target.value)}
-            placeholder={tr('helpdesk.resident.rejectExpectationPlaceholder')}
-          />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={rejectReasonId}>{tr('helpdesk.resident.rejectReasonPlaceholder')}</Label>
+            <Textarea
+              id={rejectReasonId}
+              rows={2}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder={tr('helpdesk.resident.rejectReasonPlaceholder')}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={rejectExpectationId}>
+              {tr('helpdesk.resident.rejectExpectationPlaceholder')}
+            </Label>
+            <Textarea
+              id={rejectExpectationId}
+              rows={2}
+              value={rejectExpectation}
+              onChange={(e) => setRejectExpectation(e.target.value)}
+              placeholder={tr('helpdesk.resident.rejectExpectationPlaceholder')}
+            />
+          </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={submitReject} disabled={confirm.isPending}>
               {tr('actions.submit')}
@@ -283,12 +298,16 @@ export default function ResidentThreadPage() {
       {appealMode ? (
         <Card className="p-4 flex flex-col gap-3">
           <div className="font-medium text-sm">{tr('helpdesk.resident.whatStillBroken')}</div>
-          <Textarea
-            rows={3}
-            value={appealReason}
-            onChange={(e) => setAppealReason(e.target.value)}
-            placeholder={tr('helpdesk.resident.appealPlaceholder')}
-          />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={appealReasonId}>{tr('helpdesk.resident.appealPlaceholder')}</Label>
+            <Textarea
+              id={appealReasonId}
+              rows={3}
+              value={appealReason}
+              onChange={(e) => setAppealReason(e.target.value)}
+              placeholder={tr('helpdesk.resident.appealPlaceholder')}
+            />
+          </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={submitAppeal} disabled={appeal.isPending}>
               {tr('helpdesk.resident.reopenTicket')}
@@ -314,12 +333,16 @@ export default function ResidentThreadPage() {
 
       {closed || pending || resolved ? null : (
         <form onSubmit={send} className="flex flex-col gap-3">
-          <Textarea
-            rows={3}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder={tr('messages.reply')}
-          />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={replyBodyId}>{tr('messages.reply')}</Label>
+            <Textarea
+              id={replyBodyId}
+              rows={3}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={tr('messages.reply')}
+            />
+          </div>
           <div className="flex justify-end">
             <Button type="submit" disabled={!body.trim()}>
               <Send className="size-4" />

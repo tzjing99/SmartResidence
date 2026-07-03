@@ -1,6 +1,7 @@
 'use client';
 
 import { MobileTabBar } from '@/components/mobile-tab-bar';
+import { SkipToMain } from '@/components/skip-to-main';
 import { NotificationBell } from '@/components/notification-bell';
 import { ResidentMobileMenu } from '@/components/resident-mobile-menu';
 import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
@@ -201,7 +202,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <ShellNavSkeleton count={flattenNavItems(NAV_GROUPS).length} />
         </aside>
-        <main className="flex-1 min-w-0">
+        <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 outline-none">
           <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3">
             <div className="h-5 w-24 rounded bg-[rgb(var(--sr-border))]/30 animate-shimmer" />
           </header>
@@ -215,13 +216,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex">
-      <aside className="w-64 border-r border-[rgb(var(--sr-border))] hidden md:flex md:flex-col p-4 sticky top-0 h-screen">
+      <SkipToMain />
+      <aside
+        aria-label="Resident sidebar"
+        className="w-64 border-r border-[rgb(var(--sr-border))] hidden md:flex md:flex-col p-4 sticky top-0 h-screen"
+      >
         <Link href="/dashboard" className="text-xl font-bold tracking-tight px-2 mb-2 mt-2">
           Smart<span className="text-coral-500">Residence</span>
         </Link>
         {condo ? <div className="px-2 text-xs sr-muted mb-4 truncate">{condo.name}</div> : null}
 
-        <NavGroupLinks groups={navSections} />
+        <NavGroupLinks groups={navSections} ariaLabel="Resident navigation" />
 
         <div className="border-t border-[rgb(var(--sr-border))] pt-4 mt-4 flex flex-col gap-2 shrink-0">
           {me.data ? (
@@ -241,7 +246,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0">
+      <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 outline-none">
         <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <ResidentMobileMenu items={navItems} />

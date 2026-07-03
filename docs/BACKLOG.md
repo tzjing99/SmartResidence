@@ -6,6 +6,12 @@ Tracked defects and deferred refinements not yet scheduled into a milestone; see
 
 Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
+## Accessibility
+
+| ID | Priority | Area | Description |
+| --- | --- | --- | --- |
+| **A1** | P2 | web | WCAG AA lite pass on high-traffic surfaces — skip links, landmarks, dialog focus trap, form labels, icon-button names, dark-mode contrast. **Partial done** (`feature/a11y-wcag-lite`). |
+
 ## Recently completed
 
 - ✅ **Ops batch (`6dd4f00`) + follow-on (`a4baa2a`)** — DuitNow QR + gateway UI, facility booking, parcels, forms/workflows, safety/SOS + guard patrol, first-time setup wizard (no forced redirect), delivery/e-hailing passes, documents vault, WhatsApp notifications, production MyInvois e-Invoice seam; **community marketplace cancelled** (product decision). **Guard on-site admit kept** (see ROADMAP §2.1).

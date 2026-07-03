@@ -47,7 +47,8 @@
     "reopenSentToast": "Dihantar semula kepada pengurusan",
     "appealReasonValidation": "Sila berikan sebab (sekurang-kurangnya 10 aksara)",
     "resolvedNotice": "Utas ini telah selesai.",
-    "closedNotice": "Perbualan ini telah ditutup."
+    "closedNotice": "Perbualan ini telah ditutup.",
+    "threadActions": "Tindakan utas"
   },
   "upload": {
     "photos": "Foto",

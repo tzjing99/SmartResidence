@@ -548,7 +548,9 @@ flowchart LR
   skeletons during transitions, prefetch nav targets on hover/mount so warm
   navigations feel instant without full streaming SSR.
 - **Observability:** request IDs (`request-id.middleware`), structured logs,
-  health checks (`health` module); add metrics/traces before v1.0.
+  health checks (`health` module); **Prometheus scrape endpoint** (`GET /metrics`,
+  gated by `METRICS_ENABLED=true` + localhost) for uptime, heap, request count,
+  and Postgres/Redis health; OpenTelemetry traces still deferred pre-v1.0.
 - **Self-hosting:** Docker compose + Helm chart; `make dev`; demo seed; keep
   external services optional/swappable.
 - **Pluggable local-AI seam:** `AI_ASSIST_PROVIDER` stays an interface; the

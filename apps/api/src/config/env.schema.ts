@@ -55,6 +55,12 @@ export const envSchema = z.object({
   DEFAULT_CONDO_LOCALE: z.string().default('en'),
   DEFAULT_CONDO_CURRENCY: z.string().default('MYR'),
   DEFAULT_CONDO_TIMEZONE: z.string().default('Asia/Kuala_Lumpur'),
+
+  /** When true, exposes GET /metrics (Prometheus text) on localhost only. */
+  METRICS_ENABLED: z
+    .string()
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

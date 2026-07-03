@@ -12,6 +12,8 @@ import { useTheme } from '../theme';
 import { radius, spring } from '../tokens';
 import { textBase, typography } from '../typography';
 
+const MIN_TOUCH_TARGET = 44;
+
 export interface ButtonProps extends PressableProps {
   variant?: 'primary' | 'soft-primary' | 'soft-sky' | 'secondary' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
@@ -26,12 +28,15 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   disabled,
   style,
+  accessibilityRole = 'button',
+  accessibilityLabel,
+  accessibilityState,
   ...props
 }) => {
   const reduceMotion = useReducedMotion();
   const { colors } = useTheme();
   const [pressed, setPressed] = React.useState(false);
-  const heights = { sm: 36, md: 44, lg: 52 };
+  const heights = { sm: MIN_TOUCH_TARGET, md: MIN_TOUCH_TARGET, lg: 52 };
   const textVariants = { sm: typography.bodySm, md: typography.body, lg: typography.subheading };
 
   const palettes: Record<
@@ -54,19 +59,28 @@ export const Button: React.FC<ButtonProps> = ({
     destructive: { bg: '#EF4444', fg: '#FFFFFF' },
   };
   const p = palettes[variant];
+  const isDisabled = disabled || loading;
 
   return (
     <Pressable
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
-      disabled={disabled || loading}
+      disabled={isDisabled}
       style={({ pressed: _pressed }) => style as ViewStyle | undefined}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{
+        disabled: isDisabled,
+        busy: loading,
+        ...accessibilityState,
+      }}
       {...props}
     >
       <MotiView
         animate={{ scale: !reduceMotion && pressed ? 0.97 : 1 }}
         transition={spring.snappy}
         style={{
+          minHeight: MIN_TOUCH_TARGET,
           height: heights[size],
           paddingHorizontal: 20,
           borderRadius: radius.xl,
@@ -77,10 +91,12 @@ export const Button: React.FC<ButtonProps> = ({
           justifyContent: 'center',
           alignItems: 'center',
           gap: 8,
-          opacity: disabled || loading ? 0.7 : 1,
+          opacity: isDisabled ? 0.7 : 1,
         }}
       >
-        {loading ? <ActivityIndicator size="small" color={p.fg} /> : null}
+        {loading ? (
+          <ActivityIndicator size="small" color={p.fg} accessibilityLabel="Loading" />
+        ) : null}
         <Text
           style={{
             ...textBase,

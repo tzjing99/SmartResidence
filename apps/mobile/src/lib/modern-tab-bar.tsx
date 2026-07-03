@@ -1,13 +1,19 @@
+<<<<<<< HEAD
 import { useTheme } from '@smartresidence/ui-mobile';
+=======
+import { Ionicons } from '@expo/vector-icons';
+>>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
 import type { ComponentProps, ReactNode } from 'react';
 import { useMemo } from 'react';
 import {
+  type AccessibilityRole,
   type GestureResponderEvent,
   Pressable,
   type StyleProp,
   StyleSheet,
   type ViewStyle,
 } from 'react-native';
+import { minTouchTargetStyle } from './accessibility';
 import { hapticLight } from './haptics';
 
 /**
@@ -22,12 +28,16 @@ type TabBarButtonProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   onPress?: (e: GestureResponderEvent) => void;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: { selected?: boolean; disabled?: boolean };
+  accessibilityLabel?: string;
   [key: string]: unknown;
 };
 
 /** @deprecated Use `useTheme().colors.bg` instead. */
 export const TAB_SCENE_BACKGROUND = '#FFF8F6';
 
+<<<<<<< HEAD
 export function useModernTabBarOptions(bottomInset: number) {
   const { colors } = useTheme();
   const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
@@ -68,13 +78,35 @@ export function useModernTabBarOptions(bottomInset: number) {
 }
 
 /** @deprecated Use `useModernTabBarOptions` for theme-aware tab styling. */
+=======
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+export function TabBarIcon({ name, color }: { name: IoniconName; color: string }) {
+  return (
+    <Ionicons
+      name={name}
+      size={22}
+      color={color}
+      importantForAccessibility="no"
+      accessibilityElementsHidden
+    />
+  );
+}
+
+>>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
 export function createModernTabBarOptions(bottomInset: number) {
   const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
 
   return {
+<<<<<<< HEAD
     tabBarActiveTintColor: '#FF5A5F',
     tabBarInactiveTintColor: '#717171',
     tabBarAllowFontScaling: false,
+=======
+    tabBarActiveTintColor: ACTIVE_TINT,
+    tabBarInactiveTintColor: INACTIVE_TINT,
+    tabBarAllowFontScaling: true,
+>>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
     tabBarButton: ModernTabBarButton,
     tabBarLabelStyle: styles.label,
     tabBarIconStyle: styles.icon,
@@ -94,18 +126,17 @@ export function createModernTabBarOptions(bottomInset: number) {
 }
 
 function ModernTabBarButton(props: TabBarButtonProps) {
-  const { style, onPress, ...rest } = props;
-
-  const handlePress = (e: GestureResponderEvent) => {
-    hapticLight();
-    onPress?.(e);
-  };
+  const { style, onPress, accessibilityRole, ...rest } = props;
 
   return (
     <Pressable
       {...(rest as ComponentProps<typeof Pressable>)}
-      onPress={handlePress}
-      style={style}
+      accessibilityRole={accessibilityRole ?? 'tab'}
+      onPress={(e) => {
+        hapticLight();
+        onPress?.(e);
+      }}
+      style={[minTouchTargetStyle, style]}
     />
   );
 }
@@ -122,6 +153,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 4,
+    minHeight: 44,
   },
   icon: {
     alignSelf: 'center',

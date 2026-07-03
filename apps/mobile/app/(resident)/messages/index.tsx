@@ -74,7 +74,11 @@ export default function MessagesScreen() {
       ) : (
         items.map((t, index) => (
           <FadeInView key={t.id} index={index}>
-            <AnimatedPressable onPress={() => router.push(`/(resident)/messages/${t.id}` as Href)}>
+            <AnimatedPressable
+              onPress={() => router.push(`/(resident)/messages/${t.id}` as Href)}
+              accessibilityRole="button"
+              accessibilityLabel={`${t.subject}. ${prettyLabel(t.category)}, ${t._count?.messages ?? 0} messages, ${prettyLabel(t.status)}`}
+            >
               <Card style={[residentStyles.card, { padding: 16 }]}>
                 <AlignRow
                   style={{ alignItems: 'flex-start', minHeight: 0, flexWrap: 'wrap' }}

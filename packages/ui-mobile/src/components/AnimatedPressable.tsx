@@ -4,6 +4,8 @@ import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from '
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { spring } from '../tokens';
 
+const MIN_TOUCH_TARGET = 44;
+
 export interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -16,6 +18,8 @@ export function AnimatedPressable({
   style,
   contentStyle,
   disabled,
+  accessibilityRole,
+  onPress,
   ...props
 }: AnimatedPressableProps) {
   const reduceMotion = useReducedMotion();
@@ -24,15 +28,17 @@ export function AnimatedPressable({
   return (
     <Pressable
       disabled={disabled}
+      onPress={onPress}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       style={style}
+      accessibilityRole={accessibilityRole ?? (onPress ? 'button' : undefined)}
       {...props}
     >
       <MotiView
         animate={{ scale: !reduceMotion && pressed && !disabled ? 0.97 : 1 }}
         transition={spring.snappy}
-        style={contentStyle}
+        style={[{ minHeight: onPress ? MIN_TOUCH_TARGET : undefined }, contentStyle]}
       >
         {children}
       </MotiView>

@@ -95,6 +95,11 @@ export const UpdateGeneralMeetingInputSchema = z.object({
 });
 export type UpdateGeneralMeetingInput = z.infer<typeof UpdateGeneralMeetingInputSchema>;
 
+export const PublishMeetingMinutesInputSchema = z.object({
+  minutesBody: z.string().optional(),
+});
+export type PublishMeetingMinutesInput = z.infer<typeof PublishMeetingMinutesInputSchema>;
+
 export const CreateMeetingResolutionInputSchema = z.object({
   title: z.string().min(4).max(200),
   description: z.string().optional(),

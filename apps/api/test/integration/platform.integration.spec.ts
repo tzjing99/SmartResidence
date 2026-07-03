@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import { RoleId, UserStatus } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { PrismaService } from '../../src/prisma/prisma.service';
-import { authHeaders, ensureIntegrationEnv, TEST_PASSWORD } from '../helpers/integration-env';
+import { TEST_PASSWORD, authHeaders, ensureIntegrationEnv } from '../helpers/integration-env';
 import { seedIntegrationFixtures, signInToken } from '../helpers/integration-fixtures';
 import type { IntegrationFixtures } from '../helpers/integration-types';
 

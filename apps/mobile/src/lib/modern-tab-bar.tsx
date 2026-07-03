@@ -1,4 +1,6 @@
+import { useTheme } from '@smartresidence/ui-mobile';
 import type { ComponentProps, ReactNode } from 'react';
+import { useMemo } from 'react';
 import {
   type GestureResponderEvent,
   Pressable,
@@ -23,27 +25,60 @@ type TabBarButtonProps = {
   [key: string]: unknown;
 };
 
-const ACTIVE_TINT = '#FF5A5F'; // Brand coral — matches palette.coralPrimary
-const INACTIVE_TINT = '#717171'; // Modern grey
-/** Matches resident/guard screen shells — avoids default RN tab navigator grey. */
+/** @deprecated Use `useTheme().colors.bg` instead. */
 export const TAB_SCENE_BACKGROUND = '#FFF8F6';
-/** Solid, opaque bar surface for a clean, consistent look. */
-const TAB_BAR_SURFACE = '#FFFFFF';
-const TAB_BAR_BORDER = 'rgba(17, 24, 39, 0.08)'; // Very subtle, clean border
 
+export function useModernTabBarOptions(bottomInset: number) {
+  const { colors } = useTheme();
+  const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
+
+  return useMemo(
+    () => ({
+      tabBarActiveTintColor: colors.coral,
+      tabBarInactiveTintColor: colors.tabInactive,
+      tabBarAllowFontScaling: false,
+      tabBarButton: ModernTabBarButton,
+      tabBarLabelStyle: styles.label,
+      tabBarIconStyle: styles.icon,
+      tabBarItemStyle: styles.item,
+      safeAreaInsets: { bottom: 0, top: 0, left: 0, right: 0 },
+      sceneStyle: {
+        backgroundColor: colors.bg,
+      },
+      tabBarStyle: [
+        styles.tabBar,
+        {
+          height: totalHeight,
+          paddingBottom: bottomInset,
+          backgroundColor: colors.tabBar,
+          borderTopColor: colors.tabBarBorder,
+        },
+      ],
+    }),
+    [
+      bottomInset,
+      colors.bg,
+      colors.coral,
+      colors.tabBar,
+      colors.tabBarBorder,
+      colors.tabInactive,
+      totalHeight,
+    ],
+  );
+}
+
+/** @deprecated Use `useModernTabBarOptions` for theme-aware tab styling. */
 export function createModernTabBarOptions(bottomInset: number) {
-  // Total height includes the active content area plus the bottom safe area inset.
   const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
 
   return {
-    tabBarActiveTintColor: ACTIVE_TINT,
-    tabBarInactiveTintColor: INACTIVE_TINT,
+    tabBarActiveTintColor: '#FF5A5F',
+    tabBarInactiveTintColor: '#717171',
     tabBarAllowFontScaling: false,
     tabBarButton: ModernTabBarButton,
     tabBarLabelStyle: styles.label,
     tabBarIconStyle: styles.icon,
     tabBarItemStyle: styles.item,
-    // Disable automatic safe area insets so we can control height and padding precisely
     safeAreaInsets: { bottom: 0, top: 0, left: 0, right: 0 },
     sceneStyle: {
       backgroundColor: TAB_SCENE_BACKGROUND,
@@ -77,12 +112,10 @@ function ModernTabBarButton(props: TabBarButtonProps) {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: TAB_BAR_SURFACE,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: TAB_BAR_BORDER,
     borderBottomWidth: 0,
     elevation: 0,
-    shadowOpacity: 0, // Remove shadow for a clean flat docked look
+    shadowOpacity: 0,
   },
   item: {
     flex: 1,

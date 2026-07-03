@@ -9,7 +9,7 @@ import {
   FadeInView,
   Pill,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import * as Linking from 'expo-linking';
 import { useCallback, useMemo, useState } from 'react';
@@ -38,6 +38,7 @@ function fmtDate(d: Date | string) {
 }
 
 export default function DocumentsScreen() {
+  const { colors } = useTheme();
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
   const folders = useDocumentFolders(api, condoId);
@@ -109,7 +110,7 @@ export default function DocumentsScreen() {
       )}
 
       {activeFolder ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 8 }}>
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 8 }}>
           {DOCUMENT_FOLDER_AUDIENCE_LABELS[activeFolder.audience]}
         </AppText>
       ) : null}
@@ -124,21 +125,19 @@ export default function DocumentsScreen() {
           {docRows.map((doc, index) => (
             <FadeInView key={doc.id} index={index}>
               <Card style={[residentStyles.card, { gap: 8 }]}>
-                <AppText style={{ fontWeight: '700', color: palette.textLight }}>
-                  {doc.title}
-                </AppText>
+                <AppText style={{ fontWeight: '700', color: colors.fg }}>{doc.title}</AppText>
                 {doc.description ? (
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     {doc.description}
                   </AppText>
                 ) : null}
                 {doc.currentVersion ? (
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     v{doc.currentVersion.versionNumber} · {fmtDate(doc.currentVersion.publishedAt)}{' '}
                     · {fmtBytes(doc.currentVersion.sizeBytes)}
                   </AppText>
                 ) : (
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     Not published yet
                   </AppText>
                 )}

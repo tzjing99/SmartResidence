@@ -5,10 +5,18 @@ import {
   useScanPatrolCheckpoint,
 } from '@smartresidence/api-client';
 import type { PatrolCheckpointStatus } from '@smartresidence/shared-types';
-import { Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
+import {
+  Button,
+  Card,
+  Pill,
+  type ThemeColors,
+  radius,
+  spacing,
+  useTheme,
+} from '@smartresidence/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -19,13 +27,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  GUARD_CORAL,
-  GUARD_SOFT_CORAL,
-  GUARD_WARM_BG,
-  GuardBrandBar,
-  guardStyles,
-} from '../../src/components/guard-screen';
+import { GuardBrandBar } from '../../src/components/guard-screen';
 import { api } from '../../src/lib/api';
 import {
   enqueuePatrolScan,
@@ -47,6 +49,8 @@ function formatLastScan(value: Date | string | null | undefined): string {
 }
 
 export default function PatrolScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { isTablet, isLandscape, contentMaxWidth, horizontalPadding, twoColumn } =
@@ -140,7 +144,7 @@ export default function PatrolScreen() {
       <View
         style={{
           flex: 1,
-          backgroundColor: GUARD_WARM_BG,
+          backgroundColor: colors.bg,
           paddingTop: Math.max(insets.top, 12),
           paddingBottom: Math.max(insets.bottom, 16) + 92,
           paddingHorizontal: horizontalPadding,
@@ -151,10 +155,10 @@ export default function PatrolScreen() {
           <GuardBrandBar />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: palette.textLight }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.fg }}>
                 Scan checkpoint
               </Text>
-              <Text style={{ color: palette.mutedLight, fontSize: 13, marginTop: 3 }}>
+              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 3 }}>
                 Point the camera at the checkpoint QR tag.
               </Text>
             </View>
@@ -199,11 +203,11 @@ export default function PatrolScreen() {
             />
           </View>
 
-          <Card style={[guardStyles.card, styles.helperCard]}>
-            <Text style={{ fontWeight: '700', fontSize: 15, color: palette.textLight }}>
+          <Card style={[styles.card, styles.helperCard]}>
+            <Text style={{ fontWeight: '700', fontSize: 15, color: colors.fg }}>
               Hold steady until the phone vibrates.
             </Text>
-            <Text style={{ color: palette.mutedLight, fontSize: 13, marginTop: 5 }}>
+            <Text style={{ color: colors.muted, fontSize: 13, marginTop: 5 }}>
               Scans made without signal are queued and synced automatically.
             </Text>
             <Button
@@ -220,7 +224,7 @@ export default function PatrolScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: GUARD_WARM_BG }}
+      style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{
         width: '100%',
         maxWidth: contentMaxWidth,
@@ -236,7 +240,7 @@ export default function PatrolScreen() {
       <GuardBrandBar />
       <View style={{ gap: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Text style={{ flex: 1, fontSize: 24, fontWeight: '800', color: palette.textLight }}>
+          <Text style={{ flex: 1, fontSize: 24, fontWeight: '800', color: colors.fg }}>
             Patrol tour
           </Text>
           <Pill
@@ -244,21 +248,19 @@ export default function PatrolScreen() {
             label={pending > 0 ? `${pending} queued` : 'online'}
           />
         </View>
-        <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
+        <Text style={{ color: colors.muted, fontSize: 14 }}>
           Scan each checkpoint QR tag during your rounds to log the patrol.
         </Text>
       </View>
 
       <View style={{ flexDirection: twoColumn ? 'row' : 'column', gap: 16 }}>
-        <Card style={[guardStyles.card, styles.actionCard]}>
+        <Card style={[styles.card, styles.actionCard]}>
           {shouldShowPermissionCard ? (
             <>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: palette.textLight }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.fg }}>
                 {permissionDenied ? 'Camera access is blocked' : 'Camera permission needed'}
               </Text>
-              <Text
-                style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}
-              >
+              <Text style={{ color: colors.muted, fontSize: 14, marginTop: 8, lineHeight: 20 }}>
                 {permissionDenied
                   ? 'Enable camera access in system settings to scan checkpoint QR tags.'
                   : 'SmartResidence uses the camera only while you are actively scanning a checkpoint.'}
@@ -277,14 +279,12 @@ export default function PatrolScreen() {
           ) : (
             <>
               <View style={styles.qrIcon}>
-                <Ionicons name="walk-outline" size={28} color={GUARD_CORAL} />
+                <Ionicons name="walk-outline" size={28} color={colors.coral} />
               </View>
-              <Text style={{ fontSize: 24, fontWeight: '800', color: palette.textLight }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: colors.fg }}>
                 Ready to scan checkpoint
               </Text>
-              <Text
-                style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}
-              >
+              <Text style={{ color: colors.muted, fontSize: 14, marginTop: 8, lineHeight: 20 }}>
                 Start the camera at each checkpoint on your route. The scanner closes after a valid
                 tag is logged.
               </Text>
@@ -295,10 +295,10 @@ export default function PatrolScreen() {
           )}
         </Card>
 
-        <Card style={[guardStyles.card, styles.summaryCard]}>
+        <Card style={[styles.card, styles.summaryCard]}>
           <View style={styles.summaryTopRow}>
             <View style={styles.summaryIcon}>
-              <Ionicons name="shield-checkmark-outline" size={20} color={GUARD_CORAL} />
+              <Ionicons name="shield-checkmark-outline" size={20} color={colors.coral} />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.summaryValue}>
@@ -312,20 +312,18 @@ export default function PatrolScreen() {
       </View>
 
       <View style={{ gap: 3 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: palette.textLight }}>
-          Checkpoints
-        </Text>
-        <Text style={{ color: palette.mutedLight, fontSize: 13 }}>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.fg }}>Checkpoints</Text>
+        <Text style={{ color: colors.muted, fontSize: 13 }}>
           Green means scanned today. Remaining stops still need a visit.
         </Text>
       </View>
 
       {checkpoints.isLoading ? (
-        <Card style={[guardStyles.card, styles.stateCard]}>
+        <Card style={[styles.card, styles.stateCard]}>
           <Text style={styles.stateCopy}>Loading checkpoints…</Text>
         </Card>
       ) : checkpoints.isError ? (
-        <Card style={[guardStyles.card, styles.stateCard]}>
+        <Card style={[styles.card, styles.stateCard]}>
           <Text style={styles.stateTitle}>Could not load checkpoints</Text>
           <Button
             title="Retry"
@@ -335,7 +333,7 @@ export default function PatrolScreen() {
           />
         </Card>
       ) : activeCheckpoints.length === 0 ? (
-        <Card style={[guardStyles.card, styles.stateCard]}>
+        <Card style={[styles.card, styles.stateCard]}>
           <Text style={styles.stateTitle}>No checkpoints set up</Text>
           <Text style={styles.stateCopy}>
             Ask management to add patrol checkpoints for this property.
@@ -346,17 +344,17 @@ export default function PatrolScreen() {
           {activeCheckpoints.map((cp: PatrolCheckpointStatus) => {
             const done = cp.scansToday > 0;
             return (
-              <Card key={cp.id} style={[guardStyles.card, styles.checkpointCard]}>
+              <Card key={cp.id} style={[styles.card, styles.checkpointCard]}>
                 <View
                   style={[
                     styles.checkpointIcon,
-                    { backgroundColor: done ? '#ECFDF5' : GUARD_SOFT_CORAL },
+                    { backgroundColor: done ? '#ECFDF5' : colors.coralSoft },
                   ]}
                 >
                   <Ionicons
                     name={done ? 'checkmark-circle' : 'ellipse-outline'}
                     size={22}
-                    color={done ? '#047857' : GUARD_CORAL}
+                    color={done ? '#047857' : colors.coral}
                   />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -385,90 +383,96 @@ export default function PatrolScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  helperCard: {
-    padding: spacing.md,
-  },
-  actionCard: {
-    flex: 1,
-    minHeight: 250,
-    justifyContent: 'center',
-  },
-  qrIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 22,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-  summaryCard: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: spacing.md,
-  },
-  summaryTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  summaryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  summaryValue: {
-    color: palette.textLight,
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  summaryCaption: {
-    color: palette.mutedLight,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  stateCard: {
-    minHeight: 120,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    gap: 4,
-  },
-  stateTitle: {
-    color: palette.textLight,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  stateCopy: {
-    color: palette.mutedLight,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  checkpointCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  checkpointIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkpointName: {
-    color: palette.textLight,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  checkpointMeta: {
-    color: palette.mutedLight,
-    fontSize: 13,
-    marginTop: 2,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    helperCard: {
+      padding: spacing.md,
+    },
+    actionCard: {
+      flex: 1,
+      minHeight: 250,
+      justifyContent: 'center',
+    },
+    qrIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 22,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 18,
+    },
+    summaryCard: {
+      flex: 1,
+      justifyContent: 'center',
+      padding: spacing.md,
+    },
+    summaryTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    summaryIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    summaryValue: {
+      color: colors.fg,
+      fontSize: 26,
+      lineHeight: 32,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+    },
+    summaryCaption: {
+      color: colors.muted,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    stateCard: {
+      minHeight: 120,
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      gap: 4,
+    },
+    stateTitle: {
+      color: colors.fg,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    stateCopy: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    checkpointCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    checkpointIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkpointName: {
+      color: colors.fg,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    checkpointMeta: {
+      color: colors.muted,
+      fontSize: 13,
+      marginTop: 2,
+    },
+  });
+}

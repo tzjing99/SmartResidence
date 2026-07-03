@@ -196,8 +196,7 @@ Object.assign(zh.visitors.guard, {
   blockedTitle: '访客已被拦截',
   allowEntry: '允许进入',
   checkedInToast: '{name} 已登记入场',
-  recordOnlyHint:
-    'Walk-in 访问——仅作记录。当天结束自动关闭；无需手动离场登记。',
+  recordOnlyHint: 'Walk-in 访问——仅作记录。当天结束自动关闭；无需手动离场登记。',
 });
 zh.mobile = readJson('scripts/i18n-phase3-mobile-zh.json');
 writeJson('apps/web/src/i18n/locales/zh-Hans/common.json', zh);

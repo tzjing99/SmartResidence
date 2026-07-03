@@ -25,14 +25,12 @@ import {
   Pill,
   Skeleton,
   SkeletonList,
-  palette,
   radius,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import {
-  RESIDENT_CORAL,
-  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   residentStyles,
@@ -148,6 +146,7 @@ export default function FacilitiesScreen() {
 }
 
 function FacilityListItem({ facility, onSelect }: { facility: Facility; onSelect: () => void }) {
+  const { colors } = useTheme();
   const fee = fmtMoney(facility.bookingFee);
   const deposit = fmtMoney(facility.depositAmount);
   return (
@@ -163,18 +162,18 @@ function FacilityListItem({ facility, onSelect }: { facility: Facility; onSelect
         >
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-              <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+              <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
                 {facility.name}
               </AppText>
               {facility.requiresApproval ? <Pill tone="warning" label="Approval" /> : null}
             </View>
-            <AppText variant="meta" style={{ color: palette.mutedLight }}>
+            <AppText variant="meta" style={{ color: colors.muted }}>
               {facility.openTime}–{facility.closeTime}
               {fee ? ` · Fee ${fee}` : ''}
               {deposit ? ` · Deposit ${deposit}` : ''}
             </AppText>
           </View>
-          <AppText style={{ color: palette.mutedLight, fontSize: 20 }}>›</AppText>
+          <AppText style={{ color: colors.muted, fontSize: 20 }}>›</AppText>
         </View>
       </Card>
     </AnimatedPressable>
@@ -182,6 +181,7 @@ function FacilityListItem({ facility, onSelect }: { facility: Facility; onSelect
 }
 
 function BookingPanel({ facility }: { facility: Facility }) {
+  const { colors } = useTheme();
   const days = useMemo(next7Days, []);
   const [date, setDate] = useState(days[0]?.iso ?? isoDate(new Date()));
   const [unitId, setUnitId] = useState('');
@@ -237,17 +237,17 @@ function BookingPanel({ facility }: { facility: Facility }) {
     <View style={{ gap: 16 }}>
       <Card style={[residentStyles.card, { gap: 8 }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-          <AppText style={{ fontSize: 18, fontWeight: '800', color: palette.textLight }}>
+          <AppText style={{ fontSize: 18, fontWeight: '800', color: colors.fg }}>
             {facility.name}
           </AppText>
           {facility.requiresApproval ? <Pill tone="warning" label="Approval" /> : null}
         </View>
         {facility.description ? (
-          <AppText variant="bodySm" style={{ color: palette.textLight }}>
+          <AppText variant="bodySm" style={{ color: colors.fg }}>
             {facility.description}
           </AppText>
         ) : null}
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           {facility.openTime}–{facility.closeTime} · {facility.slotMinutes} min slots
           {fmtMoney(facility.bookingFee) ? ` · Fee ${fmtMoney(facility.bookingFee)}` : ''}
           {fmtMoney(facility.depositAmount)
@@ -299,7 +299,7 @@ function BookingPanel({ facility }: { facility: Facility }) {
             ))}
           </View>
         ) : slots.length === 0 ? (
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <AppText variant="meta" style={{ color: colors.muted }}>
             No slots configured for this day.
           </AppText>
         ) : (
@@ -316,20 +316,20 @@ function BookingPanel({ facility }: { facility: Facility }) {
                     paddingVertical: 10,
                     borderRadius: radius.lg,
                     borderWidth: 1,
-                    borderColor: slot.available ? 'rgba(255, 56, 92, 0.25)' : palette.borderLight,
-                    backgroundColor: slot.available ? RESIDENT_SOFT_CORAL : palette.surfaceLight,
+                    borderColor: slot.available ? colors.coral : colors.cardBorder,
+                    backgroundColor: slot.available ? colors.coralSoft : colors.card,
                     opacity: slot.available ? 1 : 0.5,
                   }}
                 >
                   <AppText
                     style={{
                       fontWeight: '700',
-                      color: slot.available ? RESIDENT_CORAL : palette.mutedLight,
+                      color: slot.available ? colors.coral : colors.muted,
                     }}
                   >
                     {fmtTime(slot.startAt)}
                   </AppText>
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     {slot.available
                       ? facility.maxConcurrent > 1
                         ? `${slot.remaining} left`
@@ -347,6 +347,7 @@ function BookingPanel({ facility }: { facility: Facility }) {
 }
 
 function MyBookingsList() {
+  const { colors } = useTheme();
   const bookings = useMyBookings(api);
   const cancelBooking = useCancelBooking(api);
   const items = (bookings.data?.items ?? []) as Booking[];
@@ -389,12 +390,12 @@ function MyBookingsList() {
               <View
                 style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}
               >
-                <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                <AppText style={{ fontWeight: '700', color: colors.fg }}>
                   {b.facility?.name ?? 'Facility'}
                 </AppText>
                 <Pill tone={STATUS_TONE[b.status]} label={BOOKING_STATUS_LABELS[b.status]} />
               </View>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              <AppText variant="meta" style={{ color: colors.muted }}>
                 {fmtDateTime(b.startAt)}–{fmtTime(b.endAt)}
                 {b.fee ? ` · Fee ${fmtMoney(b.fee)}` : ''}
                 {b.depositHeld ? ` · Deposit ${fmtMoney(b.depositHeld)}` : ''}

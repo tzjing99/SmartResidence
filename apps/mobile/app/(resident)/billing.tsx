@@ -22,9 +22,9 @@ import {
   Input,
   Pill,
   SkeletonList,
-  palette,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
@@ -37,7 +37,7 @@ import {
   ResidentScreen,
   ResidentSectionHeader,
   prettyLabel,
-  residentStyles,
+  useResidentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
@@ -64,6 +64,8 @@ function DuitNowQrCard({
   session: QrSession;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
   const invoicePoll = usePollDuitNowInvoiceStatus(
     api,
     session.paymentId ?? null,
@@ -77,10 +79,10 @@ function DuitNowQrCard({
   const poll = session.paymentId ? invoicePoll : advancePoll;
 
   return (
-    <Card style={[residentStyles.card, { alignItems: 'center', gap: spacing.md }]}>
-      <AppText style={{ fontWeight: '700', color: palette.textLight }}>Scan DuitNow QR</AppText>
+    <Card style={[styles.card, { alignItems: 'center', gap: spacing.md }]}>
+      <AppText style={{ fontWeight: '700', color: colors.fg }}>Scan DuitNow QR</AppText>
       {session.amountLabel ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           {session.amountLabel}
         </AppText>
       ) : null}
@@ -90,12 +92,12 @@ function DuitNowQrCard({
           borderRadius: radius.lg,
           backgroundColor: '#fff',
           borderWidth: 1,
-          borderColor: palette.borderLight,
+          borderColor: colors.border,
         }}
       >
         <QRCode value={session.qrPayload} size={220} />
       </View>
-      <AppText variant="bodySm" style={{ color: palette.mutedLight, textAlign: 'center' }}>
+      <AppText variant="bodySm" style={{ color: colors.muted, textAlign: 'center' }}>
         Open your banking app, choose DuitNow QR, and scan. Keep this screen open until payment is
         confirmed.
       </AppText>
@@ -108,6 +110,8 @@ function DuitNowQrCard({
 }
 
 export default function BillingScreen() {
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; condoId?: string } | undefined;
   const invoices = useUnitInvoices(api, unit?.id ?? null);
@@ -191,13 +195,13 @@ export default function BillingScreen() {
         }}
       />
 
-      <Card style={[residentStyles.card, { gap: 4 }]}>
-        <AppText variant="meta" style={{ color: palette.mutedLight, fontWeight: '600' }}>
+      <Card style={[styles.card, { gap: 4 }]}>
+        <AppText variant="meta" style={{ color: colors.muted, fontWeight: '600' }}>
           Outstanding balance
         </AppText>
         <AppText
           style={{
-            color: palette.textLight,
+            color: colors.fg,
             fontSize: 28,
             lineHeight: 34,
             fontWeight: '800',
@@ -206,7 +210,7 @@ export default function BillingScreen() {
         >
           {openItems.length === 0 ? 'All clear' : formatMoney(totalOutstanding)}
         </AppText>
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           {openItems.length === 0
             ? 'No active invoices need payment right now.'
             : `${openItems.length} active invoice(s). Pay the invoice that is due soonest first.`}
@@ -226,7 +230,7 @@ export default function BillingScreen() {
       ) : (
         items.map((inv, index) => (
           <FadeInView key={inv.id} index={index}>
-            <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+            <Card style={[styles.card, { gap: spacing.sm }]}>
               {(() => {
                 const outstanding = invoiceOutstanding(inv);
                 return (
@@ -241,13 +245,10 @@ export default function BillingScreen() {
                       }}
                     >
                       <View style={{ flex: 1, minWidth: 180 }}>
-                        <AppText
-                          style={{ fontWeight: '700', color: palette.textLight }}
-                          numberOfLines={2}
-                        >
+                        <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
                           {inv.number}
                         </AppText>
-                        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+                        <AppText variant="meta" style={{ color: colors.muted, marginTop: 2 }}>
                           Due {new Date(inv.dueDate).toLocaleDateString()}
                         </AppText>
                       </View>
@@ -256,7 +257,7 @@ export default function BillingScreen() {
                           {formatMoney(outstanding, inv.currencyCode ?? 'MYR')}
                         </AppText>
                         {Number(inv.amountPaid) > 0 && outstanding > 0.005 ? (
-                          <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                          <AppText variant="caption" style={{ color: colors.muted }}>
                             of {formatMoney(inv.total, inv.currencyCode ?? 'MYR')}
                           </AppText>
                         ) : null}
@@ -277,7 +278,7 @@ export default function BillingScreen() {
                       style={{
                         marginTop: 12,
                         borderTopWidth: 1,
-                        borderTopColor: palette.borderLight,
+                        borderTopColor: colors.border,
                         paddingTop: 10,
                       }}
                     >
@@ -297,7 +298,7 @@ export default function BillingScreen() {
                               {l.description}
                             </AppText>
                             {l.formula ? (
-                              <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                              <AppText variant="caption" style={{ color: colors.muted }}>
                                 {l.formula}
                               </AppText>
                             ) : null}
@@ -318,7 +319,7 @@ export default function BillingScreen() {
                               (p: { status: string; provider?: string }) => p.status === 'PENDING',
                             );
                           return pending ? (
-                            <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                            <AppText variant="caption" style={{ color: colors.muted }}>
                               {GATEWAY_PROVIDER_SHORT_LABELS[pending.provider] ?? pending.provider}{' '}
                               payment is awaiting confirmation. Choose another method below to
                               switch — the previous attempt will be cancelled.
@@ -327,7 +328,7 @@ export default function BillingScreen() {
                         })()}
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                           {(methods.data ?? []).length === 0 ? (
-                            <AppText variant="caption" style={{ color: palette.mutedLight }}>
+                            <AppText variant="caption" style={{ color: colors.muted }}>
                               Online payment is not enabled for this condo yet.
                             </AppText>
                           ) : (
@@ -368,6 +369,8 @@ export default function BillingScreen() {
 }
 
 function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoId: string }) {
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
   const methods = usePayableMethods(api, condoId);
   const createAdvance = useCreateAdvancePayment(api);
   const [selected, setSelected] = useState<number | 'OTHER'>(100);
@@ -436,8 +439,8 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         title="Pay in advance"
         subtitle="Add prepaid credit that is automatically applied to your next maintenance invoice."
       />
-      <Card style={[residentStyles.card, { gap: spacing.md }]}>
-        <AppText variant="bodySm" style={{ color: palette.mutedLight }}>
+      <Card style={[styles.card, { gap: spacing.md }]}>
+        <AppText variant="bodySm" style={{ color: colors.muted }}>
           Choose an amount to pay ahead. After the gateway confirms payment, the amount becomes
           prepaid credit and offsets your next fee invoice.
         </AppText>

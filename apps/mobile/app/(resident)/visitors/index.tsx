@@ -12,14 +12,9 @@ import {
 import type { FavouriteVisitor, Visitor, VisitorListView } from '@smartresidence/shared-types';
 import {
   canOneClickPreRegFromVisitor,
-  canOwnerCancelVisitor,
   defaultExpectedArrival,
-  deliveryPlatformLabel,
   favouriteToPreRegParams,
   formatMalaysiaPhoneDisplay,
-  isQuickEntryPass,
-  passKindLabel,
-  visitorStatusLabel,
   visitorToCreateInput,
   visitorToPreRegParams,
 } from '@smartresidence/shared-types';
@@ -29,23 +24,21 @@ import {
   EmptyState,
   Pill,
   SkeletonList,
-  palette,
   radius,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, Text, TextInput, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 import { DeliveryPassForm } from '../../../src/components/delivery-pass-form';
 import {
-  RESIDENT_CARD_BORDER,
-  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   prettyLabel,
-  residentStyles,
+  useResidentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { VisitorPassCard } from '../../../src/components/visitor-pass-card';
 import { api } from '../../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../../src/lib/haptics';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
@@ -59,6 +52,8 @@ function liveTabLabel(count: number): string {
 export default function VisitorsScreen() {
   const router = useRouter();
   const { twoColumn } = useTabletLayout();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
   const [tab, setTab] = useState<VisitorTab>('upcoming');
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
@@ -123,7 +118,7 @@ export default function VisitorsScreen() {
         </View>
       }
     >
-      <Card style={[residentStyles.card, { padding: 8 }]}>
+      <Card style={[styles.card, { padding: 8 }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {tabs.map((t) => {
             const active = tab === t.id;
@@ -135,16 +130,16 @@ export default function VisitorsScreen() {
                   paddingHorizontal: 16,
                   paddingVertical: 10,
                   borderRadius: radius.full,
-                  backgroundColor: active ? RESIDENT_SOFT_CORAL : 'transparent',
+                  backgroundColor: active ? colors.coralSoft : 'transparent',
                   borderWidth: 1,
-                  borderColor: active ? 'rgba(255, 56, 92, 0.25)' : 'transparent',
+                  borderColor: active ? `${colors.coral}40` : colors.border,
                 }}
               >
                 <Text
                   style={{
                     fontSize: 14,
                     fontWeight: '600',
-                    color: active ? palette.coralPrimary : palette.mutedLight,
+                    color: active ? colors.coral : colors.muted,
                   }}
                   numberOfLines={1}
                 >
@@ -191,6 +186,20 @@ function VisitorsTab({
   twoColumn?: boolean;
 }) {
   const router = useRouter();
+  const { colors } = useTheme();
+  const fieldStyle = useMemo(
+    () => ({
+      minHeight: 46,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 12,
+      fontSize: 14,
+      color: colors.fg,
+    }),
+    [colors],
+  );
   const approve = useApproveVisitor(api);
   const reject = useRejectVisitor(api);
   const create = useCreateVisitor(api);
@@ -293,170 +302,33 @@ function VisitorsTab({
 
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-      {items.map((v) => (
-        <View
-          key={v.id}
-          style={{
-            width: twoColumn ? '48%' : '100%',
-            flexGrow: 1,
-            minWidth: twoColumn ? 280 : undefined,
-          }}
-        >
-          <Pressable
-            onPress={() => {
-              if (tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED') {
-                router.push(`/(resident)/visitors/${v.id}` as Href);
-              }
+      {items.map((v) => {
+        const canOpenPass =
+          tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED';
+        return (
+          <View
+            key={v.id}
+            style={{
+              width: twoColumn ? '48%' : '100%',
+              flexGrow: 1,
+              minWidth: twoColumn ? 280 : undefined,
             }}
-            disabled={!(tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED')}
           >
-            <Card style={residentStyles.card}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                }}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    style={{ fontWeight: '700', color: palette.textLight, fontSize: 16 }}
-                    numberOfLines={2}
-                  >
-                    {v.name}
-                  </Text>
-                  {isQuickEntryPass(v) ? (
-                    <View style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-                      <Pill
-                        tone="warning"
-                        label={
-                          v.deliveryPlatform
-                            ? deliveryPlatformLabel(v.deliveryPlatform)
-                            : passKindLabel(v.passKind ?? 'DELIVERY')
-                        }
-                      />
-                    </View>
-                  ) : null}
-                  <Text
-                    style={{
-                      color: palette.mutedLight,
-                      fontSize: 12,
-                      marginTop: 2,
-                      lineHeight: 18,
-                    }}
-                    numberOfLines={2}
-                  >
-                    {tab === 'live'
-                      ? 'On site now'
-                      : tab === 'history' && v.status === 'CHECKED_OUT'
-                        ? 'Visited'
-                        : new Date(v.expectedAt).toLocaleString()}
-                  </Text>
-                  {v.accessCode && tab === 'upcoming' ? (
-                    <Text
-                      style={{ fontSize: 20, fontWeight: '700', letterSpacing: 2, marginTop: 8 }}
-                      numberOfLines={1}
-                    >
-                      {v.accessCode}
-                    </Text>
-                  ) : null}
-                  {tab === 'upcoming' && v.visitType === 'PRE_REG' && v.status === 'APPROVED' ? (
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: palette.coralPrimary,
-                        fontWeight: '600',
-                        marginTop: 6,
-                      }}
-                    >
-                      View pass →
-                    </Text>
-                  ) : null}
-                  <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                    <Pill
-                      tone={
-                        v.status === 'CHECKED_IN'
-                          ? 'success'
-                          : v.status === 'PENDING_OWNER_APPROVAL' ||
-                              v.status === 'PENDING_MANAGEMENT_APPROVAL'
-                            ? 'warning'
-                            : v.status === 'CANCELLED' ||
-                                v.status === 'REJECTED' ||
-                                v.status === 'EXPIRED'
-                              ? 'danger'
-                              : 'primary'
-                      }
-                      label={visitorStatusLabel(v.status)}
-                    />
-                    {v.urgentOvernight ? <Pill tone="warning" label="Urgent" /> : null}
-                  </View>
-                  {v.status === 'PENDING_OWNER_APPROVAL' ? (
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                      <Button
-                        title="Approve"
-                        size="sm"
-                        style={{ flexGrow: 1 }}
-                        onPress={() => onApprove(v.id)}
-                      />
-                      <Button
-                        title="Reject"
-                        size="sm"
-                        variant="secondary"
-                        style={{ flexGrow: 1 }}
-                        onPress={() => onReject(v.id)}
-                      />
-                    </View>
-                  ) : null}
-                  {tab === 'upcoming' && canOwnerCancelVisitor(v) ? (
-                    <View style={{ marginTop: 12 }}>
-                      <Button
-                        title="Cancel pass"
-                        size="sm"
-                        variant="secondary"
-                        onPress={() => promptCancelPass(v)}
-                      />
-                    </View>
-                  ) : null}
-                  {tab === 'history' &&
-                  (v.status === 'CHECKED_OUT' || v.visitType === 'PRE_REG') ? (
-                    <View
-                      style={{
-                        marginTop: 12,
-                        paddingTop: 12,
-                        borderTopWidth: 1,
-                        borderTopColor: palette.borderLight,
-                      }}
-                    >
-                      <Button
-                        title="Invite again"
-                        size="sm"
-                        variant="soft-sky"
-                        style={{ width: '100%' }}
-                        onPress={() => openInviteAgain(v)}
-                      />
-                    </View>
-                  ) : null}
-                </View>
-                {tab === 'upcoming' && (v.qrPayload || v.qrCode) ? (
-                  <View
-                    style={{
-                      borderRadius: radius.md,
-                      padding: 6,
-                      backgroundColor: '#fff',
-                      borderWidth: 1,
-                      borderColor: RESIDENT_CARD_BORDER,
-                    }}
-                  >
-                    <QRCode value={v.qrPayload ?? v.qrCode ?? ''} size={80} />
-                  </View>
-                ) : null}
-              </View>
-            </Card>
-          </Pressable>
-        </View>
-      ))}
+            <VisitorPassCard
+              visitor={v}
+              tab={tab}
+              pressable={canOpenPass}
+              onPress={
+                canOpenPass ? () => router.push(`/(resident)/visitors/${v.id}` as Href) : undefined
+              }
+              onApprove={() => onApprove(v.id)}
+              onReject={() => onReject(v.id)}
+              onCancel={() => promptCancelPass(v)}
+              onInviteAgain={() => openInviteAgain(v)}
+            />
+          </View>
+        );
+      })}
 
       <Modal
         visible={inviteAgainVisitor !== null}
@@ -475,20 +347,20 @@ function VisitorsTab({
         >
           <Pressable
             style={{
-              backgroundColor: '#fff',
+              backgroundColor: colors.card,
               borderRadius: radius.xl,
               padding: 20,
               gap: 16,
               borderWidth: 1,
-              borderColor: RESIDENT_CARD_BORDER,
+              borderColor: colors.cardBorder,
             }}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={{ fontSize: 18, fontWeight: '700', color: palette.textLight }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.fg }}>
               Invite this visitor again?
             </Text>
             {inviteAgainVisitor ? (
-              <Text style={{ color: palette.mutedLight, fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
                 {inviteAgainVisitor.name}
                 {(() => {
                   const phone = formatMalaysiaPhoneDisplay(
@@ -500,7 +372,9 @@ function VisitorsTab({
               </Text>
             ) : null}
             <View style={{ gap: 6 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600' }}>Which visit session?</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.fg }}>
+                Which visit session?
+              </Text>
               <TextInput
                 value={
                   inviteExpectedAt instanceof Date && !Number.isNaN(inviteExpectedAt.getTime())
@@ -511,8 +385,9 @@ function VisitorsTab({
                   const parsed = new Date(v.replace(' ', 'T'));
                   if (!Number.isNaN(parsed.getTime())) setInviteExpectedAt(parsed);
                 }}
-                style={inputStyle}
+                style={fieldStyle}
                 placeholder="YYYY-MM-DD HH:mm"
+                placeholderTextColor={colors.muted}
               />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
@@ -545,6 +420,21 @@ function FavouritesTab({
   items: FavouriteVisitor[];
   onPreRegister: (fav: FavouriteVisitor) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
+  const fieldStyle = useMemo(
+    () => ({
+      minHeight: 46,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 12,
+      fontSize: 14,
+      color: colors.fg,
+    }),
+    [colors],
+  );
   const createFav = useCreateFavouriteVisitor(api);
   const deleteFav = useDeleteFavouriteVisitor(api);
   const [showForm, setShowForm] = useState(false);
@@ -599,21 +489,29 @@ function FavouritesTab({
       </View>
 
       {showForm ? (
-        <Card style={[residentStyles.card, { gap: 10 }]}>
-          <Text style={{ fontWeight: '700', color: palette.textLight }}>New favourite</Text>
-          <TextInput placeholder="Name" value={name} onChangeText={setName} style={inputStyle} />
+        <Card style={[styles.card, { gap: 10 }]}>
+          <Text style={{ fontWeight: '700', color: colors.fg }}>New favourite</Text>
+          <TextInput
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+            style={fieldStyle}
+            placeholderTextColor={colors.muted}
+          />
           <TextInput
             placeholder="Phone"
             value={phone}
             onChangeText={setPhone}
-            style={[inputStyle, { marginTop: 10 }]}
+            style={[fieldStyle, { marginTop: 10 }]}
             keyboardType="phone-pad"
+            placeholderTextColor={colors.muted}
           />
           <TextInput
             placeholder="Plate (optional)"
             value={plate}
             onChangeText={setPlate}
-            style={[inputStyle, { marginTop: 10 }]}
+            style={[fieldStyle, { marginTop: 10 }]}
+            placeholderTextColor={colors.muted}
           />
           <View style={{ marginTop: 12 }}>
             <Button title="Save" loading={createFav.isPending} onPress={onSave} />
@@ -628,7 +526,7 @@ function FavouritesTab({
         />
       ) : (
         items.map((fav) => (
-          <Card key={fav.id} style={residentStyles.card}>
+          <Card key={fav.id} style={styles.card}>
             <View
               style={{
                 flexDirection: 'row',
@@ -639,13 +537,13 @@ function FavouritesTab({
             >
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
-                  style={{ fontWeight: '700', color: palette.textLight, fontSize: 16 }}
+                  style={{ fontWeight: '700', color: colors.fg, fontSize: 16 }}
                   numberOfLines={2}
                 >
                   {fav.name}
                 </Text>
                 <Text
-                  style={{ color: palette.mutedLight, fontSize: 12, marginTop: 2, lineHeight: 18 }}
+                  style={{ color: colors.muted, fontSize: 12, marginTop: 2, lineHeight: 18 }}
                   numberOfLines={2}
                 >
                   {[formatMalaysiaPhoneDisplay(fav.phone, fav.phoneCountryCode), fav.vehiclePlate]
@@ -669,13 +567,3 @@ function FavouritesTab({
     </>
   );
 }
-
-const inputStyle = {
-  minHeight: 46,
-  borderRadius: radius.lg,
-  borderWidth: 1,
-  borderColor: palette.borderLight,
-  backgroundColor: palette.surfaceLight,
-  paddingHorizontal: 12,
-  fontSize: 14,
-};

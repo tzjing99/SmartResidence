@@ -9,7 +9,7 @@ import {
   FadeInView,
   Pill,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback } from 'react';
 import { Alert, View } from 'react-native';
@@ -39,6 +39,7 @@ function fmtDateTime(d: Date | string) {
 }
 
 export default function ParcelsScreen() {
+  const { colors } = useTheme();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
   const parcels = useUnitParcels(api, unit?.id ?? null, { pendingOnly: true });
@@ -100,15 +101,15 @@ export default function ParcelsScreen() {
                   <AppText variant="label">{p.recipientName}</AppText>
                   <Pill tone={STATUS_TONE[p.status]} label={PARCEL_STATUS_LABELS[p.status]} />
                 </View>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" style={{ color: colors.muted }}>
                   {p.carrier ?? 'Delivery'}
                   {p.trackingRef ? ` · ${p.trackingRef}` : ''}
                 </AppText>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" style={{ color: colors.muted }}>
                   Received {fmtDateTime(p.receivedAt)}
                 </AppText>
                 {p.notes ? (
-                  <AppText variant="bodySm" style={{ color: palette.mutedLight }}>
+                  <AppText variant="bodySm" style={{ color: colors.muted }}>
                     {p.notes}
                   </AppText>
                 ) : null}

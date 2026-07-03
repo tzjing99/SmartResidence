@@ -13,3 +13,4 @@ export * from './components/Skeleton';
 export * from './hooks/useReducedMotion';
 export * from './typography';
 export * from './tokens';
+export * from './theme';

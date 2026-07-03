@@ -96,7 +96,10 @@ patch('apps/web/src/components/guard-shell.tsx', [
   ],
   ['aria-label="SmartResidence Gate home"', 'aria-label={t("nav.guard.gateHome")}'],
   ['aria-label="Gate navigation"', 'aria-label={t("nav.guard.gateNav")}'],
-  ['<span className="font-semibold">Gate</span>', '<span className="font-semibold">{t("nav.guard.gateBrand")}</span>'],
+  [
+    '<span className="font-semibold">Gate</span>',
+    '<span className="font-semibold">{t("nav.guard.gateBrand")}</span>',
+  ],
   ['{item.label}', '{t(item.labelKey)}'],
   [
     `<Settings2 className="size-4" />
@@ -189,11 +192,11 @@ patch('apps/web/src/app/(auth)/sign-in/page.tsx', [
 });
 
 /** Strip sensitive query params`,
-    `/** Strip sensitive query params`,
+    '/** Strip sensitive query params',
   ],
   [
-    `function useSignInQueryParams(form: ReturnType<typeof useForm<z.infer<typeof schema>>>) {`,
-    `function useSignInQueryParams(form: ReturnType<typeof useForm<{ email: string; password: string; totp?: string }>>) {`,
+    'function useSignInQueryParams(form: ReturnType<typeof useForm<z.infer<typeof schema>>>) {',
+    'function useSignInQueryParams(form: ReturnType<typeof useForm<{ email: string; password: string; totp?: string }>>) {',
   ],
   [
     `export default function SignInPage() {
@@ -216,21 +219,21 @@ patch('apps/web/src/app/(auth)/sign-in/page.tsx', [
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });`,
   ],
   [
-    `async function onSubmit(values: z.infer<typeof schema>) {`,
-    `async function onSubmit(values: z.infer<typeof schema>) {`,
+    'async function onSubmit(values: z.infer<typeof schema>) {',
+    'async function onSubmit(values: z.infer<typeof schema>) {',
   ],
   ["toast.success('Signed in');", "toast.success(t('auth.signedInToast'));"],
+  ["toast.message('Enter your 2FA code to continue');", "toast.message(t('auth.totpPrompt'));"],
   [
-    "toast.message('Enter your 2FA code to continue');",
-    "toast.message(t('auth.totpPrompt'));",
+    '<h1 className="mt-6 text-2xl font-semibold tracking-tight">Welcome back</h1>',
+    '<h1 className="mt-6 text-2xl font-semibold tracking-tight">{t(\'auth.welcomeBack\')}</h1>',
   ],
-  ['<h1 className="mt-6 text-2xl font-semibold tracking-tight">Welcome back</h1>', '<h1 className="mt-6 text-2xl font-semibold tracking-tight">{t(\'auth.welcomeBack\')}</h1>'],
-  [
-    `Sign in to manage visitors, fees, and defects for your unit.`,
-    `{t('auth.signInBlurb')}`,
-  ],
+  ['Sign in to manage visitors, fees, and defects for your unit.', `{t('auth.signInBlurb')}`],
   ['<Label htmlFor="email">Email</Label>', '<Label htmlFor="email">{t(\'auth.email\')}</Label>'],
-  ['<Label htmlFor="password">Password</Label>', '<Label htmlFor="password">{t(\'auth.password\')}</Label>'],
+  [
+    '<Label htmlFor="password">Password</Label>',
+    '<Label htmlFor="password">{t(\'auth.password\')}</Label>',
+  ],
   ['<Label htmlFor="totp">2FA code</Label>', '<Label htmlFor="totp">{t(\'auth.totp\')}</Label>'],
   [
     `<Button type="submit" loading={form.formState.isSubmitting} className="mt-2">
@@ -241,9 +244,9 @@ patch('apps/web/src/app/(auth)/sign-in/page.tsx', [
           </Button>`,
   ],
   ["New here?{' '}", "{t('auth.newHere')}{' '}"],
-  [`Create an account`, `{t('auth.signUp')}`],
+  ['Create an account', `{t('auth.signUp')}`],
   [
-    `Demo: <code>owner@acacia.demo</code> / <code>Demo!2026</code>`,
+    'Demo: <code>owner@acacia.demo</code> / <code>Demo!2026</code>',
     `{t('auth.demoHint', { email: 'owner@acacia.demo', password: 'Demo!2026' })}`,
   ],
 ]);
@@ -290,18 +293,21 @@ export default function SignUpPage() {
     '<h1 className="mt-6 text-2xl font-semibold tracking-tight">Create your account</h1>',
     '<h1 className="mt-6 text-2xl font-semibold tracking-tight">{t(\'auth.createAccountTitle\')}</h1>',
   ],
+  ['Your management office will link this account to your unit.', `{t('auth.signUpBlurb')}`],
   [
-    `Your management office will link this account to your unit.`,
-    `{t('auth.signUpBlurb')}`,
+    '<Label htmlFor="name">Full name</Label>',
+    '<Label htmlFor="name">{t(\'auth.fullName\')}</Label>',
   ],
-  ['<Label htmlFor="name">Full name</Label>', '<Label htmlFor="name">{t(\'auth.fullName\')}</Label>'],
   ['<Label htmlFor="email">Email</Label>', '<Label htmlFor="email">{t(\'auth.email\')}</Label>'],
-  ['<Label htmlFor="phone">Mobile phone</Label>', '<Label htmlFor="phone">{t(\'auth.mobilePhone\')}</Label>'],
   [
-    `Malaysia mobile — guards may call you for walk-in approvals.`,
-    `{t('auth.phoneHint')}`,
+    '<Label htmlFor="phone">Mobile phone</Label>',
+    '<Label htmlFor="phone">{t(\'auth.mobilePhone\')}</Label>',
   ],
-  ['<Label htmlFor="password">Password</Label>', '<Label htmlFor="password">{t(\'auth.password\')}</Label>'],
+  ['Malaysia mobile — guards may call you for walk-in approvals.', `{t('auth.phoneHint')}`],
+  [
+    '<Label htmlFor="password">Password</Label>',
+    '<Label htmlFor="password">{t(\'auth.password\')}</Label>',
+  ],
   [
     `<p className="text-xs sr-muted">10+ chars, mix of upper/lower/digit.</p>`,
     `<p className="text-xs sr-muted">{t('auth.passwordHint')}</p>`,
@@ -368,7 +374,7 @@ write(
       `toast.error(pass.scheduleMessage ?? t('visitors.guard.outsideSchedule'));`,
     )
     .replace(
-      `toast.success(\`\${displayName(pass)} checked in\`);`,
+      'toast.success(`${displayName(pass)} checked in`);',
       `toast.success(t('visitors.guard.checkedInToast', { name: displayName(pass) }));`,
     )
     .replace(
@@ -383,7 +389,10 @@ write(
       `<p className="font-semibold text-red-700">Visitor blocked</p>`,
       `<p className="font-semibold text-red-700">{t('visitors.guard.blockedTitle')}</p>`,
     )
-    .replace(`<Label htmlFor="pass">Access code / QR</Label>`, `<Label htmlFor="pass">{t('visitors.guard.accessCodeLabel')}</Label>`)
+    .replace(
+      `<Label htmlFor="pass">Access code / QR</Label>`,
+      `<Label htmlFor="pass">{t('visitors.guard.accessCodeLabel')}</Label>`,
+    )
     .replace(`placeholder="e.g. K7M3P9"`, `placeholder={t('visitors.guard.accessCodePlaceholder')}`)
     .replace(
       `{busy && !pass ? 'Looking up…' : 'Look up pass'}`,
@@ -401,7 +410,7 @@ write(
       `{(pass as VerifiedVisitor).entryMode === 'DRIVE_IN' ? 'Drive in' : 'Walk in'}`,
       `{(pass as VerifiedVisitor).entryMode === 'DRIVE_IN' ? t('visitors.guard.driveIn') : t('visitors.guard.walkInEntry')}`,
     )
-    .replace(`Allow entry`, `{t('visitors.guard.allowEntry')}`),
+    .replace('Allow entry', `{t('visitors.guard.allowEntry')}`),
 );
 
 patch('apps/mobile/src/providers.tsx', [
@@ -431,7 +440,7 @@ patch('apps/mobile/app/(guard)/walkin.tsx', [
     "import { useT } from '../../src/i18n/locale-provider';\nimport { api } from '../../src/lib/api';",
   ],
   [
-    `export default function WalkInScreen() {`,
+    'export default function WalkInScreen() {',
     `export default function WalkInScreen() {
   const t = useT();`,
   ],
@@ -542,7 +551,7 @@ patch('apps/mobile/app/(guard)/expected.tsx', [
 }`,
   ],
   [
-    `function ExpectedVisitorCard({`,
+    'function ExpectedVisitorCard({',
     `function ExpectedVisitorCard({
   t,`,
   ],
@@ -570,7 +579,7 @@ patch('apps/mobile/app/(guard)/expected.tsx', [
 let expected = read('apps/mobile/app/(guard)/expected.tsx');
 if (!expected.includes('const TAB_LABELS = tabLabels(t)')) {
   expected = expected.replace(
-    `export default function ExpectedScreen() {`,
+    'export default function ExpectedScreen() {',
     `export default function ExpectedScreen() {
   const t = useT();
   const TAB_LABELS = tabLabels(t);`,
@@ -583,8 +592,14 @@ expected = expected.replace(
           t={t}
           visitor={item}`,
 );
-expected = expected.replace(`eyebrow="Guard arrivals"`, `eyebrow={t('mobile.guard.expected.eyebrow')}`);
-expected = expected.replace(`title="Expected visitors"`, `title={t('visitors.guard.expectedTitle')}`);
+expected = expected.replace(
+  `eyebrow="Guard arrivals"`,
+  `eyebrow={t('mobile.guard.expected.eyebrow')}`,
+);
+expected = expected.replace(
+  `title="Expected visitors"`,
+  `title={t('visitors.guard.expectedTitle')}`,
+);
 expected = expected.replace(
   `subtitle="Review approved visitors, missed arrivals, and recent guardhouse history."`,
   `subtitle={t('mobile.guard.expected.subtitle')}`,
@@ -597,7 +612,10 @@ expected = expected.replace(
   `(err: Error) => Alert.alert('Could not acknowledge', err.message)`,
   `(err: Error) => Alert.alert(t('mobile.guard.expected.ackFailedTitle'), err.message)`,
 );
-expected = expected.replace(`title="No visitors expected"`, `title={t('visitors.guard.emptyExpected')}`);
+expected = expected.replace(
+  `title="No visitors expected"`,
+  `title={t('visitors.guard.emptyExpected')}`,
+);
 expected = expected.replace(
   `description="Pre-registered visitors due today will appear here."`,
   `description={t('visitors.guard.emptyExpectedHint')}`,

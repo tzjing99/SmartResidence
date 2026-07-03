@@ -540,7 +540,8 @@
         "manual": "Manual",
         "walkIn": "Walk-in",
         "parcels": "Parcels",
-        "settings": "Settings"
+        "settings": "Settings",
+        "more": "More"
       },
       "scan": {
         "title": "Guard scan",

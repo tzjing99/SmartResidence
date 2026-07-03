@@ -17,17 +17,14 @@ import {
   Card,
   EmptyState,
   Pill,
-  palette,
+  type ThemeColors,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
+import { useMemo } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
-import {
-  GUARD_CORAL,
-  GUARD_SOFT_CORAL,
-  GuardScreen,
-  guardStyles,
-} from '../../src/components/guard-screen';
+import { GuardScreen } from '../../src/components/guard-screen';
 import { api } from '../../src/lib/api';
 
 const KIND_ICONS: Record<SosAlert['kind'], keyof typeof Ionicons.glyphMap> = {
@@ -48,6 +45,8 @@ function formatWhen(value: Date | string | null | undefined): string {
 }
 
 export default function AlertsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
   const sos = useCondoSosAlerts(api, condoId);
@@ -75,11 +74,11 @@ export default function AlertsScreen() {
     return (
       <Card
         key={alert.id}
-        style={[guardStyles.card, styles.alertCard, isActive ? styles.alertCardActive : null]}
+        style={[styles.card, styles.alertCard, isActive ? styles.alertCardActive : null]}
       >
         <View style={styles.alertTopRow}>
           <View style={styles.alertIcon}>
-            <Ionicons name={KIND_ICONS[alert.kind]} size={22} color={GUARD_CORAL} />
+            <Ionicons name={KIND_ICONS[alert.kind]} size={22} color={colors.coral} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <AppText numberOfLines={1} style={styles.alertKind}>
@@ -102,7 +101,7 @@ export default function AlertsScreen() {
 
         {alert.locationNote ? (
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={16} color={GUARD_CORAL} />
+            <Ionicons name="location-outline" size={16} color={colors.coral} />
             <AppText style={styles.locationText}>{alert.locationNote}</AppText>
           </View>
         ) : null}
@@ -165,15 +164,15 @@ export default function AlertsScreen() {
       }
     >
       {sos.isLoading ? (
-        <Card style={[guardStyles.card, styles.stateCard]}>
-          <ActivityIndicator color={GUARD_CORAL} />
+        <Card style={[styles.card, styles.stateCard]}>
+          <ActivityIndicator color={colors.coral} />
           <AppText variant="meta" style={styles.stateCopy}>
             Loading alerts…
           </AppText>
         </Card>
       ) : sos.isError ? (
-        <Card style={[guardStyles.card, styles.stateCard]}>
-          <Ionicons name="cloud-offline-outline" size={22} color={palette.mutedLight} />
+        <Card style={[styles.card, styles.stateCard]}>
+          <Ionicons name="cloud-offline-outline" size={22} color={colors.muted} />
           <AppText style={styles.stateTitle}>Could not load alerts</AppText>
           <Button title="Retry" variant="secondary" onPress={() => void sos.refetch()} />
         </Card>
@@ -200,79 +199,84 @@ export default function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  stateCard: {
-    minHeight: 120,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    gap: spacing.xs,
-  },
-  stateTitle: {
-    color: palette.textLight,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  stateCopy: {
-    color: palette.mutedLight,
-    lineHeight: 20,
-  },
-  alertCard: {
-    gap: spacing.sm,
-  },
-  alertCardActive: {
-    borderColor: 'rgba(220,38,38,0.35)',
-    backgroundColor: '#FFF5F5',
-  },
-  alertTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  alertIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertKind: {
-    color: palette.textLight,
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  alertMeta: {
-    color: palette.mutedLight,
-    lineHeight: 19,
-  },
-  alertTime: {
-    color: palette.mutedLight,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
-  },
-  locationText: {
-    flex: 1,
-    color: palette.textLight,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '600',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  actionButton: {
-    flexGrow: 1,
-    minWidth: 132,
-  },
-  sectionHeader: {
-    marginTop: spacing.xs,
-  },
-  sectionTitle: {
-    color: palette.textLight,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    stateCard: {
+      minHeight: 120,
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      gap: spacing.xs,
+    },
+    stateTitle: {
+      color: colors.fg,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    stateCopy: {
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    alertCard: {
+      gap: spacing.sm,
+    },
+    alertCardActive: {
+      borderColor: 'rgba(220,38,38,0.55)',
+    },
+    alertTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    alertIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    alertKind: {
+      color: colors.fg,
+      fontSize: 17,
+      fontWeight: '800',
+    },
+    alertMeta: {
+      color: colors.muted,
+      lineHeight: 19,
+    },
+    alertTime: {
+      color: colors.muted,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 6,
+    },
+    locationText: {
+      flex: 1,
+      color: colors.fg,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '600',
+    },
+    actionRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    actionButton: {
+      flexGrow: 1,
+      minWidth: 132,
+    },
+    sectionHeader: {
+      marginTop: spacing.xs,
+    },
+    sectionTitle: {
+      color: colors.fg,
+    },
+  });
+}

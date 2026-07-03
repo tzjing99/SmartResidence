@@ -335,6 +335,38 @@ export const GUARD_VISITOR_STATUS_LABELS: Record<VisitorStatus, string> = {
   CANCELLED: 'Cancelled',
 };
 
+/** Semantic pill/badge tone for visitor status chips (aligned with ui-mobile Pill tones). */
+export type VisitorStatusPillTone =
+  | 'neutral'
+  | 'primary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info';
+
+/**
+ * Pill tone for a visitor status — success = approved/on site, warning = needs attention,
+ * danger = declined/cancelled, neutral = visited/expired, primary reserved for brand accents.
+ */
+export function visitorStatusPillTone(status: VisitorStatus | string): VisitorStatusPillTone {
+  switch (status) {
+    case 'APPROVED':
+    case 'CHECKED_IN':
+      return 'success';
+    case 'CHECKED_OUT':
+    case 'EXPIRED':
+      return 'neutral';
+    case 'CANCELLED':
+    case 'REJECTED':
+      return 'danger';
+    case 'PENDING_OWNER_APPROVAL':
+    case 'PENDING_MANAGEMENT_APPROVAL':
+      return 'warning';
+    default:
+      return 'neutral';
+  }
+}
+
 export function visitorStatusLabel(status: VisitorStatus | string): string {
   return (
     VISITOR_STATUS_LABELS[status as VisitorStatus] ??

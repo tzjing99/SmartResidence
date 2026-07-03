@@ -20,14 +20,16 @@ import {
   Card,
   Pill,
   Stack,
-  palette,
+  type ThemeColors,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { type ComponentProps, useCallback } from 'react';
+import { type ComponentProps, useCallback, useMemo } from 'react';
 import {
   type DimensionValue,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -41,17 +43,14 @@ import type { MeResponse } from '../../src/lib/roles';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-const CORAL = palette.coralPrimary;
-const SOFT_CORAL = '#FFF1F0';
-const WARM_BG = '#FFF8F6';
-const CARD_BORDER = '#F1E8E4';
-
 const INACTIVE_INVOICE_STATUSES = new Set(['PAID', 'VOID']);
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createHomeStyles(colors), [colors]);
   const me = useMe(api);
   const user = (me.data as MeResponse | undefined)?.user;
   const condos = useMyCondos(api);
@@ -112,21 +111,31 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <AppText variant="caption" style={styles.eyebrow}>
-          Resident home
-        </AppText>
-        <AppText numberOfLines={2} style={styles.title}>
-          Welcome, {user?.name ?? 'Resident'}
-        </AppText>
-        <AppText numberOfLines={2} style={styles.homeLine}>
-          {homeLine}
-        </AppText>
+        <View style={styles.headerCopy}>
+          <AppText variant="caption" style={styles.eyebrow}>
+            Resident home
+          </AppText>
+          <AppText numberOfLines={2} style={styles.title}>
+            Welcome, {user?.name ?? 'Resident'}
+          </AppText>
+          <AppText numberOfLines={2} style={styles.homeLine}>
+            {homeLine}
+          </AppText>
+        </View>
+        <Pressable
+          onPress={() => router.push('/(resident)/sos' as Href)}
+          accessibilityRole="button"
+          accessibilityLabel="Emergency SOS"
+          style={styles.sosIconButton}
+        >
+          <Ionicons name="warning-outline" size={20} color="#DC2626" />
+        </Pressable>
       </View>
 
       <Card style={styles.heroCard}>
         <View style={styles.heroTopRow}>
           <View style={styles.heroIcon}>
-            <Ionicons name="card-outline" size={20} color={CORAL} />
+            <Ionicons name="card-outline" size={20} color={colors.coral} />
           </View>
           <Pill
             tone={
@@ -164,22 +173,6 @@ export default function HomeScreen() {
           </AppText>
         </AnimatedPressable>
       </Card>
-
-      <AnimatedPressable
-        onPress={() => router.push('/(resident)/sos' as Href)}
-        contentStyle={styles.sosCard}
-      >
-        <View style={styles.sosIcon}>
-          <Ionicons name="warning-outline" size={22} color="#FFFFFF" />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText style={styles.sosTitle}>Emergency SOS</AppText>
-          <AppText numberOfLines={2} style={styles.sosSubtitle}>
-            Alert guards and management instantly in a real emergency.
-          </AppText>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.9)" />
-      </AnimatedPressable>
 
       <View style={styles.sectionHeader}>
         <AppText variant="subheading">What do you need?</AppText>
@@ -316,7 +309,7 @@ export default function HomeScreen() {
         </View>
         {upcomingVisitors.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="calendar-clear-outline" size={22} color={palette.mutedLight} />
+            <Ionicons name="calendar-clear-outline" size={22} color={colors.muted} />
             <AppText style={styles.emptyTitle}>No guests scheduled</AppText>
             <AppText variant="meta" style={styles.emptyCopy}>
               Pre-register friends, family, or contractors before they arrive.
@@ -327,7 +320,7 @@ export default function HomeScreen() {
             {upcomingVisitors.map((v) => (
               <View key={v.id} style={styles.visitorRow}>
                 <View style={styles.visitorAvatar}>
-                  <Ionicons name="person-outline" size={18} color={CORAL} />
+                  <Ionicons name="person-outline" size={18} color={colors.coral} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <AppText numberOfLines={1} style={styles.visitorName}>
@@ -347,7 +340,7 @@ export default function HomeScreen() {
       <AnimatedPressable onPress={() => router.push('/(resident)/announcements' as Href)}>
         <Card style={styles.noticeCard}>
           <View style={styles.noticeIcon}>
-            <Ionicons name="megaphone-outline" size={18} color={CORAL} />
+            <Ionicons name="megaphone-outline" size={18} color={colors.coral} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <AppText variant="meta" style={styles.cardMeta}>
@@ -360,7 +353,7 @@ export default function HomeScreen() {
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: CORAL,
+                    backgroundColor: colors.coral,
                     marginTop: 8,
                   }}
                 />
@@ -403,10 +396,13 @@ function ActionTile({
   width: DimensionValue;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createHomeStyles(colors), [colors]);
+
   return (
     <AnimatedPressable onPress={onPress} style={{ width }} contentStyle={styles.actionTile}>
       <View style={styles.actionIcon}>
-        <Ionicons name={icon} size={20} color={CORAL} />
+        <Ionicons name={icon} size={20} color={colors.coral} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <AppText numberOfLines={1} style={styles.actionTitle}>
@@ -435,10 +431,13 @@ function SummaryCard({
   width: DimensionValue;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createHomeStyles(colors), [colors]);
+
   return (
     <AnimatedPressable onPress={onPress} style={{ width }} contentStyle={styles.summaryCard}>
       <View style={styles.summaryTopRow}>
-        <Ionicons name={icon} size={19} color={CORAL} />
+        <Ionicons name={icon} size={19} color={colors.coral} />
         <AppText variant="meta" style={styles.cardMeta}>
           {label}
         </AppText>
@@ -467,253 +466,239 @@ function formatDateTime(value: string) {
   });
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: WARM_BG,
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-  },
-  header: {
-    paddingHorizontal: 2,
-    gap: 8,
-  },
-  eyebrow: {
-    color: CORAL,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: palette.textLight,
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  homeLine: {
-    color: palette.mutedLight,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-  },
-  heroCard: {
-    backgroundColor: palette.surfaceLight,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  heroIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.full,
-    backgroundColor: SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardMeta: {
-    color: palette.mutedLight,
-    fontWeight: '600',
-  },
-  heroAmount: {
-    color: palette.textLight,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-    marginTop: 2,
-  },
-  cardSubcopy: {
-    color: palette.mutedLight,
-  },
-  heroButton: {
-    marginTop: spacing.sm,
-    minHeight: 46,
-    borderRadius: radius.xl,
-    backgroundColor: CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  heroButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  sosCard: {
-    borderRadius: radius['2xl'],
-    backgroundColor: '#DC2626',
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    shadowColor: '#DC2626',
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  sosIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sosTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '800',
-  },
-  sosSubtitle: {
-    color: 'rgba(255,255,255,0.92)',
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  sectionHeader: {
-    gap: 2,
-    marginTop: spacing.xs,
-  },
-  sectionCopy: {
-    color: palette.mutedLight,
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  actionTile: {
-    minHeight: 82,
-    borderRadius: radius['2xl'],
-    backgroundColor: palette.surfaceLight,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    padding: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  actionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionTitle: {
-    color: palette.textLight,
-    fontWeight: '700',
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  summaryCard: {
-    minHeight: 120,
-    borderRadius: radius['2xl'],
-    backgroundColor: palette.surfaceLight,
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    padding: spacing.md,
-    justifyContent: 'space-between',
-  },
-  summaryTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  summaryValue: {
-    color: palette.textLight,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '800',
-  },
-  listCard: {
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  emptyState: {
-    borderRadius: radius.xl,
-    backgroundColor: palette.bgLight,
-    padding: spacing.md,
-    alignItems: 'flex-start',
-    gap: 6,
-  },
-  emptyTitle: {
-    color: palette.textLight,
-    fontWeight: '700',
-  },
-  emptyCopy: {
-    color: palette.mutedLight,
-  },
-  visitorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderRadius: radius.xl,
-    backgroundColor: palette.bgLight,
-    padding: spacing.sm,
-  },
-  visitorAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.full,
-    backgroundColor: SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  visitorName: {
-    color: palette.textLight,
-    fontWeight: '700',
-  },
-  noticeCard: {
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  noticeIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.full,
-    backgroundColor: SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noticeTitle: {
-    color: palette.textLight,
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '700',
-    marginTop: 3,
-  },
-});
+function createHomeStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    content: {
+      paddingHorizontal: spacing.lg,
+      gap: spacing.md,
+    },
+    header: {
+      paddingHorizontal: 2,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    headerCopy: {
+      flex: 1,
+      minWidth: 0,
+      gap: 8,
+    },
+    sosIconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.messageResidentBg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginTop: 2,
+    },
+    eyebrow: {
+      color: colors.coral,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    title: {
+      color: colors.fg,
+      fontSize: 30,
+      lineHeight: 38,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+    },
+    homeLine: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '500',
+    },
+    heroCard: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: spacing.lg,
+      gap: spacing.xs,
+    },
+    heroTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    heroIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardMeta: {
+      color: colors.muted,
+      fontWeight: '600',
+    },
+    heroAmount: {
+      color: colors.fg,
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+      marginTop: 2,
+    },
+    cardSubcopy: {
+      color: colors.muted,
+    },
+    heroButton: {
+      marginTop: spacing.sm,
+      minHeight: 46,
+      borderRadius: radius.xl,
+      backgroundColor: colors.coral,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    heroButtonText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+    sectionHeader: {
+      gap: 2,
+      marginTop: spacing.xs,
+    },
+    sectionCopy: {
+      color: colors.muted,
+    },
+    actionGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    actionTile: {
+      minHeight: 82,
+      borderRadius: radius['2xl'],
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      shadowColor: '#000',
+      shadowOpacity: colors.statusBarStyle === 'light' ? 0.2 : 0.04,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    actionIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionTitle: {
+      color: colors.fg,
+      fontWeight: '700',
+    },
+    summaryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    summaryCard: {
+      minHeight: 120,
+      borderRadius: radius['2xl'],
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: spacing.md,
+      justifyContent: 'space-between',
+    },
+    summaryTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    summaryValue: {
+      color: colors.fg,
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: '800',
+    },
+    listCard: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    cardHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: spacing.md,
+      marginBottom: spacing.md,
+    },
+    emptyState: {
+      borderRadius: radius.xl,
+      backgroundColor: colors.messageResidentBg,
+      padding: spacing.md,
+      alignItems: 'flex-start',
+      gap: 6,
+    },
+    emptyTitle: {
+      color: colors.fg,
+      fontWeight: '700',
+    },
+    emptyCopy: {
+      color: colors.muted,
+    },
+    visitorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      borderRadius: radius.xl,
+      backgroundColor: colors.messageResidentBg,
+      padding: spacing.sm,
+    },
+    visitorAvatar: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    visitorName: {
+      color: colors.fg,
+      fontWeight: '700',
+    },
+    noticeCard: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    noticeIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noticeTitle: {
+      color: colors.fg,
+      fontSize: 16,
+      lineHeight: 22,
+      fontWeight: '700',
+      marginTop: 3,
+    },
+  });
+}

@@ -6,27 +6,32 @@ import {
   defaultExpectedArrival,
   defaultQuickEntryDurationMins,
 } from '@smartresidence/shared-types';
-import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
+import { Button, Card, radius, useTheme } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { api } from '../lib/api';
-import { RESIDENT_CARD_BORDER, residentStyles } from './resident-screen';
+import { useResidentStyles } from './resident-screen';
 
 type QuickPassKind = Exclude<VisitorPassKind, 'STANDARD'>;
 
-const inputStyle = {
-  minHeight: 46,
-  borderRadius: radius.lg,
-  borderWidth: 1,
-  borderColor: palette.borderLight,
-  backgroundColor: palette.surfaceLight,
-  paddingHorizontal: 12,
-  fontSize: 14,
-};
-
 export function DeliveryPassForm({ unitId }: { unitId?: string }) {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
+  const fieldStyle = useMemo(
+    () => ({
+      minHeight: 46,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 12,
+      fontSize: 14,
+      color: colors.fg,
+    }),
+    [colors],
+  );
   const create = useCreateDeliveryPass(api);
   const [open, setOpen] = useState(false);
   const [passKind, setPassKind] = useState<QuickPassKind>('DELIVERY');
@@ -61,18 +66,16 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
   const durationMins = defaultQuickEntryDurationMins(passKind);
 
   return (
-    <Card style={[residentStyles.card, { borderColor: 'rgba(245, 158, 11, 0.35)' }]}>
+    <Card style={[styles.card, { borderColor: 'rgba(245, 158, 11, 0.35)' }]}>
       <Pressable onPress={() => setOpen((v) => !v)} style={{ gap: 4 }}>
-        <Text style={{ fontWeight: '700', color: palette.textLight, fontSize: 16 }}>
+        <Text style={{ fontWeight: '700', color: colors.fg, fontSize: 16 }}>
           Delivery / rider pass
         </Text>
-        <Text style={{ color: palette.mutedLight, fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
           Quick gate pass for GrabFood, Foodpanda, Grab, and similar — about{' '}
           {Math.round(durationMins / 60)} hours valid.
         </Text>
-        <Text
-          style={{ color: palette.coralPrimary, fontSize: 13, fontWeight: '600', marginTop: 4 }}
-        >
+        <Text style={{ color: colors.coral, fontSize: 13, fontWeight: '600', marginTop: 4 }}>
           {open ? 'Hide form' : 'Tap to create'}
         </Text>
       </Pressable>
@@ -84,10 +87,10 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
             marginTop: 16,
             paddingTop: 16,
             borderTopWidth: 1,
-            borderTopColor: RESIDENT_CARD_BORDER,
+            borderTopColor: colors.border,
           }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '600' }}>Pass type</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.fg }}>Pass type</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {QUICK_ENTRY_PASS_KIND_OPTIONS.map((opt) => (
               <Pressable
@@ -97,19 +100,25 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   borderRadius: radius.full,
-                  backgroundColor:
-                    passKind === opt.value ? 'rgba(255, 56, 92, 0.12)' : palette.surfaceLight,
+                  backgroundColor: passKind === opt.value ? colors.coralSoft : colors.surface,
                   borderWidth: 1,
-                  borderColor:
-                    passKind === opt.value ? 'rgba(255, 56, 92, 0.25)' : palette.borderLight,
+                  borderColor: passKind === opt.value ? `${colors.coral}40` : colors.border,
                 }}
               >
-                <Text style={{ fontSize: 13, fontWeight: '600' }}>{opt.label}</Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '600',
+                    color: passKind === opt.value ? colors.coral : colors.fg,
+                  }}
+                >
+                  {opt.label}
+                </Text>
               </Pressable>
             ))}
           </View>
 
-          <Text style={{ fontSize: 13, fontWeight: '600' }}>Platform</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.fg }}>Platform</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {DELIVERY_PLATFORM_OPTIONS.map((opt) => (
               <Pressable
@@ -120,13 +129,20 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
                   paddingVertical: 8,
                   borderRadius: radius.full,
                   backgroundColor:
-                    platform === opt.value ? 'rgba(245, 158, 11, 0.15)' : palette.surfaceLight,
+                    platform === opt.value ? 'rgba(245, 158, 11, 0.15)' : colors.surface,
                   borderWidth: 1,
-                  borderColor:
-                    platform === opt.value ? 'rgba(245, 158, 11, 0.4)' : palette.borderLight,
+                  borderColor: platform === opt.value ? 'rgba(245, 158, 11, 0.4)' : colors.border,
                 }}
               >
-                <Text style={{ fontSize: 12, fontWeight: '600' }}>{opt.label}</Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '600',
+                    color: platform === opt.value ? '#D97706' : colors.fg,
+                  }}
+                >
+                  {opt.label}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -135,14 +151,16 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
             placeholder="Rider name (optional)"
             value={name}
             onChangeText={setName}
-            style={inputStyle}
+            style={fieldStyle}
+            placeholderTextColor={colors.muted}
           />
           <TextInput
             placeholder="Vehicle plate (optional)"
             value={vehiclePlate}
             onChangeText={(v) => setVehiclePlate(v.toUpperCase())}
-            style={inputStyle}
+            style={fieldStyle}
             autoCapitalize="characters"
+            placeholderTextColor={colors.muted}
           />
           <TextInput
             value={expectedAt.toISOString().slice(0, 16).replace('T', ' ')}
@@ -150,8 +168,9 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
               const parsed = new Date(v.replace(' ', 'T'));
               if (!Number.isNaN(parsed.getTime())) setExpectedAt(parsed);
             }}
-            style={inputStyle}
+            style={fieldStyle}
             placeholder="Expected arrival (YYYY-MM-DD HH:mm)"
+            placeholderTextColor={colors.muted}
           />
 
           <Button

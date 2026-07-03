@@ -6,10 +6,19 @@ import {
   useMyUnits,
 } from '@smartresidence/api-client';
 import type { ThreadCategory } from '@smartresidence/api-client';
-import { Button, Card, palette } from '@smartresidence/ui-mobile';
+import { AppText, Button, Card, useTheme } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoPicker } from '../../../src/components/photo-picker';
 import { api } from '../../../src/lib/api';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
@@ -26,6 +35,8 @@ const CATEGORIES: Array<{ value: ThreadCategory; label: string }> = [
 ];
 
 export default function NewMessageScreen() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const units = useMyUnits(api);
   const condos = useMyCondos(api);
@@ -106,98 +117,122 @@ export default function NewMessageScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
-      contentContainerStyle={{ padding: 16, gap: 12 }}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={insets.top}
     >
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>New message</Text>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 32 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <AppText style={{ fontSize: 24, fontWeight: '700' }}>New message</AppText>
 
-      {deflection && !dismissed ? (
-        <Card>
-          <Text style={{ fontWeight: '600', color: '#16a34a' }}>FAQ might answer this</Text>
-          <Text style={{ fontWeight: '600', marginTop: 8 }}>{deflection.question}</Text>
-          <Text style={{ color: palette.mutedLight, marginTop: 6 }}>{deflection.answer}</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-            <Button title="This answered my question" onPress={onAnswered} />
-          </View>
-          <Pressable
-            onPress={() => {
-              setDismissed(true);
-              setDeflection(null);
-            }}
-            style={{ marginTop: 8 }}
-          >
-            <Text style={{ color: palette.coralPrimary, textAlign: 'center' }}>
-              Still need help
-            </Text>
-          </Pressable>
-        </Card>
-      ) : null}
-
-      <Card>
-        <Text style={{ fontWeight: '600', marginBottom: 8 }}>Subject</Text>
-        <TextInput
-          value={subject}
-          onChangeText={(v) => {
-            setSubject(v);
-            setDismissed(false);
-          }}
-          style={{
-            borderWidth: 1,
-            borderColor: palette.borderLight,
-            borderRadius: 12,
-            padding: 12,
-          }}
-        />
-        <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Category</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {CATEGORIES.map((c) => (
+        {deflection && !dismissed ? (
+          <Card>
+            <AppText style={{ fontWeight: '600', color: '#16a34a' }}>FAQ might answer this</AppText>
+            <AppText style={{ fontWeight: '600', marginTop: 8 }}>{deflection.question}</AppText>
+            <AppText style={{ color: colors.muted, marginTop: 6 }}>{deflection.answer}</AppText>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <Button title="This answered my question" onPress={onAnswered} />
+            </View>
             <Pressable
-              key={c.value}
-              onPress={() => setCategory(c.value)}
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 8,
-                backgroundColor: category === c.value ? palette.coralPrimary : palette.borderLight,
+              onPress={() => {
+                setDismissed(true);
+                setDeflection(null);
               }}
+              style={{ marginTop: 8, minHeight: 44, justifyContent: 'center' }}
             >
-              <Text
-                style={{ color: category === c.value ? '#fff' : palette.textLight, fontSize: 12 }}
-              >
-                {c.label}
-              </Text>
+              <AppText style={{ color: colors.coral, textAlign: 'center' }}>
+                Still need help
+              </AppText>
             </Pressable>
-          ))}
-        </View>
-        <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Message</Text>
-        <TextInput
-          value={body}
-          onChangeText={(v) => {
-            setBody(v);
-            setDismissed(false);
-          }}
-          multiline
-          numberOfLines={5}
-          style={{
-            borderWidth: 1,
-            borderColor: palette.borderLight,
-            borderRadius: 12,
-            padding: 12,
-            minHeight: 120,
-            textAlignVertical: 'top',
-          }}
-        />
-        <Text style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Photos</Text>
-        <PhotoPicker controller={photos} />
-        <View style={{ marginTop: 16 }}>
-          <Button
-            title={create.isPending ? 'Sending…' : 'Send message'}
-            onPress={onSend}
-            disabled={create.isPending || photos.uploading}
+          </Card>
+        ) : null}
+
+        <Card>
+          <AppText style={{ fontWeight: '600', marginBottom: 8 }}>Subject</AppText>
+          <TextInput
+            value={subject}
+            onChangeText={(v) => {
+              setSubject(v);
+              setDismissed(false);
+            }}
+            placeholderTextColor={colors.muted}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 12,
+              padding: 12,
+              color: colors.fg,
+              backgroundColor: colors.inputBg,
+            }}
           />
-        </View>
-      </Card>
-    </ScrollView>
+          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Category</AppText>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {CATEGORIES.map((c) => {
+              const selected = category === c.value;
+              return (
+                <Pressable
+                  key={c.value}
+                  onPress={() => setCategory(c.value)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    backgroundColor: selected ? colors.coral : colors.coralSoft,
+                    borderWidth: 1,
+                    borderColor: selected ? colors.coral : colors.cardBorder,
+                  }}
+                >
+                  <AppText
+                    style={{
+                      color: selected ? '#fff' : colors.fg,
+                      fontSize: 12,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {c.label}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
+          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Message</AppText>
+          <TextInput
+            value={body}
+            onChangeText={(v) => {
+              setBody(v);
+              setDismissed(false);
+            }}
+            multiline
+            numberOfLines={5}
+            placeholderTextColor={colors.muted}
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 12,
+              padding: 12,
+              minHeight: 120,
+              textAlignVertical: 'top',
+              color: colors.fg,
+              backgroundColor: colors.inputBg,
+            }}
+          />
+          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Photos</AppText>
+          <PhotoPicker controller={photos} />
+          <View style={{ marginTop: 16 }}>
+            <Button
+              title={create.isPending ? 'Sending…' : 'Send message'}
+              onPress={onSend}
+              disabled={create.isPending || photos.uploading}
+            />
+          </View>
+        </Card>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

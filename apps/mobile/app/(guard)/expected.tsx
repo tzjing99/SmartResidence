@@ -15,9 +15,10 @@ import {
   EmptyState,
   Pill,
   SkeletonList,
-  palette,
+  type ThemeColors,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
@@ -30,15 +31,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  GUARD_CARD_BORDER,
-  GUARD_CORAL,
-  GUARD_SOFT_CORAL,
-  GUARD_SOFT_SKY,
-  GuardHeader,
-  guardStyles,
-  plainLabel,
-} from '../../src/components/guard-screen';
+import { GuardHeader, plainLabel } from '../../src/components/guard-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
@@ -181,6 +174,8 @@ function ExpectedVisitorCard({
   onAcknowledgeWalkIn?: (visitorId: string, name: string) => void;
   acknowledging?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const expectedAt = new Date(visitor.expectedAt);
   const highlight = variant === 'expected' ? getVisitorArrivalHighlight(visitor) : null;
   const chip = variant === 'expected' ? arrivalLabel(highlight, expectedAt, t) : null;
@@ -193,7 +188,7 @@ function ExpectedVisitorCard({
   return (
     <Card
       style={[
-        guardStyles.card,
+        styles.card,
         styles.visitorCard,
         isQuickEntryPass(visitor) ? styles.deliveryCard : null,
         highlight === 'soon' ? styles.soonCard : null,
@@ -268,6 +263,8 @@ function ExpectedVisitorCard({
 
 export default function ExpectedScreen() {
   const t = useT();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const TAB_LABELS = tabLabels(t);
   const insets = useSafeAreaInsets();
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
@@ -312,13 +309,16 @@ export default function ExpectedScreen() {
     async (visitorId: string, name: string) => {
       try {
         await acknowledgeWalkIn.mutateAsync(visitorId);
-        Alert.alert(t('mobile.guard.expected.acknowledgedTitle'), t('mobile.guard.expected.acknowledgedMessage', { name }));
+        Alert.alert(
+          t('mobile.guard.expected.acknowledgedTitle'),
+          t('mobile.guard.expected.acknowledgedMessage', { name }),
+        );
         await Promise.all(visitors.map((q) => q.refetch()));
       } catch (err) {
         Alert.alert('Could not acknowledge', (err as Error).message);
       }
     },
-    [acknowledgeWalkIn, visitors],
+    [acknowledgeWalkIn, visitors, t],
   );
 
   const renderItem = useCallback(
@@ -333,7 +333,7 @@ export default function ExpectedScreen() {
         />
       </View>
     ),
-    [tab, twoColumn, handleAcknowledgeWalkIn, acknowledgeWalkIn.isPending],
+    [tab, twoColumn, handleAcknowledgeWalkIn, acknowledgeWalkIn.isPending, styles, t],
   );
 
   const listHeader = (
@@ -361,7 +361,7 @@ export default function ExpectedScreen() {
           );
         })}
       </View>
-      <Card style={[guardStyles.card, styles.contextCard]}>
+      <Card style={[styles.card, styles.contextCard]}>
         <View style={styles.contextIcon}>
           <Ionicons
             name={
@@ -372,7 +372,7 @@ export default function ExpectedScreen() {
                   : 'archive-outline'
             }
             size={19}
-            color={GUARD_CORAL}
+            color={colors.coral}
           />
         </View>
         <View style={styles.contextCopy}>
@@ -410,7 +410,7 @@ export default function ExpectedScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       numColumns={twoColumn ? 2 : 1}
-      style={{ flex: 1, backgroundColor: palette.bgLight }}
+      style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{
         width: '100%',
         maxWidth: contentMaxWidth,
@@ -434,151 +434,154 @@ export default function ExpectedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  headerStack: {
-    gap: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  tabRail: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  tabButton: {
-    minHeight: 38,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-    backgroundColor: palette.surfaceLight,
-    borderWidth: 1,
-    borderColor: GUARD_CARD_BORDER,
-  },
-  tabButtonActive: {
-    backgroundColor: GUARD_SOFT_CORAL,
-    borderColor: 'rgba(255,90,95,0.32)',
-  },
-  tabText: {
-    color: palette.mutedLight,
-    fontWeight: '700',
-  },
-  tabTextActive: {
-    color: GUARD_CORAL,
-  },
-  contextCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  contextIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_SKY,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  contextCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  contextTitle: {
-    color: palette.textLight,
-    fontWeight: '800',
-  },
-  gridItem: {
-    flex: 1,
-    minWidth: 280,
-  },
-  listItem: {
-    flex: 1,
-  },
-  columnWrapper: {
-    gap: spacing.md,
-  },
-  visitorCard: {
-    padding: spacing.md,
-  },
-  deliveryCard: {
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-    backgroundColor: 'rgba(255, 251, 235, 0.85)',
-  },
-  soonCard: {
-    borderColor: 'rgba(255,90,95,0.32)',
-    backgroundColor: 'rgba(255,241,240,0.82)',
-  },
-  overdueCard: {
-    borderColor: 'rgba(245,158,11,0.35)',
-    backgroundColor: 'rgba(254,243,199,0.38)',
-  },
-  mutedCard: {
-    opacity: 0.94,
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  visitMetaBadge: {
-    minWidth: 88,
-    maxWidth: 108,
-    borderRadius: radius.xl,
-    backgroundColor: palette.bgLight,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    flexShrink: 0,
-  },
-  visitMetaPrefix: {
-    color: palette.mutedLight,
-    fontWeight: '700',
-    textAlign: 'center',
-    width: '100%',
-  },
-  visitMetaDate: {
-    color: palette.mutedLight,
-    fontWeight: '600',
-    textAlign: 'center',
-    width: '100%',
-    marginTop: 1,
-  },
-  timeValue: {
-    color: palette.textLight,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '800',
-    letterSpacing: -0.2,
-    textAlign: 'center',
-    width: '100%',
-    marginTop: 2,
-  },
-  cardTitleBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  visitorName: {
-    color: palette.textLight,
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: '800',
-  },
-  cardMeta: {
-    color: palette.mutedLight,
-    lineHeight: 19,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: spacing.xs,
-  },
-  ackRow: {
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: GUARD_CARD_BORDER,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    headerStack: {
+      gap: spacing.md,
+      marginBottom: spacing.xs,
+    },
+    tabRail: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    tabButton: {
+      minHeight: 38,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    tabButtonActive: {
+      backgroundColor: colors.coralSoft,
+      borderColor: colors.coral,
+    },
+    tabText: {
+      color: colors.muted,
+      fontWeight: '700',
+    },
+    tabTextActive: {
+      color: colors.coral,
+    },
+    contextCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+    },
+    contextIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.full,
+      backgroundColor: colors.messageMgmtSkyBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    contextCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    contextTitle: {
+      color: colors.fg,
+      fontWeight: '800',
+    },
+    gridItem: {
+      flex: 1,
+      minWidth: 280,
+    },
+    listItem: {
+      flex: 1,
+    },
+    columnWrapper: {
+      gap: spacing.md,
+    },
+    visitorCard: {
+      padding: spacing.md,
+    },
+    deliveryCard: {
+      borderColor: 'rgba(245, 158, 11, 0.45)',
+    },
+    soonCard: {
+      borderColor: colors.coral,
+    },
+    overdueCard: {
+      borderColor: 'rgba(245,158,11,0.55)',
+    },
+    mutedCard: {
+      opacity: 0.94,
+    },
+    cardTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    visitMetaBadge: {
+      minWidth: 88,
+      maxWidth: 108,
+      borderRadius: radius.xl,
+      backgroundColor: colors.messageResidentBg,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      flexShrink: 0,
+    },
+    visitMetaPrefix: {
+      color: colors.muted,
+      fontWeight: '700',
+      textAlign: 'center',
+      width: '100%',
+    },
+    visitMetaDate: {
+      color: colors.muted,
+      fontWeight: '600',
+      textAlign: 'center',
+      width: '100%',
+      marginTop: 1,
+    },
+    timeValue: {
+      color: colors.fg,
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '800',
+      letterSpacing: -0.2,
+      textAlign: 'center',
+      width: '100%',
+      marginTop: 2,
+    },
+    cardTitleBlock: {
+      flex: 1,
+      minWidth: 0,
+    },
+    visitorName: {
+      color: colors.fg,
+      fontSize: 17,
+      lineHeight: 23,
+      fontWeight: '800',
+    },
+    cardMeta: {
+      color: colors.muted,
+      lineHeight: 19,
+    },
+    pillRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: spacing.xs,
+    },
+    ackRow: {
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.cardBorder,
+    },
+  });
+}

@@ -2,7 +2,8 @@ import { MotiView } from 'moti';
 import * as React from 'react';
 import { View, type ViewStyle } from 'react-native';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { palette, radius } from '../tokens';
+import { useTheme } from '../theme';
+import { radius } from '../tokens';
 
 export interface SkeletonProps {
   width?: number | `${number}%`;
@@ -19,18 +20,19 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   style,
 }) => {
   const reduceMotion = useReducedMotion();
+  const { colors } = useTheme();
 
   if (reduceMotion) {
     return (
       <View
-        style={[{ width, height, borderRadius: r, backgroundColor: palette.borderLight }, style]}
+        style={[{ width, height, borderRadius: r, backgroundColor: colors.cardBorder }, style]}
       />
     );
   }
 
   return (
     <MotiView
-      style={[{ width, height, borderRadius: r, backgroundColor: palette.borderLight }, style]}
+      style={[{ width, height, borderRadius: r, backgroundColor: colors.cardBorder }, style]}
       from={{ opacity: 0.45 }}
       animate={{ opacity: 0.9 }}
       transition={{

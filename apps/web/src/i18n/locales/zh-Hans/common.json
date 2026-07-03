@@ -42,6 +42,7 @@
     "deflectStillNeedHelp": "仍需帮助——发送消息",
     "allMessages": "全部消息",
     "downloadPdf": "下载 PDF",
+    "threadActions": "对话操作",
     "assignedTo": "已分配给 {name}",
     "notFound": "未找到对话。",
     "reopenSentToast": "已退回管理处",
@@ -462,5 +463,20 @@
         "filteredDesc": "请尝试调整搜索或筛选条件。"
       }
     }
+  },
+  "sessions": {
+    "title": "设备与会话",
+    "subtitle": "查看您的登录位置，并撤销不认识的访问。",
+    "currentSession": "此设备",
+    "lastActive": "最后活跃 {time}",
+    "signedIn": "登录于 {time}",
+    "ipAddress": "IP {address}",
+    "unknownDevice": "未知设备",
+    "empty": "暂无活跃会话",
+    "revoke": "撤销",
+    "revokeConfirmBody": "此设备将立即退出登录。",
+    "revokeCurrentConfirmBody": "您将立即在此设备上退出登录。",
+    "revokeSuccess": "会话已撤销",
+    "revokeError": "无法撤销会话"
   }
 }

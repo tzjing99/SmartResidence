@@ -343,7 +343,7 @@ export default function AdminHome() {
       {condo ? <SetupBanner condoId={condo.id} /> : null}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm sr-muted">{t("admin.dashboard.eyebrow")}</p>
+          <p className="text-sm sr-muted">{t('admin.dashboard.eyebrow')}</p>
           <h1 className="text-3xl font-bold tracking-tight">{condo?.name ?? 'Dashboard'}</h1>
         </div>
         <Badge tone={automation.isFetching ? 'warning' : 'neutral'} className="self-start">
@@ -354,7 +354,7 @@ export default function AdminHome() {
 
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wide sr-muted mb-2">
-          {t("admin.dashboard.quickActions")}
+          {t('admin.dashboard.quickActions')}
         </h2>
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm" variant="secondary">
@@ -384,7 +384,7 @@ export default function AdminHome() {
         <Card>
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-lg font-semibold">{t("admin.dashboard.needsAttention")}</h2>
+              <h2 className="text-lg font-semibold">{t('admin.dashboard.needsAttention')}</h2>
               <p className="text-sm sr-muted">The most important items for management today.</p>
             </div>
             <ShieldCheck className="size-5 sr-muted" />
@@ -394,7 +394,7 @@ export default function AdminHome() {
               priorityActions.map((item) => <ActionItem key={item.title} {...item} />)
             ) : (
               <EmptyState
-                title={t("admin.dashboard.noUrgentTitle")}
+                title={t('admin.dashboard.noUrgentTitle')}
                 description="Payments, overdue invoices, defects and automations are all quiet right now."
               />
             )}

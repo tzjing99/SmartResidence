@@ -38,9 +38,9 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
-import { useT } from '../../src/i18n/locale-provider';
 
 const STATUS_TONE: Record<GeneralMeetingStatus, 'neutral' | 'success' | 'warning' | 'info'> = {
   DRAFT: 'neutral',

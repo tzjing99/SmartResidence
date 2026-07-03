@@ -35,9 +35,9 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../src/lib/haptics';
-import { useT } from '../../src/i18n/locale-provider';
 
 const STATUS_TONE: Record<FormSubmissionStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
   DRAFT: 'neutral',
@@ -204,7 +204,11 @@ export default function FormsScreen() {
 
   if (!unit) {
     return (
-      <ResidentScreen eyebrow="Services" title={t('mobile.forms.title')} subtitle={t('forms.subtitle')}>
+      <ResidentScreen
+        eyebrow="Services"
+        title={t('mobile.forms.title')}
+        subtitle={t('forms.subtitle')}
+      >
         <EmptyState
           title="No unit linked"
           description="Your account needs a unit to submit forms."

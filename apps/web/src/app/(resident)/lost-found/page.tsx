@@ -210,7 +210,7 @@ function CreatePostForm({ condoId, unitId }: { condoId: string; unitId: string }
           />
         </div>
         <Button type="submit" loading={createPost.isPending}>
-          {t("lostFound.postCta")}
+          {t('lostFound.postCta')}
         </Button>
       </form>
     </Card>
@@ -264,7 +264,7 @@ export default function LostFoundPage() {
       <header>
         <h2 className="sr-section-title flex items-center gap-2">
           <Search className="size-6 text-coral-500" aria-hidden />
-          {t("lostFound.title")}
+          {t('lostFound.title')}
         </h2>
         <p className="sr-muted mt-1">
           Community board for lost and found items — not for buying or selling.
@@ -313,7 +313,7 @@ export default function LostFoundPage() {
             <Skeleton className="h-32 w-full rounded-2xl" />
           ) : (boardQuery.data?.items.length ?? 0) === 0 ? (
             <EmptyState
-              title={t("lostFound.boardEmptyTitle")}
+              title={t('lostFound.boardEmptyTitle')}
               description="Open lost and found posts from residents will appear here."
               action={
                 canCreate && condo?.id && unit?.id ? (

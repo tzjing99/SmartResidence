@@ -35,10 +35,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { RESIDENT_THREAD_INBOX_PARAMS, countOpenThreads } from '../../src/lib/resident-threads';
 import type { MeResponse } from '../../src/lib/roles';
-import { useT } from '../../src/i18n/locale-provider';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 

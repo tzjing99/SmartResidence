@@ -40,6 +40,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 import {
@@ -47,7 +48,6 @@ import {
   isPaymentReturnUrl,
   paymentDeepLink,
 } from '../../src/lib/payment-return-url';
-import { useT } from '../../src/i18n/locale-provider';
 
 const ADVANCE_PRESETS = [100, 200, 400, 1000];
 

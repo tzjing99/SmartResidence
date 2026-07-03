@@ -139,7 +139,7 @@ export default function AdminDocumentsPage() {
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("admin.documents.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('admin.documents.title')}</h1>
         <p className="text-sm sr-muted mt-1">
           Publish house rules, AGM minutes, bylaws, and circulars with version history.
         </p>

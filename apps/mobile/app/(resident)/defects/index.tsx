@@ -40,9 +40,9 @@ import {
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
-import { useT } from '../../../src/i18n/locale-provider';
 
 type Mode = 'single' | 'handover';
 

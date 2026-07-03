@@ -1,7 +1,7 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
 import { Markdown } from '@/components/markdown';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { toast } from '@/lib/toast';
@@ -411,10 +411,7 @@ export default function ResidentGovernancePage() {
       ) : meetingsQuery.isLoading ? (
         <Skeleton className="h-32 w-full" />
       ) : meetings.length === 0 ? (
-        <EmptyState
-          title={t('governance.emptyTitle')}
-          description={t('governance.emptyDesc')}
-        />
+        <EmptyState title={t('governance.emptyTitle')} description={t('governance.emptyDesc')} />
       ) : (
         <ul className="divide-y divide-[rgb(var(--sr-border))] border border-[rgb(var(--sr-border))] rounded-xl overflow-hidden">
           {meetings.map((m) => {

@@ -23,10 +23,10 @@ import {
   prettyLabel,
   residentStyles,
 } from '../../../src/components/resident-screen';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { confirmDefectSignOff } from '../../../src/lib/defect-sign-off';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
-import { useT } from '../../../src/i18n/locale-provider';
 
 type DefectUpdate = {
   id: string;

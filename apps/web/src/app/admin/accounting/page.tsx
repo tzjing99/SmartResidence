@@ -205,7 +205,7 @@ export default function AdminAccountingPage() {
     <div className="flex flex-col gap-6 max-w-6xl">
       <AdminPageHeader
         eyebrow="Money"
-        title={t("admin.accounting.title")}
+        title={t('admin.accounting.title')}
         description={
           <>
             Fund balances, collections, and arrears for your JMB.{' '}

@@ -254,7 +254,7 @@ export default function DashboardPage() {
               <HeroIcon className="size-5 text-[rgb(var(--sr-coral))]" />
             </span>
             <div>
-              <div className="text-sm sr-muted">{t("dashboard.nextAction")}</div>
+              <div className="text-sm sr-muted">{t('dashboard.nextAction')}</div>
               <h3 className="text-2xl font-semibold mt-1">{hero.title}</h3>
               <p className="text-sm sr-muted mt-1">{hero.body}</p>
             </div>
@@ -274,7 +274,9 @@ export default function DashboardPage() {
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
             <div className="rounded-xl border border-[rgb(var(--sr-border))]/70 p-3">
-              <div className="text-xs uppercase sr-muted font-semibold">{t("dashboard.outstanding")}</div>
+              <div className="text-xs uppercase sr-muted font-semibold">
+                {t('dashboard.outstanding')}
+              </div>
               <div className="text-xl font-bold mt-1">
                 {formatMoney(statement.data?.totalOutstanding ?? outstandingTotal)}
               </div>
@@ -344,7 +346,7 @@ export default function DashboardPage() {
           />
           {upcomingVisitors.length === 0 ? (
             <EmptyState
-              title={t("dashboard.noVisitorsTitle")}
+              title={t('dashboard.noVisitorsTitle')}
               description="Pre-register friends, family, or contractors to skip the gate friction."
               action={
                 <Link href="/visitors/new">
@@ -383,7 +385,7 @@ export default function DashboardPage() {
           />
           {announcementItems.length === 0 ? (
             <EmptyState
-              title={t("dashboard.noAnnouncementsTitle")}
+              title={t('dashboard.noAnnouncementsTitle')}
               description="Building notices and updates from management will show up here."
               action={
                 <Link href="/announcements">
@@ -430,7 +432,7 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold sr-muted mb-3">{t("dashboard.quickLinks")}</h3>
+        <h3 className="text-sm font-semibold sr-muted mb-3">{t('dashboard.quickLinks')}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Link href="/billing">
             <Card interactive className="h-full !p-4">

@@ -81,7 +81,7 @@ export default function ResidentDocumentsPage() {
           <Skeleton className="h-10 w-full" />
         ) : folderRows.length === 0 ? (
           <EmptyState
-            title={t("documents.emptyTitle")}
+            title={t('documents.emptyTitle')}
             description="When management publishes documents, they'll appear here organised by folder."
           />
         ) : (

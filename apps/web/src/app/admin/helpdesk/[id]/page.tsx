@@ -364,7 +364,9 @@ export default function AdminThreadPage() {
             <div className="flex items-center justify-between gap-2 pt-1">
               <div className="min-w-0">
                 <span className="text-[11px] sr-muted uppercase tracking-wide">Assignee</span>
-                <p className="text-sm truncate">{t.assignedTo?.name ?? tr('helpdesk.noAssignee')}</p>
+                <p className="text-sm truncate">
+                  {t.assignedTo?.name ?? tr('helpdesk.noAssignee')}
+                </p>
               </div>
               {myId && t.assignedTo?.id !== myId ? (
                 <Button

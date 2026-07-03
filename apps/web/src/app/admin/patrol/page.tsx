@@ -387,7 +387,7 @@ export default function AdminPatrolPage() {
           </Card>
         ) : items.length === 0 ? (
           <EmptyState
-            title={t("admin.patrol.emptyTitle")}
+            title={t('admin.patrol.emptyTitle')}
             description="Add your first patrol checkpoint — e.g. Block A Lobby or Basement 2 Ramp — and print its QR sticker."
           />
         ) : (

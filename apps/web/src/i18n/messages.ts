@@ -9,7 +9,10 @@ export type Locale = 'en' | 'ms' | 'zh-Hans';
 
 export const DEFAULT_LOCALE: Locale = 'en';
 
-export function deepMerge<T extends Record<string, unknown>>(base: T, overlay: Record<string, unknown>): T {
+export function deepMerge<T extends Record<string, unknown>>(
+  base: T,
+  overlay: Record<string, unknown>,
+): T {
   const out = { ...base } as Record<string, unknown>;
   for (const [key, value] of Object.entries(overlay)) {
     if (value && typeof value === 'object' && !Array.isArray(value)) {

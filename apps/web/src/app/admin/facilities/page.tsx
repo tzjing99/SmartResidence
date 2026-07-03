@@ -440,7 +440,7 @@ export default function AdminFacilitiesPage() {
         <Skeleton className="h-32 w-full" />
       ) : items.length === 0 ? (
         <EmptyState
-          title={t("admin.facilities.emptyTitle")}
+          title={t('admin.facilities.emptyTitle')}
           description="Add your first bookable amenity — e.g. Function Hall or BBQ Pit A."
         />
       ) : (

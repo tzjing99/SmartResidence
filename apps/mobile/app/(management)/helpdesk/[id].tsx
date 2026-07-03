@@ -24,10 +24,10 @@ import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThreadMessageList } from '../../../src/components/thread-message-list';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { hapticLight } from '../../../src/lib/haptics';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
-import { useT } from '../../../src/i18n/locale-provider';
 
 const PRIORITY_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
   URGENT: 'danger',

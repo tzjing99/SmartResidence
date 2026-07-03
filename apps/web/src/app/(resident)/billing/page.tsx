@@ -1,8 +1,8 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
 import { DuitNowQrPanel, type DuitNowQrSession } from '@/components/duitnow-qr-panel';
 import { PaymentMethodPicker } from '@/components/payment-method-picker';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -311,8 +311,8 @@ export default function BillingPage() {
         <header>
           <h2 className="sr-section-title">{t('billing.title')}</h2>
           <p className="sr-muted">
-            {t('billing.subtitle')} Deposits are refundable amounts held
-            by management and are tracked separately.
+            {t('billing.subtitle')} Deposits are refundable amounts held by management and are
+            tracked separately.
           </p>
         </header>
 
@@ -435,7 +435,7 @@ export default function BillingPage() {
           </div>
         ) : (invoices.data?.items.length ?? 0) === 0 ? (
           <EmptyState
-            title={t("billing.noInvoicesTitle")}
+            title={t('billing.noInvoicesTitle')}
             description="Your monthly fee statements will appear here once management issues them."
           />
         ) : (
@@ -502,7 +502,7 @@ export default function BillingPage() {
           <Skeleton className="h-24" />
         ) : depositItems.length === 0 ? (
           <EmptyState
-            title={t("billing.noDepositsTitle")}
+            title={t('billing.noDepositsTitle')}
             description="Renovation, delivery and other deposits will show here once recorded."
           />
         ) : (
@@ -564,7 +564,10 @@ export default function BillingPage() {
         {receipts.isLoading ? (
           <Skeleton className="h-24" />
         ) : receiptItems.length === 0 ? (
-          <EmptyState title={t("billing.noReceiptsTitle")} description="Receipts appear here once issued." />
+          <EmptyState
+            title={t('billing.noReceiptsTitle')}
+            description="Receipts appear here once issued."
+          />
         ) : (
           <ul className="flex flex-col gap-2">
             {receiptItems.map((r: ReceiptListItem) => (

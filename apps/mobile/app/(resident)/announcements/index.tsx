@@ -8,8 +8,8 @@ import {
 } from '../../../src/components/announcements-ui';
 import { ResidentScreen } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
-import { api } from '../../../src/lib/api';
 import { useT } from '../../../src/i18n/locale-provider';
+import { api } from '../../../src/lib/api';
 
 export default function AnnouncementsScreen() {
   const t = useT();

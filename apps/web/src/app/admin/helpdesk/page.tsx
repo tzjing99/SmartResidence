@@ -231,7 +231,9 @@ export default function HelpdeskPage() {
                             <div className="text-meta-row mt-0.5">
                               <Badge tone="neutral">{categoryLabel(tr, t.category)}</Badge>
                               <span className="text-meta-sep">·</span>
-                              <span>{tr('helpdesk.detail.msgCount', { count: t._count?.messages ?? 0 })}</span>
+                              <span>
+                                {tr('helpdesk.detail.msgCount', { count: t._count?.messages ?? 0 })}
+                              </span>
                               <span className="text-meta-sep">·</span>
                               <span>
                                 {tr('helpdesk.detail.updated', {

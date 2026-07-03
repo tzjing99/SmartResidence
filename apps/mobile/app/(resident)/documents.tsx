@@ -20,9 +20,9 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection } from '../../src/lib/haptics';
-import { useT } from '../../src/i18n/locale-provider';
 
 function fmtBytes(n: number) {
   if (n < 1024) return `${n} B`;

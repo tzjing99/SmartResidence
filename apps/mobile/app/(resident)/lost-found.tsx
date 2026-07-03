@@ -28,8 +28,8 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
-import { api } from '../../src/lib/api';
 import { useT } from '../../src/i18n/locale-provider';
+import { api } from '../../src/lib/api';
 
 const KIND_TONE: Record<LostFoundKind, 'warning' | 'success'> = {
   LOST: 'warning',

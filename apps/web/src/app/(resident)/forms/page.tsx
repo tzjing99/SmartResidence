@@ -172,7 +172,7 @@ function SubmitPanel({
           Back
         </Button>
         <Button type="button" onClick={submit} loading={create.isPending}>
-          {t("actions.submitForReview")}
+          {t('actions.submitForReview')}
         </Button>
       </div>
     </Card>
@@ -234,7 +234,7 @@ export default function ResidentFormsPage() {
           <Skeleton className="h-24 w-full" />
         ) : templateList.length === 0 ? (
           <EmptyState
-            title={t("forms.noFormsTitle")}
+            title={t('forms.noFormsTitle')}
             description="When management publishes forms for your building, they'll appear here."
           />
         ) : (

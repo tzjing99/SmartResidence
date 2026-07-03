@@ -1,7 +1,7 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
 import { AdminFilterBar, AdminFilterPill, AdminPageHeader } from '@/components/admin-ui';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useCollectParcel, useCondoParcels, useMyCondos } from '@smartresidence/api-client';
@@ -63,7 +63,7 @@ export default function AdminParcelsPage() {
       <AdminPageHeader
         eyebrow="Operations"
         icon={Package}
-        title={t("admin.parcels.title")}
+        title={t('admin.parcels.title')}
         description="Lobby deliveries logged by guards — track collection status and follow up on overdue items."
       />
 
@@ -108,7 +108,7 @@ export default function AdminParcelsPage() {
                 <Badge tone={STATUS_TONE[p.status]}>{PARCEL_STATUS_LABELS[p.status]}</Badge>
                 {p.status !== 'COLLECTED' ? (
                   <Button size="sm" variant="secondary" onClick={() => markCollected(p.id)}>
-                    {t("admin.parcels.markCollected")}
+                    {t('admin.parcels.markCollected')}
                   </Button>
                 ) : null}
               </div>

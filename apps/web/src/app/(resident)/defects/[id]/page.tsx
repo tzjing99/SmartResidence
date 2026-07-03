@@ -1,6 +1,5 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
 import { DefectSignOffActions } from '@/components/defect-sign-off';
 import {
   DefectActivityFeed,
@@ -8,6 +7,7 @@ import {
   DefectStatusBadge,
   DefectStatusTimeline,
 } from '@/components/defect-ui';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {

@@ -111,7 +111,9 @@ export function formatDeadline(
 export function formatTimeLeft(t: TFunction, dueIso: string, now: number = Date.now()): string {
   const diff = new Date(dueIso).getTime() - now;
   const mag = formatDuration(Math.abs(diff));
-  return diff >= 0 ? t('helpdesk.sla.dueIn', { time: mag }) : t('helpdesk.sla.overdueBy', { time: mag });
+  return diff >= 0
+    ? t('helpdesk.sla.dueIn', { time: mag })
+    : t('helpdesk.sla.overdueBy', { time: mag });
 }
 
 export const CATEGORIES: Array<{ value: string; labelKey: string }> = [

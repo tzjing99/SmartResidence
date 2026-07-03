@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -37,19 +38,23 @@ function fmtDateTime(d: Date | string) {
   });
 }
 
-function timeSince(d: Date | string): string {
+function timeSince(t: ReturnType<typeof useT>, d: Date | string): string {
   const ms = Date.now() - new Date(d).getTime();
   const mins = Math.max(0, Math.round(ms / 60000));
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min ago`;
+  if (mins < 1) return t('admin.safety.justNow');
+  if (mins < 60) return t('admin.safety.minutesAgo', { mins });
   const hours = Math.floor(mins / 60);
   const remMins = mins % 60;
-  if (hours < 24) return remMins ? `${hours}h ${remMins}m ago` : `${hours}h ago`;
+  if (hours < 24) {
+    if (remMins) return t('admin.safety.hoursMinutesAgo', { hours, mins: remMins });
+    return t('admin.safety.hoursAgo', { hours });
+  }
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t('admin.safety.daysAgo', { days });
 }
 
 function OpenAlertCard({ alert }: { alert: SosAlert }) {
+  const t = useT();
   const acknowledge = useAcknowledgeSos(api);
   const resolve = useResolveSos(api);
   const cancel = useCancelSos(api);
@@ -106,7 +111,7 @@ function OpenAlertCard({ alert }: { alert: SosAlert }) {
             </p>
           ) : null}
           <p className="text-xs sr-muted mt-1">
-            Raised {timeSince(alert.createdAt)} · {fmtDateTime(alert.createdAt)}
+            Raised {timeSince(t, alert.createdAt)} · {fmtDateTime(alert.createdAt)}
             {alert.acknowledgedBy?.name ? ` · Acknowledged by ${alert.acknowledgedBy.name}` : ''}
           </p>
         </div>
@@ -163,6 +168,7 @@ function RecentAlertRow({ alert }: { alert: SosAlert }) {
 }
 
 export default function AdminSafetyPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const alerts = useCondoSosAlerts(api, condo?.id ?? null);

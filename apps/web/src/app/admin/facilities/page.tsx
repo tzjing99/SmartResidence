@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -373,6 +374,7 @@ function BookingsList({ condoId }: { condoId: string }) {
 }
 
 export default function AdminFacilitiesPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const facilities = useFacilities(api, condo?.id ?? null, { includeInactive: true });
@@ -438,7 +440,7 @@ export default function AdminFacilitiesPage() {
         <Skeleton className="h-32 w-full" />
       ) : items.length === 0 ? (
         <EmptyState
-          title="No facilities yet"
+          title={t("admin.facilities.emptyTitle")}
           description="Add your first bookable amenity — e.g. Function Hall or BBQ Pit A."
         />
       ) : (

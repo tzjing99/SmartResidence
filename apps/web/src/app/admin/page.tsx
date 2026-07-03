@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -229,6 +230,7 @@ function SosBanner({ condoId }: { condoId: string }) {
 }
 
 export default function AdminHome() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const defects = useCondoDefects(api, condo?.id ?? null);
@@ -341,7 +343,7 @@ export default function AdminHome() {
       {condo ? <SetupBanner condoId={condo.id} /> : null}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm sr-muted">Management dashboard</p>
+          <p className="text-sm sr-muted">{t("admin.dashboard.eyebrow")}</p>
           <h1 className="text-3xl font-bold tracking-tight">{condo?.name ?? 'Dashboard'}</h1>
         </div>
         <Badge tone={automation.isFetching ? 'warning' : 'neutral'} className="self-start">
@@ -352,7 +354,7 @@ export default function AdminHome() {
 
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wide sr-muted mb-2">
-          Quick actions
+          {t("admin.dashboard.quickActions")}
         </h2>
         <div className="flex flex-wrap gap-2">
           <Button asChild size="sm" variant="secondary">
@@ -382,7 +384,7 @@ export default function AdminHome() {
         <Card>
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-lg font-semibold">Needs attention</h2>
+              <h2 className="text-lg font-semibold">{t("admin.dashboard.needsAttention")}</h2>
               <p className="text-sm sr-muted">The most important items for management today.</p>
             </div>
             <ShieldCheck className="size-5 sr-muted" />
@@ -392,7 +394,7 @@ export default function AdminHome() {
               priorityActions.map((item) => <ActionItem key={item.title} {...item} />)
             ) : (
               <EmptyState
-                title="No urgent items"
+                title={t("admin.dashboard.noUrgentTitle")}
                 description="Payments, overdue invoices, defects and automations are all quiet right now."
               />
             )}
@@ -455,7 +457,7 @@ export default function AdminHome() {
 
       <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
-          label="Unpaid invoices"
+          label={t('admin.dashboard.unpaidInvoices')}
           value={formatMoney(arrearsTotal)}
           detail={`${arrears.data?.unitsInArrears ?? 0} unit(s) · ${arrears.data?.invoicesInArrears ?? 0} invoice(s)`}
           href="/admin/accounting"

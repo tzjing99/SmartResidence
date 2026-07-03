@@ -44,3 +44,28 @@ export const ListPlatformCondosQuery = z.object({
   search: z.string().trim().max(120).optional(),
 });
 export type ListPlatformCondosQuery = z.infer<typeof ListPlatformCondosQuery>;
+
+export interface PlatformCondosPage {
+  items: PlatformCondoSummary[];
+  total: number;
+}
+
+export interface PlatformCondoHealth {
+  condoId: string;
+  status: 'healthy' | 'degraded' | 'critical';
+  checks: Array<{ id: string; label: string; ok: boolean; detail?: string }>;
+}
+
+export interface CreatePlatformCondoInput {
+  name: string;
+  slug: string;
+  address: string;
+  countryCode?: string;
+  timezone?: string;
+}
+
+export interface CreatePlatformCondoResult {
+  id: string;
+  slug: string;
+  name: string;
+}

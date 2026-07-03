@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { DefectSignOffActions } from '@/components/defect-sign-off';
 import {
   DefectActivityFeed,
@@ -30,6 +31,7 @@ import { useParams } from 'next/navigation';
 import * as React from 'react';
 
 export default function ResidentDefectDetailPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const detail = useDefect(api, params.id);
   const addUpdate = useAddDefectUpdate(api);
@@ -52,7 +54,7 @@ export default function ResidentDefectDetailPage() {
       setComment('');
       setAttachmentIds([]);
       photoRef.current?.reset();
-      toast.success('Comment added');
+      toast.success(t('defects.commentAddedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -86,7 +88,7 @@ export default function ResidentDefectDetailPage() {
           className="inline-flex items-center gap-1.5 text-sm font-medium text-[rgb(var(--sr-coral))] hover:underline"
         >
           <ArrowLeft className="size-4" />
-          Back to defects
+          {t('defects.backToDefects')}
         </Link>
         <p className="sr-muted">This defect could not be found.</p>
       </div>
@@ -175,7 +177,7 @@ export default function ResidentDefectDetailPage() {
                   disabled={addUpdate.isPending || !comment.trim()}
                   loading={addUpdate.isPending}
                 >
-                  Add comment
+                  {t('actions.addComment')}
                 </Button>
               </div>
             </form>

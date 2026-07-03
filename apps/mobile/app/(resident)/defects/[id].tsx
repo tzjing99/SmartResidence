@@ -26,6 +26,7 @@ import {
 import { api } from '../../../src/lib/api';
 import { confirmDefectSignOff } from '../../../src/lib/defect-sign-off';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
+import { useT } from '../../../src/i18n/locale-provider';
 
 type DefectUpdate = {
   id: string;
@@ -52,6 +53,7 @@ type DefectDetail = {
 };
 
 export default function DefectDetailScreen() {
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const detail = useDefect(api, id ?? null);
@@ -159,7 +161,7 @@ export default function DefectDetailScreen() {
               ]}
             >
               <AppText style={{ fontWeight: '600', color: '#065F46' }}>
-                Fixed by management — please verify
+                {t('mobile.defects.verifyTitle')}
               </AppText>
               <AppText variant="meta" style={{ color: '#047857', lineHeight: 18 }}>
                 Accept if the repair is satisfactory, or send it back if more work is needed.
@@ -173,7 +175,7 @@ export default function DefectDetailScreen() {
                   style={{ flexGrow: 1 }}
                 />
                 <Button
-                  title="Reject — more work"
+                  title={t('mobile.defects.rejectMoreWork')}
                   variant="secondary"
                   size="sm"
                   disabled={transition.isPending}

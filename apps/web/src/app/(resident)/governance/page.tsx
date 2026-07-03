@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
@@ -378,6 +379,7 @@ function MeetingDetail({
 }
 
 export default function ResidentGovernancePage() {
+  const t = useT();
   const { abilities } = useRoleGuard('resident');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -394,17 +396,15 @@ export default function ResidentGovernancePage() {
       <header>
         <h2 className="sr-section-title flex items-center gap-2">
           <Gavel className="size-6 text-coral-500" aria-hidden />
-          Governance
+          {t('governance.title')}
         </h2>
-        <p className="sr-muted mt-1">
-          AGM and EGM notices, proxy forms, and voting on building resolutions.
-        </p>
+        <p className="sr-muted mt-1">{t('governance.subtitle')}</p>
       </header>
 
       {selectedId ? (
         <>
           <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)}>
-            ← All meetings
+            {t('governance.allMeetings')}
           </Button>
           <MeetingDetail meetingId={selectedId} canVote={canVote} canSubmitProxy={canSubmitProxy} />
         </>
@@ -412,8 +412,8 @@ export default function ResidentGovernancePage() {
         <Skeleton className="h-32 w-full" />
       ) : meetings.length === 0 ? (
         <EmptyState
-          title="No meetings scheduled"
-          description="When management publishes an AGM or EGM notice, it will appear here."
+          title={t('governance.emptyTitle')}
+          description={t('governance.emptyDesc')}
         />
       ) : (
         <ul className="divide-y divide-[rgb(var(--sr-border))] border border-[rgb(var(--sr-border))] rounded-xl overflow-hidden">

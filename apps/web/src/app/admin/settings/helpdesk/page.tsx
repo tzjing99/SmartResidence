@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { type AbilityRule, hasAbility } from '@/lib/roles';
 import { CATEGORIES, prettyLabel } from '@/lib/thread-ui';
@@ -55,6 +56,7 @@ function PrioritySlider({
   onChange: (v: number) => void;
   disabled?: boolean;
 }) {
+  const tr = useT();
   const max = Math.max(item.thresholds.acceptableMaxMins * 1.5, item.recommendedResolutionMins * 3);
   const band = bandForMins(item, value);
   const recPct = (item.thresholds.recommendedMaxMins / max) * 100;
@@ -63,8 +65,8 @@ function PrioritySlider({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-medium text-sm">{prettyLabel(item.priority)}</span>
-        <Badge tone={BAND_TONE[band]}>{prettyLabel(band)}</Badge>
+        <span className="font-medium text-sm">{prettyLabel(tr, item.priority)}</span>
+        <Badge tone={BAND_TONE[band]}>{prettyLabel(tr, band)}</Badge>
       </div>
       <div className="relative h-3 rounded-full overflow-hidden bg-[rgb(var(--sr-border))]/40">
         <div
@@ -99,6 +101,7 @@ function PrioritySlider({
 }
 
 export default function HelpdeskSettingsPage() {
+  const tr = useT();
   const me = useMe(api);
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -462,7 +465,7 @@ export default function HelpdeskSettingsPage() {
             {POOL_CATEGORIES.filter((c) => c !== 'GENERAL').map((category) => (
               <PoolPicker
                 key={category}
-                label={prettyLabel(category)}
+                label={prettyLabel(tr, category)}
                 pool={categoryPools[category]}
                 setPool={(ids) => setCategoryPools((prev) => ({ ...prev, [category]: ids }))}
               />

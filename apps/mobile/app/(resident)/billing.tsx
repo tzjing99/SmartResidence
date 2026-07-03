@@ -47,6 +47,7 @@ import {
   isPaymentReturnUrl,
   paymentDeepLink,
 } from '../../src/lib/payment-return-url';
+import { useT } from '../../src/i18n/locale-provider';
 
 const ADVANCE_PRESETS = [100, 200, 400, 1000];
 
@@ -108,6 +109,7 @@ function DuitNowQrCard({
 }
 
 export default function BillingScreen() {
+  const t = useT();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string; condoId?: string } | undefined;
   const invoices = useUnitInvoices(api, unit?.id ?? null);
@@ -166,8 +168,8 @@ export default function BillingScreen() {
     return (
       <ResidentScreen
         eyebrow="Fees"
-        title="Maintenance fees"
-        subtitle="Review statements, formulas, and payment options without hidden surprises."
+        title={t('mobile.billing.title')}
+        subtitle={t('billing.subtitle')}
       >
         <SkeletonList rows={3} rowHeight={120} />
       </ResidentScreen>
@@ -177,8 +179,8 @@ export default function BillingScreen() {
   return (
     <ResidentScreen
       eyebrow="Fees"
-      title="Maintenance fees"
-      subtitle="Review statements, formulas, and payment options without hidden surprises."
+      title={t('mobile.billing.title')}
+      subtitle={t('billing.subtitle')}
       scrollProps={{ refreshControl }}
     >
       {qrSession ? <DuitNowQrCard session={qrSession} onClose={() => setQrSession(null)} /> : null}
@@ -220,7 +222,7 @@ export default function BillingScreen() {
 
       {items.length === 0 ? (
         <EmptyState
-          title="No invoices"
+          title={t('mobile.billing.noInvoices')}
           description="Your fee statements appear here once issued."
         />
       ) : (
@@ -368,6 +370,7 @@ export default function BillingScreen() {
 }
 
 function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoId: string }) {
+  const t = useT();
   const methods = usePayableMethods(api, condoId);
   const createAdvance = useCreateAdvancePayment(api);
   const [selected, setSelected] = useState<number | 'OTHER'>(100);
@@ -433,7 +436,7 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         }}
       />
       <ResidentSectionHeader
-        title="Pay in advance"
+        title={t('mobile.billing.payAdvance')}
         subtitle="Add prepaid credit that is automatically applied to your next maintenance invoice."
       />
       <Card style={[residentStyles.card, { gap: spacing.md }]}>

@@ -42,10 +42,12 @@ import {
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
+import { useT } from '../../../src/i18n/locale-provider';
 
 type Mode = 'single' | 'handover';
 
 export default function DefectsScreen() {
+  const t = useT();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
   const defects = useUnitDefects(api, unit?.id ?? null);
@@ -66,14 +68,14 @@ export default function DefectsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Defects"
-      title="Report a repair"
-      subtitle="Send clear details to management and follow each defect until it is resolved."
+      eyebrow={t('defects.title')}
+      title={t('defects.newDefect')}
+      subtitle={t('defects.subtitle')}
       scrollProps={{ refreshControl }}
     >
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button
-          title="Single defect"
+          title={t('mobile.defects.singleDefect')}
           variant={mode === 'single' ? 'primary' : 'secondary'}
           size="sm"
           style={{ flexGrow: 1 }}
@@ -95,14 +97,14 @@ export default function DefectsScreen() {
       )}
 
       <ResidentSectionHeader
-        title="Repair history"
+        title={t('mobile.defects.repairHistory')}
         subtitle="Open and completed reports stay here for reference."
       />
 
       {historyLoading ? (
         <SkeletonList rows={3} rowHeight={80} />
       ) : items.length === 0 ? (
-        <EmptyState title="No defects yet" description="Repairs you submit will track here." />
+        <EmptyState title={t('mobile.defects.emptyTitle')} description={t('defects.emptyDesc')} />
       ) : (
         items.map((row, index) => (
           <FadeInView

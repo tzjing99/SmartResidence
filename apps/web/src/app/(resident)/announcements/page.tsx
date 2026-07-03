@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import {
   AnnouncementCategoryFilter,
   AnnouncementListTitle,
@@ -104,6 +105,7 @@ function AnnouncementListItem({ announcement: a }: { announcement: Announcement 
 }
 
 export default function AnnouncementsPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const [categoryFilter, setCategoryFilter] = React.useState<AnnouncementCategory | ''>('');
@@ -114,8 +116,8 @@ export default function AnnouncementsPage() {
   return (
     <AnnouncementsPageShell variant="resident">
       <AnnouncementsPageHeader
-        eyebrow="Notices"
-        title="Announcements"
+        eyebrow={t("announcements.eyebrow")}
+        title={t("announcements.title")}
         description="Official memos and updates from your management office."
       />
       <AnnouncementCategoryFilter
@@ -128,7 +130,7 @@ export default function AnnouncementsPage() {
       {list.isLoading ? (
         <Skeleton className="h-36 rounded-2xl" />
       ) : (list.data?.items.length ?? 0) === 0 ? (
-        <EmptyState title="Nothing new" description="Announcements will show up here." />
+        <EmptyState title={t("announcements.emptyTitle")} description="Announcements will show up here." />
       ) : (
         <ul className="flex flex-col gap-3 sm:gap-3.5">
           {list.data?.items.map((a) => (

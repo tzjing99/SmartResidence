@@ -32,6 +32,7 @@ import {
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
+import { useT } from '../../src/i18n/locale-provider';
 
 type OwnedUnit = { id: string; identifier: string };
 
@@ -51,6 +52,7 @@ function fmtDate(d: Date | string | null | undefined) {
 }
 
 export default function PollsScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const pollsQuery = useCondoPolls(api, condo?.id ?? null);
@@ -66,8 +68,8 @@ export default function PollsScreen() {
   return (
     <ResidentScreen
       eyebrow="MC polls"
-      title="Owner consultations"
-      subtitle="One vote per unit you own. Results stay transparent to all residents."
+      title={t('polls.title')}
+      subtitle={t('polls.subtitle')}
       scrollProps={{ refreshControl }}
       headerAction={
         selectedId ? (
@@ -86,7 +88,7 @@ export default function PollsScreen() {
         <SkeletonList rows={3} rowHeight={76} />
       ) : polls.length === 0 ? (
         <EmptyState
-          title="No polls right now"
+          title={t('mobile.polls.emptyTitle')}
           description="When management opens a consultation, it will appear here."
         />
       ) : (
@@ -151,6 +153,7 @@ function PollListItem({ poll, onSelect }: { poll: Poll; onSelect: () => void }) 
 }
 
 function VotePanel({ pollId }: { pollId: string }) {
+  const t = useT();
   const pollQuery = usePoll(api, pollId);
   const castVote = useCastPollVote(api);
   const units = useMyUnits(api);
@@ -327,7 +330,7 @@ function VotePanel({ pollId }: { pollId: string }) {
             </View>
 
             <Button
-              title="Cast vote"
+              title={t('actions.castVote')}
               onPress={handleVote}
               loading={castVote.isPending}
               disabled={castVote.isPending || !effectiveUnitId}

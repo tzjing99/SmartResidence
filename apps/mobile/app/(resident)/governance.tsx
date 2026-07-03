@@ -40,6 +40,7 @@ import {
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
+import { useT } from '../../src/i18n/locale-provider';
 
 const STATUS_TONE: Record<GeneralMeetingStatus, 'neutral' | 'success' | 'warning' | 'info'> = {
   DRAFT: 'neutral',
@@ -58,6 +59,7 @@ function fmtDate(d: Date | string | null | undefined) {
 }
 
 export default function GovernanceScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const meetingsQuery = useCondoMeetings(api, condo?.id ?? null);
@@ -71,8 +73,8 @@ export default function GovernanceScreen() {
   return (
     <ResidentScreen
       eyebrow="Governance"
-      title="AGM & EGM"
-      subtitle="Meeting notices, proxy forms, and resolution voting."
+      title={t('mobile.governance.title')}
+      subtitle={t('governance.subtitle')}
       scrollProps={{ refreshControl }}
       headerAction={
         selectedId ? (
@@ -91,7 +93,7 @@ export default function GovernanceScreen() {
         <SkeletonList rows={3} rowHeight={76} />
       ) : meetings.length === 0 ? (
         <EmptyState
-          title="No meetings scheduled"
+          title={t('mobile.governance.emptyTitle')}
           description="When management publishes a notice, it will appear here."
         />
       ) : (

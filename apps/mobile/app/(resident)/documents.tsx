@@ -22,6 +22,7 @@ import {
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection } from '../../src/lib/haptics';
+import { useT } from '../../src/i18n/locale-provider';
 
 function fmtBytes(n: number) {
   if (n < 1024) return `${n} B`;
@@ -38,6 +39,7 @@ function fmtDate(d: Date | string) {
 }
 
 export default function DocumentsScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
   const folders = useDocumentFolders(api, condoId);
@@ -78,16 +80,16 @@ export default function DocumentsScreen() {
   return (
     <ResidentScreen
       eyebrow="Services"
-      title="Documents"
-      subtitle="House rules, AGM minutes, bylaws, and circulars"
+      title={t('mobile.documents.title')}
+      subtitle={t('documents.subtitle')}
       scrollProps={{ refreshControl }}
     >
-      <ResidentSectionHeader title="Folders" />
+      <ResidentSectionHeader title={t('documents.folders')} />
       {folders.isLoading ? (
         <SkeletonList rows={1} rowHeight={36} />
       ) : folderRows.length === 0 ? (
         <EmptyState
-          title="No documents yet"
+          title={t('mobile.documents.emptyTitle')}
           description="When management publishes documents, they will appear here."
         />
       ) : (
@@ -118,7 +120,7 @@ export default function DocumentsScreen() {
       {docs.isLoading ? (
         <SkeletonList rows={3} rowHeight={104} />
       ) : docRows.length === 0 ? (
-        <EmptyState title="No documents in this folder" />
+        <EmptyState title={t('documents.folderEmptyTitle')} />
       ) : (
         <View style={{ gap: 12 }}>
           {docRows.map((doc, index) => (

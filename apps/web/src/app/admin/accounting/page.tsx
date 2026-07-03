@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import dynamic from 'next/dynamic';
 
 import { AdminComplianceNote, AdminExportToolbar, AdminPageHeader } from '@/components/admin-ui';
@@ -53,6 +54,7 @@ async function downloadBlob(blob: Blob, filename: string) {
 }
 
 export default function AdminAccountingPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
   const funds = useFundBalances(api, condoId);
@@ -203,7 +205,7 @@ export default function AdminAccountingPage() {
     <div className="flex flex-col gap-6 max-w-6xl">
       <AdminPageHeader
         eyebrow="Money"
-        title="Accounting"
+        title={t("admin.accounting.title")}
         description={
           <>
             Fund balances, collections, and arrears for your JMB.{' '}

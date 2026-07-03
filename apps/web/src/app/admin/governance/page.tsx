@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { AdminPageHeader } from '@/components/admin-ui';
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
@@ -358,6 +359,7 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
 }
 
 export default function AdminGovernancePage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const meetingsQuery = useCondoMeetings(api, condo?.id ?? null, { manage: true });
@@ -376,8 +378,8 @@ export default function AdminGovernancePage() {
       <AdminPageHeader
         eyebrow="Compliance"
         icon={Gavel}
-        title="Governance"
-        description="Schedule AGM/EGM meetings, publish notices, and run share-weighted resolution voting."
+        title={t('admin.governance.title')}
+        description={t('admin.governance.subtitle')}
       />
 
       <div className="grid lg:grid-cols-2 gap-6">

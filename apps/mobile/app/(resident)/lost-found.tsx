@@ -29,6 +29,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
+import { useT } from '../../src/i18n/locale-provider';
 
 const KIND_TONE: Record<LostFoundKind, 'warning' | 'success'> = {
   LOST: 'warning',
@@ -131,6 +132,7 @@ function PostRow({
 }
 
 export default function LostFoundScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const units = useMyUnits(api);
   const condo = condos.data?.[0];
@@ -217,8 +219,8 @@ export default function LostFoundScreen() {
   return (
     <ResidentScreen
       eyebrow="Community"
-      title="Lost & found"
-      subtitle="Help neighbours reunite with lost items — not for buying or selling."
+      title={t('mobile.lostFound.title')}
+      subtitle={t('lostFound.subtitle')}
       scrollProps={{ refreshControl }}
     >
       <View style={[residentStyles.row, { gap: 8, flexWrap: 'wrap', marginBottom: 16 }]}>
@@ -294,7 +296,7 @@ export default function LostFoundScreen() {
             <AppText style={{ color: palette.mutedLight }}>Loading board…</AppText>
           ) : boardPosts.length === 0 ? (
             <EmptyState
-              title="Nothing on the board"
+              title={t('mobile.lostFound.emptyTitle')}
               description="Open lost and found posts will appear here."
             />
           ) : (

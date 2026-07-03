@@ -37,6 +37,7 @@ import {
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../src/lib/haptics';
+import { useT } from '../../src/i18n/locale-provider';
 
 const STATUS_TONE: Record<FormSubmissionStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
   DRAFT: 'neutral',
@@ -177,6 +178,7 @@ function SubmitPanel({
 }
 
 export default function FormsScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const units = useMyUnits(api);
@@ -202,7 +204,7 @@ export default function FormsScreen() {
 
   if (!unit) {
     return (
-      <ResidentScreen eyebrow="Services" title="Forms" subtitle="Condo management forms">
+      <ResidentScreen eyebrow="Services" title={t('mobile.forms.title')} subtitle={t('forms.subtitle')}>
         <EmptyState
           title="No unit linked"
           description="Your account needs a unit to submit forms."
@@ -215,7 +217,7 @@ export default function FormsScreen() {
     return (
       <ResidentScreen
         eyebrow="Services"
-        title="Forms"
+        title={t('mobile.forms.title')}
         scrollProps={{ refreshControl }}
         headerAction={
           <Button
@@ -234,15 +236,15 @@ export default function FormsScreen() {
   return (
     <ResidentScreen
       eyebrow="Services"
-      title="Forms"
-      subtitle="Move-in/out, renovation permits, and vehicle sticker requests."
+      title={t('mobile.forms.title')}
+      subtitle={t('forms.subtitle')}
       scrollProps={{ refreshControl }}
     >
       <ResidentSectionHeader title="Available forms" />
       {templatesQuery.isLoading ? (
         <SkeletonList rows={3} rowHeight={64} />
       ) : templates.length === 0 ? (
-        <EmptyState title="No forms" description="Management has not published any forms yet." />
+        <EmptyState title={t('mobile.forms.emptyTitle')} description={t('forms.noFormsDesc')} />
       ) : (
         <View style={{ gap: 10 }}>
           {templates.map((t, index) => (

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { Markdown } from '@/components/markdown';
 import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
@@ -64,6 +65,7 @@ function PollResults({ poll }: { poll: Poll }) {
 }
 
 function VotePanel({ pollId, canVote }: { pollId: string; canVote: boolean }) {
+  const t = useT();
   const pollQuery = usePoll(api, pollId);
   const castVote = useCastPollVote(api);
   const poll = pollQuery.data;
@@ -163,7 +165,7 @@ function VotePanel({ pollId, canVote }: { pollId: string; canVote: boolean }) {
             disabled={castVote.isPending || !unitId}
             loading={castVote.isPending}
           >
-            Cast vote
+            {t("actions.castVote")}
           </Button>
         </form>
       ) : !canVote && isOpen ? (
@@ -247,6 +249,7 @@ function InputUnitSelector({
 }
 
 export default function ResidentPollsPage() {
+  const t = useT();
   const { abilities } = useRoleGuard('resident');
   const canVote = hasAbility(abilities, 'vote', 'Poll');
   const condos = useMyCondos(api);
@@ -263,7 +266,7 @@ export default function ResidentPollsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Vote className="size-6 text-[rgb(var(--sr-coral))]" />
-          MC polls
+          {t("polls.title")}
         </h1>
         <p className="text-sm sr-muted mt-1">
           Verified owner consultation — one vote per unit you own. Results are transparent to all
@@ -282,7 +285,7 @@ export default function ResidentPollsPage() {
         <Skeleton className="h-32 w-full" />
       ) : polls.length === 0 ? (
         <EmptyState
-          title="No polls right now"
+          title={t("polls.emptyTitle")}
           description="When management opens a consultation, it will appear here."
         />
       ) : (

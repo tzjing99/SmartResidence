@@ -918,6 +918,11 @@ function GatewayProviderCard({
             ) : null}
           </div>
           {capability ? <p className="text-sm sr-muted mt-1">{capability.tagline}</p> : null}
+          {provider === 'RAZER' ? (
+            <p className="text-xs sr-muted mt-1">
+              Covers FPX, Touch &apos;n Go, Boost, GrabPay and cards via Fiuu hosted checkout.
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
           <div className="flex items-center gap-2">

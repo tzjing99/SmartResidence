@@ -8,7 +8,7 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
-- ✅ **Ops batch (`6dd4f00`) + follow-on (`a4baa2a`)** — DuitNow QR + gateway UI, facility booking, parcels, forms/workflows, safety/SOS + guard patrol, first-time setup wizard (no forced redirect), delivery/e-hailing passes, documents vault, WhatsApp notifications, production MyInvois e-Invoice seam; **community marketplace cancelled** (product decision). **Guard on-site admit kept** (see ROADMAP §2.1).
+- ✅ **Ops batch (`6dd4f00`) + follow-on (`a4baa2a`)** — DuitNow QR + gateway UI, facility booking, parcels, forms/workflows, safety/SOS + guard patrol, first-time setup wizard (no forced redirect), delivery/e-hailing passes, documents vault, WhatsApp notifications, production MyInvois e-Invoice seam; **community marketplace cancelled** (product decision); **dedicated Boost/GrabPay e-wallet adapters cancelled** — **Fiuu (Razer)** is the canonical production path for TNG/Boost/GrabPay (see PAY1–PAY3). **Guard on-site admit kept** (see ROADMAP §2.1).
 - ✅ **N1 — Real-time notifications (web toast + bell + mobile push fix)** — notification dispatch now emits an enriched `notification.created` event (title/body/data) that `realtime.gateway` forwards as `notification:new` to the recipient's `user:*` room. Web shows an in-app toast (`realtime-provider.tsx`) plus a notification bell with unread badge + dropdown (`notification-bell.tsx`) wired into `app-shell` and `admin-shell`; api-client gains `useNotifications`/`useMarkNotificationsRead` (+ `listNotifications`/`markNotificationsRead`/`registerPushToken`). Mobile push now registers via the authenticated `api.registerPushToken` (`src/lib/push.ts`, `use-push-registration.ts`, `push-navigation.ts`, `push-navigation-bridge.tsx`).
 - ✅ **GP1 — Governance-lite polls (owner-verified MC voting)** — `PollsModule` (`apps/api/src/polls/**`) with active-ownership-verified voting (only unit owners may vote; ownership + condo checked at vote time); admin authoring `/admin/polls` + resident `/(resident)/polls` on web, mobile `(resident)/polls.tsx`; `packages/shared-types/src/polls.ts`; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM e-voting (still future).
 - ✅ **MI1 — MCP integrations (admin)** — per-condo `McpServerConnection` (`apps/api/src/integrations/**`, `mcp-client.ts`) with admin UI `/admin/settings/integrations`; `packages/shared-types/src/mcp.ts`; CASL subject `McpServer` (manage for admin, read for staff); migration `20260701180000_mcp_server_connections`.
@@ -31,6 +31,14 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 - ✅ **T1 — Repo-wide lint for green CI** — `corepack pnpm lint` now exits 0 (ignored generated dirs incl. `.docusaurus`; fixed residual format/import-sort errors).
 - ✅ **U1 — Page load perf (lite HSR)** — route-level `loading.tsx` shimmer skeletons, nav prefetch on hover/mount, shell retention during auth (sidebar skeletons), removed `PageFade` remount delay, `keepPreviousData` on thread lists. **Shipped:** `ce33631` (+ CI `f92d6ae`, `32cd37e`; green run `27017382927`).
 - ✅ **H2 — Realtime helpdesk** — optimistic message send with rollback, Socket.IO `thread:*` events → TanStack Query cache patches, live inbox refresh, assigned-to updates on `thread:update`, shared `RealtimeProvider` (web + mobile), thread room join/leave on gateway. **Shipped:** `299531f` (+ fixes above).
+
+## Product decisions (cancelled / won't-do)
+
+| ID | Area | Description |
+| --- | --- | --- |
+| **PAY1** | billing | **Dedicated Boost adapter — cancelled.** Production JMBs use **Fiuu (Razer)** hosted checkout; no separate Boost merchant contract or adapter. |
+| **PAY2** | billing | **Dedicated GrabPay adapter — cancelled.** Same as PAY1 — Fiuu covers GrabPay alongside TNG and Boost. |
+| **PAY3** | billing | **Dedicated TNG adapter — optional/sandbox only.** Fiuu is the canonical production path for Touch 'n Go; a direct TNG sandbox adapter may exist for integration testing but is not required for JMB go-live. |
 
 ## Defects
 

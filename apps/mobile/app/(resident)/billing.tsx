@@ -29,9 +29,9 @@ import {
   radius,
   spacing,
 } from '@smartresidence/ui-mobile';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
-import * as FileSystem from 'expo-file-system/legacy';
 import QRCode from 'react-native-qrcode-svg';
 import {
   HostedPaymentBrowser,
@@ -453,7 +453,9 @@ export default function BillingScreen() {
                 }}
               >
                 <View style={{ flex: 1, minWidth: 160 }}>
-                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>{r.number}</AppText>
+                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                    {r.number}
+                  </AppText>
                   <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
                     {new Date(r.issuedAt).toLocaleDateString()} ·{' '}
                     {formatMoney(r.amount, r.currencyCode ?? 'MYR')}

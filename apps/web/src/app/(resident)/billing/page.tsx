@@ -299,7 +299,11 @@ function AdvanceMaintenancePayment({
 
 export default function BillingPage() {
   const units = useMyUnits(api);
-  const unitList = (units.data ?? []) as Array<{ id: string; condoId?: string; identifier?: string }>;
+  const unitList = (units.data ?? []) as Array<{
+    id: string;
+    condoId?: string;
+    identifier?: string;
+  }>;
   const unit = unitList[0];
   const unitId = unit?.id ?? null;
   const condoId = unit?.condoId ?? null;

@@ -1,11 +1,11 @@
 'use client';
 
 import { MobileTabBar } from '@/components/mobile-tab-bar';
-import { SkipToMain } from '@/components/skip-to-main';
 import { NotificationBell } from '@/components/notification-bell';
 import { ResidentMobileMenu } from '@/components/resident-mobile-menu';
 import { DashboardSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { type NavGroup, NavGroupLinks, PageFade } from '@/components/shell-nav';
+import { SkipToMain } from '@/components/skip-to-main';
 import { api } from '@/lib/api';
 import { resolveActiveHref } from '@/lib/nav';
 import { type AbilityRule, hasAbility } from '@/lib/roles';

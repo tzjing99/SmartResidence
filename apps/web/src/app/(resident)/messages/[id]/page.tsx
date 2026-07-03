@@ -251,7 +251,9 @@ export default function ResidentThreadPage() {
         <Card className="p-4 flex flex-col gap-3">
           <div className="font-medium text-sm">{tr('helpdesk.resident.rejectHeading')}</div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={rejectReasonId}>{tr('helpdesk.resident.rejectReasonPlaceholder')}</Label>
+            <Label htmlFor={rejectReasonId}>
+              {tr('helpdesk.resident.rejectReasonPlaceholder')}
+            </Label>
             <Textarea
               id={rejectReasonId}
               rows={2}

@@ -196,10 +196,9 @@ export default function NewVisitorPage() {
       <p className="sr-muted mb-6">{t('visitors.new.subtitle')}</p>
       <form className="flex flex-col gap-4 overflow-visible" onSubmit={form.handleSubmit(onSubmit)}>
         <FormSection title={t('visitors.new.entryMode')}>
-          <div
-            role="group"
+          <fieldset
             aria-label={t('visitors.new.entryMode')}
-            className="grid grid-cols-2 gap-3"
+            className="grid grid-cols-2 gap-3 border-0 p-0 m-0 min-w-0"
           >
             {(
               [
@@ -229,7 +228,7 @@ export default function NewVisitorPage() {
                 </button>
               );
             })}
-          </div>
+          </fieldset>
         </FormSection>
 
         <FormSection

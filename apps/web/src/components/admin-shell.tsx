@@ -1,10 +1,10 @@
 'use client';
 
 import { MobileTabBar } from '@/components/mobile-tab-bar';
-import { SkipToMain } from '@/components/skip-to-main';
 import { NotificationBell } from '@/components/notification-bell';
 import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { type NavGroup, NavGroupLinks, type NavItem, PageFade } from '@/components/shell-nav';
+import { SkipToMain } from '@/components/skip-to-main';
 import { api, readSession } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';

@@ -191,10 +191,9 @@ export default function NewMessagePage() {
               placeholder={t('messages.bodyPlaceholder')}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <fieldset className="flex flex-col gap-1.5 border-0 p-0 m-0 min-w-0">
             <Label id={photosLabelId}>{t('upload.photos')}</Label>
-            <div role="group" aria-labelledby={photosLabelId}>
-              <PhotoUpload
+            <PhotoUpload
               ref={photoUploadRef}
               maxFiles={MAX_ATTACHMENTS_PER_MESSAGE}
               onChange={setAttachmentIds}
@@ -214,8 +213,7 @@ export default function NewMessagePage() {
                 tooMany: t('upload.tooMany'),
               }}
             />
-            </div>
-          </div>
+          </fieldset>
           <div className="flex justify-end gap-3 mt-2">
             <Button type="button" variant="ghost" onClick={() => router.back()}>
               {t('actions.cancel')}

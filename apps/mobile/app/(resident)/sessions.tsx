@@ -1,8 +1,4 @@
-import {
-  type AuthSession,
-  useRevokeSession,
-  useSessions,
-} from '@smartresidence/api-client';
+import { type AuthSession, useRevokeSession, useSessions } from '@smartresidence/api-client';
 import { AppText, Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
 import { useQueryClient } from '@tanstack/react-query';
 import { type Href, router } from 'expo-router';
@@ -108,7 +104,9 @@ export default function SessionsScreen() {
             const isCurrent = session.id === currentSessionId;
             return (
               <Card key={session.id} style={[residentStyles.card, { gap: 8 }]}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                <View
+                  style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}
+                >
                   <AppText style={{ fontWeight: '700', color: palette.textLight, flex: 1 }}>
                     {sessionDeviceLabel(session)}
                   </AppText>

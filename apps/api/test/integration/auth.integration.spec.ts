@@ -72,4 +72,55 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
     const payload = res.body.data ?? res.body;
     expect(Array.isArray(payload)).toBe(true);
   });
+
+  it('lists sessions, revokes another session, and rejects its refresh token', async () => {
+    const supertest = (await import('supertest')).default;
+    const server = app.getHttpServer();
+
+    const first = await supertest(server)
+      .post('/api/auth/sign-in')
+      .set('User-Agent', 'IntegrationTest/SessionA')
+      .send({ email: fx.emails.owner, password: TEST_PASSWORD })
+      .expect(200);
+
+    const firstBody = first.body.data ?? first.body;
+    const firstRefresh = firstBody.refreshToken as string;
+    const firstSessionId = firstBody.sessionId as string;
+    expect(firstRefresh).toBeTruthy();
+    expect(firstSessionId).toBeTruthy();
+
+    const second = await supertest(server)
+      .post('/api/auth/sign-in')
+      .set('User-Agent', 'IntegrationTest/SessionB')
+      .send({ email: fx.emails.owner, password: TEST_PASSWORD })
+      .expect(200);
+
+    const secondBody = second.body.data ?? second.body;
+    const secondToken = secondBody.accessToken as string;
+
+    const listRes = await supertest(server)
+      .get('/api/auth/sessions')
+      .set(authHeaders(secondToken, fx.condoId))
+      .expect(200);
+
+    const sessions = listRes.body.data ?? listRes.body;
+    expect(Array.isArray(sessions)).toBe(true);
+    expect(sessions.length).toBeGreaterThanOrEqual(2);
+    expect(sessions.some((s: { id: string }) => s.id === firstSessionId)).toBe(true);
+
+    await supertest(server)
+      .delete(`/api/auth/sessions/${firstSessionId}`)
+      .set(authHeaders(secondToken, fx.condoId))
+      .expect(204);
+
+    await supertest(server)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: firstRefresh })
+      .expect(401);
+
+    await supertest(server)
+      .get('/api/auth/sessions')
+      .set(authHeaders(secondToken, fx.condoId))
+      .expect(200);
+  });
 });

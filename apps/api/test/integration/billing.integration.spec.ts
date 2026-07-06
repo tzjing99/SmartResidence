@@ -1,3 +1,10 @@
+/**
+ * Integration: billing HTTP flows.
+ *
+ * Covers:
+ * - Unit invoice listing, fund-balance and arrears reports, PDF statement export
+ * - Admin manual payment settlement: issue invoice then record off-gateway payment until PAID
+ */
 import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { authHeaders, ensureIntegrationEnv } from '../helpers/integration-env';
@@ -138,6 +145,42 @@ describe.skipIf(!integrationReady)('Integration: billing', () => {
     const replay = replayRes.body.data ?? replayRes.body;
     expect(replay.status).toBe('PAID');
     expect(Number(replay.amountPaid)).toBe(Number(amount));
+  });
+
+  it('POST /api/invoices/:id/manual-payment settles an issued invoice to PAID', async () => {
+    const supertest = (await import('supertest')).default;
+    const server = app.getHttpServer();
+    const adminHeaders = authHeaders(fx.tokens.admin, fx.condoId);
+
+    const createRes = await supertest(server)
+      .post('/api/invoices')
+      .set(adminHeaders)
+      .send({
+        unitId: fx.secondUnitId,
+        periodStart: '2026-10-01T00:00:00.000Z',
+        periodEnd: '2026-10-31T23:59:59.000Z',
+        dueDate: '2026-10-15T00:00:00.000Z',
+        lines: [{ code: 'MAINT', description: 'Oct maintenance', unitPrice: 150, quantity: 1 }],
+      })
+      .expect(201);
+
+    const invoice = createRes.body.data ?? createRes.body;
+    expect(invoice.status).toBe('ISSUED');
+
+    await supertest(server)
+      .post(`/api/invoices/${invoice.id}/manual-payment`)
+      .set(adminHeaders)
+      .send({ method: 'BANK_TRANSFER', reference: `INT-MANUAL-${Date.now()}` })
+      .expect(201);
+
+    const getRes = await supertest(server)
+      .get(`/api/invoices/${invoice.id}`)
+      .set(adminHeaders)
+      .expect(200);
+
+    const settled = getRes.body.data ?? getRes.body;
+    expect(settled.status).toBe('PAID');
+    expect(Number(settled.amountPaid)).toBeCloseTo(Number(settled.total));
   });
 
   it('GET /api/billing/units/:unitId/statement.csv returns CSV for the unit owner', async () => {

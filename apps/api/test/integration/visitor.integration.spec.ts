@@ -1,3 +1,11 @@
+/**
+ * Integration: visitor HTTP flows.
+ *
+ * Covers:
+ * - Delivery pass QR payload shape
+ * - Guard walk-in with admitNow (immediate check-in)
+ * - Walk-in owner approval: guard registers pending visitor, owner approves (condo policy)
+ */
 import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { authHeaders, ensureIntegrationEnv } from '../helpers/integration-env';
@@ -58,6 +66,33 @@ describe.skipIf(!integrationReady)('Integration: visitors', () => {
 
     const visitor = res.body.data ?? res.body;
     expect(visitor.status).toBe('CHECKED_IN');
-    expect(visitor.metadata?.admissionSource ?? visitor.metadata?.guardAdmittedAt).toBeTruthy();
+    expect(visitor.metadata?.guardAdmittedAt ?? visitor.metadata?.admissionSource).toBeTruthy();
+  });
+
+  it('POST /api/visitors/walk-in/unit without admitNow awaits owner approval, then owner approves', async () => {
+    const supertest = (await import('supertest')).default;
+    const server = app.getHttpServer();
+    const walkInRes = await supertest(server)
+      .post('/api/visitors/walk-in/unit')
+      .set(authHeaders(fx.tokens.guard, fx.condoId))
+      .send({
+        unitId: fx.unitId,
+        name: 'Pending Walk-in Guest',
+        phone: '+60198765432',
+      })
+      .expect(201);
+
+    const pending = walkInRes.body.data ?? walkInRes.body;
+    expect(pending.status).toBe('PENDING_OWNER_APPROVAL');
+    expect(pending.approvalDeadline).toBeTruthy();
+
+    const approveRes = await supertest(server)
+      .post(`/api/visitors/${pending.id}/approve`)
+      .set(authHeaders(fx.tokens.owner, fx.condoId))
+      .expect(201);
+
+    const approved = approveRes.body.data ?? approveRes.body;
+    expect(approved.status).toBe('APPROVED');
+    expect(approved.approvedAt).toBeTruthy();
   });
 });

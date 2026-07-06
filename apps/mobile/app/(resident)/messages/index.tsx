@@ -9,8 +9,8 @@ import {
   FadeInView,
   MetaLine,
   Pill,
-  palette,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback } from 'react';
@@ -21,7 +21,6 @@ import {
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
-import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { RESIDENT_THREAD_INBOX_PARAMS } from '../../../src/lib/resident-threads';
 
@@ -43,7 +42,7 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = 
 };
 
 export default function MessagesScreen() {
-  const t = useT();
+  const { colors } = useTheme();
   const router = useRouter();
   const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
   const { refreshControl } = usePullToRefresh(useCallback(() => threads.refetch(), [threads]));
@@ -52,8 +51,8 @@ export default function MessagesScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.messages')}
-      title={t('nav.screens.messages')}
+      eyebrow="Messages"
+      title="Ask management"
       subtitle="Keep every request, reply, and resolution in one conversation."
       scrollProps={{ refreshControl }}
       headerAction={
@@ -64,7 +63,7 @@ export default function MessagesScreen() {
       }
     >
       {threads.isLoading && !threads.data ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           Loading conversations...
         </AppText>
       ) : items.length === 0 ? (
@@ -110,10 +109,7 @@ export default function MessagesScreen() {
                     <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={prettyLabel(t.status)} />
                   </View>
                 </AlignRow>
-                <AppText
-                  variant="meta"
-                  style={{ color: palette.mutedLight, marginTop: spacing.sm }}
-                >
+                <AppText variant="meta" style={{ color: colors.muted, marginTop: spacing.sm }}>
                   Tap to view the full thread.
                 </AppText>
               </Card>

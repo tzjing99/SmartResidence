@@ -2,7 +2,8 @@ import { MotiView } from 'moti';
 import type * as React from 'react';
 import { Text, View } from 'react-native';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { palette, radius, spring } from '../tokens';
+import { useTheme } from '../theme';
+import { radius, spring } from '../tokens';
 
 interface EmptyStateProps {
   title: string;
@@ -13,6 +14,7 @@ interface EmptyStateProps {
 
 export const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon, action }) => {
   const reduceMotion = useReducedMotion();
+  const { colors } = useTheme();
   return (
     <MotiView
       from={reduceMotion ? undefined : { opacity: 0, translateY: 12 }}
@@ -22,19 +24,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon
         borderRadius: radius['2xl'],
         borderWidth: 1,
         borderStyle: 'dashed',
-        borderColor: palette.borderLight,
+        borderColor: colors.cardBorder,
         padding: 32,
         alignItems: 'center',
         gap: 12,
       }}
     >
       {icon ? <View>{icon}</View> : null}
-      <Text style={{ fontSize: 17, fontWeight: '600', color: palette.textLight }}>{title}</Text>
+      <Text style={{ fontSize: 17, fontWeight: '600', color: colors.fg }}>{title}</Text>
       {description ? (
         <Text
           style={{
             textAlign: 'center',
-            color: palette.mutedLight,
+            color: colors.muted,
             fontSize: 14,
             lineHeight: 20,
           }}

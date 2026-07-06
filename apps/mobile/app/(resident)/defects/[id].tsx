@@ -8,22 +8,20 @@ import {
   Card,
   Pill,
   Stack,
-  palette,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, ScrollView, TextInput, View } from 'react-native';
 import { AuthImage } from '../../../src/components/auth-image';
 import { PhotoPicker } from '../../../src/components/photo-picker';
 import {
-  RESIDENT_CORAL,
   ResidentScreen,
   prettyLabel,
-  residentStyles,
+  useResidentStyles,
 } from '../../../src/components/resident-screen';
-import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { confirmDefectSignOff } from '../../../src/lib/defect-sign-off';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
@@ -53,9 +51,34 @@ type DefectDetail = {
 };
 
 export default function DefectDetailScreen() {
-  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
+  const isDark = colors.statusBarStyle === 'light';
+  const signOffCardStyle = useMemo(
+    () => ({
+      borderColor: isDark ? '#10B981' : '#A7F3D0',
+      backgroundColor: isDark ? '#064E3B' : '#ECFDF5',
+      gap: spacing.sm,
+    }),
+    [isDark],
+  );
+  const fieldStyle = useMemo(
+    () => ({
+      minHeight: 80,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 12,
+      paddingTop: 10,
+      fontSize: 14,
+      color: colors.fg,
+      textAlignVertical: 'top' as const,
+    }),
+    [colors],
+  );
   const detail = useDefect(api, id ?? null);
   const addUpdate = useAddDefectUpdate(api);
   const transition = useTransitionDefect(api);
@@ -117,16 +140,16 @@ export default function DefectDetailScreen() {
       }
       headerAction={
         <AnimatedPressable onPress={() => router.back()} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={palette.navy} />
+          <Ionicons name="arrow-back" size={22} color={colors.fg} />
         </AnimatedPressable>
       }
     >
       {detail.isLoading ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           Loading defect…
         </AppText>
       ) : !d ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           This defect could not be found.
         </AppText>
       ) : (
@@ -143,27 +166,21 @@ export default function DefectDetailScreen() {
               label={d.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(d.status)}
             />
             {d.assignedTo?.name ? (
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              <AppText variant="meta" style={{ color: colors.muted }}>
                 Handled by {d.assignedTo.name}
               </AppText>
             ) : null}
           </View>
 
           {d.status === 'RESOLVED' ? (
-            <Card
-              style={[
-                residentStyles.card,
-                {
-                  borderColor: '#A7F3D0',
-                  backgroundColor: '#ECFDF5',
-                  gap: spacing.sm,
-                },
-              ]}
-            >
-              <AppText style={{ fontWeight: '600', color: '#065F46' }}>
-                {t('mobile.defects.verifyTitle')}
+            <Card style={[styles.card, signOffCardStyle]}>
+              <AppText style={{ fontWeight: '600', color: isDark ? '#A7F3D0' : '#065F46' }}>
+                Fixed by management — please verify
               </AppText>
-              <AppText variant="meta" style={{ color: '#047857', lineHeight: 18 }}>
+              <AppText
+                variant="meta"
+                style={{ color: isDark ? '#6EE7B7' : '#047857', lineHeight: 18 }}
+              >
                 Accept if the repair is satisfactory, or send it back if more work is needed.
               </AppText>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -175,7 +192,7 @@ export default function DefectDetailScreen() {
                   style={{ flexGrow: 1 }}
                 />
                 <Button
-                  title={t('mobile.defects.rejectMoreWork')}
+                  title="Reject — more work"
                   variant="secondary"
                   size="sm"
                   disabled={transition.isPending}
@@ -186,12 +203,12 @@ export default function DefectDetailScreen() {
             </Card>
           ) : null}
 
-          <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+          <Card style={[styles.card, { gap: spacing.sm }]}>
             <AppText variant="subheading">Description</AppText>
-            <AppText style={{ color: palette.textLight, lineHeight: 22 }}>{d.description}</AppText>
+            <AppText style={{ color: colors.fg, lineHeight: 22 }}>{d.description}</AppText>
             {(d.attachments?.length ?? 0) > 0 ? (
               <View style={{ gap: spacing.sm, marginTop: 4 }}>
-                <AppText variant="meta" style={{ color: palette.mutedLight, fontWeight: '600' }}>
+                <AppText variant="meta" style={{ color: colors.muted, fontWeight: '600' }}>
                   Photos
                 </AppText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -205,10 +222,10 @@ export default function DefectDetailScreen() {
             ) : null}
           </Card>
 
-          <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+          <Card style={[styles.card, { gap: spacing.sm }]}>
             <AppText variant="subheading">Activity</AppText>
             {visibleUpdates.length === 0 ? (
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              <AppText variant="meta" style={{ color: colors.muted }}>
                 No activity yet.
               </AppText>
             ) : (
@@ -217,12 +234,12 @@ export default function DefectDetailScreen() {
                   key={u.id}
                   style={{
                     borderLeftWidth: 2,
-                    borderLeftColor: u.statusTo ? RESIDENT_CORAL : palette.borderLight,
+                    borderLeftColor: u.statusTo ? colors.coral : colors.border,
                     paddingLeft: 10,
                     gap: 4,
                   }}
                 >
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     {u.author?.name ?? 'Someone'} ·{' '}
                     {new Date(u.createdAt).toLocaleString(undefined, {
                       day: 'numeric',
@@ -232,13 +249,11 @@ export default function DefectDetailScreen() {
                     })}
                   </AppText>
                   {u.statusTo ? (
-                    <AppText variant="meta" style={{ color: RESIDENT_CORAL, fontWeight: '600' }}>
+                    <AppText variant="meta" style={{ color: colors.coral, fontWeight: '600' }}>
                       Status → {prettyLabel(u.statusTo)}
                     </AppText>
                   ) : null}
-                  <AppText style={{ color: palette.textLight, lineHeight: 20 }}>
-                    {u.message}
-                  </AppText>
+                  <AppText style={{ color: colors.fg, lineHeight: 20 }}>{u.message}</AppText>
                   {(u.attachments?.length ?? 0) > 0 ? (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                       {u.attachments?.map((a) => (
@@ -253,10 +268,11 @@ export default function DefectDetailScreen() {
             <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
               <TextInput
                 placeholder="Add a comment for the management team…"
+                placeholderTextColor={colors.muted}
                 value={comment}
                 onChangeText={setComment}
                 multiline
-                style={inputStyle}
+                style={fieldStyle}
               />
               <PhotoPicker controller={photo} />
               <Button
@@ -273,15 +289,3 @@ export default function DefectDetailScreen() {
     </ResidentScreen>
   );
 }
-
-const inputStyle = {
-  minHeight: 80,
-  borderRadius: radius.lg,
-  borderWidth: 1,
-  borderColor: palette.borderLight,
-  backgroundColor: palette.surfaceLight,
-  paddingHorizontal: 12,
-  paddingTop: 10,
-  fontSize: 14,
-  textAlignVertical: 'top' as const,
-};

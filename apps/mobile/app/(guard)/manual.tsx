@@ -1,7 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { isVisitorBlacklistError } from '@smartresidence/shared-types';
-import { AppText, Button, Card, palette, radius, spacing } from '@smartresidence/ui-mobile';
-import { useEffect, useRef, useState } from 'react';
+import {
+  AppText,
+  Button,
+  Card,
+  type ThemeColors,
+  radius,
+  spacing,
+  useTheme,
+} from '@smartresidence/ui-mobile';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,13 +19,7 @@ import {
   type TextInput as TextInputType,
   View,
 } from 'react-native';
-import {
-  GUARD_CORAL,
-  GUARD_SOFT_CORAL,
-  GUARD_SOFT_SKY,
-  GuardScreen,
-  guardStyles,
-} from '../../src/components/guard-screen';
+import { GuardScreen } from '../../src/components/guard-screen';
 import {
   type GuardVerifiedVisitor,
   VisitorGuardPassCard,
@@ -39,6 +41,8 @@ function isServerError(err: unknown) {
 }
 
 export default function ManualScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { twoColumn } = useTabletLayout();
   const inputRef = useRef<TextInputType>(null);
   const [code, setCode] = useState('');
@@ -168,10 +172,10 @@ export default function ManualScreen() {
     >
       <View style={[styles.layout, twoColumn ? styles.twoColumnLayout : null]}>
         <View style={styles.column}>
-          <Card style={[guardStyles.card, styles.formCard]}>
+          <Card style={[styles.card, styles.formCard]}>
             <View style={styles.cardIntro}>
               <View style={styles.iconBubble}>
-                <Ionicons name="keypad-outline" size={20} color={GUARD_CORAL} />
+                <Ionicons name="keypad-outline" size={20} color={colors.coral} />
               </View>
               <View style={styles.introCopy}>
                 <AppText style={styles.cardTitle}>Access code</AppText>
@@ -225,7 +229,7 @@ export default function ManualScreen() {
               <View style={styles.statusRow}>
                 {busy ? (
                   <>
-                    <ActivityIndicator color={GUARD_CORAL} size="small" />
+                    <ActivityIndicator color={colors.coral} size="small" />
                     <AppText variant="meta" style={styles.statusText}>
                       Verifying and checking in…
                     </AppText>
@@ -248,8 +252,8 @@ export default function ManualScreen() {
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Optional handover note"
-                placeholderTextColor={palette.mutedLight}
-                style={[inputStyle, styles.notesInput]}
+                placeholderTextColor={colors.muted}
+                style={[styles.input, styles.notesInput]}
                 multiline
               />
             </View>
@@ -265,7 +269,7 @@ export default function ManualScreen() {
 
         <View style={styles.column}>
           {success ? (
-            <Card style={[guardStyles.card, styles.successCard]}>
+            <Card style={[styles.card, styles.successCard]}>
               <View style={styles.successIcon}>
                 <Ionicons name="checkmark" size={24} color="#047857" />
               </View>
@@ -276,9 +280,9 @@ export default function ManualScreen() {
               {visitor ? <VisitorGuardPassCard visitor={visitor} /> : null}
             </Card>
           ) : (
-            <Card style={[guardStyles.card, styles.emptyCard]}>
+            <Card style={[styles.card, styles.emptyCard]}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="person-circle-outline" size={24} color={GUARD_CORAL} />
+                <Ionicons name="person-circle-outline" size={24} color={colors.coral} />
               </View>
               <AppText style={styles.cardTitle}>Waiting for code</AppText>
               <AppText variant="meta" style={styles.cardMeta}>
@@ -292,159 +296,163 @@ export default function ManualScreen() {
   );
 }
 
-const inputStyle = {
-  minHeight: 48,
-  borderRadius: radius.lg,
-  borderWidth: 1,
-  borderColor: palette.borderLight,
-  backgroundColor: palette.surfaceLight,
-  paddingHorizontal: 14,
-  fontSize: 15,
-  color: palette.textLight,
-};
-
-const styles = StyleSheet.create({
-  layout: {
-    gap: spacing.md,
-  },
-  twoColumnLayout: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  column: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.md,
-  },
-  formCard: {
-    gap: spacing.md,
-  },
-  cardIntro: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  iconBubble: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  introCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  cardTitle: {
-    color: palette.textLight,
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: '800',
-  },
-  cardMeta: {
-    color: palette.mutedLight,
-    lineHeight: 20,
-  },
-  fieldGroup: {
-    gap: 7,
-  },
-  fieldLabel: {
-    color: palette.textLight,
-    fontWeight: '700',
-  },
-  codePad: {
-    minHeight: 82,
-    borderRadius: radius['2xl'],
-    borderWidth: 1,
-    borderColor: palette.borderLight,
-    backgroundColor: palette.surfaceLight,
-    padding: spacing.sm,
-    justifyContent: 'center',
-  },
-  codePadError: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
-  },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  codeBox: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 56,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: palette.borderLight,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  codeBoxActive: {
-    borderColor: GUARD_CORAL,
-  },
-  codeBoxFilled: {
-    borderColor: 'rgba(255,90,95,0.36)',
-    backgroundColor: GUARD_SOFT_CORAL,
-  },
-  codeText: {
-    color: palette.textLight,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '800',
-    fontFamily: 'monospace',
-  },
-  hiddenInput: {
-    position: 'absolute',
-    width: 1,
-    height: 1,
-    opacity: 0,
-  },
-  statusRow: {
-    minHeight: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusText: {
-    flex: 1,
-    color: palette.mutedLight,
-    lineHeight: 20,
-  },
-  errorText: {
-    color: '#B91C1C',
-    fontWeight: '700',
-  },
-  notesInput: {
-    minHeight: 92,
-    paddingTop: 12,
-    textAlignVertical: 'top',
-  },
-  successCard: {
-    gap: spacing.sm,
-  },
-  successIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    backgroundColor: '#ECFDF5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyCard: {
-    minHeight: 220,
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  emptyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_SKY,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    input: {
+      minHeight: 48,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 14,
+      fontSize: 15,
+      color: colors.fg,
+    },
+    layout: {
+      gap: spacing.md,
+    },
+    twoColumnLayout: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    column: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.md,
+    },
+    formCard: {
+      gap: spacing.md,
+    },
+    cardIntro: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    iconBubble: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    introCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    cardTitle: {
+      color: colors.fg,
+      fontSize: 17,
+      lineHeight: 23,
+      fontWeight: '800',
+    },
+    cardMeta: {
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    fieldGroup: {
+      gap: 7,
+    },
+    fieldLabel: {
+      color: colors.fg,
+      fontWeight: '700',
+    },
+    codePad: {
+      minHeight: 82,
+      borderRadius: radius['2xl'],
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      padding: spacing.sm,
+      justifyContent: 'center',
+    },
+    codePadError: {
+      borderColor: '#EF4444',
+    },
+    codeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    codeBox: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 56,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    codeBoxActive: {
+      borderColor: colors.coral,
+    },
+    codeBoxFilled: {
+      borderColor: colors.coral,
+      backgroundColor: colors.coralSoft,
+    },
+    codeText: {
+      color: colors.fg,
+      fontSize: 22,
+      lineHeight: 28,
+      fontWeight: '800',
+      fontFamily: 'monospace',
+    },
+    hiddenInput: {
+      position: 'absolute',
+      width: 1,
+      height: 1,
+      opacity: 0,
+    },
+    statusRow: {
+      minHeight: 22,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    statusText: {
+      flex: 1,
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    errorText: {
+      color: '#B91C1C',
+      fontWeight: '700',
+    },
+    notesInput: {
+      minHeight: 92,
+      paddingTop: 12,
+      textAlignVertical: 'top',
+    },
+    successCard: {
+      gap: spacing.sm,
+    },
+    successIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.full,
+      backgroundColor: '#ECFDF5',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyCard: {
+      minHeight: 220,
+      justifyContent: 'center',
+      gap: spacing.xs,
+    },
+    emptyIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.full,
+      backgroundColor: colors.messageMgmtSkyBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+  });
+}

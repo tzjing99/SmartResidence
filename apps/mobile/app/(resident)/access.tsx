@@ -1,5 +1,5 @@
 import { ROLE_LABEL, type RoleId } from '@smartresidence/shared-types';
-import { AppText, Button, Card, EmptyState, Pill, palette } from '@smartresidence/ui-mobile';
+import { AppText, Button, Card, EmptyState, Pill, useTheme } from '@smartresidence/ui-mobile';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { Alert, View } from 'react-native';
@@ -9,7 +9,6 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
-import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 
 type DelegatedGrant = {
@@ -26,7 +25,7 @@ function roleLabel(roleId: string): string {
 }
 
 export default function AccessScreen() {
-  const t = useT();
+  const { colors } = useTheme();
   const qc = useQueryClient();
   const grants = useQuery({
     queryKey: ['owner', 'delegated-access'],
@@ -63,8 +62,8 @@ export default function AccessScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.sections.account')}
-      title={t('nav.screens.access')}
+      eyebrow="Access"
+      title="Who has access to my unit"
       subtitle="As the owner, you can revoke any delegated access at any time. Revoking signs the user out of every device immediately."
       scrollProps={{ refreshControl }}
     >
@@ -72,7 +71,7 @@ export default function AccessScreen() {
 
       {grants.isLoading ? (
         <Card style={residentStyles.card}>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <AppText variant="meta" style={{ color: colors.muted }}>
             Loading…
           </AppText>
         </Card>
@@ -85,10 +84,10 @@ export default function AccessScreen() {
         items.map((g) => (
           <Card key={g.id} style={[residentStyles.card, { gap: 10 }]}>
             <View style={{ gap: 4 }}>
-              <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+              <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
                 {g.user.name}
               </AppText>
-              <AppText variant="meta" style={{ color: palette.mutedLight }} numberOfLines={1}>
+              <AppText variant="meta" style={{ color: colors.muted }} numberOfLines={1}>
                 {g.user.email}
               </AppText>
             </View>

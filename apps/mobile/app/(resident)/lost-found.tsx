@@ -15,20 +15,17 @@ import {
   Card,
   EmptyState,
   Pill,
-  palette,
   radius,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, TextInput, View } from 'react-native';
 import {
-  RESIDENT_CORAL,
-  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
-import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 
 const KIND_TONE: Record<LostFoundKind, 'warning' | 'success'> = {
@@ -69,22 +66,25 @@ function FormField({
   onChangeText: (text: string) => void;
   multiline?: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={{ gap: 6 }}>
       <AppText variant="label">{label}</AppText>
       <TextInput
         style={{
           borderWidth: 1,
-          borderColor: '#E8DDD8',
+          borderColor: colors.cardBorder,
           borderRadius: 12,
           paddingHorizontal: 12,
           paddingVertical: 10,
-          backgroundColor: '#fff',
+          backgroundColor: colors.inputBg,
+          color: colors.fg,
           minHeight: multiline ? 88 : undefined,
           textAlignVertical: multiline ? 'top' : 'center',
         }}
         value={value}
         onChangeText={onChangeText}
+        placeholderTextColor={colors.muted}
         multiline={multiline}
       />
     </View>
@@ -102,18 +102,19 @@ function PostRow({
   onResolve?: (id: string) => void;
   onRemove?: (id: string) => void;
 }) {
+  const { colors } = useTheme();
   return (
     <Card style={{ padding: 16, gap: 8 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <Pill tone={KIND_TONE[post.kind]} label={LOST_FOUND_KIND_LABELS[post.kind]} />
         <Pill tone={STATUS_TONE[post.status]} label={LOST_FOUND_STATUS_LABELS[post.status]} />
       </View>
-      <AppText style={{ fontWeight: '700', color: palette.textLight }}>{post.title}</AppText>
-      <AppText variant="meta" style={{ color: palette.mutedLight }}>
+      <AppText style={{ fontWeight: '700', color: colors.fg }}>{post.title}</AppText>
+      <AppText variant="meta" style={{ color: colors.muted }}>
         {unitLabel(post)}
         {post.user?.name ? ` · ${post.user.name}` : ''} · {fmtDate(post.createdAt)}
       </AppText>
-      <AppText style={{ color: palette.textLight }}>{post.description}</AppText>
+      <AppText style={{ color: colors.fg }}>{post.description}</AppText>
       {post.locationNote ? <AppText variant="meta">Where: {post.locationNote}</AppText> : null}
       <AppText variant="meta">Contact: {post.contactMethod}</AppText>
       {mine && post.status === 'OPEN' ? (
@@ -132,7 +133,7 @@ function PostRow({
 }
 
 export default function LostFoundScreen() {
-  const t = useT();
+  const { colors } = useTheme();
   const condos = useMyCondos(api);
   const units = useMyUnits(api);
   const condo = condos.data?.[0];
@@ -219,8 +220,8 @@ export default function LostFoundScreen() {
   return (
     <ResidentScreen
       eyebrow="Community"
-      title={t('mobile.lostFound.title')}
-      subtitle={t('lostFound.subtitle')}
+      title="Lost & found"
+      subtitle="Help neighbours reunite with lost items — not for buying or selling."
       scrollProps={{ refreshControl }}
     >
       <View style={[residentStyles.row, { gap: 8, flexWrap: 'wrap', marginBottom: 16 }]}>
@@ -232,12 +233,12 @@ export default function LostFoundScreen() {
               paddingHorizontal: 14,
               paddingVertical: 8,
               borderRadius: radius.full,
-              backgroundColor: tab === t ? RESIDENT_CORAL : RESIDENT_SOFT_CORAL,
+              backgroundColor: tab === t ? colors.coral : colors.coralSoft,
             }}
           >
             <AppText
               variant="meta"
-              style={{ fontWeight: '600', color: tab === t ? '#fff' : palette.textLight }}
+              style={{ fontWeight: '600', color: tab === t ? '#fff' : colors.fg }}
             >
               {t === 'board' ? 'Board' : t === 'mine' ? 'My posts' : 'New post'}
             </AppText>
@@ -293,10 +294,10 @@ export default function LostFoundScreen() {
             ))}
           </View>
           {boardQuery.isLoading ? (
-            <AppText style={{ color: palette.mutedLight }}>Loading board…</AppText>
+            <AppText style={{ color: colors.muted }}>Loading board…</AppText>
           ) : boardPosts.length === 0 ? (
             <EmptyState
-              title={t('mobile.lostFound.emptyTitle')}
+              title="Nothing on the board"
               description="Open lost and found posts will appear here."
             />
           ) : (
@@ -311,7 +312,7 @@ export default function LostFoundScreen() {
 
       {tab === 'mine' ? (
         mineQuery.isLoading ? (
-          <AppText style={{ color: palette.mutedLight }}>Loading your posts…</AppText>
+          <AppText style={{ color: colors.muted }}>Loading your posts…</AppText>
         ) : myPosts.length === 0 ? (
           <EmptyState title="No posts yet" description="Tap New post to add one." />
         ) : (

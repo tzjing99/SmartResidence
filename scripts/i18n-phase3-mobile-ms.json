@@ -1,0 +1,64 @@
+{
+  "guard": {
+    "tabs": {
+      "scan": "Imbas",
+      "live": "Di tapak",
+      "patrol": "Rondaan",
+      "alerts": "Amaran",
+      "expected": "Dijangka",
+      "manual": "Manual",
+      "walkIn": "Walk-in",
+      "parcels": "Bungkusan",
+      "settings": "Tetapan"
+    },
+    "scan": {
+      "title": "Imbas pengawal",
+      "subtitle": "Sahkan pas pelawat di pintu pagar apabila anda sedia menggunakan kamera.",
+      "scanPassTitle": "Imbas pas pelawat",
+      "scanPassHint": "Letakkan kod QR dalam bingkai.",
+      "queued": "{count} dalam giliran",
+      "online": "dalam talian",
+      "confirmCheckIn": "Sahkan daftar masuk",
+      "welcomeCheckedIn": "Selamat datang",
+      "checkedInMessage": "{name} didaftar masuk.",
+      "queuedTitle": "Dalam giliran",
+      "queuedMessage": "Rangkaian tidak tersedia — daftar masuk akan disegerakkan automatik."
+    },
+    "live": {
+      "eyebrow": "Papan langsung pengawal",
+      "subtitle": "Pelawat aktif di dalam harta. Walk-in hanya rekod dan ditutup automatik pada akhir hari.",
+      "visitorOnSite": "pelawat di tapak",
+      "visitorsOnSite": "pelawat di tapak",
+      "live": "Langsung",
+      "clear": "Kosong",
+      "justIn": "Baru masuk",
+      "unitNotShown": "Unit tidak dipaparkan",
+      "onSiteMeta": "di tapak",
+      "callVisitor": "Hubungi pelawat {phone}",
+      "callOwner": "Hubungi {name}",
+      "recordOnly": "Rekod sahaja",
+      "emptyDesc": "Pelawat pra-daftar yang daftar masuk muncul di sini. Walk-in direkod dan ditutup automatik.",
+      "checkOutTitle": "Daftar keluar pelawat?",
+      "checkOutBody": "Adakah anda pasti? Mereka akan keluar dari papan langsung.",
+      "checkOutYes": "Ya, daftar keluar",
+      "checkedOutTitle": "Telah daftar keluar",
+      "checkedOutMessage": "{name} telah meninggalkan premis.",
+      "checkOutFailedTitle": "Tidak dapat daftar keluar"
+    },
+    "expected": {
+      "eyebrow": "Ketibaan pengawal",
+      "subtitle": "Semak pelawat diluluskan, ketibaan terlepas, dan sejarah pos pengawal.",
+      "expectedHint": "Pelawat yang akan tiba tidak lama lagi mudah dilihat.",
+      "noShowHint": "Pas tamat tempoh yang tidak daftar masuk.",
+      "historyHint": "Pelawat terkini dan aktiviti pintu pagar.",
+      "acknowledgedTitle": "Diakui",
+      "acknowledgedMessage": "{name} direkod di tapak.",
+      "ackFailedTitle": "Tidak dapat mengakui"
+    },
+    "walkin": {
+      "eyebrow": "Walk-in pengawal",
+      "title": "Daftar pelawat walk-in",
+      "subtitle": "Gunakan ini untuk tetamu yang sudah berada di pos pengawal. Kelulusan pemilik diminta jika dasar condo memerlukannya."
+    }
+  }
+}

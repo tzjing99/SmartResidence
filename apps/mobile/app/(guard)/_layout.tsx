@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoleGuardGate } from '../../src/components/role-guard-gate';
-import { createModernTabBarOptions } from '../../src/lib/modern-tab-bar';
+import { useT } from '../../src/i18n/locale-provider';
+import { useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
 
 export default function GuardLayout() {
+  const t = useT();
   const insets = useSafeAreaInsets();
-  const tabBarOptions = createModernTabBarOptions(insets.bottom);
+  const tabBarOptions = useModernTabBarOptions(insets.bottom);
 
   return (
     <RoleGuardGate area="guard">
@@ -19,72 +21,47 @@ export default function GuardLayout() {
         <Tabs.Screen
           name="scan"
           options={{
-            title: 'Scan',
+            title: t('mobile.guard.tabs.scan'),
             tabBarIcon: ({ color }) => <Ionicons name="qr-code-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="live"
           options={{
-            title: 'On site',
+            title: t('mobile.guard.tabs.live'),
             tabBarIcon: ({ color }) => <Ionicons name="radio-outline" size={22} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="patrol"
-          options={{
-            title: 'Patrol',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="shield-checkmark-outline" size={22} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="alerts"
-          options={{
-            title: 'Alerts',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="alert-circle-outline" size={22} color={color} />
-            ),
           }}
         />
         <Tabs.Screen
           name="expected"
           options={{
-            title: 'Expected',
+            title: t('mobile.guard.tabs.expected'),
             tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={22} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="manual"
-          options={{
-            title: 'Manual',
-            tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="walkin"
           options={{
-            title: 'Walk-in',
+            title: t('mobile.guard.tabs.walkIn'),
             tabBarIcon: ({ color }) => (
               <Ionicons name="person-add-outline" size={22} color={color} />
             ),
           }}
         />
         <Tabs.Screen
-          name="parcels"
+          name="more"
           options={{
-            title: 'Parcels',
-            tabBarIcon: ({ color }) => <Ionicons name="cube-outline" size={22} color={color} />,
+            title: t('mobile.guard.tabs.more'),
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="ellipsis-horizontal" size={22} color={color} />
+            ),
           }}
         />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={22} color={color} />,
-          }}
-        />
+        <Tabs.Screen name="patrol" options={{ href: null }} />
+        <Tabs.Screen name="alerts" options={{ href: null }} />
+        <Tabs.Screen name="manual" options={{ href: null }} />
+        <Tabs.Screen name="parcels" options={{ href: null }} />
+        <Tabs.Screen name="settings" options={{ href: null }} />
       </Tabs>
     </RoleGuardGate>
   );

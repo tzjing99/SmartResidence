@@ -2,13 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoleGuardGate } from '../../src/components/role-guard-gate';
-import { useT } from '../../src/i18n/locale-provider';
-import { createModernTabBarOptions } from '../../src/lib/modern-tab-bar';
+import { useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
 
 export default function ResidentTabsLayout() {
   const insets = useSafeAreaInsets();
-  const tabBarOptions = createModernTabBarOptions(insets.bottom);
-  const t = useT();
+  const tabBarOptions = useModernTabBarOptions(insets.bottom);
 
   return (
     <RoleGuardGate area="resident">
@@ -21,28 +19,28 @@ export default function ResidentTabsLayout() {
         <Tabs.Screen
           name="home"
           options={{
-            title: t('nav.home'),
+            title: 'Home',
             tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="visitors"
           options={{
-            title: t('nav.visitors'),
+            title: 'Visitors',
             tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="billing"
           options={{
-            title: t('nav.billing'),
+            title: 'Fees',
             tabBarIcon: ({ color }) => <Ionicons name="card-outline" size={22} color={color} />,
           }}
         />
         <Tabs.Screen
           name="defects"
           options={{
-            title: t('nav.defects'),
+            title: 'Defects',
             tabBarIcon: ({ color }) => (
               <Ionicons name="construct-outline" size={22} color={color} />
             ),
@@ -51,7 +49,7 @@ export default function ResidentTabsLayout() {
         <Tabs.Screen
           name="messages"
           options={{
-            title: t('nav.messages'),
+            title: 'Messages',
             tabBarIcon: ({ color }) => (
               <Ionicons name="chatbubbles-outline" size={22} color={color} />
             ),
@@ -73,20 +71,16 @@ export default function ResidentTabsLayout() {
         <Tabs.Screen name="lost-found" options={{ href: null }} />
         <Tabs.Screen name="faq" options={{ href: null }} />
         <Tabs.Screen name="access" options={{ href: null }} />
-        <Tabs.Screen name="sessions" options={{ href: null }} />
         <Tabs.Screen name="sos" options={{ href: null }} />
+        <Tabs.Screen name="settings" options={{ href: null }} />
+        <Tabs.Screen name="activity" options={{ href: null }} />
         <Tabs.Screen
-          name="settings"
+          name="more"
           options={{
-            title: t('nav.settings'),
-            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={22} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="activity"
-          options={{
-            title: t('nav.activity'),
-            tabBarIcon: ({ color }) => <Ionicons name="time-outline" size={22} color={color} />,
+            title: 'More',
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="ellipsis-horizontal" size={22} color={color} />
+            ),
           }}
         />
       </Tabs>

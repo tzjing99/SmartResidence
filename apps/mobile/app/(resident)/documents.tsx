@@ -9,7 +9,7 @@ import {
   FadeInView,
   Pill,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import * as Linking from 'expo-linking';
 import { useCallback, useMemo, useState } from 'react';
@@ -20,7 +20,6 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
-import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection } from '../../src/lib/haptics';
 
@@ -39,7 +38,7 @@ function fmtDate(d: Date | string) {
 }
 
 export default function DocumentsScreen() {
-  const t = useT();
+  const { colors } = useTheme();
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
   const folders = useDocumentFolders(api, condoId);
@@ -80,16 +79,16 @@ export default function DocumentsScreen() {
   return (
     <ResidentScreen
       eyebrow="Services"
-      title={t('mobile.documents.title')}
-      subtitle={t('documents.subtitle')}
+      title="Documents"
+      subtitle="House rules, AGM minutes, bylaws, and circulars"
       scrollProps={{ refreshControl }}
     >
-      <ResidentSectionHeader title={t('documents.folders')} />
+      <ResidentSectionHeader title="Folders" />
       {folders.isLoading ? (
         <SkeletonList rows={1} rowHeight={36} />
       ) : folderRows.length === 0 ? (
         <EmptyState
-          title={t('mobile.documents.emptyTitle')}
+          title="No documents yet"
           description="When management publishes documents, they will appear here."
         />
       ) : (
@@ -111,7 +110,7 @@ export default function DocumentsScreen() {
       )}
 
       {activeFolder ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 8 }}>
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 8 }}>
           {DOCUMENT_FOLDER_AUDIENCE_LABELS[activeFolder.audience]}
         </AppText>
       ) : null}
@@ -120,27 +119,25 @@ export default function DocumentsScreen() {
       {docs.isLoading ? (
         <SkeletonList rows={3} rowHeight={104} />
       ) : docRows.length === 0 ? (
-        <EmptyState title={t('documents.folderEmptyTitle')} />
+        <EmptyState title="No documents in this folder" />
       ) : (
         <View style={{ gap: 12 }}>
           {docRows.map((doc, index) => (
             <FadeInView key={doc.id} index={index}>
               <Card style={[residentStyles.card, { gap: 8 }]}>
-                <AppText style={{ fontWeight: '700', color: palette.textLight }}>
-                  {doc.title}
-                </AppText>
+                <AppText style={{ fontWeight: '700', color: colors.fg }}>{doc.title}</AppText>
                 {doc.description ? (
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     {doc.description}
                   </AppText>
                 ) : null}
                 {doc.currentVersion ? (
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     v{doc.currentVersion.versionNumber} · {fmtDate(doc.currentVersion.publishedAt)}{' '}
                     · {fmtBytes(doc.currentVersion.sizeBytes)}
                   </AppText>
                 ) : (
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     Not published yet
                   </AppText>
                 )}

@@ -23,21 +23,20 @@ import {
   FadeInView,
   Pill,
   SkeletonList,
-  palette,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { DefectSubmissionProgress } from '../../../src/components/defect-submission-progress';
 import { PhotoPicker } from '../../../src/components/photo-picker';
 import {
-  RESIDENT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   prettyLabel,
-  residentStyles,
+  useResidentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { useT } from '../../../src/i18n/locale-provider';
@@ -129,10 +128,12 @@ function StandaloneDefectCard({
   defect: { id: string; title: string; category: string; status: DefectStatus; createdAt: string };
 }) {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
 
   return (
     <AnimatedPressable onPress={() => router.push(`/(resident)/defects/${defect.id}` as Href)}>
-      <Card style={residentStyles.card}>
+      <Card style={styles.card}>
         <View
           style={{
             flexDirection: 'row',
@@ -143,10 +144,10 @@ function StandaloneDefectCard({
           }}
         >
           <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+            <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
               {defect.title}
             </AppText>
-            <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+            <AppText variant="meta" style={{ color: colors.muted, marginTop: 2 }}>
               {defect.category} · {new Date(defect.createdAt).toLocaleDateString()}
             </AppText>
           </View>
@@ -168,6 +169,8 @@ function StandaloneDefectCard({
 
 function PackageCard({ report }: { report: DefectReportSummary }) {
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
   const status = reportStatus(report);
   const done = (report.statusCounts.RESOLVED ?? 0) + (report.statusCounts.CLOSED ?? 0);
   const pct = report.itemCount ? Math.round((done / report.itemCount) * 100) : 0;
@@ -176,7 +179,7 @@ function PackageCard({ report }: { report: DefectReportSummary }) {
     <AnimatedPressable
       onPress={() => router.push(`/(resident)/defects/package/${report.id}` as Href)}
     >
-      <Card style={residentStyles.card}>
+      <Card style={styles.card}>
         <View
           style={{
             flexDirection: 'row',
@@ -187,18 +190,18 @@ function PackageCard({ report }: { report: DefectReportSummary }) {
           }}
         >
           <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText style={{ fontWeight: '700', color: palette.textLight }}>Defect Report</AppText>
+            <AppText style={{ fontWeight: '700', color: colors.fg }}>Defect Report</AppText>
             <AppText
               style={{
                 fontFamily: 'monospace',
                 fontSize: 13,
-                color: RESIDENT_CORAL,
+                color: colors.coral,
                 marginTop: 2,
               }}
             >
               {defectReference(report.id)}
             </AppText>
-            <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+            <AppText variant="meta" style={{ color: colors.muted, marginTop: 2 }}>
               {report.itemCount} defect(s) · {new Date(report.createdAt).toLocaleDateString()}
             </AppText>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
@@ -207,7 +210,7 @@ function PackageCard({ report }: { report: DefectReportSummary }) {
                   flex: 1,
                   height: 8,
                   borderRadius: 999,
-                  backgroundColor: palette.borderLight,
+                  backgroundColor: colors.border,
                   overflow: 'hidden',
                 }}
               >
@@ -216,11 +219,11 @@ function PackageCard({ report }: { report: DefectReportSummary }) {
                     height: '100%',
                     width: `${pct}%`,
                     borderRadius: 999,
-                    backgroundColor: RESIDENT_CORAL,
+                    backgroundColor: colors.coral,
                   }}
                 />
               </View>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              <AppText variant="meta" style={{ color: colors.muted }}>
                 {done}/{report.itemCount} fixed
               </AppText>
             </View>
@@ -258,6 +261,21 @@ function reportStatus(report: DefectReportSummary): DefectStatus {
 function SingleDefectForm({ unitId }: { unitId?: string }) {
   const create = useCreateDefect(api);
   const photo = usePhotoUpload();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
+  const fieldStyle = useMemo(
+    () => ({
+      minHeight: 46,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 12,
+      fontSize: 14,
+      color: colors.fg,
+    }),
+    [colors],
+  );
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
@@ -288,21 +306,28 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
   }
 
   return (
-    <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+    <Card style={[styles.card, { gap: spacing.sm }]}>
       <View style={{ gap: 4 }}>
         <AppText variant="subheading">Submit a defect</AppText>
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           A short title and photo help the team route it faster.
         </AppText>
       </View>
-      <TextInput placeholder="Title" value={title} onChangeText={setTitle} style={inputStyle} />
+      <TextInput
+        placeholder="Title"
+        placeholderTextColor={colors.muted}
+        value={title}
+        onChangeText={setTitle}
+        style={fieldStyle}
+      />
       <TextInput
         placeholder="What's wrong?"
+        placeholderTextColor={colors.muted}
         value={description}
         onChangeText={setDescription}
         multiline
         style={[
-          inputStyle,
+          fieldStyle,
           { height: 90, marginTop: 10, textAlignVertical: 'top', paddingTop: 10 },
         ]}
       />
@@ -327,6 +352,25 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
   const template = useUnitHandoverTemplate(api, unitId ?? null);
   const create = useCreateHandoverReport(api);
   const photo = usePhotoUpload();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
+  const fieldStyle = useMemo(
+    () => ({
+      minHeight: 46,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 12,
+      fontSize: 14,
+      color: colors.fg,
+    }),
+    [colors],
+  );
+  const chipLabel = useMemo(
+    () => ({ color: colors.muted, marginTop: 6, marginBottom: 2 }),
+    [colors.muted],
+  );
 
   const [items, setItems] = useState<DraftItem[]>([]);
   const [roomIdx, setRoomIdx] = useState(0);
@@ -403,8 +447,8 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
 
   if (template.isLoading) {
     return (
-      <Card style={residentStyles.card}>
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+      <Card style={styles.card}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           Loading your unit layout…
         </AppText>
       </Card>
@@ -413,9 +457,9 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
 
   if (!data || data.spaces.length === 0) {
     return (
-      <Card style={residentStyles.card}>
+      <Card style={styles.card}>
         <AppText variant="subheading">No unit layout yet</AppText>
-        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
           Your unit doesn&apos;t have a type with rooms assigned. Ask management to set your unit
           type before reporting multiple defects.
         </AppText>
@@ -430,10 +474,10 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
         itemCount={items.length}
         complete={submitPhase === 'success'}
       />
-      <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+      <Card style={[styles.card, { gap: spacing.sm }]}>
         <View style={{ gap: 4 }}>
           <AppText variant="subheading">Multiple defects</AppText>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <AppText variant="meta" style={{ color: colors.muted }}>
             {data.unitTypeName ? `Layout: ${data.unitTypeName}` : 'Add issues room by room.'}
           </AppText>
         </View>
@@ -496,18 +540,19 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
             ) : null}
           </>
         ) : (
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <AppText variant="meta" style={{ color: colors.muted }}>
             No checklist for this room — describe the issue in the note.
           </AppText>
         )}
 
         <TextInput
           placeholder="Note (optional)"
+          placeholderTextColor={colors.muted}
           value={note}
           onChangeText={setNote}
           multiline
           style={[
-            inputStyle,
+            fieldStyle,
             { height: 70, marginTop: 4, textAlignVertical: 'top', paddingTop: 10 },
           ]}
         />
@@ -518,7 +563,7 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
 
         {items.length > 0 ? (
           <View style={{ gap: 6, marginTop: 4 }}>
-            <AppText variant="meta" style={{ color: palette.mutedLight }}>
+            <AppText variant="meta" style={{ color: colors.muted }}>
               {items.length} defect(s) added
             </AppText>
             {items.map((it) => (
@@ -530,18 +575,18 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
                   justifyContent: 'space-between',
                   gap: 8,
                   borderWidth: 1,
-                  borderColor: palette.borderLight,
+                  borderColor: colors.border,
                   borderRadius: radius.md,
                   paddingHorizontal: 10,
                   paddingVertical: 8,
                 }}
               >
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <AppText variant="meta" style={{ color: palette.textLight, fontWeight: '600' }}>
+                  <AppText variant="meta" style={{ color: colors.fg, fontWeight: '600' }}>
                     {it.displayTitle}
                   </AppText>
                   {it.note ? (
-                    <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                    <AppText variant="meta" style={{ color: colors.muted }}>
                       {it.note}
                     </AppText>
                   ) : null}
@@ -550,7 +595,7 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
                   onPress={() => setItems((prev) => prev.filter((p) => p.key !== it.key))}
                   hitSlop={8}
                 >
-                  <AppText style={{ color: palette.mutedLight, fontSize: 18 }}>×</AppText>
+                  <AppText style={{ color: colors.muted, fontSize: 18 }}>×</AppText>
                 </Pressable>
               </View>
             ))}
@@ -568,15 +613,3 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
     </>
   );
 }
-
-const chipLabel = { color: palette.mutedLight, marginTop: 6, marginBottom: 2 } as const;
-
-const inputStyle = {
-  minHeight: 46,
-  borderRadius: radius.lg,
-  borderWidth: 1,
-  borderColor: palette.borderLight,
-  backgroundColor: palette.surfaceLight,
-  paddingHorizontal: 12,
-  fontSize: 14,
-};

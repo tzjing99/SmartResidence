@@ -7,18 +7,18 @@ import {
   Card,
   Field,
   Input,
-  palette,
+  type ThemePreference,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
-import { type ComponentProps, useEffect, useState } from 'react';
+import { type ComponentProps, useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, Switch, View } from 'react-native';
 import {
-  RESIDENT_CORAL,
-  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   residentStyles,
+  useResidentColors,
 } from '../../src/components/resident-screen';
 import { api } from '../../src/lib/api';
 import type { MeResponse } from '../../src/lib/roles';
@@ -36,6 +36,12 @@ const mapRoleLabel = (role: string | null | undefined): string => {
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
 function MoreLink({
   icon,
   title,
@@ -49,6 +55,8 @@ function MoreLink({
   onPress: () => void;
   isLast?: boolean;
 }) {
+  const colors = useResidentColors();
+
   return (
     <Pressable
       onPress={onPress}
@@ -58,7 +66,7 @@ function MoreLink({
         gap: spacing.md,
         paddingVertical: 12,
         borderBottomWidth: isLast ? 0 : 1,
-        borderBottomColor: palette.borderLight,
+        borderBottomColor: colors.border,
       }}
     >
       <View
@@ -66,22 +74,22 @@ function MoreLink({
           width: 40,
           height: 40,
           borderRadius: 20,
-          backgroundColor: RESIDENT_SOFT_CORAL,
+          backgroundColor: colors.coralSoft,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Ionicons name={icon} size={20} color={RESIDENT_CORAL} />
+        <Ionicons name={icon} size={20} color={colors.coral} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={1}>
+        <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={1}>
           {title}
         </AppText>
-        <AppText variant="meta" style={{ color: palette.mutedLight }} numberOfLines={1}>
+        <AppText variant="meta" style={{ color: colors.muted }} numberOfLines={1}>
           {subtitle}
         </AppText>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={palette.mutedLight} />
+      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
     </Pressable>
   );
 }
@@ -93,6 +101,8 @@ export default function SettingsScreen() {
   const prefs = usePreferences(api);
   const save = useUpdatePreferences(api);
   const { signOut, busy: signingOut } = useSignOut();
+  const { preference, setPreference, colors } = useTheme();
+  const residentColors = useResidentColors();
 
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [whatsappNotifications, setWhatsappNotifications] = useState(false);
@@ -109,18 +119,60 @@ export default function SettingsScreen() {
     setQuietEnd(prefs.data.quietHours.end);
   }, [prefs.data]);
 
-  async function onSave() {
-    try {
-      await save.mutateAsync({
-        emailNotifications,
-        whatsappNotifications,
-        quietHours: { enabled: quietEnabled, start: quietStart, end: quietEnd },
-      });
-      Alert.alert('Saved', 'Notification preferences updated');
-    } catch (err) {
-      Alert.alert('Error', (err as Error).message);
-    }
-  }
+  const revertFromServer = useCallback(() => {
+    if (!prefs.data) return;
+    setEmailNotifications(prefs.data.emailNotifications);
+    setWhatsappNotifications(prefs.data.whatsappNotifications);
+    setQuietEnabled(prefs.data.quietHours.enabled);
+    setQuietStart(prefs.data.quietHours.start);
+    setQuietEnd(prefs.data.quietHours.end);
+  }, [prefs.data]);
+
+  const applyPreferences = useCallback(
+    (update: {
+      emailNotifications?: boolean;
+      whatsappNotifications?: boolean;
+      quietEnabled?: boolean;
+      quietStart?: string;
+      quietEnd?: string;
+    }) => {
+      const nextEmail = update.emailNotifications ?? emailNotifications;
+      const nextWhatsapp = update.whatsappNotifications ?? whatsappNotifications;
+      const nextQuietEnabled = update.quietEnabled ?? quietEnabled;
+      const nextQuietStart = update.quietStart ?? quietStart;
+      const nextQuietEnd = update.quietEnd ?? quietEnd;
+
+      if (update.emailNotifications !== undefined) setEmailNotifications(nextEmail);
+      if (update.whatsappNotifications !== undefined) setWhatsappNotifications(nextWhatsapp);
+      if (update.quietEnabled !== undefined) setQuietEnabled(nextQuietEnabled);
+      if (update.quietStart !== undefined) setQuietStart(nextQuietStart);
+      if (update.quietEnd !== undefined) setQuietEnd(nextQuietEnd);
+
+      void save
+        .mutateAsync({
+          emailNotifications: nextEmail,
+          whatsappNotifications: nextWhatsapp,
+          quietHours: {
+            enabled: nextQuietEnabled,
+            start: nextQuietStart,
+            end: nextQuietEnd,
+          },
+        })
+        .catch((err: Error) => {
+          revertFromServer();
+          Alert.alert('Error', err.message);
+        });
+    },
+    [
+      emailNotifications,
+      whatsappNotifications,
+      quietEnabled,
+      quietStart,
+      quietEnd,
+      revertFromServer,
+      save,
+    ],
+  );
 
   return (
     <ResidentScreen
@@ -144,7 +196,7 @@ export default function SettingsScreen() {
             width: 52,
             height: 52,
             borderRadius: 26,
-            backgroundColor: RESIDENT_CORAL,
+            backgroundColor: residentColors.coral,
             justifyContent: 'center',
             alignItems: 'center',
           }}
@@ -154,39 +206,69 @@ export default function SettingsScreen() {
           </AppText>
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <AppText
-            style={{ fontSize: 16, fontWeight: '700', color: palette.textLight }}
-            numberOfLines={2}
-          >
+          <AppText style={{ fontSize: 16, fontWeight: '700', color: colors.fg }} numberOfLines={2}>
             {user?.name ?? 'Loading...'}
           </AppText>
           {user?.email ? (
-            <AppText style={{ fontSize: 13, color: palette.mutedLight }} numberOfLines={1}>
+            <AppText style={{ fontSize: 13, color: colors.muted }} numberOfLines={1}>
               {user.email}
             </AppText>
           ) : null}
           <View style={{ flexDirection: 'row', marginTop: 2 }}>
             <View
               style={{
-                backgroundColor: palette.messageMgmtCoralBg,
-                borderColor: palette.messageMgmtCoralBorder,
+                backgroundColor: colors.messageMgmtCoralBg,
+                borderColor: colors.messageMgmtCoralBorder,
                 borderWidth: 1,
                 borderRadius: 8,
                 paddingHorizontal: 8,
                 paddingVertical: 2,
               }}
             >
-              <AppText
-                style={{
-                  fontSize: 11,
-                  fontWeight: '600',
-                  color: palette.coralPrimary,
-                }}
-              >
+              <AppText style={{ fontSize: 11, fontWeight: '600', color: colors.coral }}>
                 {mapRoleLabel(user?.activeRole)}
               </AppText>
             </View>
           </View>
+        </View>
+      </Card>
+
+      <ResidentSectionHeader
+        title="Appearance"
+        subtitle="Match your device or choose light or dark mode."
+      />
+
+      <Card style={residentStyles.card}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {THEME_OPTIONS.map((option) => {
+            const active = preference === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                onPress={() => setPreference(option.value)}
+                style={{
+                  flex: 1,
+                  minHeight: 40,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: active ? colors.coral : colors.border,
+                  backgroundColor: active ? colors.messageMgmtCoralBg : colors.messageResidentBg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppText
+                  style={{
+                    fontWeight: '700',
+                    color: active ? colors.coral : colors.fg,
+                    fontSize: 13,
+                  }}
+                >
+                  {option.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
         </View>
       </Card>
 
@@ -201,7 +283,11 @@ export default function SettingsScreen() {
             <AppText variant="label">Email for threads</AppText>
             <AppText variant="meta">Opt in to email notifications for helpdesk updates</AppText>
           </View>
-          <Switch value={emailNotifications} onValueChange={setEmailNotifications} />
+          <Switch
+            value={emailNotifications}
+            disabled={save.isPending}
+            onValueChange={(value) => applyPreferences({ emailNotifications: value })}
+          />
         </AlignRow>
       </Card>
 
@@ -220,8 +306,8 @@ export default function SettingsScreen() {
           </View>
           <Switch
             value={whatsappNotifications}
-            onValueChange={setWhatsappNotifications}
-            disabled={!prefs.data?.whatsappEligible}
+            disabled={!prefs.data?.whatsappEligible || save.isPending}
+            onValueChange={(value) => applyPreferences({ whatsappNotifications: value })}
           />
         </AlignRow>
       </Card>
@@ -234,39 +320,34 @@ export default function SettingsScreen() {
               Suppress push during these hours (in-app still delivered)
             </AppText>
           </View>
-          <Switch value={quietEnabled} onValueChange={setQuietEnabled} />
+          <Switch
+            value={quietEnabled}
+            disabled={save.isPending}
+            onValueChange={(value) => applyPreferences({ quietEnabled: value })}
+          />
         </AlignRow>
         {quietEnabled ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
             <Field label="From" containerStyle={{ flex: 1, minWidth: 120 }}>
-              <Input value={quietStart} onChangeText={setQuietStart} placeholder="22:00" />
+              <Input
+                value={quietStart}
+                onChangeText={setQuietStart}
+                onEndEditing={() => applyPreferences({ quietStart })}
+                placeholder="22:00"
+                editable={!save.isPending}
+              />
             </Field>
             <Field label="Until" containerStyle={{ flex: 1, minWidth: 120 }}>
-              <Input value={quietEnd} onChangeText={setQuietEnd} placeholder="07:00" />
+              <Input
+                value={quietEnd}
+                onChangeText={setQuietEnd}
+                onEndEditing={() => applyPreferences({ quietEnd })}
+                placeholder="07:00"
+                editable={!save.isPending}
+              />
             </Field>
           </View>
         ) : null}
-      </Card>
-
-      <ResidentSectionHeader
-        title="Security"
-        subtitle="Manage sign-in sessions and device access."
-      />
-
-      <Card style={[residentStyles.card, { paddingVertical: 4 }]}>
-        <MoreLink
-          icon="phone-portrait-outline"
-          title="Devices & sessions"
-          subtitle="Review active sign-ins and revoke unknown devices"
-          onPress={() => router.push('/(resident)/sessions' as Href)}
-        />
-        <MoreLink
-          icon="key-outline"
-          title="Who has access to my unit"
-          subtitle="Review and revoke delegated access"
-          onPress={() => router.push('/(resident)/access' as Href)}
-          isLast
-        />
       </Card>
 
       <ResidentSectionHeader
@@ -310,12 +391,23 @@ export default function SettingsScreen() {
           title="Help & FAQ"
           subtitle="Answers from your management office"
           onPress={() => router.push('/(resident)/faq' as Href)}
+        />
+        <MoreLink
+          icon="warning-outline"
+          title="Emergency SOS"
+          subtitle="Alert guards in a real emergency"
+          onPress={() => router.push('/(resident)/sos' as Href)}
+        />
+        <MoreLink
+          icon="key-outline"
+          title="Who has access to my unit"
+          subtitle="Review and revoke delegated access"
+          onPress={() => router.push('/(resident)/access' as Href)}
           isLast
         />
       </Card>
 
       <View style={{ gap: spacing.sm }}>
-        <Button title={save.isPending ? 'Saving…' : 'Save preferences'} onPress={onSave} />
         <Button
           title="Sign out"
           variant="secondary"

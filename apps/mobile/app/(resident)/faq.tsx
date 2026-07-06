@@ -1,5 +1,13 @@
 import { useFaqArticles, useMarkFaqHelpful, useMyCondos } from '@smartresidence/api-client';
-import { AppText, Button, Card, EmptyState, Input, Pill, palette } from '@smartresidence/ui-mobile';
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Pill,
+  useTheme,
+} from '@smartresidence/ui-mobile';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import {
@@ -8,7 +16,6 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
-import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 
 type FaqRow = {
@@ -20,7 +27,7 @@ type FaqRow = {
 };
 
 export default function FaqScreen() {
-  const t = useT();
+  const { colors } = useTheme();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const [query, setQuery] = useState('');
@@ -41,8 +48,8 @@ export default function FaqScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.help')}
-      title={t('nav.screens.faq')}
+      eyebrow="Help"
+      title="Help & FAQ"
       subtitle="Answers curated by your management office."
       scrollProps={{ refreshControl }}
     >
@@ -52,7 +59,7 @@ export default function FaqScreen() {
 
       {articles.isLoading ? (
         <Card style={residentStyles.card}>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <AppText variant="meta" style={{ color: colors.muted }}>
             Loading articles…
           </AppText>
         </Card>
@@ -82,13 +89,13 @@ export default function FaqScreen() {
                       </View>
                     ) : null}
                     <AppText
-                      style={{ fontWeight: '700', color: palette.textLight }}
+                      style={{ fontWeight: '700', color: colors.fg }}
                       numberOfLines={open ? undefined : 2}
                     >
                       {a.question}
                     </AppText>
                   </View>
-                  <AppText style={{ color: palette.mutedLight, fontSize: 16 }}>
+                  <AppText style={{ color: colors.muted, fontSize: 16 }}>
                     {open ? '▲' : '▼'}
                   </AppText>
                 </View>
@@ -99,11 +106,11 @@ export default function FaqScreen() {
                     marginTop: 12,
                     paddingTop: 12,
                     borderTopWidth: 1,
-                    borderTopColor: palette.borderLight,
+                    borderTopColor: colors.border,
                     gap: 12,
                   }}
                 >
-                  <AppText variant="bodySm" style={{ color: palette.textLight, lineHeight: 20 }}>
+                  <AppText variant="bodySm" style={{ color: colors.fg, lineHeight: 20 }}>
                     {a.answer}
                   </AppText>
                   <Button

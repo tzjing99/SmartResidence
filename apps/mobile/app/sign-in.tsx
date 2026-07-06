@@ -13,17 +13,17 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { type Href, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { useT } from '../src/i18n/locale-provider';
 import { api } from '../src/lib/api';
 import { hapticError } from '../src/lib/haptics';
 import { getActiveRole, roleToHomePath } from '../src/lib/roles';
 import { setCached, writeSession } from '../src/lib/session';
 
 export default function SignInScreen() {
+  const t = useT();
   const router = useRouter();
   const queryClient = useQueryClient();
   const signingInRef = useRef(false);
-  // Never ship prefilled working credentials in a release build — only
-  // convenient for local/dev builds against the seeded demo dataset.
   const [email, setEmail] = useState(__DEV__ ? 'owner@acacia.demo' : '');
   const [password, setPassword] = useState(__DEV__ ? 'Demo!2026' : '');
   const [loading, setLoading] = useState(false);
@@ -44,8 +44,6 @@ export default function SignInScreen() {
       };
       await writeSession(session);
       setCached(session);
-      // Push registration is handled by PushNavigationBridge, which reacts to
-      // this session change via subscribeSession.
 
       let home: Href = '/(resident)/home';
       try {
@@ -61,14 +59,14 @@ export default function SignInScreen() {
       void LocalAuthentication.hasHardwareAsync().then((supported) => {
         if (!supported) return;
         void LocalAuthentication.authenticateAsync({
-          promptMessage: 'Confirm to enable Face ID for SmartResidence',
+          promptMessage: t('auth.faceIdPrompt'),
         }).catch(() => undefined);
       });
     } catch (err) {
       signingInRef.current = false;
       setLoading(false);
       hapticError();
-      Alert.alert('Sign in failed', (err as Error).message);
+      Alert.alert(t('auth.signInFailed'), (err as Error).message);
     }
   }
 
@@ -81,45 +79,56 @@ export default function SignInScreen() {
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        accessibilityRole="none"
       >
         <FadeInView>
-          <AppText style={{ fontSize: 32, fontWeight: '700', marginBottom: 8 }}>
+          <AppText
+            accessibilityRole="header"
+            style={{ fontSize: 32, fontWeight: '700', marginBottom: 8 }}
+          >
             Smart
             <AppText style={{ color: palette.coralPrimary, fontSize: 32, fontWeight: '700' }}>
               Residence
             </AppText>
           </AppText>
-          <AppText style={{ color: palette.mutedLight, marginBottom: 24 }}>
-            Welcome back. Sign in to continue.
+          <AppText accessibilityRole="text" style={{ color: palette.mutedLight, marginBottom: 24 }}>
+            {t('auth.signInSubtitle')}
           </AppText>
           <Card>
-            <Field label="Email">
+            <Field label={t('auth.email')}>
               <Input
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
                 keyboardType="email-address"
                 editable={!loading}
                 returnKeyType="next"
+                accessibilityLabel={t('auth.email')}
               />
             </Field>
             <View style={{ marginTop: 14 }}>
-              <Field label="Password">
+              <Field label={t('auth.password')}>
                 <Input
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
+                  autoComplete="password"
+                  textContentType="password"
                   editable={!loading}
                   returnKeyType="done"
                   onSubmitEditing={signIn}
+                  accessibilityLabel={t('auth.password')}
                 />
               </Field>
             </View>
             <View style={{ marginTop: 20 }}>
               <Button
-                title={loading ? 'Signing in…' : 'Sign in'}
+                title={loading ? t('auth.signingIn') : t('auth.signIn')}
                 loading={loading}
                 onPress={signIn}
+                accessibilityHint={t('auth.signInSubtitle')}
               />
             </View>
           </Card>
@@ -132,7 +141,8 @@ export default function SignInScreen() {
                 textAlign: 'center',
               }}
             >
-              Demo accounts · password Demo!2026{'\n'}
+              {t('auth.demoAccounts', { password: 'Demo!2026' })}
+              {'\n'}
               Resident owner@acacia.demo · Gate guard@acacia.demo
             </AppText>
           ) : null}

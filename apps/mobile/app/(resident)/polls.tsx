@@ -17,20 +17,17 @@ import {
   FadeInView,
   Pill,
   SkeletonList,
-  palette,
   radius,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import {
-  RESIDENT_CORAL,
-  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
-import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
@@ -52,7 +49,6 @@ function fmtDate(d: Date | string | null | undefined) {
 }
 
 export default function PollsScreen() {
-  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const pollsQuery = useCondoPolls(api, condo?.id ?? null);
@@ -68,8 +64,8 @@ export default function PollsScreen() {
   return (
     <ResidentScreen
       eyebrow="MC polls"
-      title={t('polls.title')}
-      subtitle={t('polls.subtitle')}
+      title="Owner consultations"
+      subtitle="One vote per unit you own. Results stay transparent to all residents."
       scrollProps={{ refreshControl }}
       headerAction={
         selectedId ? (
@@ -88,7 +84,7 @@ export default function PollsScreen() {
         <SkeletonList rows={3} rowHeight={76} />
       ) : polls.length === 0 ? (
         <EmptyState
-          title={t('mobile.polls.emptyTitle')}
+          title="No polls right now"
           description="When management opens a consultation, it will appear here."
         />
       ) : (
@@ -120,6 +116,7 @@ export default function PollsScreen() {
 }
 
 function PollListItem({ poll, onSelect }: { poll: Poll; onSelect: () => void }) {
+  const { colors } = useTheme();
   const status = effectivePollStatus(poll);
   return (
     <AnimatedPressable onPress={onSelect}>
@@ -134,18 +131,18 @@ function PollListItem({ poll, onSelect }: { poll: Poll; onSelect: () => void }) 
         >
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-              <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+              <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
                 {poll.title}
               </AppText>
               <Pill tone={STATUS_TONE[status]} label={POLL_STATUS_LABELS[status]} />
             </View>
-            <AppText variant="meta" style={{ color: palette.mutedLight }}>
+            <AppText variant="meta" style={{ color: colors.muted }}>
               {status === 'OPEN'
                 ? `Closes ${fmtDate(poll.closesAt)}`
                 : `${poll.results?.totalVotes ?? 0} unit(s) voted`}
             </AppText>
           </View>
-          <AppText style={{ color: palette.mutedLight, fontSize: 20 }}>›</AppText>
+          <AppText style={{ color: colors.muted, fontSize: 20 }}>›</AppText>
         </View>
       </Card>
     </AnimatedPressable>
@@ -153,7 +150,7 @@ function PollListItem({ poll, onSelect }: { poll: Poll; onSelect: () => void }) 
 }
 
 function VotePanel({ pollId }: { pollId: string }) {
-  const t = useT();
+  const { colors } = useTheme();
   const pollQuery = usePoll(api, pollId);
   const castVote = useCastPollVote(api);
   const units = useMyUnits(api);
@@ -213,16 +210,16 @@ function VotePanel({ pollId }: { pollId: string }) {
     <View style={{ gap: 16 }}>
       <Card style={[residentStyles.card, { gap: 8 }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-          <AppText style={{ fontSize: 18, fontWeight: '800', color: palette.textLight }}>
+          <AppText style={{ fontSize: 18, fontWeight: '800', color: colors.fg }}>
             {poll.title}
           </AppText>
           <Pill tone={STATUS_TONE[status]} label={POLL_STATUS_LABELS[status]} />
         </View>
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           {isOpen ? `Closes ${fmtDate(poll.closesAt)}` : `Closed ${fmtDate(poll.closesAt)}`}
         </AppText>
         {poll.description ? (
-          <AppText variant="bodySm" style={{ color: palette.textLight, marginTop: 4 }}>
+          <AppText variant="bodySm" style={{ color: colors.fg, marginTop: 4 }}>
             {poll.description}
           </AppText>
         ) : null}
@@ -230,9 +227,9 @@ function VotePanel({ pollId }: { pollId: string }) {
 
       {poll.myVotes && poll.myVotes.length > 0 ? (
         <Card style={[residentStyles.card, { gap: 6 }]}>
-          <AppText style={{ fontWeight: '700', color: palette.textLight }}>Your votes</AppText>
+          <AppText style={{ fontWeight: '700', color: colors.fg }}>Your votes</AppText>
           {poll.myVotes.map((v) => (
-            <AppText key={v.unitId} variant="meta" style={{ color: palette.mutedLight }}>
+            <AppText key={v.unitId} variant="meta" style={{ color: colors.muted }}>
               {v.unitIdentifier}: {v.optionLabel}
             </AppText>
           ))}
@@ -242,22 +239,20 @@ function VotePanel({ pollId }: { pollId: string }) {
       {isOpen ? (
         ownedUnits.length === 0 ? (
           <Card style={residentStyles.card}>
-            <AppText variant="bodySm" style={{ color: palette.mutedLight }}>
+            <AppText variant="bodySm" style={{ color: colors.muted }}>
               Only registered unit owners may vote. Tenants can view live results but cannot cast
               votes.
             </AppText>
           </Card>
         ) : availableUnits.length === 0 ? (
           <Card style={residentStyles.card}>
-            <AppText variant="bodySm" style={{ color: palette.mutedLight }}>
+            <AppText variant="bodySm" style={{ color: colors.muted }}>
               You have voted for all your owned units.
             </AppText>
           </Card>
         ) : (
           <Card style={[residentStyles.card, { gap: 12 }]}>
-            <AppText style={{ fontWeight: '700', color: palette.textLight }}>
-              Cast your owner vote
-            </AppText>
+            <AppText style={{ fontWeight: '700', color: colors.fg }}>Cast your owner vote</AppText>
 
             <View style={{ gap: 6 }}>
               <AppText variant="label">Voting as unit</AppText>
@@ -297,8 +292,8 @@ function VotePanel({ pollId }: { pollId: string }) {
                       padding: 12,
                       borderRadius: radius.lg,
                       borderWidth: 1,
-                      borderColor: active ? 'rgba(255, 56, 92, 0.35)' : palette.borderLight,
-                      backgroundColor: active ? RESIDENT_SOFT_CORAL : palette.surfaceLight,
+                      borderColor: active ? colors.coral : colors.cardBorder,
+                      backgroundColor: active ? colors.coralSoft : colors.card,
                     }}
                   >
                     <View
@@ -307,7 +302,7 @@ function VotePanel({ pollId }: { pollId: string }) {
                         height: 18,
                         borderRadius: 9,
                         borderWidth: 2,
-                        borderColor: active ? RESIDENT_CORAL : palette.borderLight,
+                        borderColor: active ? colors.coral : colors.border,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
@@ -318,19 +313,19 @@ function VotePanel({ pollId }: { pollId: string }) {
                             width: 8,
                             height: 8,
                             borderRadius: 4,
-                            backgroundColor: RESIDENT_CORAL,
+                            backgroundColor: colors.coral,
                           }}
                         />
                       ) : null}
                     </View>
-                    <AppText style={{ flex: 1, color: palette.textLight }}>{o.label}</AppText>
+                    <AppText style={{ flex: 1, color: colors.fg }}>{o.label}</AppText>
                   </AnimatedPressable>
                 );
               })}
             </View>
 
             <Button
-              title={t('actions.castVote')}
+              title="Cast vote"
               onPress={handleVote}
               loading={castVote.isPending}
               disabled={castVote.isPending || !effectiveUnitId}
@@ -341,20 +336,20 @@ function VotePanel({ pollId }: { pollId: string }) {
 
       {poll.results && poll.results.options.length > 0 ? (
         <Card style={[residentStyles.card, { gap: 10 }]}>
-          <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+          <AppText style={{ fontWeight: '700', color: colors.fg }}>
             {isOpen ? 'Live tallies' : 'Final results'}
           </AppText>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <AppText variant="meta" style={{ color: colors.muted }}>
             {poll.results.totalVotes} unit(s) · {(poll.results.totalWeight ?? 0).toFixed(1)}% share
             weight
           </AppText>
           {poll.results.options.map((opt) => (
             <View key={opt.id} style={{ gap: 4 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                <AppText variant="bodySm" style={{ color: palette.textLight, flex: 1 }}>
+                <AppText variant="bodySm" style={{ color: colors.fg, flex: 1 }}>
                   {opt.label}
                 </AppText>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" style={{ color: colors.muted }}>
                   {opt.votePercent}% · {opt.weightPercent}% weighted
                 </AppText>
               </View>
@@ -362,7 +357,7 @@ function VotePanel({ pollId }: { pollId: string }) {
                 style={{
                   height: 8,
                   borderRadius: 4,
-                  backgroundColor: palette.borderLight,
+                  backgroundColor: colors.border,
                   overflow: 'hidden',
                 }}
               >
@@ -370,7 +365,7 @@ function VotePanel({ pollId }: { pollId: string }) {
                   style={{
                     height: '100%',
                     width: `${Math.min(100, opt.votePercent ?? 0)}%`,
-                    backgroundColor: RESIDENT_CORAL,
+                    backgroundColor: colors.coral,
                     borderRadius: 4,
                   }}
                 />

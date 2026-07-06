@@ -1,0 +1,64 @@
+{
+  "guard": {
+    "tabs": {
+      "scan": "Scan",
+      "live": "On site",
+      "patrol": "Patrol",
+      "alerts": "Alerts",
+      "expected": "Expected",
+      "manual": "Manual",
+      "walkIn": "Walk-in",
+      "parcels": "Parcels",
+      "settings": "Settings"
+    },
+    "scan": {
+      "title": "Guard scan",
+      "subtitle": "Verify visitor passes at the gate when you are ready to use the camera.",
+      "scanPassTitle": "Scan visitor pass",
+      "scanPassHint": "Place the QR code inside the frame.",
+      "queued": "{count} queued",
+      "online": "online",
+      "confirmCheckIn": "Confirm check-in",
+      "welcomeCheckedIn": "Welcome",
+      "checkedInMessage": "{name} checked in.",
+      "queuedTitle": "Queued",
+      "queuedMessage": "Network unavailable — check-in will sync automatically."
+    },
+    "live": {
+      "eyebrow": "Guard live board",
+      "subtitle": "Active visitors currently inside the property. Walk-ins are record-only and close automatically at end of day.",
+      "visitorOnSite": "visitor on site",
+      "visitorsOnSite": "visitors on site",
+      "live": "Live",
+      "clear": "Clear",
+      "justIn": "Just in",
+      "unitNotShown": "Unit not shown",
+      "onSiteMeta": "on site",
+      "callVisitor": "Call visitor {phone}",
+      "callOwner": "Call {name}",
+      "recordOnly": "Record only",
+      "emptyDesc": "Checked-in pre-registered visitors appear here. Walk-ins are logged for the record and close automatically.",
+      "checkOutTitle": "Check out visitor?",
+      "checkOutBody": "Are you sure? They will leave the live board.",
+      "checkOutYes": "Yes, check out",
+      "checkedOutTitle": "Checked out",
+      "checkedOutMessage": "{name} has left the premises.",
+      "checkOutFailedTitle": "Could not check out"
+    },
+    "expected": {
+      "eyebrow": "Guard arrivals",
+      "subtitle": "Review approved visitors, missed arrivals, and recent guardhouse history.",
+      "expectedHint": "Visitors due soon stay easy to spot.",
+      "noShowHint": "Expired passes that did not check in.",
+      "historyHint": "Recent visitors and completed gate activity.",
+      "acknowledgedTitle": "Acknowledged",
+      "acknowledgedMessage": "{name} recorded on site.",
+      "ackFailedTitle": "Could not acknowledge"
+    },
+    "walkin": {
+      "eyebrow": "Guard walk-in",
+      "title": "Register walk-in visitor",
+      "subtitle": "Use this for guests already at the guardhouse. Owner approval is requested when the condo policy requires it."
+    }
+  }
+}

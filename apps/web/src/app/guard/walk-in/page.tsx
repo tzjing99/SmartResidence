@@ -148,7 +148,7 @@ export default function GuardWalkInPage() {
         <Card className="border-red-500/40 bg-red-500/5 p-4 flex gap-3 items-start">
           <Ban className="size-5 text-red-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-red-700">Visitor blocked</p>
+            <p className="font-semibold text-red-700">{t('visitors.guard.blockedTitle')}</p>
             <p className="text-sm text-red-700/90 mt-1">{blacklistAlert}</p>
           </div>
         </Card>
@@ -165,7 +165,12 @@ export default function GuardWalkInPage() {
         />
       ) : null}
 
-      <PillTabs items={tabItems} value={tab} onChange={setTab} ariaLabel="Walk-in type" />
+      <PillTabs
+        items={tabItems}
+        value={tab}
+        onChange={setTab}
+        ariaLabel={t('visitors.guard.walkInTypeAria')}
+      />
 
       <Card className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">

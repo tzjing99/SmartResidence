@@ -28,7 +28,7 @@ import {
   Input,
   Pill,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -117,6 +117,7 @@ function MeetingListItem({
   meeting: GeneralMeeting;
   onSelect: () => void;
 }) {
+  const { colors } = useTheme();
   const status = meeting.status ?? 'DRAFT';
   return (
     <AnimatedPressable onPress={onSelect}>
@@ -130,7 +131,7 @@ function MeetingListItem({
         >
           <View style={{ flex: 1, paddingRight: 8 }}>
             <AppText variant="title">{meeting.title}</AppText>
-            <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+            <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
               {MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]} ·{' '}
               {fmtDate(meeting.scheduledAt)}
             </AppText>
@@ -143,6 +144,7 @@ function MeetingListItem({
 }
 
 function MeetingDetail({ meetingId }: { meetingId: string }) {
+  const { colors } = useTheme();
   const meetingQuery = useMeeting(api, meetingId);
   const meeting = meetingQuery.data;
   const submitProxy = useSubmitMeetingProxy(api);
@@ -182,7 +184,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
         <AppText variant="title" style={{ marginTop: 8 }}>
           {meeting.title}
         </AppText>
-        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
           {fmtDate(meeting.scheduledAt)}
         </AppText>
         {meeting.noticeBody ? (
@@ -280,6 +282,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
 }
 
 function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
+  const { colors } = useTheme();
   const castVote = useCastResolutionVote(api);
   const unitsQuery = useMyUnits(api);
   const [unitId, setUnitId] = useState('');
@@ -307,7 +310,7 @@ function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
     <Card style={[residentStyles.card, { marginBottom: 8 }]}>
       <AppText variant="subheading">{resolution.title}</AppText>
       {resolution.poll?.results?.options?.map((opt) => (
-        <AppText key={opt.id} variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+        <AppText key={opt.id} variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
           {opt.label}: {opt.weightPercent}% weighted
         </AppText>
       ))}
@@ -363,7 +366,7 @@ function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
           />
         </View>
       ) : resolution.poll?.myVotes?.length ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 8 }}>
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 8 }}>
           Voted on {resolution.poll.myVotes.length} unit(s)
         </AppText>
       ) : null}

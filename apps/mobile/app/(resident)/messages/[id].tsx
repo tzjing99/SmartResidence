@@ -16,9 +16,10 @@ import {
   MetaLine,
   Pill,
   Stack,
-  palette,
+  type ThemeColors,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -31,11 +32,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  RESIDENT_CARD_BORDER,
-  prettyLabel,
-  residentStyles,
-} from '../../../src/components/resident-screen';
+import { prettyLabel, useResidentStyles } from '../../../src/components/resident-screen';
 import { ThreadMessageList } from '../../../src/components/thread-message-list';
 import { api } from '../../../src/lib/api';
 import { hapticLight } from '../../../src/lib/haptics';
@@ -61,6 +58,9 @@ const PRIORITY_TONE: Record<string, 'success' | 'info' | 'warning' | 'danger'> =
 export default function MessageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const residentStyles = useResidentStyles();
   const { contentMaxWidth, horizontalPadding } = useTabletLayout();
   const me = useMe(api);
   const myId = (me.data as { user?: { id?: string } } | undefined)?.user?.id;
@@ -89,7 +89,7 @@ export default function MessageDetailScreen() {
         paddingBottom: Math.max(insets.bottom, 16) + 84,
       },
     ],
-    [contentMaxWidth, horizontalPadding, insets.bottom, insets.top],
+    [contentMaxWidth, horizontalPadding, insets.bottom, insets.top, styles],
   );
   const sendReply = useCallback(() => {
     void hapticLight();
@@ -106,7 +106,7 @@ export default function MessageDetailScreen() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#FFF8F6',
+          backgroundColor: colors.bg,
         }}
       >
         <AppText variant="meta">Loading…</AppText>
@@ -168,19 +168,23 @@ export default function MessageDetailScreen() {
           {proposed ? (
             <View
               style={{
-                backgroundColor: palette.surfaceLight,
+                backgroundColor: colors.messageMgmtSkyBg,
                 padding: 12,
                 borderRadius: radius.lg,
                 marginBottom: 10,
                 gap: 4,
                 borderWidth: 1,
                 borderLeftWidth: 4,
-                borderColor: '#0ea5e9',
+                borderColor: colors.messageMgmtSkyBorder,
               }}
             >
               <AppText
                 variant="caption"
-                style={{ color: '#0369a1', fontWeight: '700', textTransform: 'uppercase' }}
+                style={{
+                  color: colors.messageMgmtSkyText,
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                }}
               >
                 Suggested fix
               </AppText>
@@ -271,7 +275,7 @@ export default function MessageDetailScreen() {
       <View style={styles.threadPanel}>
         <View style={styles.threadSectionHeader}>
           <AppText variant="label">Conversation</AppText>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <AppText variant="meta" style={{ color: colors.muted }}>
             Replies appear here as they arrive.
           </AppText>
         </View>
@@ -285,7 +289,7 @@ export default function MessageDetailScreen() {
         <View style={styles.composerHeader}>
           <View>
             <AppText variant="label">Write a reply</AppText>
-            <AppText variant="meta" style={{ color: palette.mutedLight }}>
+            <AppText variant="meta" style={{ color: colors.muted }}>
               {body.trim()
                 ? post.isPending
                   ? 'Sending your reply...'
@@ -327,7 +331,7 @@ export default function MessageDetailScreen() {
               <Ionicons
                 name="paper-plane"
                 size={18}
-                color={canSendReply ? '#FFFFFF' : palette.coralPrimaryDark}
+                color={canSendReply ? '#FFFFFF' : colors.coral}
               />
             )}
           </Pressable>
@@ -356,116 +360,119 @@ export default function MessageDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#FFF8F6',
-  },
-  listContent: {
-    width: '100%',
-    alignSelf: 'center',
-  },
-  threadHeaderCard: {
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  threadHeaderTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  threadEyebrow: {
-    color: palette.coralPrimary,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  threadSubject: {
-    color: palette.textLight,
-    lineHeight: 26,
-  },
-  pillStack: {
-    alignItems: 'flex-end',
-    gap: 6,
-    maxWidth: 132,
-  },
-  actionCard: {
-    padding: spacing.md,
-  },
-  threadPanel: {
-    gap: spacing.sm,
-  },
-  threadSectionHeader: {
-    paddingHorizontal: 2,
-    gap: 2,
-  },
-  composerCard: {
-    borderWidth: 1,
-    borderColor: RESIDENT_CARD_BORDER,
-    padding: spacing.sm,
-    gap: 10,
-    borderRadius: radius['2xl'],
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#1F2937',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  composerHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    paddingHorizontal: 4,
-  },
-  composerBar: {
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: '#F1E8E4',
-    borderRadius: radius['2xl'],
-    backgroundColor: '#FFFCFB',
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-  },
-  replyInput: {
-    flex: 1,
-    minHeight: 42,
-    maxHeight: 112,
-    height: undefined,
-    borderWidth: 0,
-    borderRadius: radius.xl,
-    backgroundColor: 'transparent',
-    paddingTop: 10,
-    paddingBottom: 8,
-    paddingHorizontal: 8,
-    textAlignVertical: 'top',
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.coralPrimary,
-    shadowColor: palette.coralPrimaryDark,
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#FFE2DF',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  sendButtonBusy: {
-    backgroundColor: palette.coralPrimary,
-  },
-  sendButtonPressed: {
-    transform: [{ scale: 0.96 }],
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    listContent: {
+      width: '100%',
+      alignSelf: 'center',
+    },
+    threadHeaderCard: {
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    threadHeaderTop: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    threadEyebrow: {
+      color: colors.coral,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    threadSubject: {
+      color: colors.fg,
+      lineHeight: 26,
+    },
+    pillStack: {
+      alignItems: 'flex-end',
+      gap: 6,
+      maxWidth: 132,
+    },
+    actionCard: {
+      padding: spacing.md,
+    },
+    threadPanel: {
+      gap: spacing.sm,
+    },
+    threadSectionHeader: {
+      paddingHorizontal: 2,
+      gap: 2,
+    },
+    composerCard: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      padding: spacing.sm,
+      gap: 10,
+      borderRadius: radius['2xl'],
+      backgroundColor: colors.card,
+      shadowColor: '#1F2937',
+      shadowOpacity: 0.05,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 2,
+    },
+    composerHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+      paddingHorizontal: 4,
+    },
+    composerBar: {
+      minHeight: 56,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: spacing.xs,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      borderRadius: radius['2xl'],
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 8,
+      paddingVertical: 7,
+    },
+    replyInput: {
+      flex: 1,
+      minHeight: 42,
+      maxHeight: 112,
+      height: undefined,
+      borderWidth: 0,
+      borderRadius: radius.xl,
+      backgroundColor: 'transparent',
+      color: colors.fg,
+      paddingTop: 10,
+      paddingBottom: 8,
+      paddingHorizontal: 8,
+      textAlignVertical: 'top',
+    },
+    sendButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.coral,
+      shadowColor: colors.coral,
+      shadowOpacity: 0.18,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+    },
+    sendButtonDisabled: {
+      backgroundColor: colors.coralSoft,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    sendButtonBusy: {
+      backgroundColor: colors.coral,
+    },
+    sendButtonPressed: {
+      transform: [{ scale: 0.96 }],
+    },
+  });
+}

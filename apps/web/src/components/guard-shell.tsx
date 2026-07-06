@@ -3,6 +3,7 @@
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { GenericPageSkeleton } from '@/components/route-skeletons';
 import { PageFade, prefetchRoute } from '@/components/shell-nav';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { useSignOut } from '@/lib/use-sign-out';
@@ -14,30 +15,30 @@ import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
 const GUARD_NAV = [
-  { href: '/guard', label: 'Live', match: (p: string) => p === '/guard' },
+  { href: '/guard', labelKey: 'nav.guard.live', match: (p: string) => p === '/guard' },
   {
     href: '/guard/expected',
-    label: 'Expected',
+    labelKey: 'nav.guard.expected',
     match: (p: string) => p.startsWith('/guard/expected'),
   },
   {
     href: '/guard/check-in',
-    label: 'Check-in',
+    labelKey: 'nav.guard.checkIn',
     match: (p: string) => p.startsWith('/guard/check-in'),
   },
   {
     href: '/guard/walk-in',
-    label: 'Walk-in',
+    labelKey: 'nav.guard.walkIn',
     match: (p: string) => p.startsWith('/guard/walk-in'),
   },
   {
     href: '/guard/parcels',
-    label: 'Parcels',
+    labelKey: 'nav.guard.parcels',
     match: (p: string) => p.startsWith('/guard/parcels'),
   },
   {
     href: '/guard/settings',
-    label: 'Settings',
+    labelKey: 'nav.guard.settings',
     match: (p: string) => p.startsWith('/guard/settings'),
   },
 ] as const;
@@ -48,6 +49,7 @@ const GUARD_NAV = [
  * The full guard UX (QR scanning, check-in/out) lives in the mobile app.
  */
 export function GuardShell({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const { ready } = useRoleGuard('guard');
@@ -82,7 +84,7 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-20 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
         <Link
           href="/guard"
-          aria-label="SmartResidence Gate home"
+          aria-label={t('nav.guard.gateHome')}
           className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-0.5 min-w-0 leading-tight"
         >
           <ShieldCheck
@@ -94,14 +96,14 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
             <span className="mx-1.5 font-normal opacity-40" aria-hidden>
               ·
             </span>
-            <span className="font-semibold">Gate</span>
+            <span className="font-semibold">{t('nav.guard.gateBrand')}</span>
           </div>
           {condo ? (
             <div className="col-start-2 row-start-2 text-xs sr-muted truncate">{condo.name}</div>
           ) : null}
         </Link>
         <nav
-          aria-label="Gate navigation"
+          aria-label={t('nav.guard.gateNav')}
           className="flex items-center gap-0.5 shrink-0 flex-nowrap"
         >
           {GUARD_NAV.filter((item) => item.href !== '/guard/settings').map((item) => (
@@ -119,7 +121,7 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
                   : 'hover:bg-[rgb(var(--sr-border))]/40',
               )}
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
           <Link
@@ -136,7 +138,7 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
             )}
           >
             <Settings2 className="size-4" />
-            Settings
+            {t('nav.guard.settings')}
           </Link>
           <button
             type="button"
@@ -144,7 +146,7 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--sr-border))]/40 text-sm"
           >
             <LogOut className="size-4" />
-            Sign out
+            {t('nav.signOut')}
           </button>
         </nav>
       </header>
@@ -154,25 +156,25 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
       <MobileTabBar
         ariaLabel="Gate navigation"
         items={[
-          { href: '/guard', label: 'Live', isActive: (p) => p === '/guard' },
+          { href: '/guard', label: t('nav.guard.live'), isActive: (p) => p === '/guard' },
           {
             href: '/guard/expected',
-            label: 'Expected',
+            label: t('nav.guard.expected'),
             isActive: (p) => p.startsWith('/guard/expected'),
           },
           {
             href: '/guard/check-in',
-            label: 'Check-in',
+            label: t('nav.guard.checkIn'),
             isActive: (p) => p.startsWith('/guard/check-in'),
           },
           {
             href: '/guard/walk-in',
-            label: 'Walk-in',
+            label: t('nav.guard.walkIn'),
             isActive: (p) => p.startsWith('/guard/walk-in'),
           },
           {
             href: '/guard/parcels',
-            label: 'Parcels',
+            label: t('nav.guard.parcels'),
             isActive: (p) => p.startsWith('/guard/parcels'),
           },
         ]}

@@ -7,15 +7,19 @@ import {
 } from '@smartresidence/api-client';
 import type { Parcel, ParcelStatus } from '@smartresidence/shared-types';
 import { PARCEL_STATUS_LABELS } from '@smartresidence/shared-types';
-import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, TextInput, View } from 'react-native';
 import {
-  GUARD_CORAL,
-  GuardScreen,
-  GuardSectionHeader,
-  guardStyles,
-} from '../../src/components/guard-screen';
+  AppText,
+  Button,
+  Card,
+  Pill,
+  type ThemeColors,
+  radius,
+  spacing,
+  useTheme,
+} from '@smartresidence/ui-mobile';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, TextInput, View } from 'react-native';
+import { GuardScreen, GuardSectionHeader } from '../../src/components/guard-screen';
 import { type UnitSearchItem, UnitSearchPicker } from '../../src/components/unit-search-picker';
 import { api } from '../../src/lib/api';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
@@ -25,17 +29,6 @@ const STATUS_TONE: Record<ParcelStatus, 'neutral' | 'warning' | 'success' | 'dan
   NOTIFIED: 'warning',
   COLLECTED: 'success',
   OVERDUE: 'danger',
-};
-
-const inputStyle = {
-  minHeight: 48,
-  borderRadius: radius.lg,
-  borderWidth: 1,
-  borderColor: palette.borderLight,
-  backgroundColor: palette.surfaceLight,
-  paddingHorizontal: 14,
-  fontSize: 15,
-  color: palette.textLight,
 };
 
 function fmtDateTime(d: Date | string) {
@@ -55,6 +48,8 @@ function unitLabel(p: Parcel) {
 }
 
 export default function GuardParcelsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { twoColumn } = useTabletLayout();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -128,33 +123,33 @@ export default function GuardParcelsScreen() {
       <View style={[styles.layout, twoColumn && styles.layoutTablet]}>
         <View style={styles.column}>
           {showForm ? (
-            <Card style={[guardStyles.card, styles.formCard]}>
+            <Card style={[styles.card, styles.formCard]}>
               <UnitSearchPicker value={unit} onChange={setUnit} condoId={condo?.id} />
               <TextInput
-                style={inputStyle}
+                style={styles.input}
                 placeholder="Recipient name"
-                placeholderTextColor={palette.mutedLight}
+                placeholderTextColor={colors.muted}
                 value={recipientName}
                 onChangeText={setRecipientName}
               />
               <TextInput
-                style={inputStyle}
+                style={styles.input}
                 placeholder="Carrier (optional)"
-                placeholderTextColor={palette.mutedLight}
+                placeholderTextColor={colors.muted}
                 value={carrier}
                 onChangeText={setCarrier}
               />
               <TextInput
-                style={inputStyle}
+                style={styles.input}
                 placeholder="Tracking ref (optional)"
-                placeholderTextColor={palette.mutedLight}
+                placeholderTextColor={colors.muted}
                 value={trackingRef}
                 onChangeText={setTrackingRef}
               />
               <TextInput
-                style={[inputStyle, styles.notesInput]}
+                style={[styles.input, styles.notesInput]}
                 placeholder="Notes (optional)"
-                placeholderTextColor={palette.mutedLight}
+                placeholderTextColor={colors.muted}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
@@ -166,8 +161,8 @@ export default function GuardParcelsScreen() {
               />
             </Card>
           ) : (
-            <Card style={[guardStyles.card, styles.hintCard]}>
-              <AppText variant="bodySm" style={{ color: palette.mutedLight }}>
+            <Card style={[styles.card, styles.hintCard]}>
+              <AppText variant="bodySm" style={{ color: colors.muted }}>
                 Tap New to log a courier drop-off. The unit resident gets a push notification
                 instantly.
               </AppText>
@@ -178,26 +173,26 @@ export default function GuardParcelsScreen() {
         <View style={styles.column}>
           <GuardSectionHeader title="Awaiting collection" />
           {parcels.isLoading ? (
-            <ActivityIndicator color={GUARD_CORAL} style={styles.loader} />
+            <ActivityIndicator color={colors.coral} style={styles.loader} />
           ) : (parcels.data?.items.length ?? 0) === 0 ? (
-            <Card style={[guardStyles.card, styles.emptyCard]}>
-              <Ionicons name="cube-outline" size={28} color={palette.mutedLight} />
-              <AppText variant="bodySm" style={{ color: palette.mutedLight, textAlign: 'center' }}>
+            <Card style={[styles.card, styles.emptyCard]}>
+              <Ionicons name="cube-outline" size={28} color={colors.muted} />
+              <AppText variant="bodySm" style={{ color: colors.muted, textAlign: 'center' }}>
                 No pending parcels
               </AppText>
             </Card>
           ) : (
             parcels.data?.items.map((p) => (
-              <Card key={p.id} style={[guardStyles.card, styles.parcelCard]}>
+              <Card key={p.id} style={[styles.card, styles.parcelCard]}>
                 <View style={styles.parcelHeader}>
                   <AppText variant="label">{p.recipientName}</AppText>
                   <Pill tone={STATUS_TONE[p.status]} label={PARCEL_STATUS_LABELS[p.status]} />
                 </View>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" style={{ color: colors.muted }}>
                   {unitLabel(p)}
                   {p.carrier ? ` · ${p.carrier}` : ''}
                 </AppText>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" style={{ color: colors.muted }}>
                   Received {fmtDateTime(p.receivedAt)}
                 </AppText>
                 <Button
@@ -216,25 +211,41 @@ export default function GuardParcelsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  layout: { gap: spacing.lg },
-  layoutTablet: { flexDirection: 'row', alignItems: 'flex-start' },
-  column: { flex: 1, gap: spacing.md },
-  formCard: { gap: spacing.sm, padding: spacing.md },
-  hintCard: { padding: spacing.md },
-  notesInput: { minHeight: 72, textAlignVertical: 'top' },
-  loader: { marginTop: spacing.lg },
-  emptyCard: {
-    alignItems: 'center',
-    padding: spacing.xl,
-    gap: spacing.sm,
-  },
-  parcelCard: { padding: spacing.md, gap: spacing.xs, marginBottom: spacing.sm },
-  parcelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  collectBtn: { marginTop: spacing.sm, alignSelf: 'flex-start' },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    input: {
+      minHeight: 48,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 14,
+      fontSize: 15,
+      color: colors.fg,
+    },
+    layout: { gap: spacing.lg },
+    layoutTablet: { flexDirection: 'row', alignItems: 'flex-start' },
+    column: { flex: 1, gap: spacing.md },
+    formCard: { gap: spacing.sm, padding: spacing.md },
+    hintCard: { padding: spacing.md },
+    notesInput: { minHeight: 72, textAlignVertical: 'top' },
+    loader: { marginTop: spacing.lg },
+    emptyCard: {
+      alignItems: 'center',
+      padding: spacing.xl,
+      gap: spacing.sm,
+    },
+    parcelCard: { padding: spacing.md, gap: spacing.xs, marginBottom: spacing.sm },
+    parcelHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    collectBtn: { marginTop: spacing.sm, alignSelf: 'flex-start' },
+  });
+}

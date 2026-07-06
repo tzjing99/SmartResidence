@@ -7,7 +7,7 @@ import {
   EmptyState,
   FadeInView,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback } from 'react';
@@ -20,7 +20,6 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
-import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticLight } from '../../src/lib/haptics';
 import { resolveNotificationRoute } from '../../src/lib/push-navigation';
@@ -36,7 +35,7 @@ type NotificationRow = {
 };
 
 export default function NotificationsScreen() {
-  const t = useT();
+  const { colors } = useTheme();
   const router = useRouter();
   const notifications = useNotifications(api, { limit: 30 });
   const markRead = useMarkNotificationsRead(api);
@@ -61,8 +60,8 @@ export default function NotificationsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.notifications')}
-      title={t('nav.screens.notifications')}
+      eyebrow="Notifications"
+      title="Notification center"
       subtitle="Everything that needs your attention, gathered in one place."
       scrollProps={{ refreshControl }}
       headerAction={
@@ -115,22 +114,18 @@ export default function NotificationsScreen() {
                       <AppText
                         style={{
                           fontWeight: unread ? '800' : '700',
-                          color: palette.textLight,
+                          color: colors.fg,
                         }}
                         numberOfLines={2}
                       >
                         {row.title}
                       </AppText>
                       {row.body ? (
-                        <AppText
-                          variant="bodySm"
-                          style={{ color: palette.mutedLight }}
-                          numberOfLines={3}
-                        >
+                        <AppText variant="bodySm" style={{ color: colors.muted }} numberOfLines={3}>
                           {row.body}
                         </AppText>
                       ) : null}
-                      <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                      <AppText variant="meta" style={{ color: colors.muted }}>
                         {prettyLabel(row.kind)}
                         {' · '}
                         {new Date(row.createdAt).toLocaleString()}

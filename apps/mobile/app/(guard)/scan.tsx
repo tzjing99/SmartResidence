@@ -1,9 +1,17 @@
 import { isVisitorBlacklistError } from '@smartresidence/shared-types';
-import { Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
+import {
+  Button,
+  Card,
+  Pill,
+  type ThemeColors,
+  radius,
+  spacing,
+  useTheme,
+} from '@smartresidence/ui-mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { type Href, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -14,22 +22,21 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  GUARD_SOFT_CORAL,
-  GUARD_WARM_BG,
-  GuardBrandBar,
-  guardStyles,
-} from '../../src/components/guard-screen';
+import { GuardBrandBar } from '../../src/components/guard-screen';
 import {
   type GuardVerifiedVisitor,
   VisitorGuardPassCard,
   guardPassSummary,
 } from '../../src/components/visitor-guard-pass';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { enqueueCheckIn, flushQueue, pendingCount } from '../../src/lib/guard-queue';
 import { useTabletLayout } from '../../src/lib/use-tablet-layout';
 
 export default function ScanScreen() {
+  const t = useT();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { isTablet, isLandscape, contentMaxWidth, horizontalPadding, twoColumn } =
@@ -54,7 +61,10 @@ export default function ScanScreen() {
   async function confirmCheckIn(pass: string, v: GuardVerifiedVisitor) {
     try {
       await api.checkInVisitor(pass, { gateLocation: 'Main gate' });
-      Alert.alert('Welcome', `${v.name} checked in.`);
+      Alert.alert(
+        t('mobile.guard.scan.welcomeCheckedIn'),
+        t('mobile.guard.scan.checkedInMessage', { name: v.name }),
+      );
       setVisitor(null);
       setScannedPass(null);
       setActiveScanning(false);
@@ -62,13 +72,13 @@ export default function ScanScreen() {
       const message = (err as Error).message;
       if (isVisitorBlacklistError(message)) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Visitor blocked', message);
+        Alert.alert(t('visitors.guard.blockedTitle'), message);
         setVisitor(null);
         setScannedPass(null);
         return;
       }
       await enqueueCheckIn({ qrCode: pass, gateLocation: 'Main gate' });
-      Alert.alert('Queued', 'Network unavailable — check-in will sync automatically.');
+      Alert.alert(t('mobile.guard.scan.queuedTitle'), t('mobile.guard.scan.queuedMessage'));
       setPending(await pendingCount());
     }
   }
@@ -148,7 +158,7 @@ export default function ScanScreen() {
       const message = (err as Error).message;
       if (isVisitorBlacklistError(message)) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Visitor blocked', message);
+        Alert.alert(t('visitors.guard.blockedTitle'), message);
         setVisitor(null);
         setScannedPass(null);
       } else {
@@ -206,7 +216,7 @@ export default function ScanScreen() {
       <View
         style={{
           flex: 1,
-          backgroundColor: GUARD_WARM_BG,
+          backgroundColor: colors.bg,
           paddingTop: Math.max(insets.top, 12),
           paddingBottom: Math.max(insets.bottom, 16) + 92,
           paddingHorizontal: horizontalPadding,
@@ -217,16 +227,20 @@ export default function ScanScreen() {
           <GuardBrandBar />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: palette.textLight }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.fg }}>
                 Scan visitor pass
               </Text>
-              <Text style={{ color: palette.mutedLight, fontSize: 13, marginTop: 3 }}>
+              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 3 }}>
                 Place the QR code inside the frame.
               </Text>
             </View>
             <Pill
               tone={pending > 0 ? 'warning' : 'success'}
-              label={pending > 0 ? `${pending} queued` : 'online'}
+              label={
+                pending > 0
+                  ? t('mobile.guard.scan.queued', { count: pending })
+                  : t('mobile.guard.scan.online')
+              }
             />
           </View>
 
@@ -248,6 +262,8 @@ export default function ScanScreen() {
               facing="back"
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               onBarcodeScanned={busy ? undefined : (e) => void onScan(e.data)}
+              accessibilityLabel="QR code scanner camera"
+              accessibilityHint="Point the camera at a visitor pass QR code"
             />
             <View
               pointerEvents="none"
@@ -265,11 +281,11 @@ export default function ScanScreen() {
             />
           </View>
 
-          <Card style={[guardStyles.card, styles.helperCard]}>
-            <Text style={{ fontWeight: '700', fontSize: 15, color: palette.textLight }}>
+          <Card style={[styles.card, styles.helperCard]}>
+            <Text style={{ fontWeight: '700', fontSize: 15, color: colors.fg }}>
               Hold steady until the phone vibrates.
             </Text>
-            <Text style={{ color: palette.mutedLight, fontSize: 13, marginTop: 5 }}>
+            <Text style={{ color: colors.muted, fontSize: 13, marginTop: 5 }}>
               You can stop the camera at any time and use manual entry if the pass is damaged.
             </Text>
             <View style={{ flexDirection: twoColumn ? 'row' : 'column', gap: 10, marginTop: 14 }}>
@@ -294,7 +310,7 @@ export default function ScanScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: GUARD_WARM_BG }}
+      style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{
         width: '100%',
         maxWidth: contentMaxWidth,
@@ -308,31 +324,31 @@ export default function ScanScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <GuardBrandBar />
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: 6 }} accessibilityRole="header">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Text style={{ flex: 1, fontSize: 24, fontWeight: '800', color: palette.textLight }}>
-            Guard scan
+          <Text style={{ flex: 1, fontSize: 24, fontWeight: '800', color: colors.fg }}>
+            {t('mobile.guard.scan.title')}
           </Text>
           <Pill
             tone={pending > 0 ? 'warning' : 'success'}
-            label={pending > 0 ? `${pending} queued` : 'online'}
+            label={
+              pending > 0
+                ? t('mobile.guard.scan.queued', { count: pending })
+                : t('mobile.guard.scan.online')
+            }
           />
         </View>
-        <Text style={{ color: palette.mutedLight, fontSize: 14 }}>
-          Verify visitor passes at the gate when you are ready to use the camera.
-        </Text>
+        <Text style={{ color: colors.muted, fontSize: 14 }}>{t('mobile.guard.scan.subtitle')}</Text>
       </View>
 
       <View style={{ flexDirection: twoColumn ? 'row' : 'column', gap: 16 }}>
-        <Card style={[guardStyles.card, styles.actionCard]}>
+        <Card style={[styles.card, styles.actionCard]}>
           {shouldShowPermissionCard ? (
             <>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: palette.textLight }}>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.fg }}>
                 {permissionDenied ? 'Camera access is blocked' : 'Camera permission needed'}
               </Text>
-              <Text
-                style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}
-              >
+              <Text style={{ color: colors.muted, fontSize: 14, marginTop: 8, lineHeight: 20 }}>
                 {permissionDenied
                   ? 'Enable camera access in system settings to scan visitor QR passes.'
                   : 'SmartResidence uses the camera only while you are actively scanning a visitor pass.'}
@@ -352,16 +368,12 @@ export default function ScanScreen() {
           ) : (
             <>
               <View style={styles.qrIcon}>
-                <Text style={{ color: palette.coralPrimary, fontSize: 28, fontWeight: '800' }}>
-                  QR
-                </Text>
+                <Text style={{ color: colors.coral, fontSize: 28, fontWeight: '800' }}>QR</Text>
               </View>
-              <Text style={{ fontSize: 24, fontWeight: '800', color: palette.textLight }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: colors.fg }}>
                 Ready to scan visitor pass
               </Text>
-              <Text
-                style={{ color: palette.mutedLight, fontSize: 14, marginTop: 8, lineHeight: 20 }}
-              >
+              <Text style={{ color: colors.muted, fontSize: 14, marginTop: 8, lineHeight: 20 }}>
                 Start the camera only when a visitor is at the guard post. The scanner closes after
                 a valid pass is found.
               </Text>
@@ -388,7 +400,7 @@ export default function ScanScreen() {
               checkInLabel="Check in"
             />
           ) : (
-            <Card style={[guardStyles.card, styles.placeholderCard]}>
+            <Card style={[styles.card, styles.placeholderCard]}>
               <Text style={styles.placeholderTitle}>Ready when you are</Text>
               <Text style={styles.placeholderCopy}>
                 Tap Start scanning to verify a visitor pass. Details will appear here before
@@ -402,43 +414,49 @@ export default function ScanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  helperCard: {
-    padding: spacing.md,
-  },
-  actionCard: {
-    flex: 1,
-    minHeight: 250,
-    justifyContent: 'center',
-  },
-  qrIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 22,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-  placeholderCard: {
-    minHeight: 220,
-    justifyContent: 'center',
-    backgroundColor: GUARD_WARM_BG,
-    borderWidth: 1,
-    borderColor: guardStyles.card.borderColor,
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 1,
-  },
-  placeholderTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: palette.textLight,
-  },
-  placeholderCopy: {
-    color: palette.mutedLight,
-    fontSize: 14,
-    marginTop: 6,
-    lineHeight: 20,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    helperCard: {
+      padding: spacing.md,
+    },
+    actionCard: {
+      flex: 1,
+      minHeight: 250,
+      justifyContent: 'center',
+    },
+    qrIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 22,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 18,
+    },
+    placeholderCard: {
+      minHeight: 220,
+      justifyContent: 'center',
+      backgroundColor: colors.bg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      shadowOpacity: 0.03,
+      shadowRadius: 8,
+      elevation: 1,
+    },
+    placeholderTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.fg,
+    },
+    placeholderCopy: {
+      color: colors.muted,
+      fontSize: 14,
+      marginTop: 6,
+      lineHeight: 20,
+    },
+  });
+}

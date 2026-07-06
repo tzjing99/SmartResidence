@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api, writeSession } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,20 +11,20 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: MalaysiaPhoneSchema,
-  password: z
-    .string()
-    .min(10, 'At least 10 characters')
-    .regex(/[A-Z]/, 'Add an uppercase letter')
-    .regex(/[a-z]/, 'Add a lowercase letter')
-    .regex(/\d/, 'Add a digit'),
-});
-
 export default function SignUpPage() {
+  const t = useT();
   const router = useRouter();
+  const schema = z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    phone: MalaysiaPhoneSchema,
+    password: z
+      .string()
+      .min(10, t('auth.passwordMinLength'))
+      .regex(/[A-Z]/, t('auth.passwordUppercase'))
+      .regex(/[a-z]/, t('auth.passwordLowercase'))
+      .regex(/\d/, t('auth.passwordDigit')),
+  });
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
 
   async function onSubmit(values: z.infer<typeof schema>) {
@@ -36,7 +37,7 @@ export default function SignUpPage() {
         expiresAt: Date.now() + 60 * 15 * 1000,
         activeCondoId: null,
       });
-      toast.success('Welcome');
+      toast.success(t('auth.welcomeToast'));
       router.push('/dashboard');
     } catch (err) {
       toast.error((err as Error).message);
@@ -50,22 +51,22 @@ export default function SignUpPage() {
           <Link href="/" className="text-2xl font-bold tracking-tight">
             Smart<span className="text-coral-500">Residence</span>
           </Link>
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight">Create your account</h1>
-          <p className="text-sm sr-muted mt-1">
-            Your management office will link this account to your unit.
-          </p>
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight">
+            {t('auth.createAccountTitle')}
+          </h1>
+          <p className="text-sm sr-muted mt-1">{t('auth.signUpBlurb')}</p>
         </div>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Full name</Label>
+            <Label htmlFor="name">{t('auth.fullName')}</Label>
             <Input id="name" {...form.register('name')} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('auth.email')}</Label>
             <Input id="email" type="email" autoComplete="email" {...form.register('email')} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="phone">Mobile phone</Label>
+            <Label htmlFor="phone">{t('auth.mobilePhone')}</Label>
             <Input
               id="phone"
               type="tel"
@@ -78,13 +79,11 @@ export default function SignUpPage() {
                 {form.formState.errors.phone.message}
               </p>
             ) : (
-              <p className="text-xs sr-muted">
-                Malaysia mobile — guards may call you for walk-in approvals.
-              </p>
+              <p className="text-xs sr-muted">{t('auth.phoneHint')}</p>
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('auth.password')}</Label>
             <Input
               id="password"
               type="password"
@@ -96,17 +95,17 @@ export default function SignUpPage() {
                 {form.formState.errors.password.message}
               </p>
             ) : (
-              <p className="text-xs sr-muted">10+ chars, mix of upper/lower/digit.</p>
+              <p className="text-xs sr-muted">{t('auth.passwordHint')}</p>
             )}
           </div>
           <Button type="submit" loading={form.formState.isSubmitting} className="mt-2">
-            Create account
+            {t('auth.signUp')}
           </Button>
         </form>
         <p className="mt-6 text-sm sr-muted">
-          Already have an account?{' '}
+          {t('auth.alreadyHaveAccount')}{' '}
           <Link href="/sign-in" className="text-coral-500 hover:underline">
-            Sign in
+            {t('auth.signIn')}
           </Link>
         </p>
       </Card>

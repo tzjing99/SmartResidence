@@ -62,7 +62,7 @@ export async function createTestApp(): Promise<{
     .useValue({ canActivate: async () => true })
     .compile();
   const app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
+  app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)', 'metrics', 'metrics/(.*)'] });
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

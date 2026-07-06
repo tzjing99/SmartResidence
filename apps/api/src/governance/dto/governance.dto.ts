@@ -65,6 +65,11 @@ export class UpdateGeneralMeetingDto {
   @IsString()
   noticeBody?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  minutesBody?: string;
+
   @ApiPropertyOptional({ enum: GeneralMeetingStatus })
   @IsOptional()
   @IsEnum(GeneralMeetingStatus)
@@ -181,4 +186,11 @@ export class CreateMeetingResolutionWithOptionsDto extends CreateMeetingResoluti
   @ValidateNested({ each: true })
   @Type(() => ResolutionOptionInputDto)
   options?: ResolutionOptionInputDto[];
+}
+
+export class PublishMeetingMinutesDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  minutesBody?: string;
 }

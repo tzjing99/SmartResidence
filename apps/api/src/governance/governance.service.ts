@@ -1,3 +1,4 @@
+import { LedgerService } from '@/billing/ledger.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PollsService } from '@/polls/polls.service';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -16,11 +17,13 @@ import {
   type Prisma,
   RoleId,
 } from '@prisma/client';
+import type { MeetingFinancialSnapshot } from '@smartresidence/shared-types';
 import type {
   CastResolutionVoteDto,
   CreateGeneralMeetingDto,
   CreateMeetingResolutionDto,
   OpenResolutionVotingDto,
+  PublishMeetingMinutesDto,
   SubmitMeetingProxyDto,
   UpdateGeneralMeetingDto,
   UpdateMeetingResolutionDto,
@@ -55,6 +58,7 @@ export class GovernanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly polls: PollsService,
+    private readonly ledger: LedgerService,
     private readonly events: EventEmitter2,
   ) {}
 
@@ -151,6 +155,12 @@ export class GovernanceService {
     if (existing.status !== GeneralMeetingStatus.DRAFT && dto.noticeBody !== undefined) {
       throw new BadRequestException('Notice body can only be edited while the meeting is a draft');
     }
+    if (existing.minutesPublishedAt && dto.minutesBody !== undefined) {
+      throw new BadRequestException('Minutes cannot be edited after they are published');
+    }
+    if (dto.minutesBody !== undefined && existing.status === GeneralMeetingStatus.DRAFT) {
+      throw new BadRequestException('Minutes can only be edited after the notice is published');
+    }
 
     const row = await this.prisma.generalMeeting.update({
       where: { id },
@@ -159,6 +169,7 @@ export class GovernanceService {
         title: dto.title?.trim(),
         scheduledAt: dto.scheduledAt,
         noticeBody: dto.noticeBody?.trim(),
+        minutesBody: dto.minutesBody?.trim(),
         status: dto.status,
       },
       include: meetingInclude,
@@ -179,9 +190,14 @@ export class GovernanceService {
       throw new BadRequestException('Notice body is required before publishing');
     }
 
+    const financialSnapshot = await this.buildFinancialSnapshot(existing.condoId);
+
     const row = await this.prisma.generalMeeting.update({
       where: { id },
-      data: { status: GeneralMeetingStatus.NOTICE_PUBLISHED },
+      data: {
+        status: GeneralMeetingStatus.NOTICE_PUBLISHED,
+        financialSnapshot: financialSnapshot as unknown as Prisma.InputJsonValue,
+      },
       include: meetingInclude,
     });
 
@@ -191,6 +207,70 @@ export class GovernanceService {
     });
 
     return this.serializeMeeting(row, user, { manage: true });
+  }
+
+  async publishMinutes(user: AuthenticatedUser, id: string, dto: PublishMeetingMinutesDto = {}) {
+    const existing = await this.prisma.generalMeeting.findUnique({
+      where: { id },
+      include: {
+        ...meetingInclude,
+        resolutions: {
+          orderBy: { position: 'asc' },
+          include: {
+            poll: { select: { id: true, status: true } },
+          },
+        },
+      },
+    });
+    if (!existing) throw new NotFoundException();
+    this.assertManagement(user, existing.condoId);
+
+    if (
+      existing.status !== GeneralMeetingStatus.IN_PROGRESS &&
+      existing.status !== GeneralMeetingStatus.CLOSED
+    ) {
+      throw new BadRequestException(
+        'Minutes can only be published when the meeting is in progress or closed',
+      );
+    }
+
+    const openPoll = existing.resolutions.some(
+      (r) => r.pollId && r.poll?.status === PollStatus.OPEN,
+    );
+    if (openPoll) {
+      throw new BadRequestException(
+        'All resolution polls must be closed before publishing minutes',
+      );
+    }
+
+    const minutesBody = dto.minutesBody?.trim() ?? existing.minutesBody;
+    if (!minutesBody.trim()) {
+      throw new BadRequestException('Minutes body is required before publishing');
+    }
+
+    const row = await this.prisma.generalMeeting.update({
+      where: { id },
+      data: {
+        minutesBody,
+        minutesPublishedAt: new Date(),
+      },
+      include: meetingInclude,
+    });
+
+    this.events.emit('governance.minutes.published', {
+      meetingId: id,
+      condoId: row.condoId,
+    });
+
+    return this.serializeMeeting(row, user, { manage: true });
+  }
+
+  private async buildFinancialSnapshot(condoId: string): Promise<MeetingFinancialSnapshot> {
+    const fundBalances = await this.ledger.fundBalances(condoId);
+    return {
+      capturedAt: new Date(),
+      fundBalances,
+    };
   }
 
   async addResolution(user: AuthenticatedUser, meetingId: string, dto: CreateMeetingResolutionDto) {
@@ -509,10 +589,17 @@ export class GovernanceService {
   }
 
   private serializeMeeting(
-    row: Prisma.GeneralMeetingGetPayload<{ include: typeof meetingInclude }>,
+    row: Prisma.GeneralMeetingGetPayload<{ include: typeof meetingInclude }> & {
+      minutesBody?: string;
+      minutesPublishedAt?: Date | null;
+      financialSnapshot?: unknown;
+    },
     _user: AuthenticatedUser,
     opts: { manage?: boolean },
   ) {
+    const showMinutes = opts.manage || row.minutesPublishedAt != null;
+    const showFinancial = opts.manage || row.status !== GeneralMeetingStatus.DRAFT;
+
     return {
       id: row.id,
       condoId: row.condoId,
@@ -520,6 +607,11 @@ export class GovernanceService {
       title: row.title,
       scheduledAt: row.scheduledAt,
       noticeBody: opts.manage || row.status !== GeneralMeetingStatus.DRAFT ? row.noticeBody : '',
+      minutesBody: showMinutes ? (row.minutesBody ?? '') : '',
+      minutesPublishedAt: row.minutesPublishedAt ?? null,
+      financialSnapshot: showFinancial
+        ? ((row.financialSnapshot as MeetingFinancialSnapshot | null) ?? null)
+        : null,
       status: row.status,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

@@ -918,6 +918,11 @@ function GatewayProviderCard({
             ) : null}
           </div>
           {capability ? <p className="text-sm sr-muted mt-1">{capability.tagline}</p> : null}
+          {provider === 'RAZER' ? (
+            <p className="text-xs sr-muted mt-1">
+              Covers FPX, Touch &apos;n Go, Boost, GrabPay and cards via Fiuu hosted checkout.
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
           <div className="flex items-center gap-2">
@@ -1021,6 +1026,16 @@ function GatewayProviderCard({
             </code>{' '}
             and body{' '}
             <code className="text-[11px]">{`{ "billRef": "<ref from QR>", "amount": "100.00" }`}</code>
+            .
+          </p>
+        ) : null}
+        {provider === 'TNG' ? (
+          <p className="sm:col-span-2 text-xs sr-muted">
+            TEST mode without Merchant ID / API key returns a local sandbox redirect (no TNG call).
+            Simulate settlement with{' '}
+            <code className="text-[11px]">POST /api/webhooks/payments/tng/sandbox/settle</code> and
+            body{' '}
+            <code className="text-[11px]">{`{ "orderid": "<ref from redirect>", "amount": "100.00" }`}</code>
             .
           </p>
         ) : null}

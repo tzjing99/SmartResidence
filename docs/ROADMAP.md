@@ -103,7 +103,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Deposits + configurable receipts + unit-type fee schedule** | ✅ | `Deposit`/`Receipt`/`UnitTypeFeeRate`; auto-issued receipt PDFs (no deps); admin `/admin/deposits` + `/admin/settings/billing`; recurring invoices auto-computed from unit-type rate |
 | **Accounting ledger + reports** | ✅ | Append-only `LedgerEntry` (fund-tagged) + `UnitAccount` credit; fund balances, collections, arrears aging, unit statement; prepayment auto-apply; `/admin/accounting` |
 | **Self-serve payment gateways (Stripe / Fiuu / iPay88)** | ✅ (core) | Per-condo `PaymentGatewayConnection` with AES-256-GCM envelope-encrypted secrets; Stripe live + Fiuu/iPay88 sandbox-ready (signed redirect + callback verify); condo-aware webhooks; resident Pay-now method picker |
-| **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay) dedicated channels** | ✅ (DuitNow QR) | **DuitNow QR** first-class adapter + admin gateway toggles/capabilities UI (`/admin/settings/billing`); TNG / Boost / GrabPay still reachable via Fiuu/iPay88 aggregators; dedicated per-rail adapters & statement/CSV exports still pending |
+| **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay)** | ✅ (DuitNow QR + Fiuu) | **DuitNow QR** first-class adapter + admin gateway UI; **Fiuu (Razer)** is the canonical production path for TNG/Boost/GrabPay/FPX/cards (single merchant contract, hosted checkout); dedicated **Boost/GrabPay adapters cancelled** (product decision); optional **TNG sandbox adapter** only; statement/CSV export still pending |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |
 | **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic send, socket cache, live inbox); priority-change reassignment (`assignOnPriorityChange`) + **C6** ML-assignment scaffold now shipped (seam + 200-thread gate + opt-in toggle + stub provider). Still deferred: a real trained ML model (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
 | **FAQ knowledge base** | ✅ | `FaqModule` shipped (`apps/api/src/faq/**`): controller/service, admin authoring (`/admin/faq`), resident browse (`/(resident)/faq`) + mobile FAQ, and thread-compose deflection (`POST /faq/deflect-match`) |
@@ -171,7 +171,7 @@ Dependencies are noted per module. "→" means "depends on / builds atop".
     admin **gateway capabilities/toggles UI** for per-condo method enablement.
 - **MyInvois e-Invoice ✅:** production provider seam (`production-myinvois.provider.ts`)
   with OAuth + document mapping; sandbox delegation; admin `/admin/settings/einvoice`.
-- **MY rails:** **DuitNow QR ✅** (dedicated adapter + gateway UI toggles); **TNG / Boost / GrabPay** still via Fiuu/iPay88 aggregators; statement/CSV export remains pending.
+- **MY rails:** **DuitNow QR ✅** (dedicated adapter + gateway UI); **Fiuu (Razer) ✅** canonical for TNG/Boost/GrabPay/FPX/cards via hosted checkout (no separate e-wallet contracts for JMBs); dedicated **Boost/GrabPay adapters cancelled** (won't-do); optional **TNG dedicated adapter** remains sandbox-only; statement/CSV export remains pending.
 - **Transparency:** unit-level statement view + audit entry on every charge
   adjustment (owner empowerment).
 - **Deps:** Identity, Multi-tenancy. **Enables:** Governance financial
@@ -496,15 +496,16 @@ flowchart LR
 - **Delivers:** two-path visitor flow (fast-lane QR/access-code + strict
   walk-in with **mandatory owner approval, no override**, management-office
   exception, full unit-activity logging, offline tolerance); **apply the RBAC
-  correction** (management read/audit only); DuitNow QR / TNG / Boost /
-  GrabPay adapters; itemized statements + receipts.
+  correction** (management read/audit only); DuitNow QR; Malaysian e-wallets via
+  **Fiuu (Razer)** aggregator; itemized statements + receipts.
 - **Shipped (visitor polish — V3):** share pass (replaces regenerate); holiday
   auto-approve toggle + MY public holidays in settings; guard unit search picker
   (web + mobile); visitor/helpdesk i18n wiring (en/ms/zh-Hans); admin overnight
   queue filters; Windows `db:migrate` fix. **Shipped (MY rails):** DuitNow QR
-  adapter + gateway UI; TNG/Boost/GrabPay via aggregators. **Shipped (RBAC):**
-  management read/audit only — see §2.1. **Still ⬜:** dedicated
-  TNG/Boost/GrabPay adapters + statement/CSV export polish.
+  adapter + gateway UI; **Fiuu** as canonical path for TNG/Boost/GrabPay/FPX/cards.
+  **Product decision:** dedicated Boost/GrabPay adapters **cancelled** (use Fiuu);
+  optional TNG sandbox adapter only. **Shipped (RBAC):** management read/audit only — see §2.1.
+  **Still ⬜:** statement/CSV export polish.
 - **Deps:** Threads (context), Notifications, Audit, Billing core.
   **Acceptance:** walk-in cannot enter without owner approval; no
   guard/supervisor override path exists; management office visitor allowed &
@@ -573,7 +574,9 @@ flowchart LR
   skeletons during transitions, prefetch nav targets on hover/mount so warm
   navigations feel instant without full streaming SSR.
 - **Observability:** request IDs (`request-id.middleware`), structured logs,
-  health checks (`health` module); add metrics/traces before v1.0.
+  health checks (`health` module); **Prometheus scrape endpoint** (`GET /metrics`,
+  gated by `METRICS_ENABLED=true` + localhost) for uptime, heap, request count,
+  and Postgres/Redis health; OpenTelemetry traces still deferred pre-v1.0.
 - **Self-hosting:** Docker compose + Helm chart; `make dev`; demo seed; keep
   external services optional/swappable.
 - **Pluggable local-AI seam:** `AI_ASSIST_PROVIDER` stays an interface; the
@@ -651,8 +654,10 @@ messaging questions remain.
 
 ### Open questions for the product owner (other modules)
 
-1. **MY payment priority:** which rail first for v0.3 — **DuitNow QR** vs
-   **TNG eWallet**? (Affects adapter sequencing.)
+1. ~~**MY payment priority:**~~ **Decided:** **Fiuu (Razer)** is the canonical
+   e-wallet path for production JMBs (TNG/Boost/GrabPay via one merchant
+   contract); **DuitNow QR** remains a dedicated first-class rail; dedicated
+   Boost/GrabPay adapters won't be built.
 2. **Walk-in no-response policy:** exact owner-approval timeout (e.g. 5 min)
    and what the visitor sees — silent expiry vs explicit "denied"?
 3. **Management-office exception:** which roles/users count as "management

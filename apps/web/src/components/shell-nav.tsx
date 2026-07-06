@@ -44,7 +44,7 @@ export { prefetchRoute };
  *
  * Routes are prefetched on hover/focus so warm navigations skip the RSC round-trip.
  */
-export function NavLinks({ items }: { items: NavItem[] }) {
+export function NavLinks({ items, ariaLabel }: { items: NavItem[]; ariaLabel?: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
@@ -70,7 +70,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
   }, [items, router]);
 
   return (
-    <nav className="flex-1 flex flex-col gap-1">
+    <nav className="flex-1 flex flex-col gap-1" aria-label={ariaLabel}>
       <LayoutGroup id={groupId}>
         {items.map((item) => {
           const active = item.href === activeHref || item.href === pendingHref;
@@ -163,15 +163,18 @@ export function NavGroupLinks({
   topItems = [],
   groups,
   bottomItems = [],
+  ariaLabel,
 }: {
   topItems?: NavItem[];
   groups: NavGroup[];
   bottomItems?: NavItem[];
+  ariaLabel?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const groupId = React.useId();
+  const collapseBaseId = React.useId();
   const [pendingHref, setPendingHref] = React.useState<string | null>(null);
 
   const allItems = React.useMemo(
@@ -232,20 +235,22 @@ export function NavGroupLinks({
   );
 
   return (
-    <nav className="flex-1 flex flex-col gap-1 overflow-y-auto min-h-0">
+    <nav className="flex-1 flex flex-col gap-1 overflow-y-auto min-h-0" aria-label={ariaLabel}>
       <LayoutGroup id={groupId}>
         {topItems.map(renderItem)}
         {groups.map((group) => {
           const isCollapsed = collapsed[group.label] ?? false;
           const canCollapse = Boolean(group.defaultCollapsed);
+          const panelId = `${collapseBaseId}-${group.label}`;
           return (
             <div key={group.label} className="mt-3 first:mt-0">
               {canCollapse ? (
                 <button
                   type="button"
                   onClick={() => setCollapsed((prev) => ({ ...prev, [group.label]: !isCollapsed }))}
-                  className="flex w-full items-center justify-between px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide sr-muted hover:text-[rgb(var(--sr-fg))] transition-colors"
+                  className="flex w-full items-center justify-between px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide sr-muted hover:text-[rgb(var(--sr-fg))] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-coral-500/50 rounded-lg"
                   aria-expanded={!isCollapsed}
+                  aria-controls={panelId}
                 >
                   {group.label}
                   <ChevronDown
@@ -261,6 +266,7 @@ export function NavGroupLinks({
               <AnimatePresence initial={false}>
                 {!isCollapsed ? (
                   <motion.div
+                    id={panelId}
                     key="content"
                     initial={reduceMotion ? undefined : { height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}

@@ -167,6 +167,7 @@ export const queryKeys = {
   overnightUnitSummary: (condoId: string, month?: string) =>
     ['visitors', 'overnight-summary', condoId, month ?? 'current'] as const,
   preferences: ['auth', 'preferences'] as const,
+  sessions: ['auth', 'sessions'] as const,
   notifications: (unreadOnly?: boolean) =>
     ['notifications', { unreadOnly: unreadOnly ?? false }] as const,
   condoSosAlerts: (condoId: string) => ['sos', 'condo', condoId] as const,
@@ -298,6 +299,31 @@ export function usePlatformCondoSummary(
       condoId ? api.platformCondoSummary(condoId) : Promise.reject(new Error('no condo')),
     enabled: (options?.enabled ?? true) && Boolean(condoId),
     staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function usePlatformCondoHealth(
+  api: ApiClient,
+  condoId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.platformCondoHealth(condoId) : ['platform', 'condos', null],
+    queryFn: () =>
+      condoId ? api.platformCondoHealth(condoId) : Promise.reject(new Error('no condo')),
+    enabled: (options?.enabled ?? true) && Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreatePlatformCondo(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<ApiClient['createPlatformCondo']>[0]) =>
+      api.createPlatformCondo(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['platform', 'condos'] });
+    },
   });
 }
 
@@ -2667,6 +2693,22 @@ export function useUpdatePreferences(api: ApiClient) {
     mutationFn: (body: Parameters<ApiClient['updatePreferences']>[0]) =>
       api.updatePreferences(body),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.preferences }),
+  });
+}
+
+export function useSessions(api: ApiClient) {
+  return useQuery({
+    queryKey: queryKeys.sessions,
+    queryFn: () => api.listSessions(),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useRevokeSession(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => api.revokeSession(sessionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.sessions }),
   });
 }
 

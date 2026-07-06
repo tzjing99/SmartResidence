@@ -55,6 +55,7 @@ function makeService(prisma: Partial<PrismaService>, events: { emit: ReturnType<
     {} as import('./providers/fiuu.adapter').FiuuAdapter,
     {} as import('./providers/ipay88.adapter').IPay88Adapter,
     {} as import('./providers/duitnow.adapter').DuitNowAdapter,
+    {} as import('./providers/tng.adapter').TngAdapter,
   );
 }
 

@@ -3,7 +3,15 @@ import { z } from 'zod';
 export const InvoiceStatus = z.enum(['DRAFT', 'ISSUED', 'PARTIAL', 'PAID', 'VOID', 'OVERDUE']);
 export type InvoiceStatus = z.infer<typeof InvoiceStatus>;
 
-export const PaymentProvider = z.enum(['STRIPE', 'FPX', 'IPAY88', 'RAZER', 'DUITNOW_QR', 'MANUAL']);
+export const PaymentProvider = z.enum([
+  'STRIPE',
+  'FPX',
+  'IPAY88',
+  'RAZER',
+  'DUITNOW_QR',
+  'TNG',
+  'MANUAL',
+]);
 export type PaymentProvider = z.infer<typeof PaymentProvider>;
 
 export const PaymentStatus = z.enum(['PENDING', 'SUCCEEDED', 'FAILED', 'REFUNDED', 'CANCELLED']);
@@ -690,6 +698,11 @@ export interface FundBalance {
   balance: number;
 }
 
+export const FundBalanceSchema = z.object({
+  fund: LedgerFund,
+  balance: z.number(),
+});
+
 export interface CollectionsSummary {
   from: string;
   to: string;
@@ -854,13 +867,20 @@ export const GatewayMode = z.enum(['TEST', 'LIVE']);
 export type GatewayMode = z.infer<typeof GatewayMode>;
 
 /** Providers an admin can self-connect from the gateway settings UI. */
-export const CONNECTABLE_PROVIDERS: PaymentProvider[] = ['STRIPE', 'RAZER', 'IPAY88', 'DUITNOW_QR'];
+export const CONNECTABLE_PROVIDERS: PaymentProvider[] = [
+  'STRIPE',
+  'RAZER',
+  'IPAY88',
+  'DUITNOW_QR',
+  'TNG',
+];
 
 export const GATEWAY_PROVIDER_LABELS: Record<string, string> = {
   STRIPE: 'Stripe (card)',
   RAZER: 'Fiuu (FPX / e-wallet / card)',
   IPAY88: 'iPay88 (FPX / e-wallet / card)',
   DUITNOW_QR: 'DuitNow QR',
+  TNG: "Touch 'n Go eWallet",
   FPX: 'FPX',
   MANUAL: 'Manual / offline',
 };
@@ -871,6 +891,7 @@ export const GATEWAY_PROVIDER_SHORT_LABELS: Record<string, string> = {
   RAZER: 'Fiuu',
   IPAY88: 'iPay88',
   DUITNOW_QR: 'DuitNow QR',
+  TNG: "Touch 'n Go eWallet",
   FPX: 'FPX',
   MANUAL: 'Manual / offline',
 };
@@ -921,6 +942,15 @@ export const GATEWAY_CAPABILITIES: Record<string, GatewayCapabilityInfo> = {
     accepts: ['DuitNow QR from any Malaysian banking or e-wallet app'],
     limitations: ['Cards are not accepted directly', 'Resident needs a supported banking app'],
   },
+  TNG: {
+    tagline: "Pay with Touch 'n Go eWallet balance.",
+    checkout: 'Resident is redirected to the TNG hosted page or app to authorise payment.',
+    accepts: ["Touch 'n Go eWallet balance", 'Linked bank accounts in the TNG app'],
+    limitations: [
+      'Only TNG eWallet — not FPX, cards or other e-wallets',
+      'Payment happens on the TNG hosted page',
+    ],
+  },
 };
 
 /** Which credential fields each provider expects (labels for the admin UI). */
@@ -942,6 +972,11 @@ export const GATEWAY_CREDENTIAL_FIELDS: Record<string, { key: string; label: str
     { key: 'merchantId', label: 'Merchant ID (PayNet / acquirer)' },
     { key: 'clientId', label: 'API client ID' },
     { key: 'clientSecret', label: 'API client secret' },
+    { key: 'webhookSecret', label: 'Webhook signing secret' },
+  ],
+  TNG: [
+    { key: 'merchantId', label: 'Merchant ID' },
+    { key: 'apiKey', label: 'API key (request signing)' },
     { key: 'webhookSecret', label: 'Webhook signing secret' },
   ],
 };

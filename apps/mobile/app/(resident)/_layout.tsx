@@ -73,6 +73,7 @@ export default function ResidentTabsLayout() {
         <Tabs.Screen name="lost-found" options={{ href: null }} />
         <Tabs.Screen name="faq" options={{ href: null }} />
         <Tabs.Screen name="access" options={{ href: null }} />
+        <Tabs.Screen name="sessions" options={{ href: null }} />
         <Tabs.Screen name="sos" options={{ href: null }} />
         <Tabs.Screen
           name="settings"

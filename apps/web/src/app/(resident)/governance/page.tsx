@@ -19,7 +19,11 @@ import type {
   GeneralMeetingStatus,
   MeetingResolution,
 } from '@smartresidence/shared-types';
-import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
+import {
+  FUND_LABELS,
+  MEETING_KIND_LABELS,
+  MEETING_STATUS_LABELS,
+} from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { ChevronRight, Gavel } from 'lucide-react';
 import * as React from 'react';
@@ -40,6 +44,29 @@ function fmtDate(d: Date | string | null | undefined) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function FinancialSnapshotReadOnly({
+  snapshot,
+}: {
+  snapshot: NonNullable<GeneralMeeting['financialSnapshot']>;
+}) {
+  return (
+    <div className="mt-4">
+      <h3 className="font-medium mb-2">Financial snapshot</h3>
+      <p className="text-sm sr-muted mb-2">As disclosed when the notice was published</p>
+      <ul className="text-sm space-y-1">
+        {(snapshot.fundBalances ?? []).map((row) => (
+          <li key={row.fund} className="flex justify-between gap-4">
+            <span>{FUND_LABELS[row.fund] ?? row.fund}</span>
+            <span className="tabular-nums sr-muted">
+              {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function ProxyForm({
@@ -303,6 +330,17 @@ function MeetingDetail({
         <div className="mt-4">
           <h3 className="font-medium mb-2">Notice</h3>
           <Markdown>{meeting.noticeBody}</Markdown>
+        </div>
+      ) : null}
+
+      {meeting.financialSnapshot ? (
+        <FinancialSnapshotReadOnly snapshot={meeting.financialSnapshot} />
+      ) : null}
+
+      {meeting.minutesPublishedAt && meeting.minutesBody ? (
+        <div className="mt-4">
+          <h3 className="font-medium mb-2">Minutes</h3>
+          <Markdown>{meeting.minutesBody}</Markdown>
         </div>
       ) : null}
 

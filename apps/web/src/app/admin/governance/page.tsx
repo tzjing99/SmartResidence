@@ -12,6 +12,7 @@ import {
   useMeeting,
   useMyCondos,
   useOpenResolutionVoting,
+  usePublishMeetingMinutes,
   usePublishMeetingNotice,
   useUpdateMeeting,
 } from '@smartresidence/api-client';
@@ -20,7 +21,11 @@ import type {
   GeneralMeetingKind,
   GeneralMeetingStatus,
 } from '@smartresidence/shared-types';
-import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
+import {
+  FUND_LABELS,
+  MEETING_KIND_LABELS,
+  MEETING_STATUS_LABELS,
+} from '@smartresidence/shared-types';
 import {
   Badge,
   Button,
@@ -52,10 +57,44 @@ function fmtDate(d: Date | string | null | undefined) {
   });
 }
 
+function FinancialSnapshotTable({
+  snapshot,
+}: {
+  snapshot: NonNullable<GeneralMeeting['financialSnapshot']>;
+}) {
+  return (
+    <div className="mb-6">
+      <h3 className="font-medium mb-2">Financial snapshot (at notice)</h3>
+      <p className="text-sm sr-muted mb-2">Captured {fmtDate(snapshot.capturedAt)}</p>
+      <div className="overflow-x-auto rounded-lg border border-[rgb(var(--sr-border))]">
+        <table className="w-full text-sm">
+          <thead className="bg-[rgb(var(--sr-surface-muted))]">
+            <tr>
+              <th className="text-left p-2 font-medium">Fund</th>
+              <th className="text-right p-2 font-medium">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(snapshot.fundBalances ?? []).map((row) => (
+              <tr key={row.fund} className="border-t border-[rgb(var(--sr-border))]">
+                <td className="p-2">{FUND_LABELS[row.fund] ?? row.fund}</td>
+                <td className="p-2 text-right tabular-nums">
+                  {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose: () => void }) {
   const meetingQuery = useMeeting(api, meetingId);
   const updateMeeting = useUpdateMeeting(api);
   const publishNotice = usePublishMeetingNotice(api);
+  const publishMinutes = usePublishMeetingMinutes(api);
   const addResolution = useAddMeetingResolution(api);
   const openVoting = useOpenResolutionVoting(api);
   const closeVoting = useCloseResolutionVoting(api);
@@ -63,6 +102,11 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
   const meeting = meetingQuery.data;
   const [resolutionTitle, setResolutionTitle] = React.useState('');
   const [resolutionDesc, setResolutionDesc] = React.useState('');
+  const [minutesDraft, setMinutesDraft] = React.useState('');
+
+  React.useEffect(() => {
+    setMinutesDraft(meeting?.minutesBody ?? '');
+  }, [meeting?.minutesBody]);
 
   if (meetingQuery.isLoading) {
     return (
@@ -99,6 +143,72 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
         <div className="mb-6">
           <h3 className="font-medium mb-2">Notice</h3>
           <Markdown>{meeting.noticeBody}</Markdown>
+        </div>
+      ) : null}
+
+      {meeting.financialSnapshot ? (
+        <FinancialSnapshotTable snapshot={meeting.financialSnapshot} />
+      ) : null}
+
+      {status !== 'DRAFT' ? (
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Minutes</h3>
+          {meeting.minutesPublishedAt ? (
+            <Markdown>{meeting.minutesBody ?? ''}</Markdown>
+          ) : (
+            <>
+              <Textarea
+                value={minutesDraft}
+                onChange={(e) => setMinutesDraft(e.target.value)}
+                rows={6}
+                placeholder="Meeting minutes (markdown)"
+                className="mb-3"
+              />
+              {minutesDraft.trim() ? (
+                <div className="mb-3 rounded-lg border border-[rgb(var(--sr-border))] p-3">
+                  <p className="text-xs sr-muted mb-2">Preview</p>
+                  <Markdown>{minutesDraft}</Markdown>
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={updateMeeting.isPending || !minutesDraft.trim()}
+                  loading={updateMeeting.isPending}
+                  onClick={() =>
+                    updateMeeting.mutate(
+                      { id: meetingId, data: { minutesBody: minutesDraft.trim() } },
+                      {
+                        onSuccess: () => toast.success('Minutes saved'),
+                        onError: (e) => toast.error(e.message),
+                      },
+                    )
+                  }
+                >
+                  Save minutes draft
+                </Button>
+                <Button
+                  disabled={
+                    publishMinutes.isPending ||
+                    !minutesDraft.trim() ||
+                    (status !== 'IN_PROGRESS' && status !== 'CLOSED')
+                  }
+                  loading={publishMinutes.isPending}
+                  onClick={() =>
+                    publishMinutes.mutate(
+                      { id: meetingId, data: { minutesBody: minutesDraft.trim() } },
+                      {
+                        onSuccess: () => toast.success('Minutes published'),
+                        onError: (e) => toast.error(e.message),
+                      },
+                    )
+                  }
+                >
+                  Publish minutes
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       ) : null}
 

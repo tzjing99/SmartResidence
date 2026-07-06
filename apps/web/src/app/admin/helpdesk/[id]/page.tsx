@@ -2,6 +2,7 @@
 
 import { SlaChip } from '@/components/sla-chip';
 import { ThreadMessageList } from '@/components/thread-message-list';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { STATUS_TONE, categoryLabel, priorityLabel, statusLabel } from '@/lib/thread-ui';
 import { toast } from '@/lib/toast';
@@ -16,7 +17,7 @@ import {
 } from '@smartresidence/api-client';
 import type { ThreadCategory, ThreadPriority } from '@smartresidence/api-client';
 import { useThreadRoom } from '@smartresidence/api-client/realtime';
-import { Badge, Button, Card, Skeleton, Textarea } from '@smartresidence/ui-web';
+import { Badge, Button, Card, Label, Skeleton, Textarea } from '@smartresidence/ui-web';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -52,6 +53,7 @@ function ActionHint({ children }: { children: React.ReactNode }) {
 }
 
 export default function AdminThreadPage() {
+  const tr = useT();
   const params = useParams<{ id: string }>();
   const id = params.id;
   const me = useMe(api);
@@ -71,6 +73,9 @@ export default function AdminThreadPage() {
   const [selectedSolutionId, setSelectedSolutionId] = React.useState<string | null>(null);
   const [moreOpen, setMoreOpen] = React.useState(false);
   const moreRef = React.useRef<HTMLDivElement>(null);
+  const replyBodyId = React.useId();
+  const actionNoteId = React.useId();
+  const abusiveReasonId = React.useId();
 
   const meta = (thread.data as { metadata?: Record<string, unknown> } | undefined)?.metadata;
   const duplicateSuggestions = (meta?.duplicateSuggestions ?? []) as Array<{
@@ -268,16 +273,22 @@ export default function AdminThreadPage() {
           </Card>
 
           <form onSubmit={send} className="flex flex-col gap-2">
-            <Textarea
-              rows={3}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder={
-                internal
-                  ? 'Add an internal note (residents can\u2019t see this)…'
-                  : 'Reply to the resident…'
-              }
-            />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={replyBodyId}>
+                {internal ? 'Internal note' : 'Reply to resident'}
+              </Label>
+              <Textarea
+                id={replyBodyId}
+                rows={3}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder={
+                  internal
+                    ? 'Add an internal note (residents can\u2019t see this)…'
+                    : 'Reply to the resident…'
+                }
+              />
+            </div>
             <div className="flex items-center justify-between gap-3">
               <label className="flex items-center gap-2 text-sm sr-muted">
                 <input
@@ -405,7 +416,9 @@ export default function AdminThreadPage() {
                 {mgmtMessages.length > 0 ? (
                   <ActionHint>Tap &ldquo;Use as the fix&rdquo; on a message, or skip.</ActionHint>
                 ) : null}
+                <Label htmlFor={actionNoteId}>Optional note for the resident</Label>
                 <Textarea
+                  id={actionNoteId}
                   rows={2}
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
@@ -423,7 +436,9 @@ export default function AdminThreadPage() {
               </div>
             ) : composer === 'request' ? (
               <div className="flex flex-col gap-2">
+                <Label htmlFor={actionNoteId}>What do you need from the resident?</Label>
                 <Textarea
+                  id={actionNoteId}
                   rows={2}
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
@@ -468,7 +483,9 @@ export default function AdminThreadPage() {
               <h3 className="text-sm font-medium text-red-600 dark:text-red-400">
                 Close as misuse
               </h3>
+              <Label htmlFor={abusiveReasonId}>Reason shown to the resident</Label>
               <Textarea
+                id={abusiveReasonId}
                 rows={3}
                 value={actionNote}
                 onChange={(e) => setActionNote(e.target.value)}
@@ -498,6 +515,7 @@ export default function AdminThreadPage() {
               onClick={() => setMoreOpen((open) => !open)}
               aria-expanded={moreOpen}
               aria-haspopup="menu"
+              aria-label={tr('messages.threadActions')}
             >
               <MoreHorizontal className="size-4" />
               More

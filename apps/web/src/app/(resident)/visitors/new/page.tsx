@@ -70,6 +70,7 @@ export default function NewVisitorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const platePhotoInputId = useId();
+  const overnightCheckboxId = useId();
   const platePhotoRef = useRef<HTMLInputElement>(null);
   const units = useMyUnits(api);
   const condos = useMyCondos(api);
@@ -195,7 +196,10 @@ export default function NewVisitorPage() {
       <p className="sr-muted mb-6">{t('visitors.new.subtitle')}</p>
       <form className="flex flex-col gap-4 overflow-visible" onSubmit={form.handleSubmit(onSubmit)}>
         <FormSection title={t('visitors.new.entryMode')}>
-          <div className="grid grid-cols-2 gap-3">
+          <fieldset
+            aria-label={t('visitors.new.entryMode')}
+            className="grid grid-cols-2 gap-3 border-0 p-0 m-0 min-w-0"
+          >
             {(
               [
                 { id: 'DRIVE_IN' as const, label: t('visitors.new.driveIn'), icon: Car },
@@ -208,6 +212,7 @@ export default function NewVisitorPage() {
                 <button
                   key={mode.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => form.setValue('entryMode', mode.id)}
                   className={cn(
                     'flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-semibold transition-colors',
@@ -223,7 +228,7 @@ export default function NewVisitorPage() {
                 </button>
               );
             })}
-          </div>
+          </fieldset>
         </FormSection>
 
         <FormSection
@@ -329,7 +334,7 @@ export default function NewVisitorPage() {
             title={t('visitors.new.overnight')}
             description={t('visitors.new.overnightDesc')}
           >
-            <label
+            <div
               className={cn(
                 'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-colors',
                 overnight
@@ -337,17 +342,18 @@ export default function NewVisitorPage() {
                   : 'border-[rgb(var(--sr-border))] bg-stone-50/50 dark:bg-stone-900/20',
               )}
             >
-              <div>
+              <Label htmlFor={overnightCheckboxId} className="cursor-pointer flex-1">
                 <p className="text-sm font-semibold">Enable overnight</p>
                 <p className="text-xs sr-muted">Drive-in only · plate photo required</p>
-              </div>
+              </Label>
               <input
+                id={overnightCheckboxId}
                 type="checkbox"
                 className="size-5 accent-[rgb(var(--sr-coral))]"
                 checked={Boolean(overnight)}
                 onChange={(e) => form.setValue('overnight', e.target.checked)}
               />
-            </label>
+            </div>
 
             {overnight ? (
               <div className="flex flex-col gap-4 rounded-xl border border-[rgb(var(--sr-border))] bg-stone-50/60 p-4 dark:bg-stone-900/25">

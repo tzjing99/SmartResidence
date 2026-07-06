@@ -5,6 +5,7 @@ import { NotificationBell } from '@/components/notification-bell';
 import { GenericPageSkeleton, ShellNavSkeleton } from '@/components/route-skeletons';
 import { type NavGroup, NavGroupLinks, type NavItem, PageFade } from '@/components/shell-nav';
 import { useT } from '@/i18n/locale-provider';
+import { SkipToMain } from '@/components/skip-to-main';
 import { api, readSession } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
@@ -293,7 +294,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
           <ShellNavSkeleton count={NAV_DEFS.length} />
         </aside>
-        <main className="flex-1 min-w-0 p-6 md:p-10">
+        <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 p-6 md:p-10 outline-none">
           <GenericPageSkeleton />
         </main>
       </div>
@@ -302,7 +303,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-[rgb(var(--sr-bg))]">
-      <aside className="w-64 border-r border-[rgb(var(--sr-border))] hidden md:flex md:flex-col p-4 sticky top-0 h-screen">
+      <SkipToMain />
+      <aside
+        aria-label="Management sidebar"
+        className="w-64 border-r border-[rgb(var(--sr-border))] hidden md:flex md:flex-col p-4 sticky top-0 h-screen"
+      >
         <Link href="/admin" className="text-xl font-bold tracking-tight px-2 mb-1 mt-2">
           Smart<span className="text-coral-500">Residence</span>
         </Link>
@@ -318,7 +323,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {condo.name}
           </div>
         ) : null}
-        <NavGroupLinks topItems={nav.topItems} groups={nav.groups} bottomItems={nav.bottomItems} />
+        <NavGroupLinks
+          topItems={nav.topItems}
+          groups={nav.groups}
+          bottomItems={nav.bottomItems}
+          ariaLabel="Management navigation"
+        />
         <button
           type="button"
           onClick={signOut}
@@ -328,7 +338,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           {t('nav.signOut')}
         </button>
       </aside>
-      <main className="flex-1 min-w-0">
+      <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 outline-none">
         <header className="sticky top-0 z-10 backdrop-blur bg-[rgb(var(--sr-bg))]/90 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 md:px-10 py-2.5 flex items-center justify-between gap-3">
           <div className="min-w-0 md:hidden">
             <p className="text-sm font-semibold truncate">

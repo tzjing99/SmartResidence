@@ -1,6 +1,11 @@
 import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { TEST_PASSWORD, authHeaders, ensureIntegrationEnv } from '../helpers/integration-env';
+import {
+  TEST_PASSWORD,
+  authHeaders,
+  ensureIntegrationEnv,
+  signInTestIp,
+} from '../helpers/integration-env';
 import type { IntegrationFixtures } from '../helpers/integration-types';
 
 const integrationReady = ensureIntegrationEnv();
@@ -26,6 +31,7 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())
       .post('/api/auth/sign-in')
+      .set('X-Forwarded-For', signInTestIp('auth-sign-in-success'))
       .send({ email: fx.emails.owner, password: TEST_PASSWORD })
       .expect(200);
 
@@ -36,6 +42,7 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())
       .post('/api/auth/sign-in')
+      .set('X-Forwarded-For', signInTestIp('auth-sign-in-invalid'))
       .send({ email: fx.emails.owner, password: 'wrong-password' })
       .expect(401);
     expect(res.body.message ?? res.body.error).toBeTruthy();
@@ -71,5 +78,42 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
 
     const payload = res.body.data ?? res.body;
     expect(Array.isArray(payload)).toBe(true);
+  });
+
+  it('lists sessions, revokes another session, and rejects its refresh token', async () => {
+    const supertest = (await import('supertest')).default;
+    const server = app.getHttpServer();
+
+    const extra = await supertest(server)
+      .post('/api/auth/sign-in')
+      .set('X-Forwarded-For', signInTestIp('auth-extra-session'))
+      .set('User-Agent', 'IntegrationTest/ExtraSession')
+      .send({ email: fx.emails.owner, password: TEST_PASSWORD })
+      .expect(200);
+
+    const extraBody = extra.body.data ?? extra.body;
+    const extraSessionId = extraBody.sessionId as string;
+    const extraRefresh = extraBody.refreshToken as string;
+    expect(extraSessionId).toBeTruthy();
+    expect(extraRefresh).toBeTruthy();
+
+    const listRes = await supertest(server)
+      .get('/api/auth/sessions')
+      .set(authHeaders(fx.tokens.owner, fx.condoId))
+      .expect(200);
+
+    const sessions = listRes.body.data ?? listRes.body;
+    expect(Array.isArray(sessions)).toBe(true);
+    expect(sessions.some((s: { id: string }) => s.id === extraSessionId)).toBe(true);
+
+    await supertest(server)
+      .delete(`/api/auth/sessions/${extraSessionId}`)
+      .set(authHeaders(fx.tokens.owner, fx.condoId))
+      .expect(204);
+
+    await supertest(server)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: extraRefresh })
+      .expect(401);
   });
 });

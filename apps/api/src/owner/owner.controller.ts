@@ -24,8 +24,11 @@ export class OwnerController {
   })
   async listDelegatedAccess(@CurrentUser() user: AuthenticatedUser) {
     const ownedUnitIds = user.roles
-      .filter((r) => r.roleId === RoleId.UNIT_OWNER && r.unitId)
-      .map((r) => r.unitId!) as string[];
+      .filter(
+        (r): r is typeof r & { unitId: string } =>
+          r.roleId === RoleId.UNIT_OWNER && Boolean(r.unitId),
+      )
+      .map((r) => r.unitId);
     if (ownedUnitIds.length === 0) return [];
 
     return this.prisma.roleAssignment.findMany({

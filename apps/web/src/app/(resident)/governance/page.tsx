@@ -369,7 +369,7 @@ function MeetingDetail({
       {(meeting.resolutions?.length ?? 0) > 0 ? (
         <div className="mt-6 space-y-3">
           <h3 className="font-medium">Resolutions</h3>
-          {meeting.resolutions!.map((res) => (
+          {(meeting.resolutions ?? []).map((res) => (
             <ResolutionVotePanel key={res.id} resolution={res} canVote={canVote} />
           ))}
         </div>

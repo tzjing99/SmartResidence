@@ -198,11 +198,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
           <View style={{ marginTop: 12 }}>
             <AppText variant="subheading">Financial snapshot</AppText>
             {meeting.financialSnapshot.fundBalances.map((row) => (
-              <AppText
-                key={row.fund}
-                variant="meta"
-                style={{ color: colors.muted, marginTop: 4 }}
-              >
+              <AppText key={row.fund} variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
                 {FUND_LABELS[row.fund] ?? row.fund}:{' '}
                 {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </AppText>

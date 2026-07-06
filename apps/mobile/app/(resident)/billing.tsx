@@ -454,9 +454,7 @@ export default function BillingScreen() {
                 }}
               >
                 <View style={{ flex: 1, minWidth: 160 }}>
-                  <AppText style={{ fontWeight: '700', color: colors.fg }}>
-                    {r.number}
-                  </AppText>
+                  <AppText style={{ fontWeight: '700', color: colors.fg }}>{r.number}</AppText>
                   <AppText variant="meta" style={{ color: colors.muted, marginTop: 2 }}>
                     {new Date(r.issuedAt).toLocaleDateString()} ·{' '}
                     {formatMoney(r.amount, r.currencyCode ?? 'MYR')}

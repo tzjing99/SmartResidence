@@ -268,15 +268,16 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
                   <Button
                     size="sm"
                     disabled={openVoting.isPending || status === 'DRAFT'}
-                    onClick={() =>
+                    onClick={() => {
+                      if (!res.id) return;
                       openVoting.mutate(
-                        { resolutionId: res.id! },
+                        { resolutionId: res.id },
                         {
                           onSuccess: () => toast.success('Voting opened'),
                           onError: (e) => toast.error(e.message),
                         },
-                      )
-                    }
+                      );
+                    }}
                   >
                     Open voting
                   </Button>
@@ -286,12 +287,13 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
                     size="sm"
                     variant="secondary"
                     disabled={closeVoting.isPending}
-                    onClick={() =>
-                      closeVoting.mutate(res.id!, {
+                    onClick={() => {
+                      if (!res.id) return;
+                      closeVoting.mutate(res.id, {
                         onSuccess: () => toast.success('Voting closed'),
                         onError: (e) => toast.error(e.message),
-                      })
-                    }
+                      });
+                    }}
                   >
                     Close voting
                   </Button>

@@ -2042,7 +2042,10 @@ export function useDeleteFormTemplate(api: ApiClient) {
 export function useCondoBlocks(api: ApiClient, condoId: string | null) {
   return useQuery({
     queryKey: condoId ? ['blocks', condoId] : ['blocks', null],
-    queryFn: () => api.listBlocks(condoId!),
+    queryFn: () => {
+      if (!condoId) throw new Error('condoId required');
+      return api.listBlocks(condoId);
+    },
     enabled: Boolean(condoId),
   });
 }
@@ -2055,8 +2058,10 @@ export function useCondoUnitsSearch(
 ) {
   return useQuery({
     queryKey: condoId ? ['units', condoId, search] : ['units', null],
-    queryFn: () =>
-      api.listUnits(condoId!, { limit: 50, offset: 0, search: search.trim() || undefined }),
+    queryFn: () => {
+      if (!condoId) throw new Error('condoId required');
+      return api.listUnits(condoId, { limit: 50, offset: 0, search: search.trim() || undefined });
+    },
     enabled: Boolean(condoId) && enabled,
   });
 }

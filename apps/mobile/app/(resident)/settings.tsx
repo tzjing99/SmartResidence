@@ -249,6 +249,27 @@ export default function SettingsScreen() {
       </Card>
 
       <ResidentSectionHeader
+        title="Security"
+        subtitle="Manage sign-in sessions and device access."
+      />
+
+      <Card style={[residentStyles.card, { paddingVertical: 4 }]}>
+        <MoreLink
+          icon="phone-portrait-outline"
+          title="Devices & sessions"
+          subtitle="Review active sign-ins and revoke unknown devices"
+          onPress={() => router.push('/(resident)/sessions' as Href)}
+        />
+        <MoreLink
+          icon="key-outline"
+          title="Who has access to my unit"
+          subtitle="Review and revoke delegated access"
+          onPress={() => router.push('/(resident)/access' as Href)}
+          isLast
+        />
+      </Card>
+
+      <ResidentSectionHeader
         title="More"
         subtitle="Everything else your resident account can do."
       />
@@ -289,12 +310,6 @@ export default function SettingsScreen() {
           title="Help & FAQ"
           subtitle="Answers from your management office"
           onPress={() => router.push('/(resident)/faq' as Href)}
-        />
-        <MoreLink
-          icon="key-outline"
-          title="Who has access to my unit"
-          subtitle="Review and revoke delegated access"
-          onPress={() => router.push('/(resident)/access' as Href)}
           isLast
         />
       </Card>

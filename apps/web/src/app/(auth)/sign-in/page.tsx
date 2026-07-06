@@ -47,6 +47,7 @@ export default function SignInPage() {
   );
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
   const [needsTotp, setNeedsTotp] = React.useState(false);
+  const passwordErrorId = React.useId();
   useSignInQueryParams(form);
 
   async function onSubmit(values: z.infer<typeof schema>) {
@@ -109,8 +110,15 @@ export default function SignInPage() {
               id="password"
               type="password"
               autoComplete="current-password"
+              aria-invalid={form.formState.errors.password ? true : undefined}
+              aria-describedby={form.formState.errors.password ? passwordErrorId : undefined}
               {...form.register('password')}
             />
+            {form.formState.errors.password ? (
+              <p id={passwordErrorId} className="text-xs text-red-600 dark:text-red-400">
+                {form.formState.errors.password.message}
+              </p>
+            ) : null}
           </div>
           {needsTotp ? (
             <div className="flex flex-col gap-1.5">

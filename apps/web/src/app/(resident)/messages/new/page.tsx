@@ -51,6 +51,7 @@ export default function NewMessagePage() {
   const [dismissedDeflection, setDismissedDeflection] = React.useState(false);
   const [attachmentIds, setAttachmentIds] = React.useState<string[]>([]);
   const photoUploadRef = React.useRef<PhotoUploadHandle>(null);
+  const photosLabelId = React.useId();
 
   React.useEffect(() => {
     if (!condo?.id || subject.trim().length < 5 || body.trim().length < 10) {
@@ -190,8 +191,8 @@ export default function NewMessagePage() {
               placeholder={t('messages.bodyPlaceholder')}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>{t('upload.photos')}</Label>
+          <fieldset className="flex flex-col gap-1.5 border-0 p-0 m-0 min-w-0">
+            <Label id={photosLabelId}>{t('upload.photos')}</Label>
             <PhotoUpload
               ref={photoUploadRef}
               maxFiles={MAX_ATTACHMENTS_PER_MESSAGE}
@@ -212,7 +213,7 @@ export default function NewMessagePage() {
                 tooMany: t('upload.tooMany'),
               }}
             />
-          </div>
+          </fieldset>
           <div className="flex justify-end gap-3 mt-2">
             <Button type="button" variant="ghost" onClick={() => router.back()}>
               {t('actions.cancel')}

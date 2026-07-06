@@ -12,7 +12,11 @@ import type {
   GeneralMeetingStatus,
   MeetingResolution,
 } from '@smartresidence/shared-types';
-import { MEETING_KIND_LABELS, MEETING_STATUS_LABELS } from '@smartresidence/shared-types';
+import {
+  FUND_LABELS,
+  MEETING_KIND_LABELS,
+  MEETING_STATUS_LABELS,
+} from '@smartresidence/shared-types';
 import {
   AnimatedPressable,
   AppText,
@@ -184,6 +188,30 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
             {meeting.noticeBody.slice(0, 500)}
             {meeting.noticeBody.length > 500 ? '…' : ''}
           </AppText>
+        ) : null}
+
+        {meeting.financialSnapshot?.fundBalances?.length ? (
+          <View style={{ marginTop: 12 }}>
+            <AppText variant="subheading">Financial snapshot</AppText>
+            {meeting.financialSnapshot.fundBalances.map((row) => (
+              <AppText
+                key={row.fund}
+                variant="meta"
+                style={{ color: palette.mutedLight, marginTop: 4 }}
+              >
+                {FUND_LABELS[row.fund] ?? row.fund}:{' '}
+                {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </AppText>
+            ))}
+          </View>
+        ) : null}
+        {meeting.minutesPublishedAt && meeting.minutesBody ? (
+          <View style={{ marginTop: 12 }}>
+            <AppText variant="subheading">Minutes</AppText>
+            <AppText variant="body" style={{ marginTop: 4 }}>
+              {meeting.minutesBody}
+            </AppText>
+          </View>
         ) : null}
       </Card>
 

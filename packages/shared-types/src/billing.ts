@@ -698,6 +698,11 @@ export interface FundBalance {
   balance: number;
 }
 
+export const FundBalanceSchema = z.object({
+  fund: LedgerFund,
+  balance: z.number(),
+});
+
 export interface CollectionsSummary {
   from: string;
   to: string;
@@ -832,6 +837,22 @@ export interface UnitStatement {
   totalOutstanding: number;
   entries: UnitStatementEntry[];
 }
+
+/** Optional date range when exporting a unit statement (CSV/PDF). */
+export interface UnitStatementExportParams {
+  from?: string;
+  to?: string;
+}
+
+export const LEDGER_ENTRY_TYPE_LABELS: Record<LedgerEntryType, string> = {
+  CHARGE: 'Charge',
+  PAYMENT: 'Payment',
+  DEPOSIT: 'Deposit',
+  REFUND: 'Refund',
+  PREPAYMENT: 'Prepayment',
+  PREPAYMENT_APPLIED: 'Credit applied',
+  ADJUSTMENT: 'Adjustment',
+};
 
 export const ARREARS_BUCKET_LABELS: Record<ArrearsAgingBucket['bucket'], string> = {
   '0-30': '0–30 days',

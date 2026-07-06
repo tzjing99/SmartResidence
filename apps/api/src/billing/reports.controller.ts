@@ -249,6 +249,22 @@ export class ReportsController {
     return this.ledger.unitStatementForUser(user, unitId);
   }
 
+  @Get('units/:unitId/statement.csv')
+  @CheckAbility({ action: 'read', subject: 'Ledger' })
+  @ApiOperation({ summary: 'Download unit account statement CSV (resident or management)' })
+  async unitStatementCsv(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { csv, filename } = await this.exports.unitStatementCsv(user, unitId, from, to);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  }
+
   @Get('condo/:condoId/statements/unit/:unitId.pdf')
   @CheckAbility({ action: 'read', subject: 'Ledger' })
   @ApiOperation({ summary: 'Download unit account statement PDF for a date range (management)' })

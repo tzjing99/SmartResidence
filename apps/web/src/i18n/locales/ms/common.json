@@ -42,12 +42,14 @@
     "deflectStillNeedHelp": "Masih perlukan bantuan — hantar mesej",
     "allMessages": "Semua mesej",
     "downloadPdf": "Muat turun PDF",
+    "threadActions": "Tindakan perbualan",
     "assignedTo": "Ditugaskan kepada {name}",
     "notFound": "Perbualan tidak dijumpai.",
     "reopenSentToast": "Dihantar semula kepada pengurusan",
     "appealReasonValidation": "Sila berikan sebab (sekurang-kurangnya 10 aksara)",
     "resolvedNotice": "Utas ini telah selesai.",
-    "closedNotice": "Perbualan ini telah ditutup."
+    "closedNotice": "Perbualan ini telah ditutup.",
+    "threadActions": "Tindakan utas"
   },
   "upload": {
     "photos": "Foto",
@@ -462,5 +464,20 @@
         "filteredDesc": "Cuba laraskan carian atau penapis anda."
       }
     }
+  },
+  "sessions": {
+    "title": "Peranti & sesi",
+    "subtitle": "Semak di mana anda log masuk dan batalkan akses yang tidak dikenali.",
+    "currentSession": "Peranti ini",
+    "lastActive": "Aktif terakhir {time}",
+    "signedIn": "Log masuk {time}",
+    "ipAddress": "IP {address}",
+    "unknownDevice": "Peranti tidak diketahui",
+    "empty": "Tiada sesi aktif",
+    "revoke": "Batalkan",
+    "revokeConfirmBody": "Peranti ini akan dilog keluar serta-merta.",
+    "revokeCurrentConfirmBody": "Anda akan dilog keluar dari peranti ini serta-merta.",
+    "revokeSuccess": "Sesi dibatalkan",
+    "revokeError": "Tidak dapat membatalkan sesi"
   }
 }

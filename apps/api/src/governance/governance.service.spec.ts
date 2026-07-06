@@ -1,9 +1,10 @@
+import type { LedgerService } from '@/billing/ledger.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PollsService } from '@/polls/polls.service';
 import type { PrismaService } from '@/prisma/prisma.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
-import { GeneralMeetingStatus, RoleId } from '@prisma/client';
+import { GeneralMeetingStatus, PollStatus, RoleId } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GovernanceService } from './governance.service';
 
@@ -63,6 +64,13 @@ function buildService() {
     getOne: vi.fn(async () => ({ id: 'poll-1', status: 'OPEN', results: null })),
   };
 
+  const ledger = {
+    fundBalances: vi.fn(async () => [
+      { fund: 'MAINTENANCE', balance: 12_345.67 },
+      { fund: 'SINKING_FUND', balance: 890.12 },
+    ]),
+  };
+
   const generalMeeting = {
     findUnique: vi.fn(async () => draftMeeting()),
     findMany: vi.fn(async () => []),
@@ -119,10 +127,20 @@ function buildService() {
   const service = new GovernanceService(
     prisma,
     polls as unknown as PollsService,
+    ledger as unknown as LedgerService,
     events as unknown as EventEmitter2,
   );
 
-  return { service, prisma, polls, events, meetingProxy, generalMeeting, meetingResolution };
+  return {
+    service,
+    prisma,
+    polls,
+    ledger,
+    events,
+    meetingProxy,
+    generalMeeting,
+    meetingResolution,
+  };
 }
 
 describe('GovernanceService', () => {
@@ -230,6 +248,65 @@ describe('GovernanceService', () => {
       meeting: { condoId: CONDO, status: GeneralMeetingStatus.IN_PROGRESS },
     });
     await expect(service.openResolutionVoting(manager(), 'res-1', {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('captures a financial snapshot when publishing notice', async () => {
+    const { service, ledger, generalMeeting } = buildService();
+    await service.publishNotice(manager(), MEETING_ID);
+    expect(ledger.fundBalances).toHaveBeenCalledWith(CONDO);
+    expect(generalMeeting.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          financialSnapshot: expect.objectContaining({
+            fundBalances: expect.any(Array),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('publishes minutes when voting is closed and emits event', async () => {
+    const { service, events, generalMeeting } = buildService();
+    generalMeeting.findUnique.mockResolvedValueOnce({
+      ...draftMeeting({ status: GeneralMeetingStatus.IN_PROGRESS, minutesBody: 'Draft minutes.' }),
+      resolutions: [{ pollId: 'poll-1', poll: { id: 'poll-1', status: PollStatus.CLOSED } }],
+    });
+    generalMeeting.update.mockResolvedValueOnce({
+      ...draftMeeting({
+        status: GeneralMeetingStatus.IN_PROGRESS,
+        minutesBody: 'Draft minutes.',
+        minutesPublishedAt: new Date('2026-06-02T12:00:00Z'),
+      }),
+    });
+
+    const result = await service.publishMinutes(manager(), MEETING_ID, {});
+    expect(result.minutesPublishedAt).toBeTruthy();
+    expect(events.emit).toHaveBeenCalledWith('governance.minutes.published', {
+      meetingId: MEETING_ID,
+      condoId: CONDO,
+    });
+  });
+
+  it('rejects publishing minutes while a resolution poll is still open', async () => {
+    const { service, generalMeeting } = buildService();
+    generalMeeting.findUnique.mockResolvedValueOnce({
+      ...draftMeeting({ status: GeneralMeetingStatus.IN_PROGRESS, minutesBody: 'Draft minutes.' }),
+      resolutions: [{ pollId: 'poll-1', poll: { id: 'poll-1', status: PollStatus.OPEN } }],
+    });
+    await expect(service.publishMinutes(manager(), MEETING_ID, {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('rejects publishing minutes without body', async () => {
+    const { service, generalMeeting } = buildService();
+    generalMeeting.findUnique.mockResolvedValueOnce({
+      ...draftMeeting({ status: GeneralMeetingStatus.CLOSED, minutesBody: '  ' }),
+      resolutions: [],
+    });
+    await expect(service.publishMinutes(manager(), MEETING_ID, {})).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });

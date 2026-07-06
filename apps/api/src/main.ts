@@ -33,7 +33,7 @@ async function bootstrap() {
   app.use(json({ limit: HANDOVER_REPORT_JSON_BODY_LIMIT }));
   app.use(urlencoded({ extended: true, limit: HANDOVER_REPORT_JSON_BODY_LIMIT }));
 
-  app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
+  app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)', 'metrics', 'metrics/(.*)'] });
 
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),

@@ -51,6 +51,8 @@ import type {
   CreateMeetingResolutionInput,
   CreateParcelInput,
   CreatePatrolCheckpointInput,
+  CreatePlatformCondoInput,
+  CreatePlatformCondoResult,
   CreatePollInput,
   CreateRecurringPassInput,
   CreateUnitTypeInput,
@@ -101,12 +103,14 @@ import type {
   PaymentIntentResponse,
   PaymentIssue,
   PlatformCondoDetail,
-  PlatformCondoSummary,
+  PlatformCondoHealth,
+  PlatformCondosPage,
   Poll,
   PollMyVote,
   PostManualJournalInput,
   ProfitLossReport,
   PublishDocumentVersionInput,
+  PublishMeetingMinutesInput,
   RaiseSosInput,
   Receipt,
   ReceiptTemplateConfig,
@@ -255,6 +259,15 @@ export interface UserPreferences {
   quietHours: { enabled: boolean; start: string; end: string };
   /** True when the account has a verified phone suitable for WhatsApp opt-in. */
   whatsappEligible?: boolean;
+}
+
+export interface AuthSession {
+  id: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  deviceInfo: { device?: string } | null;
+  createdAt: string;
+  lastUsedAt: string | null;
 }
 
 export interface NotificationItem {
@@ -1212,6 +1225,17 @@ export class ApiClient {
     }
     return res.blob();
   }
+  /** Auth headers + URL for native download (Expo FileSystem.downloadAsync). */
+  private async authDownloadSource(
+    path: string,
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    const token = await this.cfg.getAccessToken?.();
+    const condoId = await this.cfg.getActiveCondoId?.();
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (condoId) headers['x-condo-id'] = condoId;
+    return { uri: `${this.cfg.baseUrl}${path}`, headers };
+  }
   async downloadUnitStatementPdf(
     condoId: string,
     unitId: string,
@@ -1226,6 +1250,34 @@ export class ApiClient {
       }`,
       'application/pdf',
     );
+  }
+  async downloadUnitStatementCsv(
+    unitId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<Blob> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.downloadBillingBlob(
+      `/api/billing/units/${unitId}/statement.csv${qs.toString() ? `?${qs.toString()}` : ''}`,
+      'text/csv',
+    );
+  }
+  unitStatementCsvDownloadSource(
+    unitId: string,
+    params: { from?: string; to?: string } = {},
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    const qs = new URLSearchParams();
+    if (params.from) qs.set('from', params.from);
+    if (params.to) qs.set('to', params.to);
+    return this.authDownloadSource(
+      `/api/billing/units/${unitId}/statement.csv${qs.toString() ? `?${qs.toString()}` : ''}`,
+    );
+  }
+  receiptPdfDownloadSource(
+    receiptId: string,
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    return this.authDownloadSource(`/api/receipts/${receiptId}/pdf`);
   }
   async downloadCollectionsCsv(
     condoId: string,
@@ -1962,6 +2014,9 @@ export class ApiClient {
   publishMeetingNotice(id: string) {
     return this.request<GeneralMeeting>('POST', `/api/governance/${id}/publish-notice`);
   }
+  publishMeetingMinutes(id: string, data: PublishMeetingMinutesInput = {}) {
+    return this.request<GeneralMeeting>('POST', `/api/governance/${id}/publish-minutes`, data);
+  }
   addMeetingResolution(meetingId: string, data: CreateMeetingResolutionInput) {
     return this.request<MeetingResolution>(
       'POST',
@@ -1994,19 +2049,25 @@ export class ApiClient {
   }
 
   // Platform console (super-admin) -----------------------------------
-  listPlatformCondos(params: { search?: string } = {}) {
+  listPlatformCondos(params: { search?: string; limit?: number; offset?: number } = {}) {
     const query = new URLSearchParams(
       Object.entries(params)
         .filter(([, v]) => v !== undefined && v !== null)
         .map(([k, v]) => [k, String(v)] as [string, string]),
     ).toString();
-    return this.request<PlatformCondoSummary[]>(
+    return this.request<PlatformCondosPage>(
       'GET',
       `/api/platform/condos${query ? `?${query}` : ''}`,
     );
   }
   platformCondoSummary(condoId: string) {
     return this.request<PlatformCondoDetail>('GET', `/api/platform/condos/${condoId}/summary`);
+  }
+  platformCondoHealth(condoId: string) {
+    return this.request<PlatformCondoHealth>('GET', `/api/platform/condos/${condoId}/health`);
+  }
+  createPlatformCondo(data: CreatePlatformCondoInput) {
+    return this.request<CreatePlatformCondoResult>('POST', '/api/platform/condos', data);
   }
 
   // Lost & found -----------------------------------------------------
@@ -2165,10 +2226,7 @@ export class ApiClient {
     >('GET', '/api/owner/delegated-access');
   }
   listSessions() {
-    return this.request<Array<{ id: string; device: string | null; lastUsedAt: string }>>(
-      'GET',
-      '/api/auth/sessions',
-    );
+    return this.request<AuthSession[]>('GET', '/api/auth/sessions');
   }
   revokeSession(sessionId: string) {
     return this.request<void>('DELETE', `/api/auth/sessions/${sessionId}`);

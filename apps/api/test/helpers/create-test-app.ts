@@ -46,7 +46,8 @@ function createMockRedisClient() {
     },
     eval: async () => 1,
     exists: async (...keys: string[]) =>
-      keys.filter((key) => store.has(key) || blockedJtis.has(key.slice('blocklist:'.length))).length,
+      keys.filter((key) => store.has(key) || blockedJtis.has(key.slice('blocklist:'.length)))
+        .length,
   };
   return client;
 }

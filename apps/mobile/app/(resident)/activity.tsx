@@ -1,5 +1,5 @@
 import { useMyActivity, useWhoViewedMe } from '@smartresidence/api-client';
-import { AppText, Card, EmptyState, palette } from '@smartresidence/ui-mobile';
+import { AppText, Card, EmptyState, useTheme } from '@smartresidence/ui-mobile';
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import {
@@ -12,6 +12,7 @@ import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 
 export default function ActivityScreen() {
+  const { colors } = useTheme();
   const activity = useMyActivity(api);
   const whoViewed = useWhoViewedMe(api);
   const { refreshControl } = usePullToRefresh(
@@ -42,10 +43,10 @@ export default function ActivityScreen() {
         items.map((row) => (
           <Card key={row.id} style={residentStyles.card}>
             <View style={{ gap: 3 }}>
-              <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+              <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
                 {prettyLabel(row.action)} · {prettyLabel(row.resourceType)}
               </AppText>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              <AppText variant="meta" style={{ color: colors.muted }}>
                 {row.actor?.name ?? 'System'}
                 {row.actorRole ? ` · ${prettyLabel(row.actorRole)}` : ''}
                 {' · '}
@@ -66,10 +67,10 @@ export default function ActivityScreen() {
         views.map((row) => (
           <Card key={row.id} style={residentStyles.card}>
             <View style={{ gap: 3 }}>
-              <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+              <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
                 {row.actor?.name ?? 'Unknown'} viewed {prettyLabel(row.resourceType)}
               </AppText>
-              <AppText variant="meta" style={{ color: palette.mutedLight }}>
+              <AppText variant="meta" style={{ color: colors.muted }}>
                 {row.actor?.name ?? 'System'}
                 {row.actorRole ? ` · ${prettyLabel(row.actorRole)}` : ''}
                 {' · '}

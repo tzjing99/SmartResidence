@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMe } from '@smartresidence/api-client';
-import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
-import { Alert, StyleSheet, View } from 'react-native';
 import {
-  GUARD_CORAL,
-  GUARD_SOFT_CORAL,
-  GUARD_SOFT_SKY,
-  GuardScreen,
-  GuardSectionHeader,
-  guardStyles,
-} from '../../src/components/guard-screen';
+  AppText,
+  Button,
+  Card,
+  Pill,
+  type ThemeColors,
+  radius,
+  spacing,
+  useTheme,
+} from '@smartresidence/ui-mobile';
+import { useMemo } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { GuardScreen, GuardSectionHeader } from '../../src/components/guard-screen';
 import { api } from '../../src/lib/api';
 import type { MeResponse } from '../../src/lib/roles';
 import { useSignOut } from '../../src/lib/use-sign-out';
@@ -25,6 +28,8 @@ const mapRoleLabel = (role: string | null | undefined): string => {
 };
 
 export default function GuardSettingsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const me = useMe(api);
   const user = (me.data as MeResponse | undefined)?.user;
   const { signOut, busy } = useSignOut();
@@ -42,7 +47,7 @@ export default function GuardSettingsScreen() {
       title="Account and shift"
       subtitle="Confirm the signed-in guard account and sign out when handing the device to another team member."
     >
-      <Card style={[guardStyles.card, styles.accountCard]}>
+      <Card style={[styles.card, styles.accountCard]}>
         <View style={styles.avatar}>
           <AppText style={styles.avatarText}>
             {user?.name ? user.name.charAt(0).toUpperCase() : '?'}
@@ -68,9 +73,9 @@ export default function GuardSettingsScreen() {
         title="Guard app setup"
         subtitle="Scanning and visitor verification are configured automatically for this condo."
       />
-      <Card style={[guardStyles.card, styles.infoCard]}>
+      <Card style={[styles.card, styles.infoCard]}>
         <View style={styles.infoIcon}>
-          <Ionicons name="qr-code-outline" size={20} color={GUARD_CORAL} />
+          <Ionicons name="qr-code-outline" size={20} color={colors.coral} />
         </View>
         <View style={styles.accountCopy}>
           <AppText style={styles.infoTitle}>Ready for gate operations</AppText>
@@ -81,10 +86,10 @@ export default function GuardSettingsScreen() {
         </View>
       </Card>
 
-      <Card style={[guardStyles.card, styles.signOutCard]}>
+      <Card style={[styles.card, styles.signOutCard]}>
         <View style={styles.signOutHeader}>
           <View style={styles.infoIconSky}>
-            <Ionicons name="log-out-outline" size={20} color={palette.messageMgmtSkyText} />
+            <Ionicons name="log-out-outline" size={20} color={colors.messageMgmtSkyText} />
           </View>
           <View style={styles.accountCopy}>
             <AppText style={styles.infoTitle}>End this guard session</AppText>
@@ -99,77 +104,83 @@ export default function GuardSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  accountCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: GUARD_CORAL,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  accountCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 4,
-  },
-  accountName: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '800',
-    color: palette.textLight,
-  },
-  cardMeta: {
-    color: palette.mutedLight,
-    lineHeight: 20,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  infoIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoIconSky: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_SKY,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoTitle: {
-    color: palette.textLight,
-    fontWeight: '800',
-  },
-  signOutCard: {
-    gap: spacing.md,
-  },
-  signOutHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    accountCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.coral,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: {
+      color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: '800',
+    },
+    accountCopy: {
+      flex: 1,
+      minWidth: 0,
+      gap: 4,
+    },
+    accountName: {
+      fontSize: 18,
+      lineHeight: 24,
+      fontWeight: '800',
+      color: colors.fg,
+    },
+    cardMeta: {
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    pillRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      marginTop: spacing.xs,
+    },
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    infoIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    infoIconSky: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      backgroundColor: colors.messageMgmtSkyBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    infoTitle: {
+      color: colors.fg,
+      fontWeight: '800',
+    },
+    signOutCard: {
+      gap: spacing.md,
+    },
+    signOutHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+  });
+}

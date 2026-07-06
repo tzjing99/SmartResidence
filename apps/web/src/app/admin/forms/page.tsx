@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -225,6 +226,7 @@ function TemplateSettings({ condoId }: { condoId: string }) {
 }
 
 export default function AdminFormsPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
 

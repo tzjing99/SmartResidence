@@ -12,21 +12,16 @@ const LocaleContext = React.createContext<{ locale: Locale; t: TFunction }>({
 });
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [hasSession, setHasSession] = React.useState(false);
+  const [hasSession, setHasSession] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
-    const active = true;
-    void getCachedSession().then((session) => {
-      if (active) setHasSession(Boolean(session?.accessToken));
-    });
+    void getCachedSession().then((session) => setHasSession(Boolean(session?.accessToken)));
     return subscribeSession(() => {
-      void getCachedSession().then((session) => {
-        if (active) setHasSession(Boolean(session?.accessToken));
-      });
+      void getCachedSession().then((session) => setHasSession(Boolean(session?.accessToken)));
     });
   }, []);
 
-  const me = useMe(api, { enabled: hasSession });
+  const me = useMe(api, { enabled: hasSession === true });
   const locale = normalizeLocale(
     (me.data?.user as { locale?: string } | undefined)?.locale ?? DEFAULT_LOCALE,
   );
@@ -46,6 +41,7 @@ export function useLocale() {
   return React.useContext(LocaleContext);
 }
 
+/** Shorthand for `useLocale().t`. */
 export function useT() {
   return useLocale().t;
 }

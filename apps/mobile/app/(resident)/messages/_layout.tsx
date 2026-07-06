@@ -1,6 +1,9 @@
 import { Stack } from 'expo-router';
+import { useT } from '../../../src/i18n/locale-provider';
 
 export default function MessagesStackLayout() {
+  const t = useT();
+
   return (
     <Stack
       screenOptions={{
@@ -10,8 +13,14 @@ export default function MessagesStackLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="[id]" options={{ headerShown: true, title: 'Conversation' }} />
-      <Stack.Screen name="new" options={{ headerShown: true, title: 'New message' }} />
+      <Stack.Screen
+        name="[id]"
+        options={{ headerShown: true, title: t('nav.screens.conversation') }}
+      />
+      <Stack.Screen
+        name="new"
+        options={{ headerShown: true, title: t('nav.screens.newMessage') }}
+      />
     </Stack>
   );
 }

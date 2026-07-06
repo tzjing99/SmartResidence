@@ -540,7 +540,8 @@
         "manual": "手动",
         "walkIn": "Walk-in",
         "parcels": "包裹",
-        "settings": "设置"
+        "settings": "设置",
+        "more": "更多"
       },
       "scan": {
         "title": "门卫扫描",

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -312,6 +313,7 @@ function PatrolHistory({ condoId }: { condoId: string }) {
 }
 
 export default function AdminPatrolPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const [includeInactive, setIncludeInactive] = React.useState(true);
@@ -385,7 +387,7 @@ export default function AdminPatrolPage() {
           </Card>
         ) : items.length === 0 ? (
           <EmptyState
-            title="No checkpoints yet"
+            title={t('admin.patrol.emptyTitle')}
             description="Add your first patrol checkpoint — e.g. Block A Lobby or Basement 2 Ramp — and print its QR sticker."
           />
         ) : (

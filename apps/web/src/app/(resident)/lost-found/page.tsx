@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { toast } from '@/lib/toast';
@@ -116,6 +117,7 @@ function PostCard({
 }
 
 function CreatePostForm({ condoId, unitId }: { condoId: string; unitId: string }) {
+  const t = useT();
   const createPost = useCreateLostFoundPost(api);
   const [kind, setKind] = React.useState<LostFoundKind>('LOST');
   const [title, setTitle] = React.useState('');
@@ -208,7 +210,7 @@ function CreatePostForm({ condoId, unitId }: { condoId: string; unitId: string }
           />
         </div>
         <Button type="submit" loading={createPost.isPending}>
-          Post to board
+          {t('lostFound.postCta')}
         </Button>
       </form>
     </Card>
@@ -216,6 +218,7 @@ function CreatePostForm({ condoId, unitId }: { condoId: string; unitId: string }
 }
 
 export default function LostFoundPage() {
+  const t = useT();
   const { abilities } = useRoleGuard('resident');
   const canCreate = hasAbility(abilities, 'create', 'LostFoundPost');
   const condos = useMyCondos(api);
@@ -261,7 +264,7 @@ export default function LostFoundPage() {
       <header>
         <h2 className="sr-section-title flex items-center gap-2">
           <Search className="size-6 text-coral-500" aria-hidden />
-          Lost &amp; found
+          {t('lostFound.title')}
         </h2>
         <p className="sr-muted mt-1">
           Community board for lost and found items — not for buying or selling.
@@ -310,7 +313,7 @@ export default function LostFoundPage() {
             <Skeleton className="h-32 w-full rounded-2xl" />
           ) : (boardQuery.data?.items.length ?? 0) === 0 ? (
             <EmptyState
-              title="Nothing on the board"
+              title={t('lostFound.boardEmptyTitle')}
               description="Open lost and found posts from residents will appear here."
               action={
                 canCreate && condo?.id && unit?.id ? (

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { useMyUnits, useUnitDefectReports, useUnitDefects } from '@smartresidence/api-client';
 import { defectReference } from '@smartresidence/shared-types';
@@ -11,6 +12,7 @@ import Link from 'next/link';
 const SKELETON_KEYS = ['s1', 's2', 's3'];
 
 export default function DefectsPage() {
+  const t = useT();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
   const defects = useUnitDefects(api, unit?.id ?? null);
@@ -24,13 +26,13 @@ export default function DefectsPage() {
     <div className="flex flex-col gap-6">
       <header className="flex items-center justify-between">
         <div>
-          <h2 className="sr-section-title">Defects</h2>
-          <p className="sr-muted">Track repairs from submission to resolution.</p>
+          <h2 className="sr-section-title">{t('defects.title')}</h2>
+          <p className="sr-muted">{t('defects.subtitle')}</p>
         </div>
         <Link href="/defects/new">
           <Button>
             <Plus className="size-4" />
-            New defect
+            {t('defects.newDefect')}
           </Button>
         </Link>
       </header>
@@ -43,11 +45,11 @@ export default function DefectsPage() {
         </div>
       ) : rows.length === 0 ? (
         <EmptyState
-          title="No defects reported"
-          description="If something needs fixing, log it here with a photo."
+          title={t('defects.emptyTitle')}
+          description={t('defects.emptyDesc')}
           action={
             <Link href="/defects/new">
-              <Button>Submit a defect</Button>
+              <Button>{t('defects.submitDefect')}</Button>
             </Link>
           }
         />
@@ -56,7 +58,7 @@ export default function DefectsPage() {
           {rows.map((row) => (
             <li key={`${row.kind}-${row.data.id}`}>
               {row.kind === 'package' ? (
-                <PackageCard report={row.data} />
+                <PackageCard report={row.data} t={t} />
               ) : (
                 <Link href={`/defects/${row.data.id}`} className="block">
                   <Card className="transition-colors hover:border-[rgb(var(--sr-coral)/0.4)]">
@@ -69,7 +71,7 @@ export default function DefectsPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <StatusBadge status={row.data.status} />
+                        <StatusBadge status={row.data.status} t={t} />
                       </div>
                     </div>
                   </Card>
@@ -83,7 +85,13 @@ export default function DefectsPage() {
   );
 }
 
-function PackageCard({ report }: { report: DefectReportSummary }) {
+function PackageCard({
+  report,
+  t,
+}: {
+  report: DefectReportSummary;
+  t: ReturnType<typeof useT>;
+}) {
   const status = reportStatus(report);
   const done = (report.statusCounts.RESOLVED ?? 0) + (report.statusCounts.CLOSED ?? 0);
   const pct = report.itemCount ? Math.round((done / report.itemCount) * 100) : 0;
@@ -92,34 +100,36 @@ function PackageCard({ report }: { report: DefectReportSummary }) {
       <Card className="transition-colors hover:border-[rgb(var(--sr-coral)/0.4)]">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="font-medium">Defect Report</div>
+            <div className="font-medium">{t('defects.defectReport')}</div>
             <div className="text-sm font-mono text-[rgb(var(--sr-coral))]">
               {defectReference(report.id)}
             </div>
             <div className="text-xs sr-muted mt-0.5">
-              {report.itemCount} defect(s) · raised{' '}
-              {new Date(report.createdAt).toLocaleDateString()}
+              {t('defects.itemCount', {
+                count: report.itemCount,
+                date: new Date(report.createdAt).toLocaleDateString(),
+              })}
             </div>
             <div className="mt-2 flex items-center gap-2">
               <div className="h-2 flex-1 max-w-xs rounded-full bg-[rgb(var(--sr-border))] overflow-hidden">
                 <div className="h-full bg-[rgb(var(--sr-coral))]" style={{ width: `${pct}%` }} />
               </div>
               <span className="text-xs sr-muted whitespace-nowrap">
-                {done}/{report.itemCount} fixed
+                {t('defects.fixedProgress', { done, total: report.itemCount })}
               </span>
             </div>
           </div>
-          <StatusBadge status={status} />
+          <StatusBadge status={status} t={t} />
         </div>
       </Card>
     </Link>
   );
 }
 
-function StatusBadge({ status }: { status: DefectStatus }) {
+function StatusBadge({ status, t }: { status: DefectStatus; t: ReturnType<typeof useT> }) {
   return (
     <Badge tone={status === 'CLOSED' || status === 'RESOLVED' ? 'success' : 'primary'}>
-      {status === 'RESOLVED' ? 'waiting sign-off' : status.toLowerCase().replace('_', ' ')}
+      {status === 'RESOLVED' ? t('defects.waitingSignOff') : status.toLowerCase().replace('_', ' ')}
     </Badge>
   );
 }

@@ -70,6 +70,76 @@ describe.skipIf(!integrationReady)('Integration: billing', () => {
     expect(res.body.subarray(0, 5).toString()).toBe('%PDF-');
   });
 
+  it('TNG payment: create intent, sandbox settle webhook, verify PAID and idempotent replay', async () => {
+    const supertest = (await import('supertest')).default;
+    const server = app.getHttpServer();
+    const adminHeaders = authHeaders(fx.tokens.admin, fx.condoId);
+    const ownerHeaders = authHeaders(fx.tokens.owner, fx.condoId);
+
+    await supertest(server)
+      .put(`/api/settings/condo/${fx.condoId}/billing/gateways`)
+      .set(adminHeaders)
+      .send({
+        provider: 'TNG',
+        mode: 'TEST',
+        enabled: true,
+        credentials: { merchantId: 'sandbox-dev' },
+      })
+      .expect(200);
+
+    const invoiceRes = await supertest(server)
+      .post('/api/invoices')
+      .set(adminHeaders)
+      .send({
+        unitId: fx.unitId,
+        periodStart: '2026-10-01T00:00:00.000Z',
+        periodEnd: '2026-10-31T23:59:59.000Z',
+        dueDate: '2026-10-15T00:00:00.000Z',
+        lines: [{ code: 'MAINT', description: 'Oct maintenance', unitPrice: 150, quantity: 1 }],
+      })
+      .expect(201);
+
+    const invoice = invoiceRes.body.data ?? invoiceRes.body;
+
+    const payRes = await supertest(server)
+      .post(`/api/invoices/${invoice.id}/payments`)
+      .set(ownerHeaders)
+      .send({ provider: 'TNG', returnUrl: 'http://localhost:3000/billing' })
+      .expect(201);
+
+    const intent = payRes.body.data ?? payRes.body;
+    const orderid = intent.providerRef;
+    const amount = Number(invoice.total).toFixed(2);
+    expect(orderid).toBeTruthy();
+
+    await supertest(server)
+      .post('/api/webhooks/payments/tng/sandbox/settle')
+      .send({ orderid, amount })
+      .expect(201);
+
+    const settledRes = await supertest(server)
+      .get(`/api/invoices/${invoice.id}`)
+      .set(adminHeaders)
+      .expect(200);
+
+    const settled = settledRes.body.data ?? settledRes.body;
+    expect(settled.status).toBe('PAID');
+
+    await supertest(server)
+      .post('/api/webhooks/payments/tng/sandbox/settle')
+      .send({ orderid, amount })
+      .expect(201);
+
+    const replayRes = await supertest(server)
+      .get(`/api/invoices/${invoice.id}`)
+      .set(adminHeaders)
+      .expect(200);
+
+    const replay = replayRes.body.data ?? replayRes.body;
+    expect(replay.status).toBe('PAID');
+    expect(Number(replay.amountPaid)).toBe(Number(amount));
+  });
+
   it('GET /api/billing/units/:unitId/statement.csv returns CSV for the unit owner', async () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())

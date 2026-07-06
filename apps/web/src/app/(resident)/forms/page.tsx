@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useRoleGuard } from '@/lib/use-role-guard';
@@ -127,6 +128,7 @@ function SubmitPanel({
   unitId: string;
   onDone: () => void;
 }) {
+  const t = useT();
   const create = useCreateFormSubmission(api);
   const fields = template.fields?.fields ?? [];
   const [answers, setAnswers] = React.useState<Record<string, unknown>>({});
@@ -170,7 +172,7 @@ function SubmitPanel({
           Back
         </Button>
         <Button type="button" onClick={submit} loading={create.isPending}>
-          Submit for review
+          {t('actions.submitForReview')}
         </Button>
       </div>
     </Card>
@@ -178,6 +180,7 @@ function SubmitPanel({
 }
 
 export default function ResidentFormsPage() {
+  const t = useT();
   useRoleGuard('resident');
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -218,7 +221,7 @@ export default function ResidentFormsPage() {
   return (
     <div className="flex flex-col gap-8">
       <header>
-        <h2 className="sr-section-title">Forms</h2>
+        <h2 className="sr-section-title">{t('forms.title')}</h2>
         <p className="sr-muted mt-1">
           Submit move-in/out, renovation, and vehicle sticker requests to management — no paperwork
           needed.
@@ -231,7 +234,7 @@ export default function ResidentFormsPage() {
           <Skeleton className="h-24 w-full" />
         ) : templateList.length === 0 ? (
           <EmptyState
-            title="No forms available"
+            title={t('forms.noFormsTitle')}
             description="When management publishes forms for your building, they'll appear here."
           />
         ) : (

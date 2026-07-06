@@ -7,7 +7,7 @@ import {
   EmptyState,
   FadeInView,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback } from 'react';
@@ -35,6 +35,7 @@ type NotificationRow = {
 };
 
 export default function NotificationsScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const notifications = useNotifications(api, { limit: 30 });
   const markRead = useMarkNotificationsRead(api);
@@ -113,22 +114,18 @@ export default function NotificationsScreen() {
                       <AppText
                         style={{
                           fontWeight: unread ? '800' : '700',
-                          color: palette.textLight,
+                          color: colors.fg,
                         }}
                         numberOfLines={2}
                       >
                         {row.title}
                       </AppText>
                       {row.body ? (
-                        <AppText
-                          variant="bodySm"
-                          style={{ color: palette.mutedLight }}
-                          numberOfLines={3}
-                        >
+                        <AppText variant="bodySm" style={{ color: colors.muted }} numberOfLines={3}>
                           {row.body}
                         </AppText>
                       ) : null}
-                      <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                      <AppText variant="meta" style={{ color: colors.muted }}>
                         {prettyLabel(row.kind)}
                         {' · '}
                         {new Date(row.createdAt).toLocaleString()}

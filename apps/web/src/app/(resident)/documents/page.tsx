@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useRoleGuard } from '@/lib/use-role-guard';
@@ -25,6 +26,7 @@ function fmtDate(d: Date | string) {
 }
 
 export default function ResidentDocumentsPage() {
+  const t = useT();
   useRoleGuard('resident');
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
@@ -79,7 +81,7 @@ export default function ResidentDocumentsPage() {
           <Skeleton className="h-10 w-full" />
         ) : folderRows.length === 0 ? (
           <EmptyState
-            title="No documents yet"
+            title={t('documents.emptyTitle')}
             description="When management publishes documents, they'll appear here organised by folder."
           />
         ) : (

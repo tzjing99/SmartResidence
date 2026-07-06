@@ -13,17 +13,15 @@ import {
   EmptyState,
   Input,
   Pill,
-  palette,
   radius,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import {
-  RESIDENT_CORAL,
-  RESIDENT_SOFT_CORAL,
   ResidentScreen,
   ResidentSectionHeader,
-  residentStyles,
+  useResidentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { api } from '../../../src/lib/api';
@@ -37,6 +35,8 @@ function isoDate(offsetDays = 0): string {
 }
 
 export default function RecurringPassesScreen() {
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
   const unitId = unit?.id ?? null;
@@ -137,10 +137,8 @@ export default function RecurringPassesScreen() {
       }
     >
       {showForm ? (
-        <Card style={[residentStyles.card, { gap: 12 }]}>
-          <AppText style={{ fontWeight: '700', color: palette.textLight }}>
-            New recurring pass
-          </AppText>
+        <Card style={[styles.card, { gap: 12 }]}>
+          <AppText style={{ fontWeight: '700' }}>New recurring pass</AppText>
 
           <View style={{ gap: 6 }}>
             <AppText variant="label">Guest name</AppText>
@@ -180,15 +178,15 @@ export default function RecurringPassesScreen() {
                       paddingHorizontal: 14,
                       paddingVertical: 8,
                       borderRadius: radius.full,
-                      backgroundColor: active ? RESIDENT_SOFT_CORAL : palette.surfaceLight,
+                      backgroundColor: active ? colors.coralSoft : colors.surface,
                       borderWidth: 1,
-                      borderColor: active ? 'rgba(255, 56, 92, 0.25)' : palette.borderLight,
+                      borderColor: active ? `${colors.coral}40` : colors.border,
                     }}
                   >
                     <AppText
                       style={{
                         fontWeight: '600',
-                        color: active ? RESIDENT_CORAL : palette.textLight,
+                        color: active ? colors.coral : colors.fg,
                       }}
                     >
                       {WEEKDAY_LABELS[d]}
@@ -231,8 +229,8 @@ export default function RecurringPassesScreen() {
       />
 
       {passes.isLoading ? (
-        <Card style={residentStyles.card}>
-          <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <Card style={styles.card}>
+          <AppText variant="meta" muted>
             Loading recurring passes…
           </AppText>
         </Card>
@@ -243,7 +241,7 @@ export default function RecurringPassesScreen() {
         />
       ) : (
         items.map((pass) => (
-          <Card key={pass.id} style={[residentStyles.card, { gap: 8 }]}>
+          <Card key={pass.id} style={[styles.card, { gap: 8 }]}>
             <View
               style={{
                 flexDirection: 'row',
@@ -253,13 +251,13 @@ export default function RecurringPassesScreen() {
               }}
             >
               <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                <AppText style={{ fontWeight: '700', color: palette.textLight }} numberOfLines={2}>
+                <AppText style={{ fontWeight: '700' }} numberOfLines={2}>
                   {pass.guestName}
                 </AppText>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" muted>
                   {formatRecurringScheduleSummary(pass.schedule)}
                 </AppText>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" muted>
                   {new Date(pass.validFrom).toLocaleDateString()} –{' '}
                   {new Date(pass.validUntil).toLocaleDateString()}
                   {pass.vehiclePlate ? ` · ${pass.vehiclePlate}` : ''}
@@ -273,7 +271,9 @@ export default function RecurringPassesScreen() {
               </View>
             </View>
             {pass.accessCode ? (
-              <AppText style={{ fontSize: 18, fontWeight: '700', letterSpacing: 2 }}>
+              <AppText
+                style={{ fontSize: 18, fontWeight: '700', letterSpacing: 2, color: colors.fg }}
+              >
                 {pass.accessCode}
               </AppText>
             ) : null}

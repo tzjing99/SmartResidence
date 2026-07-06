@@ -8,9 +8,11 @@ import {
 } from '../../../src/components/announcements-ui';
 import { ResidentScreen } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 
 export default function AnnouncementsScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const [categoryFilter, setCategoryFilter] = useState<AnnouncementCategory | ''>('');
@@ -24,8 +26,8 @@ export default function AnnouncementsScreen() {
   return (
     <ResidentScreen
       eyebrow="Notices"
-      title="Announcements"
-      subtitle="Official memos and updates from your management office."
+      title={t('mobile.announcements.title')}
+      subtitle={t('announcements.subtitle')}
       scrollProps={{ refreshControl }}
     >
       <AnnouncementCategoryFilter value={categoryFilter} onChange={setCategoryFilter} />
@@ -39,7 +41,7 @@ export default function AnnouncementsScreen() {
         />
       ) : items.length === 0 ? (
         <EmptyState
-          title={categoryFilter ? 'Nothing in this category' : 'Nothing new'}
+          title={t('mobile.announcements.emptyTitle')}
           description={
             categoryFilter
               ? 'Try another category or check back later.'

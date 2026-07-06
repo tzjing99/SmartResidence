@@ -12,20 +12,22 @@ import {
   malaysiaPhoneTelHref,
   pickOwnerPhone,
 } from '@smartresidence/shared-types';
-import { AppText, Button, Card, Pill, palette, radius, spacing } from '@smartresidence/ui-mobile';
+import {
+  AppText,
+  Button,
+  Card,
+  Pill,
+  type ThemeColors,
+  radius,
+  spacing,
+  useTheme,
+} from '@smartresidence/ui-mobile';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Linking, StyleSheet, TextInput, View } from 'react-native';
-import {
-  GUARD_CORAL,
-  GUARD_SOFT_CORAL,
-  GUARD_SOFT_SKY,
-  GuardScreen,
-  GuardSectionHeader,
-  guardStyles,
-} from '../../src/components/guard-screen';
+import { GuardScreen, GuardSectionHeader } from '../../src/components/guard-screen';
 import { type UnitSearchItem, UnitSearchPicker } from '../../src/components/unit-search-picker';
 import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
@@ -70,6 +72,8 @@ function callOwner(contacts: Visitor['ownerContacts']) {
 
 export default function WalkInScreen() {
   const t = useT();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { twoColumn } = useTabletLayout();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
@@ -276,9 +280,9 @@ export default function WalkInScreen() {
       title={t('mobile.guard.walkin.title')}
       subtitle={t('mobile.guard.walkin.subtitle')}
     >
-      <Card style={[guardStyles.card, styles.policyCard]}>
+      <Card style={[styles.card, styles.policyCard]}>
         <View style={styles.policyIcon}>
-          <Ionicons name="shield-checkmark-outline" size={20} color={GUARD_CORAL} />
+          <Ionicons name="shield-checkmark-outline" size={20} color={colors.coral} />
         </View>
         <View style={styles.policyCopy}>
           <AppText style={styles.cardTitle}>{condo?.name ?? 'SmartResidence guardhouse'}</AppText>
@@ -322,13 +326,13 @@ export default function WalkInScreen() {
             />
           </View>
 
-          <Card style={[guardStyles.card, styles.formCard]}>
+          <Card style={[styles.card, styles.formCard]}>
             <View style={styles.cardIntro}>
               <View style={styles.cardIcon}>
                 <Ionicons
                   name={tab === 'unit' ? 'home-outline' : 'business-outline'}
                   size={20}
-                  color={GUARD_CORAL}
+                  color={colors.coral}
                 />
               </View>
               <View style={styles.introCopy}>
@@ -349,9 +353,9 @@ export default function WalkInScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="Full name"
-                placeholderTextColor={palette.mutedLight}
+                placeholderTextColor={colors.muted}
                 returnKeyType="next"
-                style={inputStyle}
+                style={styles.input}
               />
             </View>
             <View style={styles.fieldGroup}>
@@ -360,9 +364,9 @@ export default function WalkInScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 placeholder="+60..."
-                placeholderTextColor={palette.mutedLight}
+                placeholderTextColor={colors.muted}
                 keyboardType="phone-pad"
-                style={inputStyle}
+                style={styles.input}
               />
             </View>
             {tab === 'unit' ? (
@@ -380,8 +384,8 @@ export default function WalkInScreen() {
                     value={purpose}
                     onChangeText={setPurpose}
                     placeholder="e.g. Contractor / renovation"
-                    placeholderTextColor={palette.mutedLight}
-                    style={inputStyle}
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
                   />
                 </View>
                 <View style={styles.fieldGroup}>
@@ -433,8 +437,8 @@ export default function WalkInScreen() {
                     value={purpose}
                     onChangeText={setPurpose}
                     placeholder="e.g. Parcel collection, AGM enquiry"
-                    placeholderTextColor={palette.mutedLight}
-                    style={inputStyle}
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
                   />
                 </View>
                 <Button
@@ -466,9 +470,9 @@ export default function WalkInScreen() {
               ))}
             </View>
           ) : (
-            <Card style={[guardStyles.card, styles.emptyCard]}>
+            <Card style={[styles.card, styles.emptyCard]}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="checkmark-done-outline" size={22} color={GUARD_CORAL} />
+                <Ionicons name="checkmark-done-outline" size={22} color={colors.coral} />
               </View>
               <AppText style={styles.cardTitle}>No pending walk-ins</AppText>
               <AppText variant="meta" style={styles.cardMeta}>
@@ -495,15 +499,17 @@ function PendingCard({
   onApprove: (method: GuardApprovalMethod) => void;
   approving: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const contact = pickOwnerPhone(visitor.ownerContacts);
   const ownersWithPhone = visitor.ownerContacts?.filter((owner) => owner.phone?.trim()) ?? [];
   const visitorPhone = formatMalaysiaPhoneDisplay(visitor.phone, visitor.phoneCountryCode);
 
   return (
-    <Card style={[guardStyles.card, styles.pendingCard]}>
+    <Card style={[styles.card, styles.pendingCard]}>
       <View style={styles.pendingHeader}>
         <View style={styles.pendingIcon}>
-          <Ionicons name="person-outline" size={18} color={GUARD_CORAL} />
+          <Ionicons name="person-outline" size={18} color={colors.coral} />
         </View>
         <View style={styles.introCopy}>
           <AppText numberOfLines={2} style={styles.cardTitle}>
@@ -571,6 +577,8 @@ function ContactLine({
   value: string;
   onPress?: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.contactLine}>
       <AppText variant="meta" style={styles.contactLabel}>
@@ -583,158 +591,163 @@ function ContactLine({
   );
 }
 
-const inputStyle = {
-  minHeight: 48,
-  borderRadius: radius.lg,
-  borderWidth: 1,
-  borderColor: palette.borderLight,
-  backgroundColor: palette.surfaceLight,
-  paddingHorizontal: 14,
-  fontSize: 15,
-  color: palette.textLight,
-};
-
-const styles = StyleSheet.create({
-  policyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
-  policyIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  policyCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  layout: {
-    gap: spacing.md,
-  },
-  twoColumnLayout: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  formColumn: {
-    flex: 1.05,
-    minWidth: 0,
-    gap: spacing.md,
-  },
-  pendingColumn: {
-    flex: 0.95,
-    minWidth: 0,
-  },
-  tabRail: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  tabButton: {
-    flexGrow: 1,
-    minWidth: 128,
-  },
-  formCard: {
-    gap: spacing.md,
-  },
-  cardIntro: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  cardIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_SKY,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  introCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  cardTitle: {
-    color: palette.textLight,
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: '800',
-  },
-  cardMeta: {
-    color: palette.mutedLight,
-    lineHeight: 20,
-  },
-  fieldGroup: {
-    gap: 7,
-  },
-  photoPreview: {
-    height: 140,
-    borderRadius: radius.lg,
-    backgroundColor: palette.borderLight,
-  },
-  fieldLabel: {
-    color: palette.textLight,
-    fontWeight: '700',
-  },
-  pendingList: {
-    gap: spacing.md,
-  },
-  pendingCard: {
-    gap: spacing.md,
-  },
-  pendingHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  pendingIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_CORAL,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  contactPanel: {
-    borderRadius: radius.xl,
-    backgroundColor: palette.bgLight,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  contactLine: {
-    gap: 2,
-  },
-  contactLabel: {
-    color: palette.mutedLight,
-    fontWeight: '700',
-  },
-  contactValue: {
-    color: palette.textLight,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  contactLink: {
-    color: GUARD_CORAL,
-  },
-  actionStack: {
-    gap: spacing.xs,
-  },
-  emptyCard: {
-    minHeight: 220,
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  emptyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    backgroundColor: GUARD_SOFT_SKY,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    card: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    input: {
+      minHeight: 48,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 14,
+      fontSize: 15,
+      color: colors.fg,
+    },
+    policyCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+    },
+    policyIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    policyCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    layout: {
+      gap: spacing.md,
+    },
+    twoColumnLayout: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    formColumn: {
+      flex: 1.05,
+      minWidth: 0,
+      gap: spacing.md,
+    },
+    pendingColumn: {
+      flex: 0.95,
+      minWidth: 0,
+    },
+    tabRail: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+    },
+    tabButton: {
+      flexGrow: 1,
+      minWidth: 128,
+    },
+    formCard: {
+      gap: spacing.md,
+    },
+    cardIntro: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    cardIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      backgroundColor: colors.messageMgmtSkyBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    introCopy: {
+      flex: 1,
+      minWidth: 0,
+    },
+    cardTitle: {
+      color: colors.fg,
+      fontSize: 17,
+      lineHeight: 23,
+      fontWeight: '800',
+    },
+    cardMeta: {
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    fieldGroup: {
+      gap: 7,
+    },
+    photoPreview: {
+      height: 140,
+      borderRadius: radius.lg,
+      backgroundColor: colors.cardBorder,
+    },
+    fieldLabel: {
+      color: colors.fg,
+      fontWeight: '700',
+    },
+    pendingList: {
+      gap: spacing.md,
+    },
+    pendingCard: {
+      gap: spacing.md,
+    },
+    pendingHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+    },
+    pendingIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.full,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    contactPanel: {
+      borderRadius: radius.xl,
+      backgroundColor: colors.messageResidentBg,
+      padding: spacing.md,
+      gap: spacing.sm,
+    },
+    contactLine: {
+      gap: 2,
+    },
+    contactLabel: {
+      color: colors.muted,
+      fontWeight: '700',
+    },
+    contactValue: {
+      color: colors.fg,
+      fontWeight: '700',
+      lineHeight: 20,
+    },
+    contactLink: {
+      color: colors.coral,
+    },
+    actionStack: {
+      gap: spacing.xs,
+    },
+    emptyCard: {
+      minHeight: 220,
+      justifyContent: 'center',
+      gap: spacing.xs,
+    },
+    emptyIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.full,
+      backgroundColor: colors.messageMgmtSkyBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.xs,
+    },
+  });
+}

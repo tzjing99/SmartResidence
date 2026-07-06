@@ -8,7 +8,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { palette, radius, spring } from '../tokens';
+import { useTheme } from '../theme';
+import { radius, spring } from '../tokens';
 import { textBase, typography } from '../typography';
 
 export interface ButtonProps extends PressableProps {
@@ -28,6 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const reduceMotion = useReducedMotion();
+  const { colors } = useTheme();
   const [pressed, setPressed] = React.useState(false);
   const heights = { sm: 36, md: 44, lg: 52 };
   const textVariants = { sm: typography.bodySm, md: typography.body, lg: typography.subheading };
@@ -36,19 +38,19 @@ export const Button: React.FC<ButtonProps> = ({
     NonNullable<ButtonProps['variant']>,
     { bg: string; fg: string; border?: string }
   > = {
-    primary: { bg: palette.coralPrimary, fg: '#FFFFFF' },
+    primary: { bg: colors.coral, fg: '#FFFFFF' },
     'soft-primary': {
-      bg: palette.messageMgmtCoralBg,
-      fg: palette.coralPrimary,
-      border: palette.messageMgmtCoralBorder,
+      bg: colors.messageMgmtCoralBg,
+      fg: colors.coral,
+      border: colors.messageMgmtCoralBorder,
     },
     'soft-sky': {
-      bg: palette.messageMgmtSkyBg,
-      fg: palette.messageMgmtSkyText,
-      border: palette.messageMgmtSkyBorder,
+      bg: colors.messageMgmtSkyBg,
+      fg: colors.messageMgmtSkyText,
+      border: colors.messageMgmtSkyBorder,
     },
-    secondary: { bg: palette.surfaceLight, fg: palette.textLight, border: palette.borderLight },
-    ghost: { bg: 'transparent', fg: palette.textLight },
+    secondary: { bg: colors.surface, fg: colors.fg, border: colors.border },
+    ghost: { bg: 'transparent', fg: colors.fg },
     destructive: { bg: '#EF4444', fg: '#FFFFFF' },
   };
   const p = palettes[variant];

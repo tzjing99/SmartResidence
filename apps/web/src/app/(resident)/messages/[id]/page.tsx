@@ -198,13 +198,13 @@ export default function ResidentThreadPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
+          <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(tr, t.status)}</Badge>
           <SlaChip
             slaState={t.slaState}
             firstResponseDueAt={t.firstResponseDueAt}
             resolutionDueAt={t.resolutionDueAt}
           />
-          <span className="text-xs sr-muted">{prettyLabel(t.category)}</span>
+          <span className="text-xs sr-muted">{prettyLabel(tr, t.category)}</span>
           {t.assignedTo ? (
             <span className="text-xs sr-muted">
               {tr('messages.assignedTo', { name: t.assignedTo.name })}

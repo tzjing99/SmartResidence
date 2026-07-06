@@ -1,10 +1,12 @@
 import { MotiView } from 'moti';
 import { View, type ViewProps } from 'react-native';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { palette, radius, spring } from '../tokens';
+import { useTheme } from '../theme';
+import { radius, spring } from '../tokens';
 
 export const Card = ({ style, children, ...props }: ViewProps) => {
   const reduceMotion = useReducedMotion();
+  const { colors } = useTheme();
   return (
     <MotiView
       from={reduceMotion ? undefined : { opacity: 0, translateY: 8 }}
@@ -12,14 +14,16 @@ export const Card = ({ style, children, ...props }: ViewProps) => {
       transition={spring.default}
       style={[
         {
-          backgroundColor: palette.surfaceLight,
+          backgroundColor: colors.card,
           borderRadius: radius['2xl'],
           padding: 20,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
           shadowColor: '#000',
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 3,
+          shadowOpacity: colors.statusBarStyle === 'light' ? 0.08 : 0.25,
+          shadowRadius: colors.statusBarStyle === 'light' ? 12 : 8,
+          shadowOffset: { width: 0, height: colors.statusBarStyle === 'light' ? 4 : 2 },
+          elevation: colors.statusBarStyle === 'light' ? 3 : 0,
         },
         style as object,
       ]}

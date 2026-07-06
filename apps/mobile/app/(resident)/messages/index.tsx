@@ -9,8 +9,8 @@ import {
   FadeInView,
   MetaLine,
   Pill,
-  palette,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useCallback } from 'react';
@@ -42,6 +42,7 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = 
 };
 
 export default function MessagesScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
   const { refreshControl } = usePullToRefresh(useCallback(() => threads.refetch(), [threads]));
@@ -62,7 +63,7 @@ export default function MessagesScreen() {
       }
     >
       {threads.isLoading && !threads.data ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           Loading conversations...
         </AppText>
       ) : items.length === 0 ? (
@@ -108,10 +109,7 @@ export default function MessagesScreen() {
                     <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={prettyLabel(t.status)} />
                   </View>
                 </AlignRow>
-                <AppText
-                  variant="meta"
-                  style={{ color: palette.mutedLight, marginTop: spacing.sm }}
-                >
+                <AppText variant="meta" style={{ color: colors.muted, marginTop: spacing.sm }}>
                   Tap to view the full thread.
                 </AppText>
               </Card>

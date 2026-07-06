@@ -116,7 +116,7 @@ export default function AdminThreadPage() {
         note: actionNote.trim() || undefined,
         messageId: selectedSolutionId ?? undefined,
       });
-      toast.success('Marked as fixed — waiting for resident to confirm');
+      toast.success(tr('helpdesk.detail.markedFixedToast'));
       setComposer(null);
       setActionNote('');
       setSelectedSolutionId(null);
@@ -128,7 +128,7 @@ export default function AdminThreadPage() {
   async function runRequest() {
     try {
       await requestResident.mutateAsync({ id, body: actionNote.trim() || undefined });
-      toast.success('Sent to resident');
+      toast.success(tr('helpdesk.detail.sentToResidentToast'));
       setComposer(null);
       setActionNote('');
     } catch (err) {
@@ -139,7 +139,7 @@ export default function AdminThreadPage() {
   async function reopen() {
     try {
       await update.mutateAsync({ id, status: 'REOPENED' });
-      toast.success('Reopened');
+      toast.success(tr('helpdesk.detail.reopenedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -147,12 +147,12 @@ export default function AdminThreadPage() {
 
   async function runCloseAbusive() {
     if (actionNote.trim().length < 10) {
-      toast.error('Please provide a reason (at least 10 characters)');
+      toast.error(tr('helpdesk.detail.abuseReasonValidation'));
       return;
     }
     try {
       await closeAbusive.mutateAsync({ id, reason: actionNote.trim() });
-      toast.success('Ticket closed — resident notified');
+      toast.success(tr('helpdesk.detail.closedAbuseToast'));
       setComposer(null);
       setActionNote('');
     } catch (err) {
@@ -183,7 +183,7 @@ export default function AdminThreadPage() {
 
   if (thread.isLoading) return <Skeleton className="h-96" />;
   const t = thread.data;
-  if (!t) return <div className="sr-muted text-sm">Thread not found.</div>;
+  if (!t) return <div className="sr-muted text-sm">{tr('helpdesk.detail.notFound')}</div>;
 
   const pending = t.status === 'PENDING_RESIDENT_CONFIRMATION';
   const finished = t.status === 'RESOLVED' || t.status === 'CLOSED';
@@ -198,7 +198,7 @@ export default function AdminThreadPage() {
         href="/admin/helpdesk"
         className="inline-flex items-center gap-1 text-sm sr-muted w-fit"
       >
-        <ArrowLeft className="size-4" /> Helpdesk
+        <ArrowLeft className="size-4" /> {tr('helpdesk.detail.backLink')}
       </Link>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3 lg:gap-6">
@@ -207,31 +207,36 @@ export default function AdminThreadPage() {
           <header className="flex flex-col gap-2">
             <h2 className="text-xl font-semibold tracking-tight leading-snug">{t.subject}</h2>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={STATUS_TONE[t.status]}>{statusLabel(t.status)}</Badge>
+              <Badge tone={STATUS_TONE[t.status]}>{statusLabel(tr, t.status)}</Badge>
               <SlaChip
                 slaState={t.slaState}
                 firstResponseDueAt={t.firstResponseDueAt}
                 resolutionDueAt={t.resolutionDueAt}
               />
               {(t.reopenCount ?? 0) > 0 ? (
-                <Badge tone="warning">Reopened ×{t.reopenCount}</Badge>
+                <Badge tone="warning">
+                  {tr('helpdesk.detail.reopenedBadge', { count: t.reopenCount ?? 0 })}
+                </Badge>
               ) : null}
               {repeatComplainant ? (
                 <Badge tone="danger">
-                  <AlertTriangle className="size-3" /> Repeat complainant
+                  <AlertTriangle className="size-3" /> {tr('helpdesk.detail.repeatComplainant')}
                 </Badge>
               ) : null}
             </div>
             <p className="text-xs sr-muted">
-              {t.unit?.identifier ? `Unit ${t.unit.identifier} · ` : ''}
-              {t.createdBy?.name ?? 'Resident'} · {categoryLabel(t.category)}
+              {t.unit?.identifier
+                ? tr('helpdesk.detail.unitPrefix', { unit: t.unit.identifier })
+                : ''}
+              {t.createdBy?.name ?? tr('helpdesk.detail.residentFallback')} ·{' '}
+              {categoryLabel(tr, t.category)}
             </p>
           </header>
 
           {duplicateSuggestions.length > 0 ? (
             <div className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-sm">
               <div className="font-medium flex items-center gap-1.5 text-sm">
-                <Copy className="size-3.5 shrink-0" /> Possible duplicates
+                <Copy className="size-3.5 shrink-0" /> {tr('helpdesk.detail.possibleDuplicates')}
               </div>
               <ul className="mt-1.5 flex flex-col gap-0.5">
                 {duplicateSuggestions.map((d) => (
@@ -254,7 +259,7 @@ export default function AdminThreadPage() {
               title="Tap a management message below to change which reply counts as the fix."
             >
               <CheckCircle2 className="size-4 text-sky-600 dark:text-sky-400 shrink-0" />
-              <span>Waiting for resident to confirm the fix.</span>
+              <span>{tr('helpdesk.pendingConfirmation')}</span>
             </div>
           ) : null}
 
@@ -275,18 +280,14 @@ export default function AdminThreadPage() {
           <form onSubmit={send} className="flex flex-col gap-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={replyBodyId}>
-                {internal ? 'Internal note' : 'Reply to resident'}
+                {internal ? tr('helpdesk.detail.internalNote') : tr('helpdesk.detail.sendReply')}
               </Label>
               <Textarea
                 id={replyBodyId}
                 rows={3}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder={
-                  internal
-                    ? 'Add an internal note (residents can\u2019t see this)…'
-                    : 'Reply to the resident…'
-                }
+                placeholder={tr('helpdesk.detail.replyPlaceholder')}
               />
             </div>
             <div className="flex items-center justify-between gap-3">
@@ -296,7 +297,7 @@ export default function AdminThreadPage() {
                   checked={internal}
                   onChange={(e) => setInternal(e.target.checked)}
                 />
-                Internal note
+                {tr('helpdesk.detail.internalNote')}
               </label>
               <Button
                 type="submit"
@@ -304,7 +305,7 @@ export default function AdminThreadPage() {
                 loading={post.isPending}
               >
                 <Send className="size-4" />
-                {internal ? 'Add note' : 'Reply'}
+                {internal ? tr('actions.submit') : tr('helpdesk.detail.sendReply')}
               </Button>
             </div>
           </form>
@@ -332,7 +333,7 @@ export default function AdminThreadPage() {
                 >
                   {PRIORITIES.map((p) => (
                     <option key={p} value={p}>
-                      {priorityLabel(p)}
+                      {priorityLabel(tr, p)}
                     </option>
                   ))}
                 </select>
@@ -354,7 +355,7 @@ export default function AdminThreadPage() {
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
-                      {categoryLabel(c)}
+                      {categoryLabel(tr, c)}
                     </option>
                   ))}
                 </select>
@@ -363,7 +364,9 @@ export default function AdminThreadPage() {
             <div className="flex items-center justify-between gap-2 pt-1">
               <div className="min-w-0">
                 <span className="text-[11px] sr-muted uppercase tracking-wide">Assignee</span>
-                <p className="text-sm truncate">{t.assignedTo?.name ?? 'Unassigned'}</p>
+                <p className="text-sm truncate">
+                  {t.assignedTo?.name ?? tr('helpdesk.noAssignee')}
+                </p>
               </div>
               {myId && t.assignedTo?.id !== myId ? (
                 <Button
@@ -373,21 +376,21 @@ export default function AdminThreadPage() {
                   onClick={async () => {
                     try {
                       await update.mutateAsync({ id, assignedToUserId: myId });
-                      toast.success('You took this ticket');
+                      toast.success(tr('helpdesk.actions.assignToMe'));
                     } catch (err) {
                       toast.error((err as Error).message);
                     }
                   }}
                 >
                   <UserCheck className="size-4" />
-                  Take
+                  {tr('helpdesk.detail.takeTicket')}
                 </Button>
               ) : null}
             </div>
           </Card>
 
           <Card className="p-5 flex flex-col gap-4 shadow-sm">
-            <h3 className="text-sm font-semibold">Wrap up</h3>
+            <h3 className="text-sm font-semibold">{tr('helpdesk.wrapUp')}</h3>
 
             {awaitingResident ? (
               <ActionHint>
@@ -416,41 +419,41 @@ export default function AdminThreadPage() {
                 {mgmtMessages.length > 0 ? (
                   <ActionHint>Tap &ldquo;Use as the fix&rdquo; on a message, or skip.</ActionHint>
                 ) : null}
-                <Label htmlFor={actionNoteId}>Optional note for the resident</Label>
+                <Label htmlFor={actionNoteId}>{tr('helpdesk.proposePlaceholder')}</Label>
                 <Textarea
                   id={actionNoteId}
                   rows={2}
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
-                  placeholder="Optional note for the resident…"
+                  placeholder={tr('helpdesk.proposePlaceholder')}
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={runPropose} disabled={propose.isPending}>
                     <CheckCircle2 className="size-4" />
-                    Mark as fixed
+                    {tr('helpdesk.actions.markAsFixed')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={resetComposer}>
-                    Cancel
+                    {tr('actions.cancel')}
                   </Button>
                 </div>
               </div>
             ) : composer === 'request' ? (
               <div className="flex flex-col gap-2">
-                <Label htmlFor={actionNoteId}>What do you need from the resident?</Label>
+                <Label htmlFor={actionNoteId}>{tr('helpdesk.requestPlaceholder')}</Label>
                 <Textarea
                   id={actionNoteId}
                   rows={2}
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
-                  placeholder="What do you need from the resident?"
+                  placeholder={tr('helpdesk.requestPlaceholder')}
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={runRequest} disabled={requestResident.isPending}>
                     <UserPlus className="size-4" />
-                    Ask resident for info
+                    {tr('helpdesk.actions.askResident')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={resetComposer}>
-                    Cancel
+                    {tr('actions.cancel')}
                   </Button>
                 </div>
               </div>
@@ -460,19 +463,19 @@ export default function AdminThreadPage() {
                   size="sm"
                   onClick={() => setComposer('propose')}
                   disabled={awaitingResident}
-                  title="Tell the resident you believe this is solved. They'll confirm before we close it."
+                  title={tr('helpdesk.actions.markAsFixedHint')}
                 >
                   <CheckCircle2 className="size-4" />
-                  Mark as fixed
+                  {tr('helpdesk.actions.markAsFixed')}
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => setComposer('request')}
-                  title="Need something from them? The ticket pauses until they reply."
+                  title={tr('helpdesk.actions.askResidentHint')}
                 >
                   <UserPlus className="size-4" />
-                  Ask resident for info
+                  {tr('helpdesk.actions.askResident')}
                 </Button>
               </div>
             )}
@@ -481,7 +484,7 @@ export default function AdminThreadPage() {
           {composer === 'abusive' ? (
             <Card className="p-4 flex flex-col gap-2 border-red-200/60">
               <h3 className="text-sm font-medium text-red-600 dark:text-red-400">
-                Close as misuse
+                {tr('helpdesk.actions.closeMisuse')}
               </h3>
               <Label htmlFor={abusiveReasonId}>Reason shown to the resident</Label>
               <Textarea
@@ -499,7 +502,7 @@ export default function AdminThreadPage() {
                   disabled={closeAbusive.isPending}
                 >
                   <Ban className="size-4" />
-                  Close and notify
+                  {tr('helpdesk.actions.closeAndNotify')}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={resetComposer}>
                   Cancel
@@ -518,7 +521,7 @@ export default function AdminThreadPage() {
               aria-label={tr('messages.threadActions')}
             >
               <MoreHorizontal className="size-4" />
-              More
+              {tr('helpdesk.detail.moreActions')}
             </Button>
             {moreOpen ? (
               <div
@@ -536,7 +539,7 @@ export default function AdminThreadPage() {
                     }}
                   >
                     <Ban className="size-4 shrink-0" />
-                    Close as misuse
+                    {tr('helpdesk.actions.closeMisuse')}
                   </button>
                 ) : null}
                 <button
@@ -546,7 +549,7 @@ export default function AdminThreadPage() {
                   onClick={exportPdf}
                 >
                   <Download className="size-4 shrink-0" />
-                  Download PDF
+                  {tr('helpdesk.actions.downloadPdf')}
                 </button>
                 <Link
                   href="/admin/settings/helpdesk"

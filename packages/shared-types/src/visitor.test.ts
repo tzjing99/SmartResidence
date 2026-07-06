@@ -9,7 +9,21 @@ import {
   isWalkInVisitType,
   showOvernightPreRegOption,
   visitorStatusLabel,
+  visitorStatusPillTone,
 } from './visitor';
+
+describe('visitorStatusPillTone', () => {
+  it('maps statuses to semantic pill tones', () => {
+    expect(visitorStatusPillTone('APPROVED')).toBe('success');
+    expect(visitorStatusPillTone('CHECKED_IN')).toBe('success');
+    expect(visitorStatusPillTone('CHECKED_OUT')).toBe('neutral');
+    expect(visitorStatusPillTone('EXPIRED')).toBe('neutral');
+    expect(visitorStatusPillTone('PENDING_OWNER_APPROVAL')).toBe('warning');
+    expect(visitorStatusPillTone('PENDING_MANAGEMENT_APPROVAL')).toBe('warning');
+    expect(visitorStatusPillTone('REJECTED')).toBe('danger');
+    expect(visitorStatusPillTone('CANCELLED')).toBe('danger');
+  });
+});
 
 describe('visitorStatusLabel', () => {
   it('maps enums to plain language (no raw enums)', () => {

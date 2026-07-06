@@ -1,6 +1,7 @@
 'use client';
 
 import { AdminFilterBar, AdminFilterPill, AdminPageHeader } from '@/components/admin-ui';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -44,6 +45,7 @@ function unitLabel(post: LostFoundPost) {
 }
 
 export default function AdminLostFoundPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const [statusFilter, setStatusFilter] = React.useState<'ALL' | LostFoundStatus>('OPEN');
@@ -79,7 +81,7 @@ export default function AdminLostFoundPage() {
       <AdminPageHeader
         eyebrow="More"
         icon={Search}
-        title="Lost & found"
+        title={t('admin.lostFound.title')}
         description="Review community lost and found posts. This is not a marketplace — no sales or pricing."
       />
 

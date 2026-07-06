@@ -263,6 +263,31 @@ export function usePlatformCondos(
   });
 }
 
+export function usePlatformCondoHealth(
+  api: ApiClient,
+  condoId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.platformCondoHealth(condoId) : ['platform', 'condos', null],
+    queryFn: () =>
+      condoId ? api.platformCondoHealth(condoId) : Promise.reject(new Error('no condo')),
+    enabled: (options?.enabled ?? true) && Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreatePlatformCondo(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<ApiClient['createPlatformCondo']>[0]) =>
+      api.createPlatformCondo(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['platform', 'condos'] });
+    },
+  });
+}
+
 export function usePlatformCondoSummary(
   api: ApiClient,
   condoId: string | null,
@@ -2042,7 +2067,7 @@ export function useDeleteFormTemplate(api: ApiClient) {
 export function useCondoBlocks(api: ApiClient, condoId: string | null) {
   return useQuery({
     queryKey: condoId ? ['blocks', condoId] : ['blocks', null],
-    queryFn: () => (condoId ? api.listBlocks(condoId) : Promise.resolve([])),
+    queryFn: () => api.listBlocks(condoId!),
     enabled: Boolean(condoId),
   });
 }
@@ -2056,9 +2081,7 @@ export function useCondoUnitsSearch(
   return useQuery({
     queryKey: condoId ? ['units', condoId, search] : ['units', null],
     queryFn: () =>
-      condoId
-        ? api.listUnits(condoId, { limit: 50, offset: 0, search: search.trim() || undefined })
-        : Promise.resolve({ items: [], total: 0 }),
+      api.listUnits(condoId!, { limit: 50, offset: 0, search: search.trim() || undefined }),
     enabled: Boolean(condoId) && enabled,
   });
 }

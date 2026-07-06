@@ -13,8 +13,8 @@ import {
   Card,
   Skeleton,
   Stack,
-  palette,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import * as FileSystem from 'expo-file-system/legacy';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
@@ -35,6 +35,7 @@ import {
 import { api } from '../../../src/lib/api';
 
 export default function AnnouncementDetailScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const detail = useAnnouncement(api, id ?? null);
@@ -66,7 +67,7 @@ export default function AnnouncementDetailScreen() {
       subtitle={item ? [publishedLabel, item.author?.name].filter(Boolean).join(' · ') : undefined}
       headerAction={
         <AnimatedPressable onPress={() => router.back()} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={palette.navy} />
+          <Ionicons name="arrow-back" size={22} color={colors.fg} />
         </AnimatedPressable>
       }
     >
@@ -108,11 +109,7 @@ export default function AnnouncementDetailScreen() {
                         </View>
                         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                           <AppText variant="label">Official memo (PDF)</AppText>
-                          <AppText
-                            variant="meta"
-                            numberOfLines={1}
-                            style={{ color: palette.mutedLight }}
-                          >
+                          <AppText variant="meta" numberOfLines={1} style={{ color: colors.muted }}>
                             {attachment.fileName ?? 'management-memo.pdf'}
                           </AppText>
                           <AppText
@@ -148,7 +145,7 @@ export default function AnnouncementDetailScreen() {
               loading={ack.isPending}
             />
           ) : item.requiresAck && item.ackedByMe ? (
-            <AppText variant="meta" style={{ color: palette.mutedLight, textAlign: 'center' }}>
+            <AppText variant="meta" style={{ color: colors.muted, textAlign: 'center' }}>
               You acknowledged this notice.
             </AppText>
           ) : null}

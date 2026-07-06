@@ -159,14 +159,10 @@ export default function GuardCheckInPage() {
                 })()}
               </span>
             ) : null}
-            <p className="text-sm sr-muted">
-              {t('visitors.guard.unitPrefix', { unit: unitLabel(pass, t) })}
-            </p>
+            <p className="text-sm sr-muted">{t('visitors.guard.unitPrefix', { unit: unitLabel(pass, t) })}</p>
             {isRecurring ? (
               <p className="text-xs sr-muted mt-1">
-                {t('visitors.guard.recurringPassMeta', {
-                  message: pass.scheduleMessage ?? t('visitors.guard.withinSchedule'),
-                })}
+                {t('visitors.guard.recurringPassMeta', { message: pass.scheduleMessage ?? t('visitors.guard.withinSchedule') })}
               </p>
             ) : null}
             {pass.accessCode ? (
@@ -175,9 +171,7 @@ export default function GuardCheckInPage() {
             {!isRecurring && (pass as VerifiedVisitor).entryMode ? (
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="inline-flex items-center rounded-full border border-[rgb(var(--sr-border))] px-2 py-0.5 text-xs font-medium">
-                  {(pass as VerifiedVisitor).entryMode === 'DRIVE_IN'
-                    ? t('visitors.guard.driveIn')
-                    : t('visitors.guard.walkInEntry')}
+                  {(pass as VerifiedVisitor).entryMode === 'DRIVE_IN' ? t('visitors.guard.driveIn') : t('visitors.guard.walkInEntry')}
                 </span>
                 {(pass as VerifiedVisitor).entryMode === 'DRIVE_IN' &&
                 (pass as VerifiedVisitor).vehiclePlate ? (

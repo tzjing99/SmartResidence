@@ -34,6 +34,7 @@ import { FpxAdapter } from './providers/fpx.adapter';
 import { IPay88Adapter } from './providers/ipay88.adapter';
 import type { PaymentProviderAdapter } from './providers/payment-provider.interface';
 import { StripeAdapter } from './providers/stripe.adapter';
+import { TngAdapter } from './providers/tng.adapter';
 import { ReceiptService } from './receipt.service';
 
 /** Invoices this many days from their due date are flagged "due soon" in the sweep. */
@@ -67,6 +68,7 @@ export class BillingService {
     fiuu: FiuuAdapter,
     ipay88: IPay88Adapter,
     duitnow: DuitNowAdapter,
+    tng: TngAdapter,
   ) {
     this.providers = new Map<PaymentProvider, PaymentProviderAdapter>([
       [PaymentProvider.STRIPE, stripe],
@@ -74,6 +76,7 @@ export class BillingService {
       [PaymentProvider.RAZER, fiuu],
       [PaymentProvider.IPAY88, ipay88],
       [PaymentProvider.DUITNOW_QR, duitnow],
+      [PaymentProvider.TNG, tng],
     ]);
   }
 

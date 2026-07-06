@@ -1,6 +1,7 @@
 import type { SlaState, ThreadPriority, ThreadStatus } from '@smartresidence/api-client';
 
 type Tone = 'neutral' | 'primary' | 'warning' | 'danger' | 'success' | 'info';
+type TFunction = (key: string, vars?: Record<string, string | number>) => string;
 
 export const PRIORITY_TONE: Record<ThreadPriority, Tone> = {
   LOW: 'success',
@@ -26,27 +27,20 @@ export const SLA_TONE: Record<SlaState, Tone> = {
   BREACHED: 'danger',
 };
 
-export const SLA_LABEL: Record<Exclude<SlaState, 'NONE'>, string> = {
-  ON_TRACK: 'On track',
-  AT_RISK: 'Needs attention',
-  BREACHED: 'Overdue',
+const STATUS_I18N_KEY: Record<ThreadStatus, string> = {
+  OPEN: 'helpdesk.status.open',
+  AWAITING_MANAGEMENT: 'helpdesk.status.inProgress',
+  AWAITING_RESIDENT: 'helpdesk.status.waitingOnResident',
+  PENDING_RESIDENT_CONFIRMATION: 'helpdesk.status.awaitingConfirmation',
+  RESOLVED: 'helpdesk.status.resolved',
+  CLOSED: 'helpdesk.status.closed',
+  REOPENED: 'helpdesk.status.reopened',
 };
 
-export const STATUS_LABEL: Record<ThreadStatus, string> = {
-  OPEN: 'Open',
-  AWAITING_MANAGEMENT: 'In progress',
-  AWAITING_RESIDENT: 'Waiting on resident',
-  PENDING_RESIDENT_CONFIRMATION: 'Awaiting confirmation',
-  RESOLVED: 'Resolved',
-  CLOSED: 'Closed',
-  REOPENED: 'Reopened',
-};
-
-export const PRIORITY_LABEL: Record<ThreadPriority, string> = {
-  LOW: 'Low',
-  NORMAL: 'Normal',
-  HIGH: 'High',
-  URGENT: 'Urgent',
+const SLA_I18N_KEY: Record<Exclude<SlaState, 'NONE'>, string> = {
+  ON_TRACK: 'helpdesk.sla.onTrack',
+  AT_RISK: 'helpdesk.sla.atRisk',
+  BREACHED: 'helpdesk.sla.breached',
 };
 
 interface SlaDueShape {
@@ -62,10 +56,6 @@ export interface SlaDueInfo {
   kind: SlaDueKind;
 }
 
-/**
- * Pick the SLA due date that the chip should surface: the earliest overdue
- * clock when breached, otherwise the soonest upcoming deadline.
- */
 export function slaDueInfo(t: SlaDueShape, now: number = Date.now()): SlaDueInfo | null {
   const entries: SlaDueInfo[] = [];
   if (t.firstResponseDueAt) {
@@ -87,7 +77,6 @@ export function slaDueInfo(t: SlaDueShape, now: number = Date.now()): SlaDueInfo
   return upcoming[0] ?? entries.slice().sort(byTime)[0] ?? null;
 }
 
-/** @deprecated Prefer slaDueInfo when the deadline kind matters. */
 export function slaDueAt(t: SlaDueShape, now: number = Date.now()): string | null {
   return slaDueInfo(t, now)?.dueAt ?? null;
 }
@@ -101,51 +90,65 @@ function formatDuration(absMs: number): string {
   return `${Math.round(absMs / day)}d`;
 }
 
-/** Human-friendly deadline text for reply or resolution clocks. */
-export function formatDeadline(dueIso: string, kind: SlaDueKind, now: number = Date.now()): string {
+export function formatDeadline(
+  t: TFunction,
+  dueIso: string,
+  kind: SlaDueKind,
+  now: number = Date.now(),
+): string {
   const diff = new Date(dueIso).getTime() - now;
   const mag = formatDuration(Math.abs(diff));
   if (diff < 0) {
     return kind === 'firstResponse'
-      ? `Reply was due ${mag} ago`
-      : `Should have been fixed ${mag} ago`;
+      ? t('helpdesk.sla.replyWasDueAgo', { time: mag })
+      : t('helpdesk.sla.fixWasDueAgo', { time: mag });
   }
-  return kind === 'firstResponse' ? `Reply due in ${mag}` : `Fix due in ${mag}`;
+  return kind === 'firstResponse'
+    ? t('helpdesk.sla.replyDueIn', { time: mag })
+    : t('helpdesk.sla.fixDueIn', { time: mag });
 }
 
-/** Human-friendly "due in 3h" / "2h overdue" relative to now. */
-export function formatTimeLeft(dueIso: string, now: number = Date.now()): string {
+export function formatTimeLeft(t: TFunction, dueIso: string, now: number = Date.now()): string {
   const diff = new Date(dueIso).getTime() - now;
   const mag = formatDuration(Math.abs(diff));
-  return diff >= 0 ? `due in ${mag}` : `${mag} overdue`;
+  return diff >= 0
+    ? t('helpdesk.sla.dueIn', { time: mag })
+    : t('helpdesk.sla.overdueBy', { time: mag });
 }
 
-export const CATEGORIES: Array<{ value: string; label: string }> = [
-  { value: 'BILLING', label: 'Billing & fees' },
-  { value: 'MAINTENANCE', label: 'Maintenance' },
-  { value: 'FACILITY', label: 'Facilities' },
-  { value: 'SECURITY', label: 'Security' },
-  { value: 'COMPLAINT', label: 'Complaint' },
-  { value: 'SUGGESTION', label: 'Suggestion' },
-  { value: 'GOVERNANCE', label: 'Governance / AGM' },
-  { value: 'GENERAL', label: 'General' },
+export const CATEGORIES: Array<{ value: string; labelKey: string }> = [
+  { value: 'BILLING', labelKey: 'helpdesk.category.billing' },
+  { value: 'MAINTENANCE', labelKey: 'helpdesk.category.maintenance' },
+  { value: 'FACILITY', labelKey: 'helpdesk.category.facility' },
+  { value: 'SECURITY', labelKey: 'helpdesk.category.security' },
+  { value: 'COMPLAINT', labelKey: 'helpdesk.category.complaint' },
+  { value: 'SUGGESTION', labelKey: 'helpdesk.category.suggestion' },
+  { value: 'GOVERNANCE', labelKey: 'helpdesk.category.governance' },
+  { value: 'GENERAL', labelKey: 'helpdesk.category.general' },
 ];
 
-export function statusLabel(status: ThreadStatus): string {
-  return STATUS_LABEL[status];
+export function statusLabel(t: TFunction, status: ThreadStatus): string {
+  return t(STATUS_I18N_KEY[status]);
 }
 
-export function priorityLabel(priority: ThreadPriority): string {
-  return PRIORITY_LABEL[priority];
+export function priorityLabel(t: TFunction, priority: ThreadPriority): string {
+  return t(`helpdesk.priority.${priority}`);
 }
 
-export function categoryLabel(value: string): string {
-  return CATEGORIES.find((c) => c.value === value)?.label ?? prettyLabel(value);
+export function slaLabel(t: TFunction, state: Exclude<SlaState, 'NONE'>): string {
+  return t(SLA_I18N_KEY[state]);
 }
 
-export function prettyLabel(value: string): string {
-  if (value in STATUS_LABEL) return STATUS_LABEL[value as ThreadStatus];
-  if (value in PRIORITY_LABEL) return PRIORITY_LABEL[value as ThreadPriority];
+export function categoryLabel(t: TFunction, value: string): string {
+  const cat = CATEGORIES.find((c) => c.value === value);
+  return cat ? t(cat.labelKey) : prettyLabel(t, value);
+}
+
+export function prettyLabel(t: TFunction, value: string): string {
+  if (value in STATUS_I18N_KEY) return t(STATUS_I18N_KEY[value as ThreadStatus]);
+  if (['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(value)) {
+    return t(`helpdesk.priority.${value as ThreadPriority}`);
+  }
   return value
     .toLowerCase()
     .replace(/_/g, ' ')

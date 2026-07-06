@@ -1,6 +1,6 @@
-import en from './locales/en/common.json';
-import ms from './locales/ms/common.json';
-import zhHans from './locales/zh-Hans/common.json';
+import en from '../../../web/src/i18n/locales/en/common.json';
+import ms from '../../../web/src/i18n/locales/ms/common.json';
+import zhHans from '../../../web/src/i18n/locales/zh-Hans/common.json';
 
 export type Locale = 'en' | 'ms' | 'zh-Hans';
 

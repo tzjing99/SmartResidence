@@ -20,21 +20,20 @@ import {
   Button,
   Card,
   Pill,
-  palette,
+  type ThemeColors,
   radius,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../src/lib/api';
 
 const EMERGENCY_RED = '#DC2626';
 const SOFT_RED = '#FEE2E2';
-const WARM_BG = '#FFF8F6';
-const CARD_BORDER = '#F1E8E4';
 
 const SOS_KINDS: SosKind[] = ['GENERAL', 'MEDICAL', 'SECURITY', 'FIRE'];
 
@@ -71,6 +70,8 @@ function formatWhen(value: Date | string | null | undefined): string {
 export default function SosScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const me = useMe(api);
   const condos = useMyCondos(api);
   const units = useMyUnits(api);
@@ -160,7 +161,7 @@ export default function SosScreen() {
     >
       <View style={styles.header}>
         <AnimatedPressable onPress={() => router.back()} contentStyle={styles.backButton}>
-          <Ionicons name="chevron-back" size={20} color={palette.textLight} />
+          <Ionicons name="chevron-back" size={20} color={colors.fg} />
           <AppText style={styles.backText}>Home</AppText>
         </AnimatedPressable>
         <AppText variant="caption" style={styles.eyebrow}>
@@ -190,7 +191,7 @@ export default function SosScreen() {
                 <Ionicons
                   name={KIND_ICONS[k]}
                   size={22}
-                  color={active ? EMERGENCY_RED : palette.mutedLight}
+                  color={active ? EMERGENCY_RED : colors.muted}
                 />
                 <AppText style={[styles.kindLabel, active ? styles.kindLabelActive : null]}>
                   {SOS_KIND_LABELS[k]}
@@ -207,7 +208,7 @@ export default function SosScreen() {
           value={locationNote}
           onChangeText={setLocationNote}
           placeholder="e.g. Block A lift lobby, level 3 car park"
-          placeholderTextColor={palette.mutedLight}
+          placeholderTextColor={colors.muted}
           style={styles.noteInput}
           multiline
           maxLength={500}
@@ -251,7 +252,7 @@ export default function SosScreen() {
         </Card>
       ) : alerts.isError ? (
         <Card style={styles.stateCard}>
-          <Ionicons name="cloud-offline-outline" size={22} color={palette.mutedLight} />
+          <Ionicons name="cloud-offline-outline" size={22} color={colors.muted} />
           <AppText style={styles.stateTitle}>Could not load alerts</AppText>
           <AppText variant="meta" style={styles.stateCopy}>
             Check your connection and try again.
@@ -327,187 +328,189 @@ export default function SosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: WARM_BG,
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-  },
-  header: {
-    gap: 8,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 2,
-    paddingVertical: 4,
-    paddingRight: 8,
-  },
-  backText: {
-    color: palette.textLight,
-    fontWeight: '600',
-  },
-  eyebrow: {
-    color: EMERGENCY_RED,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: palette.textLight,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    color: palette.mutedLight,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-  },
-  panicCard: {
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    gap: spacing.sm,
-  },
-  sectionLabel: {
-    color: palette.textLight,
-    fontWeight: '700',
-  },
-  kindGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  kindTileWrap: {
-    width: '47%',
-    flexGrow: 1,
-  },
-  kindTile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    minHeight: 54,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.borderLight,
-    backgroundColor: palette.surfaceLight,
-    paddingHorizontal: spacing.md,
-  },
-  kindTileActive: {
-    borderColor: EMERGENCY_RED,
-    backgroundColor: SOFT_RED,
-  },
-  kindLabel: {
-    color: palette.mutedLight,
-    fontWeight: '700',
-  },
-  kindLabelActive: {
-    color: EMERGENCY_RED,
-  },
-  noteInput: {
-    minHeight: 72,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: palette.borderLight,
-    backgroundColor: palette.surfaceLight,
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    fontSize: 15,
-    color: palette.textLight,
-    textAlignVertical: 'top',
-  },
-  panicButton: {
-    marginTop: spacing.sm,
-    minHeight: 60,
-    borderRadius: radius.xl,
-    backgroundColor: EMERGENCY_RED,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  panicButtonDisabled: {
-    opacity: 0.6,
-  },
-  panicButtonText: {
-    color: '#FFFFFF',
-    fontSize: 19,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  panicHint: {
-    color: palette.mutedLight,
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
-  },
-  sectionHeader: {
-    gap: 2,
-    marginTop: spacing.xs,
-  },
-  sectionCopy: {
-    color: palette.mutedLight,
-  },
-  stateCard: {
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    alignItems: 'flex-start',
-    gap: spacing.xs,
-  },
-  stateTitle: {
-    color: palette.textLight,
-    fontWeight: '700',
-  },
-  stateCopy: {
-    color: palette.mutedLight,
-    lineHeight: 20,
-  },
-  alertCard: {
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-    gap: spacing.sm,
-  },
-  alertTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  alertIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    backgroundColor: SOFT_RED,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertKind: {
-    color: palette.textLight,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  alertMeta: {
-    color: palette.mutedLight,
-  },
-  alertLocation: {
-    color: palette.textLight,
-    lineHeight: 20,
-  },
-  alertAck: {
-    color: palette.mutedLight,
-    lineHeight: 20,
-  },
-  openHint: {
-    color: EMERGENCY_RED,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: spacing.xs,
-  },
-});
+function createStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.bg,
+    },
+    content: {
+      paddingHorizontal: spacing.lg,
+      gap: spacing.md,
+    },
+    header: {
+      gap: 8,
+    },
+    backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 2,
+      paddingVertical: 4,
+      paddingRight: 8,
+    },
+    backText: {
+      color: colors.fg,
+      fontWeight: '600',
+    },
+    eyebrow: {
+      color: EMERGENCY_RED,
+      fontWeight: '800',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    title: {
+      color: colors.fg,
+      fontSize: 28,
+      lineHeight: 34,
+      fontWeight: '800',
+      letterSpacing: -0.4,
+    },
+    subtitle: {
+      color: colors.muted,
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '500',
+    },
+    panicCard: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      gap: spacing.sm,
+    },
+    sectionLabel: {
+      color: colors.fg,
+      fontWeight: '700',
+    },
+    kindGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    kindTileWrap: {
+      width: '47%',
+      flexGrow: 1,
+    },
+    kindTile: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      minHeight: 54,
+      borderRadius: radius.xl,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      paddingHorizontal: spacing.md,
+    },
+    kindTileActive: {
+      borderColor: EMERGENCY_RED,
+      backgroundColor: SOFT_RED,
+    },
+    kindLabel: {
+      color: colors.muted,
+      fontWeight: '700',
+    },
+    kindLabelActive: {
+      color: EMERGENCY_RED,
+    },
+    noteInput: {
+      minHeight: 72,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.inputBg,
+      paddingHorizontal: 14,
+      paddingTop: 12,
+      fontSize: 15,
+      color: colors.fg,
+      textAlignVertical: 'top',
+    },
+    panicButton: {
+      marginTop: spacing.sm,
+      minHeight: 60,
+      borderRadius: radius.xl,
+      backgroundColor: EMERGENCY_RED,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    panicButtonDisabled: {
+      opacity: 0.6,
+    },
+    panicButtonText: {
+      color: '#FFFFFF',
+      fontSize: 19,
+      fontWeight: '800',
+      letterSpacing: 0.3,
+    },
+    panicHint: {
+      color: colors.muted,
+      fontSize: 12,
+      lineHeight: 16,
+      textAlign: 'center',
+    },
+    sectionHeader: {
+      gap: 2,
+      marginTop: spacing.xs,
+    },
+    sectionCopy: {
+      color: colors.muted,
+    },
+    stateCard: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'flex-start',
+      gap: spacing.xs,
+    },
+    stateTitle: {
+      color: colors.fg,
+      fontWeight: '700',
+    },
+    stateCopy: {
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    alertCard: {
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      gap: spacing.sm,
+    },
+    alertTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    alertIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      backgroundColor: SOFT_RED,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    alertKind: {
+      color: colors.fg,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    alertMeta: {
+      color: colors.muted,
+    },
+    alertLocation: {
+      color: colors.fg,
+      lineHeight: 20,
+    },
+    alertAck: {
+      color: colors.muted,
+      lineHeight: 20,
+    },
+    openHint: {
+      color: EMERGENCY_RED,
+      fontSize: 13,
+      lineHeight: 19,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: spacing.xs,
+    },
+  });
+}

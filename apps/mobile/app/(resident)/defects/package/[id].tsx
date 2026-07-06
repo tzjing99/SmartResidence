@@ -13,18 +13,17 @@ import {
   Card,
   Pill,
   Stack,
-  palette,
   spacing,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import {
-  RESIDENT_CORAL,
   ResidentScreen,
   prettyLabel,
-  residentStyles,
+  useResidentStyles,
 } from '../../../../src/components/resident-screen';
 import { api } from '../../../../src/lib/api';
 import {
@@ -35,6 +34,17 @@ import {
 export default function DefectPackageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
+  const styles = useResidentStyles();
+  const isDark = colors.statusBarStyle === 'light';
+  const signOffCardStyle = useMemo(
+    () => ({
+      borderColor: isDark ? '#10B981' : '#A7F3D0',
+      backgroundColor: isDark ? '#064E3B' : '#ECFDF5',
+      gap: spacing.sm,
+    }),
+    [isDark],
+  );
   const report = useDefectReport(api, id ?? null);
   const detail = report.data;
   const qc = useQueryClient();
@@ -107,22 +117,22 @@ export default function DefectPackageDetailScreen() {
       }
       headerAction={
         <AnimatedPressable onPress={() => router.back()} accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={22} color={palette.navy} />
+          <Ionicons name="arrow-back" size={22} color={colors.fg} />
         </AnimatedPressable>
       }
     >
       {report.isLoading ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           Loading report…
         </AppText>
       ) : !detail ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight }}>
+        <AppText variant="meta" style={{ color: colors.muted }}>
           This package could not be found.
         </AppText>
       ) : (
         <Stack gap={spacing.md}>
-          <Card style={residentStyles.card}>
-            <AppText variant="meta" style={{ color: palette.mutedLight }}>
+          <Card style={styles.card}>
+            <AppText variant="meta" style={{ color: colors.muted }}>
               Raised {new Date(detail.createdAt).toLocaleDateString()}
             </AppText>
 
@@ -132,7 +142,7 @@ export default function DefectPackageDetailScreen() {
                   flex: 1,
                   height: 10,
                   borderRadius: 999,
-                  backgroundColor: palette.borderLight,
+                  backgroundColor: colors.border,
                   overflow: 'hidden',
                 }}
               >
@@ -141,17 +151,20 @@ export default function DefectPackageDetailScreen() {
                     height: '100%',
                     width: `${pct}%`,
                     borderRadius: 999,
-                    backgroundColor: pct === 100 ? '#10B981' : RESIDENT_CORAL,
+                    backgroundColor: pct === 100 ? '#10B981' : colors.coral,
                   }}
                 />
               </View>
-              <AppText variant="meta" style={{ color: palette.textLight, fontWeight: '600' }}>
+              <AppText variant="meta" style={{ color: colors.fg, fontWeight: '600' }}>
                 {done}/{detail.itemCount} fixed
               </AppText>
             </View>
 
             {resolvedCount > 0 ? (
-              <AppText variant="meta" style={{ color: '#047857', marginTop: 10, lineHeight: 18 }}>
+              <AppText
+                variant="meta"
+                style={{ color: isDark ? '#6EE7B7' : '#047857', marginTop: 10, lineHeight: 18 }}
+              >
                 {resolvedCount} defect(s) fixed and waiting for your confirmation — check below and
                 tell management if anything needs revisiting.
               </AppText>
@@ -159,17 +172,8 @@ export default function DefectPackageDetailScreen() {
           </Card>
 
           {resolvedCount > 0 ? (
-            <Card
-              style={[
-                residentStyles.card,
-                {
-                  borderColor: '#A7F3D0',
-                  backgroundColor: '#ECFDF5',
-                  gap: spacing.sm,
-                },
-              ]}
-            >
-              <AppText style={{ fontWeight: '600', color: '#065F46' }}>
+            <Card style={[styles.card, signOffCardStyle]}>
+              <AppText style={{ fontWeight: '600', color: isDark ? '#A7F3D0' : '#065F46' }}>
                 {resolvedCount} defect(s) are ready for sign-off
               </AppText>
               <Button
@@ -186,7 +190,7 @@ export default function DefectPackageDetailScreen() {
               <AppText
                 variant="meta"
                 style={{
-                  color: palette.mutedLight,
+                  color: colors.muted,
                   fontWeight: '700',
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
@@ -195,7 +199,7 @@ export default function DefectPackageDetailScreen() {
                 {room} — {items.length} {items.length === 1 ? 'defect' : 'defects'}
               </AppText>
               {items.map((item) => (
-                <Card key={item.id} style={[residentStyles.card, { gap: spacing.sm }]}>
+                <Card key={item.id} style={[styles.card, { gap: spacing.sm }]}>
                   <View
                     style={{
                       flexDirection: 'row',
@@ -206,13 +210,13 @@ export default function DefectPackageDetailScreen() {
                     }}
                   >
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <AppText style={{ fontWeight: '600', color: palette.textLight }}>
+                      <AppText style={{ fontWeight: '600', color: colors.fg }}>
                         {item.elementName
                           ? `${item.elementName}${item.issueName ? `: ${item.issueName}` : ''}`
                           : item.title}
                       </AppText>
                       {item.description && item.description !== item.title ? (
-                        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+                        <AppText variant="meta" style={{ color: colors.muted, marginTop: 2 }}>
                           {item.description}
                         </AppText>
                       ) : null}
@@ -233,7 +237,7 @@ export default function DefectPackageDetailScreen() {
 
                   {item.status === 'RESOLVED' ? (
                     <View style={{ gap: spacing.sm }}>
-                      <AppText variant="meta" style={{ color: '#047857' }}>
+                      <AppText variant="meta" style={{ color: isDark ? '#6EE7B7' : '#047857' }}>
                         Fixed by management — please verify and confirm below.
                       </AppText>
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -258,7 +262,7 @@ export default function DefectPackageDetailScreen() {
                   ) : null}
 
                   {item.attachments.length > 0 ? (
-                    <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                    <AppText variant="meta" style={{ color: colors.muted }}>
                       {item.attachments.length} photo(s) attached
                     </AppText>
                   ) : null}

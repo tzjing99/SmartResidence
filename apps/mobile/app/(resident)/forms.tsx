@@ -24,7 +24,7 @@ import {
   FadeInView,
   Pill,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
@@ -65,6 +65,7 @@ function FieldRow({
   value: unknown;
   onChange: (v: unknown) => void;
 }) {
+  const { colors } = useTheme();
   if (field.type === 'boolean') {
     return (
       <View
@@ -101,14 +102,16 @@ function FieldRow({
         <TextInput
           style={{
             borderWidth: 1,
-            borderColor: '#E8DDD8',
+            borderColor: colors.cardBorder,
             borderRadius: 12,
             paddingHorizontal: 12,
             paddingVertical: 10,
-            backgroundColor: '#fff',
+            backgroundColor: colors.inputBg,
+            color: colors.fg,
           }}
           value={String(value ?? '')}
           placeholder={field.placeholder}
+          placeholderTextColor={colors.muted}
           multiline={field.type === 'textarea'}
           numberOfLines={field.type === 'textarea' ? 3 : 1}
           onChangeText={(text) => onChange(text)}
@@ -177,6 +180,7 @@ function SubmitPanel({
 }
 
 export default function FormsScreen() {
+  const { colors } = useTheme();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const units = useMyUnits(api);
@@ -249,10 +253,8 @@ export default function FormsScreen() {
             <FadeInView key={t.id} index={index}>
               <AnimatedPressable onPress={() => setSelectedId(t.id)}>
                 <Card style={[residentStyles.card, { gap: 4 }]}>
-                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>
-                    {t.title}
-                  </AppText>
-                  <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                  <AppText style={{ fontWeight: '700', color: colors.fg }}>{t.title}</AppText>
+                  <AppText variant="meta" style={{ color: colors.muted }}>
                     {FORM_TEMPLATE_KIND_LABELS[t.kind]}
                   </AppText>
                 </Card>
@@ -275,7 +277,7 @@ export default function FormsScreen() {
                 <View
                   style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}
                 >
-                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                  <AppText style={{ fontWeight: '700', color: colors.fg }}>
                     {s.template?.title ?? 'Form'}
                   </AppText>
                   <Pill
@@ -283,7 +285,7 @@ export default function FormsScreen() {
                     label={FORM_SUBMISSION_STATUS_LABELS[s.status]}
                   />
                 </View>
-                <AppText variant="meta" style={{ color: palette.mutedLight }}>
+                <AppText variant="meta" style={{ color: colors.muted }}>
                   {s.unit?.identifier} · {fmtDate(s.submittedAt ?? s.createdAt)}
                 </AppText>
                 {s.reviewNote ? (

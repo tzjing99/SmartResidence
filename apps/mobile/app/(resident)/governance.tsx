@@ -28,7 +28,7 @@ import {
   Input,
   Pill,
   SkeletonList,
-  palette,
+  useTheme,
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
@@ -38,6 +38,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
@@ -58,6 +59,7 @@ function fmtDate(d: Date | string | null | undefined) {
 }
 
 export default function GovernanceScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const meetingsQuery = useCondoMeetings(api, condo?.id ?? null);
@@ -71,8 +73,8 @@ export default function GovernanceScreen() {
   return (
     <ResidentScreen
       eyebrow="Governance"
-      title="AGM & EGM"
-      subtitle="Meeting notices, proxy forms, and resolution voting."
+      title={t('mobile.governance.title')}
+      subtitle={t('governance.subtitle')}
       scrollProps={{ refreshControl }}
       headerAction={
         selectedId ? (
@@ -91,7 +93,7 @@ export default function GovernanceScreen() {
         <SkeletonList rows={3} rowHeight={76} />
       ) : meetings.length === 0 ? (
         <EmptyState
-          title="No meetings scheduled"
+          title={t('mobile.governance.emptyTitle')}
           description="When management publishes a notice, it will appear here."
         />
       ) : (
@@ -115,6 +117,7 @@ function MeetingListItem({
   meeting: GeneralMeeting;
   onSelect: () => void;
 }) {
+  const { colors } = useTheme();
   const status = meeting.status ?? 'DRAFT';
   return (
     <AnimatedPressable onPress={onSelect}>
@@ -128,7 +131,7 @@ function MeetingListItem({
         >
           <View style={{ flex: 1, paddingRight: 8 }}>
             <AppText variant="title">{meeting.title}</AppText>
-            <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+            <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
               {MEETING_KIND_LABELS[meeting.kind as GeneralMeetingKind]} ·{' '}
               {fmtDate(meeting.scheduledAt)}
             </AppText>
@@ -141,6 +144,7 @@ function MeetingListItem({
 }
 
 function MeetingDetail({ meetingId }: { meetingId: string }) {
+  const { colors } = useTheme();
   const meetingQuery = useMeeting(api, meetingId);
   const meeting = meetingQuery.data;
   const submitProxy = useSubmitMeetingProxy(api);
@@ -180,7 +184,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
         <AppText variant="title" style={{ marginTop: 8 }}>
           {meeting.title}
         </AppText>
-        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
           {fmtDate(meeting.scheduledAt)}
         </AppText>
         {meeting.noticeBody ? (
@@ -268,7 +272,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
       {(meeting.resolutions?.length ?? 0) > 0 ? (
         <>
           <ResidentSectionHeader title="Resolutions" />
-          {meeting.resolutions?.map((res) => (
+          {meeting.resolutions!.map((res) => (
             <ResolutionCard key={res.id} resolution={res} />
           ))}
         </>
@@ -278,6 +282,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
 }
 
 function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
+  const { colors } = useTheme();
   const castVote = useCastResolutionVote(api);
   const unitsQuery = useMyUnits(api);
   const [unitId, setUnitId] = useState('');
@@ -305,7 +310,7 @@ function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
     <Card style={[residentStyles.card, { marginBottom: 8 }]}>
       <AppText variant="subheading">{resolution.title}</AppText>
       {resolution.poll?.results?.options?.map((opt) => (
-        <AppText key={opt.id} variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+        <AppText key={opt.id} variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
           {opt.label}: {opt.weightPercent}% weighted
         </AppText>
       ))}
@@ -361,7 +366,7 @@ function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
           />
         </View>
       ) : resolution.poll?.myVotes?.length ? (
-        <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 8 }}>
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 8 }}>
           Voted on {resolution.poll.myVotes.length} unit(s)
         </AppText>
       ) : null}

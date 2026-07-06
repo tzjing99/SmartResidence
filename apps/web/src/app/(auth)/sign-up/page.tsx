@@ -1,7 +1,7 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
 import { api, writeSession } from '@/lib/api';
+import { useT } from '@/i18n/locale-provider';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MalaysiaPhoneSchema } from '@smartresidence/shared-types';
@@ -51,10 +51,10 @@ export default function SignUpPage() {
           <Link href="/" className="text-2xl font-bold tracking-tight">
             Smart<span className="text-coral-500">Residence</span>
           </Link>
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight">
-            {t('auth.createAccountTitle')}
-          </h1>
-          <p className="text-sm sr-muted mt-1">{t('auth.signUpBlurb')}</p>
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t('auth.createAccountTitle')}</h1>
+          <p className="text-sm sr-muted mt-1">
+            {t('auth.signUpBlurb')}
+          </p>
         </div>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1.5">
@@ -79,7 +79,9 @@ export default function SignUpPage() {
                 {form.formState.errors.phone.message}
               </p>
             ) : (
-              <p className="text-xs sr-muted">{t('auth.phoneHint')}</p>
+              <p className="text-xs sr-muted">
+                {t('auth.phoneHint')}
+              </p>
             )}
           </div>
           <div className="flex flex-col gap-1.5">

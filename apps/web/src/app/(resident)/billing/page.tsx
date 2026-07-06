@@ -75,6 +75,20 @@ async function downloadReceipt(receiptId: string, number: string) {
   }
 }
 
+async function downloadStatementCsv(unitId: string, label: string) {
+  try {
+    const blob = await api.downloadUnitStatementCsv(unitId);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `statement-${label}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    toast.error((err as Error).message);
+  }
+}
+
 function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString(undefined, {
     day: 'numeric',
@@ -285,7 +299,12 @@ function AdvanceMaintenancePayment({
 
 export default function BillingPage() {
   const units = useMyUnits(api);
-  const unit = units.data?.[0] as { id: string; condoId?: string } | undefined;
+  const unitList = (units.data ?? []) as Array<{
+    id: string;
+    condoId?: string;
+    identifier?: string;
+  }>;
+  const unit = unitList[0];
   const unitId = unit?.id ?? null;
   const condoId = unit?.condoId ?? null;
   const invoices = useUnitInvoices(api, unitId);
@@ -396,21 +415,40 @@ export default function BillingPage() {
       </section>
 
       {statement.data ? (
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card>
-            <div className="text-xs uppercase sr-muted font-semibold">Amount to pay now</div>
-            <div className="text-2xl font-bold mt-1">
-              {formatMoney(statement.data.totalOutstanding)}
+        <section className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card>
+              <div className="text-xs uppercase sr-muted font-semibold">Amount to pay now</div>
+              <div className="text-2xl font-bold mt-1">
+                {formatMoney(statement.data.totalOutstanding)}
+              </div>
+              <p className="text-xs sr-muted mt-1">Unpaid maintenance fee invoices.</p>
+            </Card>
+            <Card>
+              <div className="text-xs uppercase sr-muted font-semibold">Credit on your account</div>
+              <div className="text-2xl font-bold mt-1">
+                {formatMoney(statement.data.creditBalance)}
+              </div>
+              <p className="text-xs sr-muted mt-1">Prepaid balance that can offset future fees.</p>
+            </Card>
+          </div>
+          {unitList.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {unitList.map((u) => (
+                <Button
+                  key={u.id}
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => downloadStatementCsv(u.id, u.identifier ?? u.id)}
+                >
+                  <Download className="size-4" />
+                  Download statement (CSV)
+                  {unitList.length > 1 ? ` · ${u.identifier ?? u.id}` : ''}
+                </Button>
+              ))}
             </div>
-            <p className="text-xs sr-muted mt-1">Unpaid maintenance fee invoices.</p>
-          </Card>
-          <Card>
-            <div className="text-xs uppercase sr-muted font-semibold">Credit on your account</div>
-            <div className="text-2xl font-bold mt-1">
-              {formatMoney(statement.data.creditBalance)}
-            </div>
-            <p className="text-xs sr-muted mt-1">Prepaid balance that can offset future fees.</p>
-          </Card>
+          ) : null}
         </section>
       ) : null}
 

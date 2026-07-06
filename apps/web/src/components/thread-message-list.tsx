@@ -246,6 +246,8 @@ function MessageBubble({
             type="button"
             className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline px-0.5"
             onClick={() => onSelectAsFix(message.id)}
+            aria-label={selectedAsFix || isProposed ? 'Selected as fix' : 'Use as the fix'}
+            aria-pressed={selectedAsFix || isProposed}
           >
             {selectedAsFix || isProposed ? 'Selected as fix' : 'Use as the fix'}
           </button>

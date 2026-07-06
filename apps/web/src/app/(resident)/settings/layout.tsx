@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const SETTINGS_NAV: SettingsNavItem[] = [
   { href: '/settings', label: 'Profile & alerts' },
+  { href: '/settings/sessions', label: 'Devices & sessions' },
   {
     href: '/settings/sla-audit',
     label: 'Response time history',

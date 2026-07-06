@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { DistributedLockService } from '../../src/redis/distributed-lock.service';
@@ -37,6 +38,8 @@ export async function createTestApp(): Promise<{
     .useValue({
       withLock: async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn(),
     })
+    .overrideProvider(APP_GUARD)
+    .useValue({ canActivate: async () => true })
     .compile();
   const app = moduleRef.createNestApplication();
   app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
@@ -49,5 +52,6 @@ export async function createTestApp(): Promise<{
     }),
   );
   await app.init();
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
   return { app, prisma: app.get(PrismaService) };
 }

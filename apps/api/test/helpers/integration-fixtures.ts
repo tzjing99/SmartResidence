@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { RoleId, RoleScope, UserStatus } from '@prisma/client';
 import type { PrismaService } from '../../src/prisma/prisma.service';
-import { TEST_PASSWORD } from './integration-env';
+import { TEST_PASSWORD, signInTestIp } from './integration-env';
 import type { IntegrationFixtures } from './integration-types';
 
 export type { IntegrationFixtures };
@@ -189,6 +189,7 @@ export async function signInToken(
   const supertest = (await import('supertest')).default;
   const res = await supertest(app.getHttpServer())
     .post('/api/auth/sign-in')
+    .set('X-Forwarded-For', signInTestIp(email))
     .send({ email, password })
     .expect(200);
   const token = res.body.data?.accessToken ?? res.body.accessToken;

@@ -42,12 +42,14 @@
     "deflectStillNeedHelp": "Still need help — send message",
     "allMessages": "All messages",
     "downloadPdf": "Download PDF",
+    "threadActions": "Thread actions",
     "assignedTo": "Assigned to {name}",
     "notFound": "Conversation not found.",
     "reopenSentToast": "Sent back to management",
     "appealReasonValidation": "Please provide a reason (at least 10 characters)",
     "resolvedNotice": "This thread is resolved.",
-    "closedNotice": "This conversation is closed."
+    "closedNotice": "This conversation is closed.",
+    "threadActions": "Thread actions"
   },
   "upload": {
     "photos": "Photos",
@@ -462,5 +464,20 @@
         "filteredDesc": "Try adjusting your search or filters."
       }
     }
+  },
+  "sessions": {
+    "title": "Devices & sessions",
+    "subtitle": "Review where you're signed in and revoke access you don't recognize.",
+    "currentSession": "This device",
+    "lastActive": "Last active {time}",
+    "signedIn": "Signed in {time}",
+    "ipAddress": "IP {address}",
+    "unknownDevice": "Unknown device",
+    "empty": "No active sessions",
+    "revoke": "Revoke",
+    "revokeConfirmBody": "This device will be signed out immediately.",
+    "revokeCurrentConfirmBody": "You will be signed out of this device immediately.",
+    "revokeSuccess": "Session revoked",
+    "revokeError": "Could not revoke session"
   }
 }

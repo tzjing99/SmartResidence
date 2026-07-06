@@ -19,3 +19,10 @@ export function authHeaders(token: string, condoId?: string) {
   if (condoId) headers['x-condo-id'] = condoId;
   return headers;
 }
+
+/** Stable per-key IP so auth throttling buckets do not collide across integration tests. */
+export function signInTestIp(key: string) {
+  let h = 0;
+  for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return `10.${(h % 200) + 1}.${((h >>> 8) % 200) + 1}.${((h >>> 16) % 200) + 1}`;
+}

@@ -187,7 +187,7 @@ function VotePanel({ pollId, canVote }: { pollId: string; canVote: boolean }) {
 }
 
 function InputUnitSelector({
-  pollId,
+  pollId: _pollId,
   value,
   onChange,
   votedUnitIds,

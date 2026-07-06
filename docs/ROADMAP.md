@@ -68,7 +68,7 @@ role-differentiated navigation already implemented in
 | **HOUSEHOLD_MEMBER** | Unit | Create & view visitors for their unit; read announcements | Pay invoices; manage tenancy; approve walk-ins (owner-only) |
 | **CONTRACTOR** | (task) | Read & update defects assigned to them | See unrelated unit/condo data |
 
-### 2.1 Visitor approval rule (CONFIRMED — correction pending)
+### 2.1 Visitor approval rule (CONFIRMED — ✅ shipped)
 
 > **Residents (owner / tenant) are the primary approvers** for walk-ins to
 > their unit. Management can **READ / AUDIT** the visitor log but **cannot**
@@ -79,11 +79,10 @@ role-differentiated navigation already implemented in
 > (`admittedByGuardUserId`, owner notified for transparency). This is
 > intentional on-site discretion — not a management override.
 
-⚠️ **Management approve/reject RBAC correction still pending.** Today
-`ability.factory.ts` grants `MANAGEMENT_ADMIN` `manage Visitor` and
-`MANAGEMENT_STAFF` `approve Visitor`. Target: remove management approve/reject,
-keep read/audit, keep resident approve/reject as the default path, keep guard
-check-in/out + documented guard-admit flow.
+**RBAC ✅ shipped.** `ability.factory.ts` grants `MANAGEMENT_ADMIN` /
+`MANAGEMENT_STAFF` **read-only** visitor access in condo scope (plus
+overnight-policy abilities for admins); unit-scoped `manage`/`approve`/`reject`
+remain on owners and tenants only. Covered by `ability.factory.spec.ts`.
 
 ---
 
@@ -111,7 +110,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Announcements** | ✅ | `Announcement` + `AnnouncementAck`; importance, audience JSON, pinned, requiresAck; web admin + resident views |
 | **Notifications (push/email)** | ✅ (core) | `Notification` + `PushSubscription` (Expo & Web); notification dispatch in services |
 | **Real-time notifications (web toast + bell, mobile push)** | ✅ | Dispatch emits enriched `notification.created` (title/body/data) → gateway forwards `notification:new` to the user room; web in-app toast (`realtime-provider.tsx`) + notification bell w/ unread badge & dropdown (`notification-bell.tsx`) in `app-shell`/`admin-shell`; mobile push registers via authenticated `api.registerPushToken` |
-| **Governance-lite polls (owner-verified MC voting)** | ✅ | `PollsModule` (`polls/**`); active-ownership-verified voting; admin `/admin/polls` + resident/mobile polls; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM e-voting (§4.8, still ⬜) |
+| **Governance-lite polls (owner-verified MC voting)** | ✅ | `PollsModule` (`polls/**`); active-ownership-verified voting; admin `/admin/polls` + resident/mobile polls; migration `20260701160000_owner_polls`. Distinct from AGM/EGM resolution voting (§4.8 governance core) |
 | **MCP integrations (admin)** | ✅ | Per-condo `McpServerConnection` (`integrations/**`); admin `/admin/settings/integrations`; CASL `McpServer` subject; migration `20260701180000_mcp_server_connections` |
 | **Mobile resident + guard parity** | ✅ | New resident screens (notifications, advance/prepaid payment, polls, recurring passes, FAQ, delegated access) + guard recurring-pass check-in & blacklist alerts |
 | **WhatsApp notifications** | ✅ | Per-condo WhatsApp config + `WhatsAppNotificationProvider` (Twilio-backed seam); templates for key flows; admin settings + dispatch fan-out alongside push/email |
@@ -120,16 +119,15 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Web perf (lite HSR)** | ✅ | **U1** — route-level `loading.tsx` skeletons, nav prefetch, shell retention during auth, `keepPreviousData` on thread lists (commits `ce33631`–`32cd37e`) |
 | **Facility booking** | ✅ | `Facility`/`Booking` module; admin `/admin/facilities`; resident booking with deposits → Billing; migration `20260701190000_facility_booking` |
 | **Parcels / deliveries** | ✅ | `Parcel`/`ParcelEvent`; guard logging + resident collection sign-off + reminders; admin `/admin/parcels`; migration `20260702120000_parcels` |
-| **Governance (AGM/EGM, e-voting, financial transparency, minutes)** | ⬜ | Not in schema or code |
+| **Governance (AGM/EGM, e-voting, financial transparency, minutes)** | 🟡 | **Core ✅** — `GovernanceModule` (`GeneralMeeting`/`MeetingProxy`/`MeetingResolution` + share-weighted resolution voting via `PollsModule`); admin `/admin/governance` + resident/mobile; migration `20260702170000_governance`; e2e `governance.spec.ts`. **Remaining ⬜:** minutes publication + financial/budget transparency views (§4.8) |
 | **Forms & workflows (move-in/out, renovation permit, vehicle sticker)** | ✅ | `FormTemplate`/`FormSubmission` with approval routing; admin `/admin/forms`; migration `20260702130000_forms_workflows` |
-| **Community (marketplace, polls, lost & found)** | 🟡 | **Polls ✅** (governance-lite owner-verified voting - see row above); **marketplace cancelled** (product decision — code removed); lost & found still ⬜ |
+| **Community (marketplace, polls, lost & found)** | ✅ | **Polls ✅** (governance-lite owner-verified voting — see row above); **lost & found ✅** — `LostFoundModule`, admin `/admin/lost-found`, resident/mobile, migration `20260702160000_lost_found`, e2e `lost-found.spec.ts`; **marketplace cancelled** (product decision — code removed) |
 | **Documents vault** | ✅ | `Document`/`DocumentVersion` with role-scoped visibility; admin `/admin/documents`; migration `20260702140000_documents_vault` |
-
 | **First-time setup wizard** | ✅ | Resumable `/admin/setup` with `setupCompletedAt` / dismiss; dashboard banner + **Finish setup** nav — **no forced redirect** (admins can reach settings/invoices anytime) |
 | **Safety / SOS + guard patrol** | ✅ | `SafetyModule` — SOS alerts + patrol rounds/checkpoints; admin `/admin/safety` + `/admin/patrol`; migration `20260701210000_safety_patrol` |
 | **Delivery / e-hailing visitor passes** | ✅ | Lighter delivery & e-hailing passes (ties to Visitor + parcels); shipped with visitor module updates in `6dd4f00` / `a4baa2a` |
 | **MY e-Invoice (MyInvois)** | ✅ | Production **MyInvois** provider seam + sandbox delegation; admin `/admin/settings/einvoice`; migration `20260701200000_einvoice_myinvois` |
-| **Admin / platform (multi-condo super-admin)** | 🟡 | `SUPER_ADMIN` role + `manage all` ability exist; no dedicated cross-condo console UI yet |
+| **Admin / platform (multi-condo super-admin)** | 🟡 | **Basics ✅** — `PlatformModule` + `/admin/platform` condo list/search/detail for `SUPER_ADMIN` (F2 partial). **Still ⬜:** provisioning, plan/usage, feature flags, support impersonation |
 | **i18n (BM / EN / 中文 / Tamil)** | 🟡 | `locale` fields on `User` & `Condo`; UI string externalization not complete |
 
 **Surprises worth flagging (more built than expected):**
@@ -179,7 +177,7 @@ Dependencies are noted per module. "→" means "depends on / builds atop".
 - **Deps:** Identity, Multi-tenancy. **Enables:** Governance financial
   transparency (§4.8).
 
-### 4.2 Visitor management  *(two-path flow — next major)*
+### 4.2 Visitor management  *(two-path flow ✅)*
 The flagship resident-empowerment flow. Two explicit paths:
 
 **(a) Pre-registered fast lane** *(McDonald's-app style):*
@@ -202,7 +200,7 @@ The flagship resident-empowerment flow. Two explicit paths:
 
 - **Offline tolerance** at the gate: guard device queues check-ins and syncs
   when connectivity returns.
-- **Correction to apply:** management = **read/audit only**; residents =
+- **RBAC correction ✅ shipped:** management = **read/audit only**; residents =
   **only** approvers; guards = check-in/out only (see §2.1).
 - **Shipped:** **blacklist** (`VisitorBlacklistService` + web `visitor-blacklist-panel.tsx` + guard blacklist alerts on scan/manual) and **recurring passes** (`RecurringPassService` + resident `visitors/recurring.tsx` + guard recurring-pass check-in); migration `20260701120000_visitor_blacklist_recurring_passes`.
 - **Shipped:** lighter **delivery / e-hailing visitor passes** (fast-lane passes
@@ -272,13 +270,20 @@ The flagship resident-empowerment flow. Two explicit paths:
   visitor flow ties in (§4.2 future).
 - **Deps:** Notifications, Visitor (gate context), Audit.
 
-### 4.8 Governance (AGM/EGM, e-voting, financial transparency, minutes)  *(⬜)*
-- AGM/EGM **notices** (→ Announcements), **proxy** assignment, **e-voting**
-  (one vote per share/`sharePercent` already on `Ownership`), **audited
-  financials / budget transparency**, **minutes** publication.
+### 4.8 Governance (AGM/EGM, e-voting, financial transparency, minutes)  *(🟡 core ✅ → minutes + financials ⬜)*
+- **Shipped (v0.6 core):** `GovernanceModule` — `GeneralMeeting` (AGM/EGM),
+  notice body + status workflow (`DRAFT` → `NOTICE_PUBLISHED` → `IN_PROGRESS` →
+  `CLOSED`), **proxy** submission per unit (`MeetingProxy`), resolution motions
+  (`MeetingResolution`) with share-weighted e-voting via linked `Poll` (For /
+  Against / Abstain; eligibility = active ownership + `sharePercent` weighting).
+  Admin `/admin/governance`, resident `/(resident)/governance`, mobile
+  `(resident)/governance`; migration `20260702170000_governance`; e2e
+  `governance.spec.ts`.
+- **Still ⬜:** **minutes** publication (→ Documents vault), **audited
+  financials / budget transparency** views (→ Billing ledger + reports).
 - **Deps:** Billing (financial transparency), Documents vault (minutes/
-  budgets), Identity (eligibility = active ownership). **High-trust — late
-  milestone.**
+  budgets), Identity (eligibility = active ownership). **High-trust — remaining
+  gaps in active development.**
 
 ### 4.9 Forms & workflows  *(✅)*
 - Structured **move-in / move-out**, **renovation permit**, **vehicle
@@ -286,14 +291,17 @@ The flagship resident-empowerment flow. Two explicit paths:
 - **Deps:** Storage (uploads), Notifications, Threads (clarifications),
   Billing (fees/deposits).
 
-### 4.10 Community (marketplace, polls, lost & found)  *(polls ✅ → rest ⬜)*
+### 4.10 Community (marketplace, polls, lost & found)  *(polls ✅ + lost & found ✅)*
 - **Shipped:** **governance-lite polls** — `PollsModule` with owner-verified MC
   voting (only active unit owners may vote; ownership + condo checked at vote
   time), admin authoring `/admin/polls`, resident `/(resident)/polls` + mobile
   polls; migration `20260701160000_owner_polls`. Distinct from full AGM/EGM
-  e-voting (§4.8, still ⬜).
-- **Still ⬜:** resident-to-resident marketplace, lost & found board.
-  **No ads** — community utility only.
+  resolution voting (§4.8).
+- **Shipped:** **lost & found** — `LostFoundModule` (`LostFoundPost` with
+  kind/status, photo attachments); admin `/admin/lost-found`, resident
+  `/(resident)/lost-found`, mobile `(resident)/lost-found`; migration
+  `20260702160000_lost_found`; e2e `lost-found.spec.ts`.
+- **Cancelled:** resident-to-resident marketplace (product decision — no ads).
 - **Deps:** Identity, Storage, Notifications.
 
 ### 4.11 Notifications (push / email / WhatsApp)  *(✅)*
@@ -308,10 +316,15 @@ The flagship resident-empowerment flow. Two explicit paths:
   fan-out via the same dispatch interface; `sentChannels` tracked on `Notification`.
 - **Deps:** every module emits into it. Cross-cutting.
 
-### 4.12 Access control / security  *(✅ core → harden)*
-- Sessions, passkeys, 2FA exist. **Target:** device/session management UI,
-  anomaly alerts (`AUDIT_ALERT`), rate-limit tuning (Throttler is wired),
-  guard-device hardening.
+### 4.12 Access control / security  *(✅ core + PR #5 hardening → UI polish ⬜)*
+- Sessions, passkeys, 2FA exist. **Shipped (PR #5, merge `2db9666`):** Helmet
+  security headers + CSP (web/mobile), auth endpoint rate limiting (Throttler),
+  argon2/TOTP hardening, JWT auth on Socket.IO, Swagger gated to non-prod,
+  billing webhook/redirect hardening, dependency patches (lodash/qs/multer/ws
+  etc.), and a broad **IDOR remediation pass** across visitor, defects,
+  billing/accounting, announcements, FAQ, MCP, parcels, and related controllers.
+- **Target (still ⬜):** device/session management UI, anomaly alerts
+  (`AUDIT_ALERT` kind exists), guard-device hardening.
 - **Deps:** Identity, Audit.
 
 ### 4.13 Documents vault  *(✅)*
@@ -330,10 +343,12 @@ The flagship resident-empowerment flow. Two explicit paths:
 - SOS alerts from residents/guards; patrol rounds with checkpoints; admin
   `/admin/safety` and `/admin/patrol`; notifications + audit.
 
-### 4.14 Admin / platform (multi-condo super-admin)  *(🟡)*
-- `SUPER_ADMIN` + `manage all` exist. **Target:** cross-condo console —
-  provisioning condos, plan/usage, feature flags, support impersonation
-  (audited), aggregate health.
+### 4.14 Admin / platform (multi-condo super-admin)  *(🟡 basics ✅)*
+- `SUPER_ADMIN` + `manage all` exist. **Shipped (F2 partial):** `PlatformModule`
+  + web `/admin/platform` — cross-condo list/search, per-condo detail, setup
+  status badges, and "open condo admin" context switch for `SUPER_ADMIN`.
+- **Target (still ⬜):** condo provisioning, plan/usage, feature flags, support
+  impersonation (audited), aggregate health dashboard.
 - **Shipped (admin capability):** **MCP integrations** — per-condo
   `McpServerConnection` (`integrations/**`, `mcp-client.ts`) managed from
   `/admin/settings/integrations`, gated by the CASL `McpServer` subject
@@ -360,9 +375,9 @@ New entities each future module introduces, and how they relate:
 | MY payments | `PaymentMethod`/extend `PaymentProvider`; `Statement`, `Receipt` | `Payment`, `Invoice`, `Unit` |
 | Facility booking | `Facility`, `FacilitySlot`, `Booking`, `BookingPayment` | `Condo`, `Unit`, `User`, `Invoice` |
 | Parcels | `Parcel`, `ParcelEvent` | `Unit`, `User`, `AuditLog` |
-| Governance | `Meeting`, `Motion`, `Vote`, `Proxy`, `Resolution` | `Condo`, `Ownership` (vote weight via `sharePercent`), `Document` |
+| Governance | `GeneralMeeting`, `MeetingProxy`, `MeetingResolution` (+ linked `Poll` for share-weighted votes) | `Condo`, `Ownership` (vote weight via `sharePercent`), `Document` (minutes — pending) |
 | Forms | `FormTemplate`, `FormSubmission`, `FormStep`/`Approval` | `Unit`, `User`, `Attachment`, `Invoice` |
-| Community | `Listing`, `Poll`, `PollOption`, `PollVote`, `LostFoundItem` | `Condo`, `Unit`, `User`, `Attachment` |
+| Community | `Poll`, `PollOption`, `PollVote`, `LostFoundPost` | `Condo`, `Unit`, `User`, `Attachment` |
 | Documents | `Document`, `DocumentVersion` | `Condo`, `Attachment`, RBAC scope |
 | Notifications | `NotificationPreference` | `User`, `NotificationKind` |
 | i18n | `Translation`/JSON locale fields | `Announcement`, `FaqArticle`, `Document` |
@@ -477,7 +492,7 @@ flowchart LR
   auto-suggested, SLA due dates computed, escalation fires; FAQ searchable;
   unit + e2e tests; CI green.
 
-### v0.3 — Visitor v2 + Malaysia payment rails
+### v0.3 — Visitor v2 + Malaysia payment rails  *(✅ visitor + RBAC done — MY rail polish ⬜)*
 - **Delivers:** two-path visitor flow (fast-lane QR/access-code + strict
   walk-in with **mandatory owner approval, no override**, management-office
   exception, full unit-activity logging, offline tolerance); **apply the RBAC
@@ -487,7 +502,8 @@ flowchart LR
   auto-approve toggle + MY public holidays in settings; guard unit search picker
   (web + mobile); visitor/helpdesk i18n wiring (en/ms/zh-Hans); admin overnight
   queue filters; Windows `db:migrate` fix. **Shipped (MY rails):** DuitNow QR
-  adapter + gateway UI; TNG/Boost/GrabPay via aggregators. **Still ⬜:** dedicated
+  adapter + gateway UI; TNG/Boost/GrabPay via aggregators. **Shipped (RBAC):**
+  management read/audit only — see §2.1. **Still ⬜:** dedicated
   TNG/Boost/GrabPay adapters + statement/CSV export polish.
 - **Deps:** Threads (context), Notifications, Audit, Billing core.
   **Acceptance:** walk-in cannot enter without owner approval; no
@@ -510,18 +526,27 @@ flowchart LR
   flows submit→review→approve with audit trail; documents visible per role;
   tests + CI green.
 
-### v0.6 — Governance: AGM/EGM + e-voting + financial transparency
+### v0.6 — Governance: AGM/EGM + e-voting + financial transparency  *(🟡 core ✅)*
 - **Delivers:** meeting notices, proxy, share-weighted e-voting, audited
   financial/budget views, minutes publication.
+- **Shipped (core):** `GovernanceModule` — AGM/EGM meetings, notice workflow,
+  proxy per unit, resolution motions with share-weighted e-voting (For/Against/
+  Abstain via linked `Poll`); admin + resident + mobile UI; migration
+  `20260702170000_governance`; e2e `governance.spec.ts`.
+- **Still ⬜:** **minutes publication** (→ Documents vault) and **financial/
+  budget transparency** views (→ Billing ledger/reports). In active development.
 - **Deps:** Documents vault, Billing transparency, Identity (eligibility).
   **Acceptance:** an AGM motion runs end-to-end with verifiable share-weighted
   tally, proxy honored, results immutable in audit; financial summary matches
-  ledger; tests + CI green.
+  ledger; minutes published; tests + CI green.
 
 ### v1.0 — Polish, Community, multi-condo platform, WhatsApp, full i18n
 - **Delivers:** community (marketplace/polls/lost&found), WhatsApp channel,
   multi-condo super-admin console, complete BM/EN/中文 (Tamil optional)
   localization, accessibility & performance pass, self-hosting hardening.
+- **Already shipped toward v1.0:** polls + lost & found (§4.10), WhatsApp
+  notifications (§4.11), platform console basics `/admin/platform` (F2
+  partial, §4.14), PR #5 security hardening (§4.12). Marketplace cancelled.
 - **Deps:** broad. **Acceptance:** a JMB self-hosts and runs a full month
   (billing cycle, AGM, visitors, defects) in their language; Lighthouse/
   a11y targets met; tests + CI green.
@@ -548,7 +573,9 @@ flowchart LR
   skeletons during transitions, prefetch nav targets on hover/mount so warm
   navigations feel instant without full streaming SSR.
 - **Observability:** request IDs (`request-id.middleware`), structured logs,
-  health checks (`health` module); add metrics/traces before v1.0.
+  health checks (`health` module); **Prometheus scrape endpoint** (`GET /metrics`,
+  gated by `METRICS_ENABLED=true` + localhost) for uptime, heap, request count,
+  and Postgres/Redis health; OpenTelemetry traces still deferred pre-v1.0.
 - **Self-hosting:** Docker compose + Helm chart; `make dev`; demo seed; keep
   external services optional/swappable.
 - **Pluggable local-AI seam:** `AI_ASSIST_PROVIDER` stays an interface; the

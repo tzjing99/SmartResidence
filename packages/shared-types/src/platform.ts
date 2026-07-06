@@ -40,6 +40,37 @@ export interface PlatformCondoDetail {
   setup: SetupStatus;
 }
 
+export interface PlatformCondosPage {
+  items: PlatformCondoSummary[];
+  total: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PlatformCondoHealth {
+  condoId: string;
+  userCount?: number;
+  unitCount?: number;
+  openDefectCount?: number;
+  lastActivityAt?: string | null;
+  setupCompleted?: boolean;
+  setupReady?: boolean;
+}
+
+export interface CreatePlatformCondoInput {
+  name: string;
+  slug: string;
+  address: string;
+  countryCode?: string;
+  timezone?: string;
+}
+
+export interface CreatePlatformCondoResult {
+  id: string;
+  slug: string;
+  name: string;
+}
+
 export const ListPlatformCondosQuery = z.object({
   search: z.string().trim().max(120).optional(),
 });

@@ -78,6 +78,9 @@ export default function InvoiceDetailPage() {
     if (provider === 'IPAY88') {
       return `${apiBase}/api/webhooks/payments/ipay88/return?next=${encodeURIComponent(appReturn)}`;
     }
+    if (provider === 'TNG') {
+      return `${apiBase}/api/webhooks/payments/tng/return?next=${encodeURIComponent(appReturn)}`;
+    }
     return appReturn;
   }
 

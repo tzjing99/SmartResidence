@@ -22,6 +22,7 @@ import { FiuuAdapter } from './providers/fiuu.adapter';
 import { FpxAdapter } from './providers/fpx.adapter';
 import { IPay88Adapter } from './providers/ipay88.adapter';
 import { StripeAdapter } from './providers/stripe.adapter';
+import { TngAdapter } from './providers/tng.adapter';
 import { ReceiptController } from './receipt.controller';
 import { ReceiptService } from './receipt.service';
 import { ReportsController } from './reports.controller';
@@ -36,6 +37,7 @@ import { ReportsController } from './reports.controller';
     FiuuAdapter,
     IPay88Adapter,
     DuitNowAdapter,
+    TngAdapter,
     ReceiptService,
     DepositService,
     FeeScheduleService,

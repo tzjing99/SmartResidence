@@ -150,7 +150,9 @@ function AdvanceMaintenancePayment({
           ? `${apiBase}/api/webhooks/payments/fiuu/return?next=${encodeURIComponent(appReturn)}`
           : provider === 'IPAY88' && appReturn
             ? `${apiBase}/api/webhooks/payments/ipay88/return?next=${encodeURIComponent(appReturn)}`
-            : appReturn;
+            : provider === 'TNG' && appReturn
+              ? `${apiBase}/api/webhooks/payments/tng/return?next=${encodeURIComponent(appReturn)}`
+              : appReturn;
       const res = await createAdvance.mutateAsync({
         unitId,
         amount,

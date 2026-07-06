@@ -1,12 +1,13 @@
 'use client';
 
+import { AdminPageHeader } from '@/components/admin-ui';
 import { api, setActiveCondo } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
-import { usePlatformCondoSummary } from '@smartresidence/api-client';
-import { setupProgress } from '@smartresidence/shared-types';
+import { usePlatformCondoHealth, usePlatformCondoSummary } from '@smartresidence/api-client';
+import { type PlatformAuditEvent, setupProgress } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { ArrowLeft, Building2, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, ChevronRight, Receipt, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -22,12 +23,21 @@ function fmtDateTime(value?: string | null) {
   });
 }
 
+function fmtMoney(amount: number, currencyCode: string) {
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: currencyCode,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 export default function PlatformCondoDetailPage() {
   const router = useRouter();
   const { abilities, ready } = useRoleGuard('admin');
   const canView = hasAbility(abilities, 'read', 'Platform');
   const { id } = useParams<{ id: string }>();
   const summary = usePlatformCondoSummary(api, canView ? id : null);
+  const health = usePlatformCondoHealth(api, canView ? id : null);
 
   React.useEffect(() => {
     if (ready && !canView) router.replace('/admin');
@@ -42,11 +52,11 @@ export default function PlatformCondoDetailPage() {
     return <Skeleton className="h-64 w-full rounded-2xl" />;
   }
 
-  if (summary.isLoading) {
+  if (summary.isLoading || health.isLoading) {
     return <Skeleton className="h-96 w-full rounded-2xl" />;
   }
 
-  if (summary.isError || !summary.data) {
+  if (summary.isError || !summary.data || health.isError || !health.data) {
     return (
       <EmptyState
         title="Condo not found"
@@ -64,46 +74,65 @@ export default function PlatformCondoDetailPage() {
   }
 
   const data = summary.data;
+  const healthData = health.data;
   const progress = setupProgress(data.setup);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-2" asChild>
-            <Link href="/admin/platform">
-              <ArrowLeft className="size-4 mr-1" />
-              All condos
-            </Link>
+      <AdminPageHeader
+        eyebrow="Platform"
+        title={data.name}
+        description={data.address}
+        icon={Building2}
+        actions={
+          <Button type="button" variant="primary" onClick={openCondoAdmin}>
+            Open condo admin
+            <ChevronRight className="size-4 ml-1" />
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="size-6" />
-            {data.name}
-          </h1>
-          <p className="sr-muted text-sm mt-1">{data.address}</p>
-        </div>
-        <Button type="button" variant="primary" onClick={openCondoAdmin}>
-          Open condo admin
-          <ChevronRight className="size-4 ml-1" />
-        </Button>
-      </div>
+        }
+      />
+
+      <Button type="button" variant="ghost" size="sm" className="-ml-2" asChild>
+        <Link href="/admin/platform">
+          <ArrowLeft className="size-4 mr-1" />
+          All condos
+        </Link>
+      </Button>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4">
-          <div className="text-sm sr-muted">Units</div>
-          <div className="text-2xl font-semibold mt-1">{data.unitCount}</div>
+          <div className="text-sm sr-muted flex items-center gap-1.5">
+            <Users className="size-4" aria-hidden />
+            Users
+          </div>
+          <div className="text-2xl font-semibold mt-1">{healthData.userCount}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm sr-muted">Blocks</div>
-          <div className="text-2xl font-semibold mt-1">{data.blockCount}</div>
+          <div className="text-sm sr-muted flex items-center gap-1.5">
+            <Building2 className="size-4" aria-hidden />
+            Units
+          </div>
+          <div className="text-2xl font-semibold mt-1">{healthData.unitCount}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm sr-muted">Residents</div>
-          <div className="text-2xl font-semibold mt-1">{data.residentCount}</div>
+          <div className="text-sm sr-muted flex items-center gap-1.5">
+            <AlertTriangle className="size-4" aria-hidden />
+            Open defects
+          </div>
+          <div className="text-2xl font-semibold mt-1">{healthData.openDefectCount}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-sm sr-muted">Payment gateways</div>
-          <div className="text-2xl font-semibold mt-1">{data.enabledGatewayCount}</div>
+          <div className="text-sm sr-muted flex items-center gap-1.5">
+            <Receipt className="size-4" aria-hidden />
+            Billing arrears
+          </div>
+          <div className="text-2xl font-semibold mt-1">
+            {fmtMoney(healthData.billing.overdueAmount, healthData.billing.currencyCode)}
+          </div>
+          <p className="text-xs sr-muted mt-1">
+            {healthData.billing.overdueInvoiceCount} overdue invoice
+            {healthData.billing.overdueInvoiceCount === 1 ? '' : 's'}
+          </p>
         </Card>
       </div>
 
@@ -139,6 +168,35 @@ export default function PlatformCondoDetailPage() {
         </ul>
       </Card>
 
+      <Card className="p-5 space-y-3">
+        <h2 className="font-semibold">Recent audit events</h2>
+        {healthData.recentAuditEvents.length === 0 ? (
+          <p className="text-sm sr-muted">No audit activity recorded yet.</p>
+        ) : (
+          <ul className="divide-y divide-stone-200/60 dark:divide-stone-800/60">
+            {healthData.recentAuditEvents.map((event: PlatformAuditEvent) => (
+              <li key={event.id} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
+                  <div>
+                    <p className="font-medium">
+                      {event.action} · {event.resourceType}
+                      {event.resourceId ? (
+                        <span className="sr-muted font-normal">
+                          {' '}
+                          ({event.resourceId.slice(0, 8)}…)
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="sr-muted mt-0.5">{event.actorName ?? 'System'}</p>
+                  </div>
+                  <time className="sr-muted shrink-0">{fmtDateTime(event.createdAt)}</time>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       <Card className="p-5">
         <h2 className="font-semibold mb-3">Metadata</h2>
         <dl className="grid gap-3 sm:grid-cols-2 text-sm">
@@ -149,6 +207,14 @@ export default function PlatformCondoDetailPage() {
           <div>
             <dt className="sr-muted">Management staff</dt>
             <dd>{data.managementCount}</dd>
+          </div>
+          <div>
+            <dt className="sr-muted">Residents</dt>
+            <dd>{data.residentCount}</dd>
+          </div>
+          <div>
+            <dt className="sr-muted">Blocks</dt>
+            <dd>{data.blockCount}</dd>
           </div>
           <div>
             <dt className="sr-muted">Timezone</dt>
@@ -164,7 +230,7 @@ export default function PlatformCondoDetailPage() {
           </div>
           <div>
             <dt className="sr-muted">Last activity</dt>
-            <dd>{fmtDateTime(data.lastActivityAt)}</dd>
+            <dd>{fmtDateTime(healthData.lastActivityAt)}</dd>
           </div>
         </dl>
       </Card>

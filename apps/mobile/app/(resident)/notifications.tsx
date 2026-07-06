@@ -20,6 +20,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticLight } from '../../src/lib/haptics';
 import { resolveNotificationRoute } from '../../src/lib/push-navigation';
@@ -35,6 +36,7 @@ type NotificationRow = {
 };
 
 export default function NotificationsScreen() {
+  const t = useT();
   const router = useRouter();
   const notifications = useNotifications(api, { limit: 30 });
   const markRead = useMarkNotificationsRead(api);
@@ -59,8 +61,8 @@ export default function NotificationsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Notifications"
-      title="Notification center"
+      eyebrow={t('nav.notifications')}
+      title={t('nav.screens.notifications')}
       subtitle="Everything that needs your attention, gathered in one place."
       scrollProps={{ refreshControl }}
       headerAction={

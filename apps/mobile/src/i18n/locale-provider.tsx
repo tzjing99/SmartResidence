@@ -1,8 +1,7 @@
-'use client';
-
-import { api } from '@/lib/api';
 import { useMe } from '@smartresidence/api-client';
 import * as React from 'react';
+import { api } from '../lib/api';
+import { getCachedSession, subscribeSession } from '../lib/session';
 import { DEFAULT_LOCALE, type Locale, normalizeLocale, translate } from './messages';
 
 type TFunction = (key: string, vars?: Record<string, string | number>) => string;
@@ -13,7 +12,16 @@ const LocaleContext = React.createContext<{ locale: Locale; t: TFunction }>({
 });
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const me = useMe(api);
+  const [hasSession, setHasSession] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    void getCachedSession().then((session) => setHasSession(Boolean(session?.accessToken)));
+    return subscribeSession(() => {
+      void getCachedSession().then((session) => setHasSession(Boolean(session?.accessToken)));
+    });
+  }, []);
+
+  const me = useMe(api, { enabled: hasSession === true });
   const locale = normalizeLocale(
     (me.data?.user as { locale?: string } | undefined)?.locale ?? DEFAULT_LOCALE,
   );
@@ -33,6 +41,7 @@ export function useLocale() {
   return React.useContext(LocaleContext);
 }
 
+/** Shorthand for `useLocale().t`. */
 export function useT() {
   return useLocale().t;
 }

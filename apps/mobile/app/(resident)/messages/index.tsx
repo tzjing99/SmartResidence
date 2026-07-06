@@ -21,6 +21,7 @@ import {
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { RESIDENT_THREAD_INBOX_PARAMS } from '../../../src/lib/resident-threads';
 
@@ -42,6 +43,7 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = 
 };
 
 export default function MessagesScreen() {
+  const t = useT();
   const router = useRouter();
   const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
   const { refreshControl } = usePullToRefresh(useCallback(() => threads.refetch(), [threads]));
@@ -50,8 +52,8 @@ export default function MessagesScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Messages"
-      title="Ask management"
+      eyebrow={t('nav.messages')}
+      title={t('nav.screens.messages')}
       subtitle="Keep every request, reply, and resolution in one conversation."
       scrollProps={{ refreshControl }}
       headerAction={

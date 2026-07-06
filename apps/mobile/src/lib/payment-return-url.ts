@@ -19,6 +19,9 @@ export function buildHostedGatewayReturnUrl(
   if (provider === 'IPAY88') {
     return `${apiBase}/api/webhooks/payments/ipay88/return?next=${encodeURIComponent(deepLink)}`;
   }
+  if (provider === 'TNG') {
+    return `${apiBase}/api/webhooks/payments/tng/return?next=${encodeURIComponent(deepLink)}`;
+  }
   return deepLink;
 }
 

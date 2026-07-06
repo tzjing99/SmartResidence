@@ -8,6 +8,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 
 type FaqRow = {
@@ -19,6 +20,7 @@ type FaqRow = {
 };
 
 export default function FaqScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const [query, setQuery] = useState('');
@@ -39,8 +41,8 @@ export default function FaqScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Help"
-      title="Help & FAQ"
+      eyebrow={t('nav.help')}
+      title={t('nav.screens.faq')}
       subtitle="Answers curated by your management office."
       scrollProps={{ refreshControl }}
     >

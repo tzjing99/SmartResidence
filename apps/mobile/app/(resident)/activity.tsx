@@ -9,9 +9,11 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 
 export default function ActivityScreen() {
+  const t = useT();
   const activity = useMyActivity(api);
   const whoViewed = useWhoViewedMe(api);
   const { refreshControl } = usePullToRefresh(
@@ -26,8 +28,8 @@ export default function ActivityScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Activity"
-      title="Activity on my unit"
+      eyebrow={t('nav.activity')}
+      title={t('nav.screens.activity')}
       subtitle="A clear audit trail of actions and record views connected to your home."
       scrollProps={{ refreshControl }}
     >

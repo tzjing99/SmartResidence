@@ -6,6 +6,12 @@ Tracked defects and deferred refinements not yet scheduled into a milestone; see
 
 Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
+## Accessibility
+
+| ID | Priority | Area | Description |
+| --- | --- | --- | --- |
+| **A1** | P2 | web | WCAG AA lite pass on high-traffic surfaces — skip links, landmarks, dialog focus trap, form labels, icon-button names, dark-mode contrast. **Partial done** (`feature/a11y-wcag-lite`). |
+
 ## Recently completed
 
 - ✅ **GV1 — Governance core (v0.6 partial)** — `GovernanceModule` (`apps/api/src/governance/**`): `GeneralMeeting` (AGM/EGM), notice workflow, `MeetingProxy`, `MeetingResolution` with share-weighted e-voting via linked `Poll` (For/Against/Abstain); admin `/admin/governance`, resident `/(resident)/governance`, mobile `(resident)/governance`; migration `20260702170000_governance`; e2e `governance.spec.ts`. **Remaining:** minutes publication + financial/budget transparency (see ROADMAP §4.8).

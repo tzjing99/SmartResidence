@@ -48,7 +48,8 @@
     "reopenSentToast": "已退回管理处",
     "appealReasonValidation": "请填写原因（至少 10 个字符）",
     "resolvedNotice": "此对话已解决。",
-    "closedNotice": "此对话已关闭。"
+    "closedNotice": "此对话已关闭。",
+    "threadActions": "对话操作"
   },
   "upload": {
     "photos": "照片",

@@ -26,7 +26,7 @@
   .dark {
     --sr-bg: 11 23 39;
     --sr-fg: 243 244 246;
-    --sr-muted: 156 163 175;
+    --sr-muted: 180 186 198;
     --sr-border: 31 41 55;
     --sr-card: 20 34 53;
     --sr-surface: 20 34 53;
@@ -83,6 +83,9 @@
   }
   .text-meta-sep {
     @apply opacity-50 select-none leading-none;
+  }
+  .dark .text-meta-sep {
+    opacity: 0.7;
   }
   /* Label/value rows — vertically centered like iOS settings cells */
   .align-row {

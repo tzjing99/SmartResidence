@@ -260,6 +260,15 @@ export interface UserPreferences {
   whatsappEligible?: boolean;
 }
 
+export interface AuthSession {
+  id: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  deviceInfo: { device?: string } | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
 export interface NotificationItem {
   id: string;
   kind: string;
@@ -2213,10 +2222,7 @@ export class ApiClient {
     >('GET', '/api/owner/delegated-access');
   }
   listSessions() {
-    return this.request<Array<{ id: string; device: string | null; lastUsedAt: string }>>(
-      'GET',
-      '/api/auth/sessions',
-    );
+    return this.request<AuthSession[]>('GET', '/api/auth/sessions');
   }
   revokeSession(sessionId: string) {
     return this.request<void>('DELETE', `/api/auth/sessions/${sessionId}`);

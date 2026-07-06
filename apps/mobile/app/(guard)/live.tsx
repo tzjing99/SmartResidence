@@ -80,7 +80,11 @@ export default function LiveScreen() {
           style: 'destructive',
           onPress: () => {
             void checkOut.mutateAsync(visitorId).then(
-              () => Alert.alert(t('mobile.guard.live.checkedOutTitle'), t('mobile.guard.live.checkedOutMessage', { name })),
+              () =>
+                Alert.alert(
+                  t('mobile.guard.live.checkedOutTitle'),
+                  t('mobile.guard.live.checkedOutMessage', { name }),
+                ),
               (err: Error) => Alert.alert(t('mobile.guard.live.checkOutFailedTitle'), err.message),
             );
           },
@@ -109,7 +113,8 @@ export default function LiveScreen() {
                   {v.name}
                 </AppText>
                 <AppText variant="meta" numberOfLines={2} style={styles.cardMeta}>
-                  {v.unitLabel ?? t('mobile.guard.live.unitNotShown')} · {t('mobile.guard.live.onSiteMeta')} {formatTimeOnSite(checkedInAt, t)}
+                  {v.unitLabel ?? t('mobile.guard.live.unitNotShown')} ·{' '}
+                  {t('mobile.guard.live.onSiteMeta')} {formatTimeOnSite(checkedInAt, t)}
                 </AppText>
                 <View style={styles.pillRow}>
                   <Pill tone="neutral" label={visitTypeLabel(v.visitType, t)} />
@@ -139,7 +144,7 @@ export default function LiveScreen() {
               ) : null}
               {canCheckOut ? (
                 <Button
-                  title={t("visitors.guard.checkOut")}
+                  title={t('visitors.guard.checkOut')}
                   size="sm"
                   variant="soft-primary"
                   loading={checkOut.isPending}
@@ -178,8 +183,8 @@ export default function LiveScreen() {
       ListHeaderComponent={
         <View style={styles.headerStack}>
           <GuardHeader
-            eyebrow={t("mobile.guard.live.eyebrow")}
-            title={t("visitors.guard.liveTitle")}
+            eyebrow={t('mobile.guard.live.eyebrow')}
+            title={t('visitors.guard.liveTitle')}
             subtitle="Active visitors currently inside the property. Walk-ins are record-only and close automatically at end of day."
           />
           <Card style={[guardStyles.card, styles.summaryCard]}>
@@ -204,7 +209,7 @@ export default function LiveScreen() {
       ListEmptyComponent={
         live.isLoading ? null : (
           <EmptyState
-            title={t("visitors.guard.liveEmpty")}
+            title={t('visitors.guard.liveEmpty')}
             description="Checked-in pre-registered visitors appear here. Walk-ins are logged for the record and close automatically."
           />
         )

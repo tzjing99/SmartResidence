@@ -28,11 +28,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
           <LocaleProvider>
-          <MobileRealtimeProvider>
-            <PushNavigationBridge />
-            <StatusBar style="auto" />
-            {children}
-          </MobileRealtimeProvider>
+            <MobileRealtimeProvider>
+              <PushNavigationBridge />
+              <StatusBar style="auto" />
+              {children}
+            </MobileRealtimeProvider>
           </LocaleProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

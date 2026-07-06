@@ -1,8 +1,8 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api, writeSession } from '@/lib/api';
 import { type MeResponse, roleToHome } from '@/lib/roles';
-import { useT } from '@/i18n/locale-provider';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { queryKeys } from '@smartresidence/api-client';
@@ -15,7 +15,9 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 /** Strip sensitive query params; prefill email from `?email=` only (never password). */
-function useSignInQueryParams(form: ReturnType<typeof useForm<{ email: string; password: string; totp?: string }>>) {
+function useSignInQueryParams(
+  form: ReturnType<typeof useForm<{ email: string; password: string; totp?: string }>>,
+) {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const email = params.get('email');
@@ -89,9 +91,7 @@ export default function SignInPage() {
             Smart<span className="text-coral-500">Residence</span>
           </Link>
           <h1 className="mt-6 text-2xl font-semibold tracking-tight">{t('auth.welcomeBack')}</h1>
-          <p className="text-sm sr-muted mt-1">
-            {t('auth.signInBlurb')}
-          </p>
+          <p className="text-sm sr-muted mt-1">{t('auth.signInBlurb')}</p>
         </div>
         <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1.5">

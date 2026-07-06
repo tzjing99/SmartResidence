@@ -212,7 +212,7 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
 
     await polls.castVote(owner, poll.id, { unitId: fx.unitId, optionId: optionId! });
     await expect(
-      polls.castVote(owner, poll.id, { unitId: fx.unitId, optionId: poll.options[1]!.id }),
+      polls.castVote(owner, poll.id, { unitId: fx.unitId, optionId: poll.options[1]?.id }),
     ).rejects.toThrow();
   });
 

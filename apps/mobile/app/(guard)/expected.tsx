@@ -312,13 +312,16 @@ export default function ExpectedScreen() {
     async (visitorId: string, name: string) => {
       try {
         await acknowledgeWalkIn.mutateAsync(visitorId);
-        Alert.alert(t('mobile.guard.expected.acknowledgedTitle'), t('mobile.guard.expected.acknowledgedMessage', { name }));
+        Alert.alert(
+          t('mobile.guard.expected.acknowledgedTitle'),
+          t('mobile.guard.expected.acknowledgedMessage', { name }),
+        );
         await Promise.all(visitors.map((q) => q.refetch()));
       } catch (err) {
         Alert.alert('Could not acknowledge', (err as Error).message);
       }
     },
-    [acknowledgeWalkIn, visitors],
+    [acknowledgeWalkIn, t, visitors],
   );
 
   const renderItem = useCallback(
@@ -333,7 +336,7 @@ export default function ExpectedScreen() {
         />
       </View>
     ),
-    [tab, twoColumn, handleAcknowledgeWalkIn, acknowledgeWalkIn.isPending],
+    [tab, t, twoColumn, handleAcknowledgeWalkIn, acknowledgeWalkIn.isPending],
   );
 
   const listHeader = (

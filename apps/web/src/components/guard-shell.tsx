@@ -84,7 +84,7 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-20 backdrop-blur bg-[rgb(var(--sr-bg))]/80 border-b border-[rgb(var(--sr-border))] px-4 sm:px-6 py-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
         <Link
           href="/guard"
-          aria-label={t("nav.guard.gateHome")}
+          aria-label={t('nav.guard.gateHome')}
           className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2.5 gap-y-0.5 min-w-0 leading-tight"
         >
           <ShieldCheck
@@ -96,14 +96,14 @@ export function GuardShell({ children }: { children: React.ReactNode }) {
             <span className="mx-1.5 font-normal opacity-40" aria-hidden>
               ·
             </span>
-            <span className="font-semibold">{t("nav.guard.gateBrand")}</span>
+            <span className="font-semibold">{t('nav.guard.gateBrand')}</span>
           </div>
           {condo ? (
             <div className="col-start-2 row-start-2 text-xs sr-muted truncate">{condo.name}</div>
           ) : null}
         </Link>
         <nav
-          aria-label={t("nav.guard.gateNav")}
+          aria-label={t('nav.guard.gateNav')}
           className="flex items-center gap-0.5 shrink-0 flex-nowrap"
         >
           {GUARD_NAV.filter((item) => item.href !== '/guard/settings').map((item) => (

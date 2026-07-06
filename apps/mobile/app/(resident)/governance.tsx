@@ -240,7 +240,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
       {(meeting.resolutions?.length ?? 0) > 0 ? (
         <>
           <ResidentSectionHeader title="Resolutions" />
-          {meeting.resolutions!.map((res) => (
+          {meeting.resolutions?.map((res) => (
             <ResolutionCard key={res.id} resolution={res} />
           ))}
         </>

@@ -41,6 +41,7 @@ import { SlaModule } from './sla/sla.module';
 import { StorageModule } from './storage/storage.module';
 import { TenantModule } from './tenant/tenant.module';
 import { ThreadsModule } from './threads/threads.module';
+import { UsersModule } from './users/users.module';
 import { VisitorModule } from './visitor/visitor.module';
 
 @Module({
@@ -62,6 +63,7 @@ import { VisitorModule } from './visitor/visitor.module';
     HealthModule,
     StorageModule,
     AuthModule,
+    UsersModule,
     TenantModule,
     VisitorModule,
     BillingModule,

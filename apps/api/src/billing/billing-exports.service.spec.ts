@@ -33,8 +33,26 @@ function owner(): AuthenticatedUser {
   };
 }
 
+function otherOwner(): AuthenticatedUser {
+  return {
+    id: 'owner-2',
+    email: 'o2@b.c',
+    name: 'Other Owner',
+    locale: 'en',
+    activeCondoId: CONDO,
+    activeRole: RoleId.UNIT_OWNER,
+    roles: [{ roleId: RoleId.UNIT_OWNER, condoId: CONDO, unitId: 'unit-2', permissions: [] }],
+  };
+}
+
 function makeService() {
   const ledger = {
+    unitStatementForUser: vi.fn(async () => ({
+      unitId: UNIT,
+      creditBalance: 0,
+      totalOutstanding: 40,
+      entries: [],
+    })),
     unitStatementInRange: vi.fn(async () => ({
       openingBalance: 100,
       closingBalance: 40,
@@ -142,5 +160,24 @@ describe('BillingExportsService', () => {
   it('rejects residents from export endpoints', async () => {
     const { service } = makeService();
     await expect(service.arrearsCsv(owner(), CONDO)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('builds unit statement CSV for residents of the unit', async () => {
+    const { service } = makeService();
+    const { csv, filename } = await service.unitStatementCsv(owner(), UNIT);
+    expect(filename).toMatch(/^statement-A-01-1-/);
+    expect(csv).toContain('Unit account statement');
+    expect(csv).toContain('Payment for INV-1');
+    expect(csv).toContain('Opening balance');
+  });
+
+  it('blocks unit statement CSV when caller is not a member of the unit', async () => {
+    const { service, ledger } = makeService();
+    vi.mocked(ledger.unitStatementForUser).mockRejectedValueOnce(
+      new ForbiddenException('You cannot view this unit statement'),
+    );
+    await expect(service.unitStatementCsv(otherOwner(), UNIT)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 });

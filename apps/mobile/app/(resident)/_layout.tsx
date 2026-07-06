@@ -1,12 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoleGuardGate } from '../../src/components/role-guard-gate';
-<<<<<<< HEAD
-import { useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
-=======
-import { useT } from '../../src/i18n/locale-provider';
-import { TabBarIcon, createModernTabBarOptions } from '../../src/lib/modern-tab-bar';
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
+import { TabBarIcon, useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
 
 export default function ResidentTabsLayout() {
   const insets = useSafeAreaInsets();
@@ -23,70 +19,41 @@ export default function ResidentTabsLayout() {
         <Tabs.Screen
           name="home"
           options={{
-<<<<<<< HEAD
             title: 'Home',
-            tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} />,
-=======
-            title: t('nav.home'),
-            tabBarAccessibilityLabel: `${t('nav.home')} tab`,
+            tabBarAccessibilityLabel: 'Home tab',
             tabBarIcon: ({ color }) => <TabBarIcon name="home-outline" color={color} />,
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
           }}
         />
         <Tabs.Screen
           name="visitors"
           options={{
-<<<<<<< HEAD
             title: 'Visitors',
-            tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
-=======
-            title: t('nav.visitors'),
-            tabBarAccessibilityLabel: `${t('nav.visitors')} tab`,
+            tabBarAccessibilityLabel: 'Visitors tab',
             tabBarIcon: ({ color }) => <TabBarIcon name="people-outline" color={color} />,
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
           }}
         />
         <Tabs.Screen
           name="billing"
           options={{
-<<<<<<< HEAD
             title: 'Fees',
-            tabBarIcon: ({ color }) => <Ionicons name="card-outline" size={22} color={color} />,
-=======
-            title: t('nav.billing'),
-            tabBarAccessibilityLabel: `${t('nav.billing')} tab`,
+            tabBarAccessibilityLabel: 'Fees tab',
             tabBarIcon: ({ color }) => <TabBarIcon name="card-outline" color={color} />,
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
           }}
         />
         <Tabs.Screen
           name="defects"
           options={{
-<<<<<<< HEAD
             title: 'Defects',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="construct-outline" size={22} color={color} />
-            ),
-=======
-            title: t('nav.defects'),
-            tabBarAccessibilityLabel: `${t('nav.defects')} tab`,
+            tabBarAccessibilityLabel: 'Defects tab',
             tabBarIcon: ({ color }) => <TabBarIcon name="construct-outline" color={color} />,
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
           }}
         />
         <Tabs.Screen
           name="messages"
           options={{
-<<<<<<< HEAD
             title: 'Messages',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="chatbubbles-outline" size={22} color={color} />
-            ),
-=======
-            title: t('nav.messages'),
-            tabBarAccessibilityLabel: `${t('nav.messages')} tab`,
+            tabBarAccessibilityLabel: 'Messages tab',
             tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles-outline" color={color} />,
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
           }}
         />
         <Tabs.Screen
@@ -111,24 +78,11 @@ export default function ResidentTabsLayout() {
         <Tabs.Screen
           name="more"
           options={{
-<<<<<<< HEAD
             title: 'More',
+            tabBarAccessibilityLabel: 'More tab',
             tabBarIcon: ({ color }) => (
-              <Ionicons name="ellipsis-horizontal" size={22} color={color} />
+              <TabBarIcon name="ellipsis-horizontal" color={color} />
             ),
-=======
-            title: t('nav.settings'),
-            tabBarAccessibilityLabel: `${t('nav.settings')} tab`,
-            tabBarIcon: ({ color }) => <TabBarIcon name="settings-outline" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="activity"
-          options={{
-            title: t('nav.activity'),
-            tabBarAccessibilityLabel: `${t('nav.activity')} tab`,
-            tabBarIcon: ({ color }) => <TabBarIcon name="time-outline" color={color} />,
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
           }}
         />
       </Tabs>

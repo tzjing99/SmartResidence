@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-import { useTheme } from '@smartresidence/ui-mobile';
-=======
 import { Ionicons } from '@expo/vector-icons';
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
+import { useTheme } from '@smartresidence/ui-mobile';
 import type { ComponentProps, ReactNode } from 'react';
 import { useMemo } from 'react';
 import {
@@ -37,7 +34,20 @@ type TabBarButtonProps = {
 /** @deprecated Use `useTheme().colors.bg` instead. */
 export const TAB_SCENE_BACKGROUND = '#FFF8F6';
 
-<<<<<<< HEAD
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+export function TabBarIcon({ name, color }: { name: IoniconName; color: string }) {
+  return (
+    <Ionicons
+      name={name}
+      size={22}
+      color={color}
+      importantForAccessibility="no"
+      accessibilityElementsHidden
+    />
+  );
+}
+
 export function useModernTabBarOptions(bottomInset: number) {
   const { colors } = useTheme();
   const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
@@ -78,35 +88,13 @@ export function useModernTabBarOptions(bottomInset: number) {
 }
 
 /** @deprecated Use `useModernTabBarOptions` for theme-aware tab styling. */
-=======
-type IoniconName = ComponentProps<typeof Ionicons>['name'];
-
-export function TabBarIcon({ name, color }: { name: IoniconName; color: string }) {
-  return (
-    <Ionicons
-      name={name}
-      size={22}
-      color={color}
-      importantForAccessibility="no"
-      accessibilityElementsHidden
-    />
-  );
-}
-
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
 export function createModernTabBarOptions(bottomInset: number) {
   const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
 
   return {
-<<<<<<< HEAD
     tabBarActiveTintColor: '#FF5A5F',
     tabBarInactiveTintColor: '#717171',
     tabBarAllowFontScaling: false,
-=======
-    tabBarActiveTintColor: ACTIVE_TINT,
-    tabBarInactiveTintColor: INACTIVE_TINT,
-    tabBarAllowFontScaling: true,
->>>>>>> 52573a5 (feat(mobile): accessibility lite pass for Expo app)
     tabBarButton: ModernTabBarButton,
     tabBarLabelStyle: styles.label,
     tabBarIconStyle: styles.icon,

@@ -11,6 +11,7 @@ import { RoleId } from '@prisma/client';
 import {
   ARREARS_BUCKET_LABELS,
   FUND_LABELS,
+  LEDGER_ENTRY_TYPE_LABELS,
   type LedgerFund,
   formatCompactUnitLabel,
   formatMoney,
@@ -123,6 +124,49 @@ export class BillingExportsService {
     });
 
     return { buffer, filename };
+  }
+
+  /** Resident-scoped unit statement CSV (owner/tenant of the unit, or management). */
+  async unitStatementCsv(
+    user: AuthenticatedUser,
+    unitId: string,
+    from?: string,
+    to?: string,
+  ): Promise<{ csv: string; filename: string }> {
+    await this.ledger.unitStatementForUser(user, unitId);
+    const range = parseDateRange(from, to);
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { block: true },
+    });
+    if (!unit) throw new NotFoundException('Unit not found');
+
+    const statement = await this.ledger.unitStatementInRange(unitId, range.from, range.to);
+    const safeUnit = formatCompactUnitLabel(unit).replace(/[^\w.-]+/g, '-');
+    const filename = `statement-${safeUnit}-${range.from.toISOString().slice(0, 10)}.csv`;
+
+    const csvRows: string[][] = [
+      ['Unit account statement'],
+      ['Unit', formatCompactUnitLabel(unit)],
+      ['From', formatExportDate(range.from)],
+      ['To', formatExportDate(range.to)],
+      ['Opening balance', formatMoney(statement.openingBalance)],
+      ['Closing balance', formatMoney(statement.closingBalance)],
+      ['Advance credit', formatMoney(statement.creditBalance)],
+      [],
+      ['Date', 'Type', 'Fund', 'Description', 'Charge', 'Payment', 'Balance'],
+      ...statement.entries.map((e) => [
+        formatExportDate(new Date(e.occurredAt)),
+        LEDGER_ENTRY_TYPE_LABELS[e.type],
+        FUND_LABELS[e.fund],
+        e.description,
+        formatMoney(e.charge),
+        formatMoney(e.payment),
+        formatMoney(e.balance),
+      ]),
+    ];
+
+    return { csv: buildCsv(csvRows), filename };
   }
 
   async collectionsCsv(

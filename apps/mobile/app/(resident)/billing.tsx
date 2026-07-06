@@ -261,7 +261,7 @@ export default function BillingScreen() {
             : `${openItems.length} active invoice(s). Pay the invoice that is due soonest first.`}
         </AppText>
         {statement.data ? (
-          <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 4 }}>
+          <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
             Account credit: {formatMoney(statement.data.creditBalance)}
           </AppText>
         ) : null}
@@ -443,7 +443,7 @@ export default function BillingScreen() {
       ) : (
         receiptItems.map((r, index) => (
           <FadeInView key={r.id} index={index}>
-            <Card style={[residentStyles.card, { gap: spacing.sm }]}>
+            <Card style={[styles.card, { gap: spacing.sm }]}>
               <View
                 style={{
                   flexDirection: 'row',
@@ -454,10 +454,10 @@ export default function BillingScreen() {
                 }}
               >
                 <View style={{ flex: 1, minWidth: 160 }}>
-                  <AppText style={{ fontWeight: '700', color: palette.textLight }}>
+                  <AppText style={{ fontWeight: '700', color: colors.fg }}>
                     {r.number}
                   </AppText>
-                  <AppText variant="meta" style={{ color: palette.mutedLight, marginTop: 2 }}>
+                  <AppText variant="meta" style={{ color: colors.muted, marginTop: 2 }}>
                     {new Date(r.issuedAt).toLocaleDateString()} ·{' '}
                     {formatMoney(r.amount, r.currencyCode ?? 'MYR')}
                   </AppText>

@@ -201,7 +201,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
               <AppText
                 key={row.fund}
                 variant="meta"
-                style={{ color: palette.mutedLight, marginTop: 4 }}
+                style={{ color: colors.muted, marginTop: 4 }}
               >
                 {FUND_LABELS[row.fund] ?? row.fund}:{' '}
                 {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}

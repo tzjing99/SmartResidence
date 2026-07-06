@@ -26,15 +26,15 @@ patch('apps/mobile/app/(guard)/live.tsx', [
   ["return 'Walk-in'", "return t('visitors.guard.visitTypeWalkInUnit')"],
   ["return 'Office'", "return t('visitors.guard.visitTypeWalkInOffice')"],
   [
-    "function formatTimeOnSite(checkedInAt: Date, now = new Date()): string {",
-    "function formatTimeOnSite(checkedInAt: Date, t: ReturnType<typeof useT>, now = new Date()): string {",
+    'function formatTimeOnSite(checkedInAt: Date, now = new Date()): string {',
+    'function formatTimeOnSite(checkedInAt: Date, t: ReturnType<typeof useT>, now = new Date()): string {',
   ],
   [
-    "function visitTypeLabel(visitType: string): string {",
-    "function visitTypeLabel(visitType: string, t: ReturnType<typeof useT>): string {",
+    'function visitTypeLabel(visitType: string): string {',
+    'function visitTypeLabel(visitType: string, t: ReturnType<typeof useT>): string {',
   ],
-  ["formatTimeOnSite(checkedInAt)", "formatTimeOnSite(checkedInAt, t)"],
-  ["visitTypeLabel(v.visitType)", "visitTypeLabel(v.visitType, t)"],
+  ['formatTimeOnSite(checkedInAt)', 'formatTimeOnSite(checkedInAt, t)'],
+  ['visitTypeLabel(v.visitType)', 'visitTypeLabel(v.visitType, t)'],
   [
     "Alert.alert('Check out visitor?', 'Are you sure? They will leave the live board.', [",
     "Alert.alert(t('mobile.guard.live.checkOutTitle'), t('mobile.guard.live.checkOutBody'), [",
@@ -57,8 +57,11 @@ patch('apps/mobile/app/(guard)/live.tsx', [
   ['eyebrow="Guard live board"', 'eyebrow={t("mobile.guard.live.eyebrow")}'],
   ['title="On site now"', 'title={t("visitors.guard.liveTitle")}'],
   ['title="No visitors on site"', 'title={t("visitors.guard.liveEmpty")}'],
-  ["[checkOut]", "[checkOut, t]"],
-  ["[callPhone, checkOut.isPending, confirmCheckOut, twoColumn]", "[callPhone, checkOut.isPending, confirmCheckOut, twoColumn, t]"],
+  ['[checkOut]', '[checkOut, t]'],
+  [
+    '[callPhone, checkOut.isPending, confirmCheckOut, twoColumn]',
+    '[callPhone, checkOut.isPending, confirmCheckOut, twoColumn, t]',
+  ],
 ]);
 
 patch('apps/mobile/app/(guard)/scan.tsx', [
@@ -66,7 +69,10 @@ patch('apps/mobile/app/(guard)/scan.tsx', [
     "Alert.alert('Welcome', `${v.name} checked in.`)",
     "Alert.alert(t('mobile.guard.scan.welcomeCheckedIn'), t('mobile.guard.scan.checkedInMessage', { name: v.name }))",
   ],
-  ["Alert.alert('Visitor blocked', message)", "Alert.alert(t('visitors.guard.blockedTitle'), message)"],
+  [
+    "Alert.alert('Visitor blocked', message)",
+    "Alert.alert(t('visitors.guard.blockedTitle'), message)",
+  ],
   [
     "Alert.alert('Queued', 'Network unavailable — check-in will sync automatically.')",
     "Alert.alert(t('mobile.guard.scan.queuedTitle'), t('mobile.guard.scan.queuedMessage'))",

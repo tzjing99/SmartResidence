@@ -2000,7 +2000,7 @@ export function useDeleteFormTemplate(api: ApiClient) {
 export function useCondoBlocks(api: ApiClient, condoId: string | null) {
   return useQuery({
     queryKey: condoId ? ['blocks', condoId] : ['blocks', null],
-    queryFn: () => api.listBlocks(condoId!),
+    queryFn: () => (condoId ? api.listBlocks(condoId) : Promise.resolve([])),
     enabled: Boolean(condoId),
   });
 }
@@ -2014,7 +2014,9 @@ export function useCondoUnitsSearch(
   return useQuery({
     queryKey: condoId ? ['units', condoId, search] : ['units', null],
     queryFn: () =>
-      api.listUnits(condoId!, { limit: 50, offset: 0, search: search.trim() || undefined }),
+      condoId
+        ? api.listUnits(condoId, { limit: 50, offset: 0, search: search.trim() || undefined })
+        : Promise.resolve({ items: [], total: 0 }),
     enabled: Boolean(condoId) && enabled,
   });
 }

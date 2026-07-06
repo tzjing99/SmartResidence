@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FundBalanceSchema, LedgerFund } from './billing';
 import { PollMyVoteSchema, PollResultsSchema, PollSchema } from './polls';
 
 export const GeneralMeetingKind = z.enum(['AGM', 'EGM']);
@@ -18,6 +19,15 @@ export const MEETING_STATUS_LABELS: Record<GeneralMeetingStatus, string> = {
   IN_PROGRESS: 'In progress',
   CLOSED: 'Closed',
 };
+
+/** Fund balances captured when the meeting notice is published (AGM disclosure). */
+export const MeetingFinancialSnapshotSchema = z.object({
+  capturedAt: z.coerce.date(),
+  fundBalances: z.array(FundBalanceSchema),
+});
+export type MeetingFinancialSnapshot = z.infer<typeof MeetingFinancialSnapshotSchema>;
+
+export { LedgerFund };
 
 export const MeetingProxySchema = z.object({
   id: z.string().uuid(),
@@ -60,6 +70,9 @@ export const GeneralMeetingSchema = z.object({
   title: z.string(),
   scheduledAt: z.coerce.date(),
   noticeBody: z.string().optional(),
+  minutesBody: z.string().optional(),
+  minutesPublishedAt: z.coerce.date().nullable().optional(),
+  financialSnapshot: MeetingFinancialSnapshotSchema.nullable().optional(),
   status: GeneralMeetingStatus,
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
@@ -91,9 +104,15 @@ export const UpdateGeneralMeetingInputSchema = z.object({
   title: z.string().min(4).max(200).optional(),
   scheduledAt: z.coerce.date().optional(),
   noticeBody: z.string().optional(),
+  minutesBody: z.string().optional(),
   status: GeneralMeetingStatus.optional(),
 });
 export type UpdateGeneralMeetingInput = z.infer<typeof UpdateGeneralMeetingInputSchema>;
+
+export const PublishMeetingMinutesInputSchema = z.object({
+  minutesBody: z.string().optional(),
+});
+export type PublishMeetingMinutesInput = z.infer<typeof PublishMeetingMinutesInputSchema>;
 
 export const CreateMeetingResolutionInputSchema = z.object({
   title: z.string().min(4).max(200),

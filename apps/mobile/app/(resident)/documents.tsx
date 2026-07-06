@@ -79,17 +79,17 @@ export default function DocumentsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.sections.services')}
-      title={t('nav.screens.documents')}
-      subtitle="House rules, AGM minutes, bylaws, and circulars"
+      eyebrow="Services"
+      title={t('mobile.documents.title')}
+      subtitle={t('documents.subtitle')}
       scrollProps={{ refreshControl }}
     >
-      <ResidentSectionHeader title="Folders" />
+      <ResidentSectionHeader title={t('documents.folders')} />
       {folders.isLoading ? (
         <SkeletonList rows={1} rowHeight={36} />
       ) : folderRows.length === 0 ? (
         <EmptyState
-          title="No documents yet"
+          title={t('mobile.documents.emptyTitle')}
           description="When management publishes documents, they will appear here."
         />
       ) : (
@@ -120,7 +120,7 @@ export default function DocumentsScreen() {
       {docs.isLoading ? (
         <SkeletonList rows={3} rowHeight={104} />
       ) : docRows.length === 0 ? (
-        <EmptyState title="No documents in this folder" />
+        <EmptyState title={t('documents.folderEmptyTitle')} />
       ) : (
         <View style={{ gap: 12 }}>
           {docRows.map((doc, index) => (

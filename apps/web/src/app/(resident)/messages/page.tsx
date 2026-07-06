@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { PRIORITY_TONE, STATUS_TONE, prettyLabel } from '@/lib/thread-ui';
 import { useThreads } from '@smartresidence/api-client';
@@ -19,6 +20,7 @@ import Link from 'next/link';
 const SKELETON_KEYS = ['s1', 's2', 's3'];
 
 export default function MessagesPage() {
+  const tr = useT();
   const reduceMotion = useReducedMotion();
   const threads = useThreads(api);
 
@@ -38,26 +40,23 @@ export default function MessagesPage() {
       </header>
 
       {threads.isLoading ? (
-        <div className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3">
           {SKELETON_KEYS.map((key) => (
-            <Skeleton key={key} className="h-24" />
+            <li key={key}>
+              <Skeleton className="h-20 w-full rounded-2xl" />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (threads.data?.items.length ?? 0) === 0 ? (
         <EmptyState
-          title="No conversations yet"
-          description="Start a thread and management will respond within their SLA."
-          action={
-            <Link href="/messages/new">
-              <Button>Start a conversation</Button>
-            </Link>
-          }
+          title="No messages yet"
+          description="Start a conversation with management — every reply is tracked here."
         />
       ) : (
         <ul className="flex flex-col gap-3">
-          {threads.data?.items.map((t, index) => (
+          {threads.data?.items.map((thread, index) => (
             <motion.li
-              key={t.id}
+              key={thread.id}
               initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={
@@ -66,25 +65,29 @@ export default function MessagesPage() {
                   : { ...iosSpring.default, delay: listStaggerDelay(index) }
               }
             >
-              <Link href={`/messages/${t.id}`}>
+              <Link href={`/messages/${thread.id}`}>
                 <Card
                   interactive
                   className="transition-[box-shadow,border-color] duration-150 hover:shadow-md hover:border-[rgb(var(--sr-coral))]/25"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <div className="font-medium truncate leading-tight">{t.subject}</div>
+                      <div className="font-medium truncate leading-tight">{thread.subject}</div>
                       <div className="text-meta-row mt-0.5">
-                        <span>{prettyLabel(t.category)}</span>
+                        <span>{prettyLabel(tr, thread.category)}</span>
                         <span className="text-meta-sep">·</span>
-                        <span>{t._count?.messages ?? 0} messages</span>
+                        <span>{thread._count?.messages ?? 0} messages</span>
                         <span className="text-meta-sep">·</span>
-                        <span>updated {new Date(t.lastMessageAt).toLocaleDateString()}</span>
+                        <span>updated {new Date(thread.lastMessageAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <Badge tone={PRIORITY_TONE[t.priority]}>{prettyLabel(t.priority)}</Badge>
-                      <Badge tone={STATUS_TONE[t.status]}>{prettyLabel(t.status)}</Badge>
+                      <Badge tone={PRIORITY_TONE[thread.priority]}>
+                        {prettyLabel(tr, thread.priority)}
+                      </Badge>
+                      <Badge tone={STATUS_TONE[thread.status]}>
+                        {prettyLabel(tr, thread.status)}
+                      </Badge>
                     </div>
                   </div>
                 </Card>

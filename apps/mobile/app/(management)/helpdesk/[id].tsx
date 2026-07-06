@@ -24,6 +24,7 @@ import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThreadMessageList } from '../../../src/components/thread-message-list';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { hapticLight } from '../../../src/lib/haptics';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
@@ -76,6 +77,7 @@ const mapPriorityLabel = (priority: string): string => {
 };
 
 export default function ManagementThreadDetailScreen() {
+  const tr = useT();
   const _router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -248,7 +250,7 @@ export default function ManagementThreadDetailScreen() {
               Unassigned ticket
             </AppText>
             <Button
-              title="Claim Ticket"
+              title={tr('mobile.helpdesk.claimTicket')}
               variant="primary"
               style={{ minHeight: 32, paddingVertical: 4, paddingHorizontal: 12 }}
               onPress={handleClaimTicket}
@@ -326,7 +328,7 @@ export default function ManagementThreadDetailScreen() {
           {/* Action Row Buttons */}
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
             <Button
-              title="Propose Solved"
+              title={tr('mobile.helpdesk.proposeSolved')}
               variant="soft-primary"
               size="sm"
               style={{ flex: 1 }}
@@ -336,7 +338,7 @@ export default function ManagementThreadDetailScreen() {
               }}
             />
             <Button
-              title="Request Info"
+              title={tr('mobile.helpdesk.requestInfo')}
               variant="soft-sky"
               size="sm"
               style={{ flex: 1 }}
@@ -346,7 +348,7 @@ export default function ManagementThreadDetailScreen() {
               }}
             />
             <Button
-              title="Close Abuse"
+              title={tr('mobile.helpdesk.closeAbuse')}
               variant="destructive"
               size="sm"
               style={{ flex: 1 }}

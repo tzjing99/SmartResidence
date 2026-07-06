@@ -67,9 +67,9 @@ export default function PollsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.polls')}
-      title={t('nav.screens.polls')}
-      subtitle="One vote per unit you own. Results stay transparent to all residents."
+      eyebrow="MC polls"
+      title={t('polls.title')}
+      subtitle={t('polls.subtitle')}
       scrollProps={{ refreshControl }}
       headerAction={
         selectedId ? (
@@ -88,7 +88,7 @@ export default function PollsScreen() {
         <SkeletonList rows={3} rowHeight={76} />
       ) : polls.length === 0 ? (
         <EmptyState
-          title="No polls right now"
+          title={t('mobile.polls.emptyTitle')}
           description="When management opens a consultation, it will appear here."
         />
       ) : (
@@ -153,6 +153,7 @@ function PollListItem({ poll, onSelect }: { poll: Poll; onSelect: () => void }) 
 }
 
 function VotePanel({ pollId }: { pollId: string }) {
+  const t = useT();
   const pollQuery = usePoll(api, pollId);
   const castVote = useCastPollVote(api);
   const units = useMyUnits(api);
@@ -329,7 +330,7 @@ function VotePanel({ pollId }: { pollId: string }) {
             </View>
 
             <Button
-              title="Cast vote"
+              title={t('actions.castVote')}
               onPress={handleVote}
               loading={castVote.isPending}
               disabled={castVote.isPending || !effectiveUnitId}

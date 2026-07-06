@@ -212,9 +212,9 @@ export default function BillingScreen() {
   if (units.isLoading || invoices.isLoading) {
     return (
       <ResidentScreen
-        eyebrow={t('nav.billing')}
-        title={t('nav.screens.billing')}
-        subtitle="Review statements, formulas, and payment options without hidden surprises."
+        eyebrow="Fees"
+        title={t('mobile.billing.title')}
+        subtitle={t('billing.subtitle')}
       >
         <SkeletonList rows={3} rowHeight={120} />
       </ResidentScreen>
@@ -223,9 +223,9 @@ export default function BillingScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.billing')}
-      title={t('nav.screens.billing')}
-      subtitle="Review statements, formulas, and payment options without hidden surprises."
+      eyebrow="Fees"
+      title={t('mobile.billing.title')}
+      subtitle={t('billing.subtitle')}
       scrollProps={{ refreshControl }}
     >
       {qrSession ? <DuitNowQrCard session={qrSession} onClose={() => setQrSession(null)} /> : null}
@@ -289,7 +289,7 @@ export default function BillingScreen() {
 
       {items.length === 0 ? (
         <EmptyState
-          title="No invoices"
+          title={t('mobile.billing.noInvoices')}
           description="Your fee statements appear here once issued."
         />
       ) : (
@@ -479,6 +479,7 @@ export default function BillingScreen() {
 }
 
 function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoId: string }) {
+  const t = useT();
   const methods = usePayableMethods(api, condoId);
   const createAdvance = useCreateAdvancePayment(api);
   const [selected, setSelected] = useState<number | 'OTHER'>(100);
@@ -544,7 +545,7 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         }}
       />
       <ResidentSectionHeader
-        title="Pay in advance"
+        title={t('mobile.billing.payAdvance')}
         subtitle="Add prepaid credit that is automatically applied to your next maintenance invoice."
       />
       <Card style={[residentStyles.card, { gap: spacing.md }]}>

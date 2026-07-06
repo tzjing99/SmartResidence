@@ -218,9 +218,9 @@ export default function LostFoundScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.sections.community')}
-      title={t('nav.screens.lostFound')}
-      subtitle="Help neighbours reunite with lost items — not for buying or selling."
+      eyebrow="Community"
+      title={t('mobile.lostFound.title')}
+      subtitle={t('lostFound.subtitle')}
       scrollProps={{ refreshControl }}
     >
       <View style={[residentStyles.row, { gap: 8, flexWrap: 'wrap', marginBottom: 16 }]}>
@@ -296,7 +296,7 @@ export default function LostFoundScreen() {
             <AppText style={{ color: palette.mutedLight }}>Loading board…</AppText>
           ) : boardPosts.length === 0 ? (
             <EmptyState
-              title="Nothing on the board"
+              title={t('mobile.lostFound.emptyTitle')}
               description="Open lost and found posts will appear here."
             />
           ) : (

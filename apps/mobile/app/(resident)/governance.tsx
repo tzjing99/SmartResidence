@@ -72,9 +72,9 @@ export default function GovernanceScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.governance')}
-      title={t('nav.screens.governance')}
-      subtitle="Meeting notices, proxy forms, and resolution voting."
+      eyebrow="Governance"
+      title={t('mobile.governance.title')}
+      subtitle={t('governance.subtitle')}
       scrollProps={{ refreshControl }}
       headerAction={
         selectedId ? (
@@ -93,7 +93,7 @@ export default function GovernanceScreen() {
         <SkeletonList rows={3} rowHeight={76} />
       ) : meetings.length === 0 ? (
         <EmptyState
-          title="No meetings scheduled"
+          title={t('mobile.governance.emptyTitle')}
           description="When management publishes a notice, it will appear here."
         />
       ) : (

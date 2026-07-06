@@ -2,6 +2,7 @@
 
 import { DuitNowQrPanel, type DuitNowQrSession } from '@/components/duitnow-qr-panel';
 import { PaymentMethodPicker } from '@/components/payment-method-picker';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -300,6 +301,7 @@ function AdvanceMaintenancePayment({
 }
 
 export default function BillingPage() {
+  const t = useT();
   const units = useMyUnits(api);
   const unitList = (units.data ?? []) as Array<{
     id: string;
@@ -328,10 +330,10 @@ export default function BillingPage() {
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-4">
         <header>
-          <h2 className="sr-section-title">Fees and deposits</h2>
+          <h2 className="sr-section-title">{t('billing.title')}</h2>
           <p className="sr-muted">
-            Maintenance fees are invoices you may need to pay. Deposits are refundable amounts held
-            by management and are tracked separately.
+            {t('billing.subtitle')} Deposits are refundable amounts held by management and are
+            tracked separately.
           </p>
         </header>
 
@@ -473,7 +475,7 @@ export default function BillingPage() {
           </div>
         ) : (invoices.data?.items.length ?? 0) === 0 ? (
           <EmptyState
-            title="No invoices yet"
+            title={t('billing.noInvoicesTitle')}
             description="Your monthly fee statements will appear here once management issues them."
           />
         ) : (
@@ -540,7 +542,7 @@ export default function BillingPage() {
           <Skeleton className="h-24" />
         ) : depositItems.length === 0 ? (
           <EmptyState
-            title="No deposits on record"
+            title={t('billing.noDepositsTitle')}
             description="Renovation, delivery and other deposits will show here once recorded."
           />
         ) : (
@@ -602,7 +604,10 @@ export default function BillingPage() {
         {receipts.isLoading ? (
           <Skeleton className="h-24" />
         ) : receiptItems.length === 0 ? (
-          <EmptyState title="No receipts yet" description="Receipts appear here once issued." />
+          <EmptyState
+            title={t('billing.noReceiptsTitle')}
+            description="Receipts appear here once issued."
+          />
         ) : (
           <ul className="flex flex-col gap-2">
             {receiptItems.map((r: ReceiptListItem) => (

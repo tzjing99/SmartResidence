@@ -35,6 +35,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { RESIDENT_THREAD_INBOX_PARAMS, countOpenThreads } from '../../src/lib/resident-threads';
 import type { MeResponse } from '../../src/lib/roles';
@@ -49,6 +50,7 @@ const CARD_BORDER = '#F1E8E4';
 const INACTIVE_INVOICE_STATUSES = new Set(['PAID', 'VOID']);
 
 export default function HomeScreen() {
+  const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -116,7 +118,7 @@ export default function HomeScreen() {
           Resident home
         </AppText>
         <AppText numberOfLines={2} style={styles.title}>
-          Welcome, {user?.name ?? 'Resident'}
+          {t('mobile.home.greeting')}, {user?.name ?? 'Resident'}
         </AppText>
         <AppText numberOfLines={2} style={styles.homeLine}>
           {homeLine}
@@ -173,7 +175,7 @@ export default function HomeScreen() {
           <Ionicons name="warning-outline" size={22} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <AppText style={styles.sosTitle}>Emergency SOS</AppText>
+          <AppText style={styles.sosTitle}>{t('mobile.home.emergencySos')}</AppText>
           <AppText numberOfLines={2} style={styles.sosSubtitle}>
             Alert guards and management instantly in a real emergency.
           </AppText>
@@ -182,7 +184,7 @@ export default function HomeScreen() {
       </AnimatedPressable>
 
       <View style={styles.sectionHeader}>
-        <AppText variant="subheading">What do you need?</AppText>
+        <AppText variant="subheading">{t('mobile.home.quickActions')}</AppText>
         <AppText variant="meta" style={styles.sectionCopy}>
           Fast access to the things residents use most.
         </AppText>
@@ -198,14 +200,14 @@ export default function HomeScreen() {
         />
         <ActionTile
           icon="chatbubbles-outline"
-          title="Messages"
+          title={t('mobile.home.messages')}
           subtitle={openThreads > 0 ? `${openThreads} open` : 'Ask management'}
           width={actionWidth}
           onPress={() => router.push('/(resident)/messages' as Href)}
         />
         <ActionTile
           icon="card-outline"
-          title="Fees"
+          title={t('mobile.home.fees')}
           subtitle={openInvoice ? 'Payment due' : 'All clear'}
           width={actionWidth}
           onPress={() => router.push('/(resident)/billing' as Href)}
@@ -222,7 +224,7 @@ export default function HomeScreen() {
       <View style={styles.summaryGrid}>
         <SummaryCard
           icon="people-outline"
-          label="Visitors"
+          label={t('mobile.home.visitors')}
           value={`${upcomingVisitors.length}`}
           detail={upcomingVisitors.length === 1 ? 'upcoming guest' : 'upcoming guests'}
           width={actionWidth}
@@ -230,7 +232,7 @@ export default function HomeScreen() {
         />
         <SummaryCard
           icon="construct-outline"
-          label="Defects"
+          label={t('mobile.home.defects')}
           value={`${openDefects}`}
           detail={openDefects === 1 ? 'open report' : 'open reports'}
           width={actionWidth}

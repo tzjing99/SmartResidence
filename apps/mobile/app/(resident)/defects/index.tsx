@@ -68,14 +68,14 @@ export default function DefectsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.defects')}
-      title={t('nav.screens.defects')}
-      subtitle="Send clear details to management and follow each defect until it is resolved."
+      eyebrow={t('defects.title')}
+      title={t('defects.newDefect')}
+      subtitle={t('defects.subtitle')}
       scrollProps={{ refreshControl }}
     >
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Button
-          title="Single defect"
+          title={t('mobile.defects.singleDefect')}
           variant={mode === 'single' ? 'primary' : 'secondary'}
           size="sm"
           style={{ flexGrow: 1 }}
@@ -97,14 +97,14 @@ export default function DefectsScreen() {
       )}
 
       <ResidentSectionHeader
-        title="Repair history"
+        title={t('mobile.defects.repairHistory')}
         subtitle="Open and completed reports stay here for reference."
       />
 
       {historyLoading ? (
         <SkeletonList rows={3} rowHeight={80} />
       ) : items.length === 0 ? (
-        <EmptyState title="No defects yet" description="Repairs you submit will track here." />
+        <EmptyState title={t('mobile.defects.emptyTitle')} description={t('defects.emptyDesc')} />
       ) : (
         items.map((row, index) => (
           <FadeInView

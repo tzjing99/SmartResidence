@@ -7,11 +7,10 @@ import { sortInboxThreads } from '@/lib/inbox-sort';
 import {
   CATEGORIES,
   PRIORITY_TONE,
-  SLA_LABEL,
-  STATUS_LABEL,
   STATUS_TONE,
   categoryLabel,
   priorityLabel,
+  slaLabel,
   statusLabel,
 } from '@/lib/thread-ui';
 import { useThreads } from '@smartresidence/api-client';
@@ -47,20 +46,20 @@ export default function HelpdeskPage() {
         'CLOSED',
         'REOPENED',
       ] as ThreadStatus[]
-    ).map((value) => ({ value, label: STATUS_LABEL[value] })),
+    ).map((value) => ({ value, label: statusLabel(tr, value) })),
   ];
   const PRIORITY_OPTIONS: Array<{ value: ThreadPriority | ''; label: string }> = [
     { value: '', label: tr('helpdesk.filters.allPriorities') },
-    { value: 'URGENT', label: 'Urgent' },
-    { value: 'HIGH', label: 'High' },
-    { value: 'NORMAL', label: 'Normal' },
-    { value: 'LOW', label: 'Low' },
+    ...(['URGENT', 'HIGH', 'NORMAL', 'LOW'] as ThreadPriority[]).map((value) => ({
+      value,
+      label: priorityLabel(tr, value),
+    })),
   ];
   const SLA_OPTIONS = [
     { value: '', label: tr('helpdesk.filters.anySla') },
-    { value: 'BREACHED', label: SLA_LABEL.BREACHED },
-    { value: 'AT_RISK', label: SLA_LABEL.AT_RISK },
-    { value: 'ON_TRACK', label: SLA_LABEL.ON_TRACK },
+    { value: 'BREACHED', label: slaLabel(tr, 'BREACHED') },
+    { value: 'AT_RISK', label: slaLabel(tr, 'AT_RISK') },
+    { value: 'ON_TRACK', label: slaLabel(tr, 'ON_TRACK') },
   ] as const;
   const [status, setStatus] = React.useState<ThreadStatus | ''>('');
   const [priority, setPriority] = React.useState<ThreadPriority | ''>('');
@@ -136,7 +135,7 @@ export default function HelpdeskPage() {
           <option value="">{tr('helpdesk.filters.allCategories')}</option>
           {CATEGORIES.map((o) => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {tr(o.labelKey)}
             </option>
           ))}
         </select>
@@ -166,7 +165,7 @@ export default function HelpdeskPage() {
             </option>
           ))}
         </select>
-        <p className="ml-auto text-meta">Sorted: breach → at risk → priority → oldest</p>
+        <p className="ml-auto text-meta">{tr('helpdesk.detail.sortedHint')}</p>
       </div>
 
       {threads.isLoading ? (
@@ -230,28 +229,38 @@ export default function HelpdeskPage() {
                               {t.subject}
                             </div>
                             <div className="text-meta-row mt-0.5">
-                              <Badge tone="neutral">{categoryLabel(t.category)}</Badge>
+                              <Badge tone="neutral">{categoryLabel(tr, t.category)}</Badge>
                               <span className="text-meta-sep">·</span>
-                              <span>{t._count?.messages ?? 0} msg</span>
+                              <span>
+                                {tr('helpdesk.detail.msgCount', { count: t._count?.messages ?? 0 })}
+                              </span>
                               <span className="text-meta-sep">·</span>
-                              <span>updated {new Date(t.lastMessageAt).toLocaleDateString()}</span>
+                              <span>
+                                {tr('helpdesk.detail.updated', {
+                                  date: new Date(t.lastMessageAt).toLocaleDateString(),
+                                })}
+                              </span>
                             </div>
                           </div>
                           <div className="lg:col-span-2 text-sm min-w-0">
-                            <div className="truncate">{t.createdBy?.name ?? 'Resident'}</div>
+                            <div className="truncate">
+                              {t.createdBy?.name ?? tr('helpdesk.detail.residentFallback')}
+                            </div>
                             {t.unit?.identifier ? (
-                              <div className="text-meta">Unit {t.unit.identifier}</div>
+                              <div className="text-meta">
+                                {tr('admin.dashboard.unitPrefix', { unit: t.unit.identifier })}
+                              </div>
                             ) : null}
                           </div>
                           <div className="lg:col-span-1 flex min-w-0 flex-col items-start">
                             <Badge tone={PRIORITY_TONE[t.priority]}>
-                              {priorityLabel(t.priority)}
+                              {priorityLabel(tr, t.priority)}
                             </Badge>
                           </div>
                           <div className="lg:col-span-2 flex min-w-0 flex-col items-start gap-1">
-                            <Badge tone={STATUS_TONE[t.status]}>{statusLabel(t.status)}</Badge>
+                            <Badge tone={STATUS_TONE[t.status]}>{statusLabel(tr, t.status)}</Badge>
                             <span className="text-meta block min-w-0 max-w-full truncate leading-snug">
-                              {t.assignedTo?.name ?? 'No one assigned yet'}
+                              {t.assignedTo?.name ?? tr('helpdesk.noAssignee')}
                             </span>
                           </div>
                           <div className="lg:col-span-2 flex min-w-0 flex-col items-start">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -40,6 +41,7 @@ function fmtDate(d: Date | string | null | undefined) {
 }
 
 export default function AdminDocumentsPage() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condoId = condos.data?.[0]?.id ?? null;
 
@@ -137,7 +139,7 @@ export default function AdminDocumentsPage() {
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Document library</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('admin.documents.title')}</h1>
         <p className="text-sm sr-muted mt-1">
           Publish house rules, AGM minutes, bylaws, and circulars with version history.
         </p>

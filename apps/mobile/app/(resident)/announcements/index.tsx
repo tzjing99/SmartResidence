@@ -25,9 +25,9 @@ export default function AnnouncementsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow={t('nav.sections.notices')}
-      title={t('nav.screens.announcements')}
-      subtitle="Official memos and updates from your management office."
+      eyebrow="Notices"
+      title={t('mobile.announcements.title')}
+      subtitle={t('announcements.subtitle')}
       scrollProps={{ refreshControl }}
     >
       <AnnouncementCategoryFilter value={categoryFilter} onChange={setCategoryFilter} />
@@ -41,7 +41,7 @@ export default function AnnouncementsScreen() {
         />
       ) : items.length === 0 ? (
         <EmptyState
-          title={categoryFilter ? 'Nothing in this category' : 'Nothing new'}
+          title={t('mobile.announcements.emptyTitle')}
           description={
             categoryFilter
               ? 'Try another category or check back later.'

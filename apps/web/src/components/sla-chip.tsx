@@ -1,6 +1,7 @@
 'use client';
 
-import { SLA_LABEL, SLA_TONE, formatDeadline, slaDueInfo } from '@/lib/thread-ui';
+import { useT } from '@/i18n/locale-provider';
+import { SLA_TONE, formatDeadline, slaDueInfo, slaLabel } from '@/lib/thread-ui';
 import type { SlaState } from '@smartresidence/api-client';
 import { Badge, cn } from '@smartresidence/ui-web';
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
@@ -10,7 +11,6 @@ interface SlaChipProps {
   slaState: SlaState;
   firstResponseDueAt?: string | null;
   resolutionDueAt?: string | null;
-  /** Show the relative due time alongside the label. */
   showDetail?: boolean;
   className?: string;
 }
@@ -21,11 +21,6 @@ const ICONS: Record<Exclude<SlaState, 'NONE'>, React.ComponentType<{ className?:
   BREACHED: AlertTriangle,
 };
 
-/**
- * Unmistakable SLA chip: green "On track", amber "Needs attention", red "Overdue".
- * Breached/at-risk are made to visually pop (ring + stronger weight) and the
- * actual time remaining / overdue amount is surfaced.
- */
 export function SlaChip({
   slaState,
   firstResponseDueAt,
@@ -33,10 +28,11 @@ export function SlaChip({
   showDetail = true,
   className,
 }: SlaChipProps) {
+  const t = useT();
   if (slaState === 'NONE') return null;
   const Icon = ICONS[slaState];
   const due = slaDueInfo({ slaState, firstResponseDueAt, resolutionDueAt });
-  const dueText = due ? formatDeadline(due.dueAt, due.kind) : null;
+  const dueText = due ? formatDeadline(t, due.dueAt, due.kind) : null;
   const pop =
     slaState === 'BREACHED'
       ? 'font-semibold shadow-sm'
@@ -44,17 +40,17 @@ export function SlaChip({
         ? 'font-medium'
         : '';
 
-  const label = `SLA ${SLA_LABEL[slaState]}${dueText ? `, ${dueText}` : ''}`;
+  const stateLabel = slaLabel(t, slaState);
+  const label = `${t('helpdesk.sla.chipPrefix')} ${stateLabel}${dueText ? `, ${dueText}` : ''}`;
   const title = due ? new Date(due.dueAt).toLocaleString() : undefined;
 
   const badge = (
     <Badge tone={SLA_TONE[slaState]} className={cn(pop, 'self-start shrink-0')}>
       <Icon className="size-3.5" aria-hidden />
-      {SLA_LABEL[slaState]}
+      {stateLabel}
     </Badge>
   );
 
-  // Stack label + due time so long copy (e.g. "Reply was due 3d ago") doesn't overflow the pill.
   if (showDetail && dueText) {
     return (
       <div

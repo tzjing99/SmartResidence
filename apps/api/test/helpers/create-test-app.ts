@@ -6,14 +6,30 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 import { DistributedLockService } from '../../src/redis/distributed-lock.service';
 import { RedisService } from '../../src/redis/redis.service';
 
+/** In-memory token blocklist — mirrors RedisService blocklist:* keys for auth revoke. */
+const blockedJtis = new Set<string>();
+
+const blocklistKey = (jti: string) => `blocklist:${jti}`;
+
 const mockRedisClient = {
   on: () => mockRedisClient,
   quit: async () => 'OK',
-  set: async () => 'OK',
+  set: async (key: string, value: string) => {
+    if (key.startsWith('blocklist:') && value === '1') {
+      blockedJtis.add(key.slice('blocklist:'.length));
+    }
+    return 'OK';
+  },
   get: async () => null,
-  del: async () => 1,
+  del: async (key: string) => {
+    if (key.startsWith('blocklist:')) {
+      blockedJtis.delete(key.slice('blocklist:'.length));
+      return 1;
+    }
+    return 0;
+  },
   eval: async () => 1,
-  exists: async () => 0,
+  exists: async (key: string) => (blockedJtis.has(key.slice('blocklist:'.length)) ? 1 : 0),
 };
 
 /** Minimal RedisService stand-in for integration tests (no real Redis required). */
@@ -21,8 +37,12 @@ const mockRedisService = {
   client: mockRedisClient,
   onModuleInit: async () => {},
   onModuleDestroy: async () => {},
-  isTokenBlocked: async (_jti: string) => false,
-  blocklistToken: async (_jti: string, _ttlSeconds?: number) => {},
+  isTokenBlocked: async (jti: string) => blockedJtis.has(jti),
+  blocklistToken: async (jti: string, ttlSeconds?: number) => {
+    if (ttlSeconds != null && ttlSeconds <= 0) return;
+    blockedJtis.add(jti);
+    await mockRedisClient.set(blocklistKey(jti), '1');
+  },
 };
 
 /** Bootstrap a NestJS app configured like production (global prefix, validation pipes). */

@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoleGuardGate } from '../../src/components/role-guard-gate';
@@ -80,9 +79,7 @@ export default function ResidentTabsLayout() {
           options={{
             title: 'More',
             tabBarAccessibilityLabel: 'More tab',
-            tabBarIcon: ({ color }) => (
-              <TabBarIcon name="ellipsis-horizontal" color={color} />
-            ),
+            tabBarIcon: ({ color }) => <TabBarIcon name="ellipsis-horizontal" color={color} />,
           }}
         />
       </Tabs>

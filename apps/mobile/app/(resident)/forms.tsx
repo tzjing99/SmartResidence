@@ -35,6 +35,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../src/lib/haptics';
 
@@ -177,6 +178,7 @@ function SubmitPanel({
 }
 
 export default function FormsScreen() {
+  const tr = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const units = useMyUnits(api);
@@ -202,7 +204,11 @@ export default function FormsScreen() {
 
   if (!unit) {
     return (
-      <ResidentScreen eyebrow="Services" title="Forms" subtitle="Condo management forms">
+      <ResidentScreen
+        eyebrow={tr('nav.sections.services')}
+        title={tr('nav.screens.forms')}
+        subtitle="Condo management forms"
+      >
         <EmptyState
           title="No unit linked"
           description="Your account needs a unit to submit forms."
@@ -214,8 +220,8 @@ export default function FormsScreen() {
   if (selected) {
     return (
       <ResidentScreen
-        eyebrow="Services"
-        title="Forms"
+        eyebrow={tr('nav.sections.services')}
+        title={tr('nav.screens.forms')}
         scrollProps={{ refreshControl }}
         headerAction={
           <Button
@@ -233,8 +239,8 @@ export default function FormsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Services"
-      title="Forms"
+      eyebrow={tr('nav.sections.services')}
+      title={tr('nav.screens.forms')}
       subtitle="Move-in/out, renovation permits, and vehicle sticker requests."
       scrollProps={{ refreshControl }}
     >

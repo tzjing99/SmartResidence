@@ -28,6 +28,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 
 const KIND_TONE: Record<LostFoundKind, 'warning' | 'success'> = {
@@ -131,6 +132,7 @@ function PostRow({
 }
 
 export default function LostFoundScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const units = useMyUnits(api);
   const condo = condos.data?.[0];
@@ -216,8 +218,8 @@ export default function LostFoundScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Community"
-      title="Lost & found"
+      eyebrow={t('nav.sections.community')}
+      title={t('nav.screens.lostFound')}
       subtitle="Help neighbours reunite with lost items — not for buying or selling."
       scrollProps={{ refreshControl }}
     >

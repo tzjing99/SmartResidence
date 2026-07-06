@@ -5,7 +5,7 @@ import { api, setActiveCondo } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
 import { useRoleGuard } from '@/lib/use-role-guard';
 import { usePlatformCondoHealth, usePlatformCondoSummary } from '@smartresidence/api-client';
-import { setupProgress } from '@smartresidence/shared-types';
+import { type PlatformAuditEvent, setupProgress } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
 import { AlertTriangle, ArrowLeft, Building2, ChevronRight, Receipt, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -174,7 +174,7 @@ export default function PlatformCondoDetailPage() {
           <p className="text-sm sr-muted">No audit activity recorded yet.</p>
         ) : (
           <ul className="divide-y divide-stone-200/60 dark:divide-stone-800/60">
-            {healthData.recentAuditEvents.map((event) => (
+            {healthData.recentAuditEvents.map((event: PlatformAuditEvent) => (
               <li key={event.id} className="py-3 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
                   <div>

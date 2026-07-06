@@ -40,12 +40,14 @@ import {
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
 
 type Mode = 'single' | 'handover';
 
 export default function DefectsScreen() {
+  const t = useT();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
   const defects = useUnitDefects(api, unit?.id ?? null);
@@ -66,8 +68,8 @@ export default function DefectsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Defects"
-      title="Report a repair"
+      eyebrow={t('nav.defects')}
+      title={t('nav.screens.defects')}
       subtitle="Send clear details to management and follow each defect until it is resolved."
       scrollProps={{ refreshControl }}
     >

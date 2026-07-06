@@ -19,6 +19,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../src/lib/haptics';
 
@@ -39,6 +40,7 @@ function fmtDateTime(d: Date | string) {
 }
 
 export default function ParcelsScreen() {
+  const t = useT();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
   const parcels = useUnitParcels(api, unit?.id ?? null, { pendingOnly: true });
@@ -71,8 +73,8 @@ export default function ParcelsScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Home"
-      title="Parcels"
+      eyebrow={t('nav.sections.home')}
+      title={t('nav.screens.parcels')}
       subtitle="Packages waiting at the lobby"
       scrollProps={{ refreshControl }}
     >

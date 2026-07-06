@@ -263,6 +263,31 @@ export function usePlatformCondos(
   });
 }
 
+export function usePlatformCondoHealth(
+  api: ApiClient,
+  condoId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: condoId ? queryKeys.platformCondoHealth(condoId) : ['platform', 'condos', null],
+    queryFn: () =>
+      condoId ? api.platformCondoHealth(condoId) : Promise.reject(new Error('no condo')),
+    enabled: (options?.enabled ?? true) && Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useCreatePlatformCondo(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<ApiClient['createPlatformCondo']>[0]) =>
+      api.createPlatformCondo(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['platform', 'condos'] });
+    },
+  });
+}
+
 export function usePlatformCondoSummary(
   api: ApiClient,
   condoId: string | null,

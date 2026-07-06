@@ -9,6 +9,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 
 type DelegatedGrant = {
@@ -25,6 +26,7 @@ function roleLabel(roleId: string): string {
 }
 
 export default function AccessScreen() {
+  const t = useT();
   const qc = useQueryClient();
   const grants = useQuery({
     queryKey: ['owner', 'delegated-access'],
@@ -61,8 +63,8 @@ export default function AccessScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Access"
-      title="Who has access to my unit"
+      eyebrow={t('nav.sections.account')}
+      title={t('nav.screens.access')}
       subtitle="As the owner, you can revoke any delegated access at any time. Revoking signs the user out of every device immediately."
       scrollProps={{ refreshControl }}
     >

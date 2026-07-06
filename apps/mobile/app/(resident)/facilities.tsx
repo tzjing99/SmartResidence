@@ -38,6 +38,7 @@ import {
   residentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
@@ -88,6 +89,7 @@ function next7Days(): Array<{ iso: string; label: string }> {
 }
 
 export default function FacilitiesScreen() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const facilitiesQuery = useFacilities(api, condo?.id ?? null);
@@ -106,8 +108,8 @@ export default function FacilitiesScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Amenities"
-      title="Facilities"
+      eyebrow={t('nav.sections.amenities')}
+      title={t('nav.screens.facilities')}
       subtitle="Book the function hall, BBQ pits, gym and more. Fees and deposits go through your billing account."
       scrollProps={{ refreshControl }}
       headerAction={

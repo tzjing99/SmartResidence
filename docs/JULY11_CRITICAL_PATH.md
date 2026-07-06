@@ -1,8 +1,69 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Audit date:** 2026-07-06 · **Target:** ship-ready by **2026-07-11** · **Branch context:** `feature/mobile-ux` (integration branch, no open PR yet)
->
-> This document is a read-only audit output. It does **not** modify application code.
+> **Last updated:** 2026-07-06 EOD · **Target:** ship-ready by **2026-07-11**
+
+---
+
+## Jul 6 end-of-day status
+
+### `main` tip
+
+**`d9c9584`** — Merge pull request #23 (`feature/mobile-ux`)
+
+### Merged today (Jul 6)
+
+| PR | Title |
+| --- | --- |
+| **#6** | docs: sync ROADMAP and BACKLOG |
+| **#7** | feat(billing): resident statement CSV and receipt downloads |
+| **#8** | feat(platform): SUPER_ADMIN console F2 |
+| **#9** | feat(i18n): priority nav and shell surfaces |
+| **#10** | feat(governance): AGM minutes and financial snapshot |
+| **#11** | feat(a11y): WCAG AA lite pass (web) |
+| **#13** | feat(i18n): phase 2 page content strings |
+| **#14** | feat(billing): dedicated Touch n Go adapter *(merged alongside #16 Fiuu policy — TNG sandbox kept)* |
+| **#15** | feat(auth): session and device management UI |
+| **#16** | docs: Fiuu e-wallet policy; cancel Boost/GrabPay adapters |
+| **#17** | test: harden integration coverage (billing + visitor) |
+| **#18** | test(api): phase-2 HTTP integration specs |
+| **#19** | feat(api): Prometheus metrics scrape endpoint |
+| **#21** | feat(i18n): phase 3 guard/auth/live screens *(commits absorbed via #23; PR closed merged on GitHub)* |
+| **#23** | feat(mobile): dark mode, nav cleanup, visitor pass UX, share card + self-host docs |
+
+**14 explicit merge commits** on `main` today plus i18n phase 3 content via #23.
+
+### Still open
+
+| PR | Title | Blocker |
+| --- | --- | --- |
+| **#12** | feat(governance): proxy voting + immutable results | CI red (lint/typecheck/web unit on latest push) — merge after green |
+| **#20** | feat(pdpa): personal data export | **CONFLICTING** with `main` — rebase worktree `SmartResidence-pr20` (rebase in progress) |
+| **#22** | feat(mobile): accessibility lite pass | **CONFLICTING** — largely superseded by #23; close or rebase |
+| **#24** | docs: July 11 release checklist + self-host validation | MERGEABLE but head was stale vs `main`; refresh branch then merge |
+| **#1** | chore(release): version packages | **Do not merge** without explicit OK (changeset bot) |
+| **#3** | Announcements Phase 1 + AVIF | **CLOSED** — stale; do not merge without explicit OK |
+
+### Jul 7 priorities
+
+1. **#12** — Fix remaining CI on `feature/governance-proxy-voting`; merge when 8/8 green.
+2. **#20** — Finish rebase onto `d9c9584`, resolve settings/i18n conflicts, merge PDPA export.
+3. **#24** — Rebase `docs/selfhost-hardening` onto `main`, merge release checklist.
+4. **#22** — Product call: close as duplicate of #23 mobile a11y or cherry-pick gaps only.
+5. **Release prep** — Add changeset for v0.2.0; refresh #1 only with PO approval.
+6. **Smoke test** — `deploy/docker-compose.selfhost.yml` boot + resident billing + visitor check-in on `main`.
+
+### Human decisions needed
+
+- **#1 changeset bot** and **#3 AVIF** remain blocked per sprint rules unless explicitly approved.
+- **#14 vs #16** resolved in favor of **Fiuu canonical + optional TNG sandbox** (both merged).
+
+---
+
+## Morning audit (2026-07-06 AM — historical)
+
+> Original pre-merge audit preserved below for context.
+
+> **Audit date:** 2026-07-06 · **Branch context at start:** `feature/mobile-ux` (no PR yet)
 
 ---
 

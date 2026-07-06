@@ -118,16 +118,71 @@ describe.skipIf(!integrationReady)('API integration (authenticated)', () => {
     await app?.close();
   });
 
-  it('GET /api/platform/condos returns condo summaries for SUPER_ADMIN', async () => {
+  it('GET /api/platform/condos returns paginated condo summaries for SUPER_ADMIN', async () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())
       .get('/api/platform/condos')
       .set('Authorization', `Bearer ${superToken}`)
       .expect(200);
 
-    const rows = res.body.data ?? res.body;
-    expect(Array.isArray(rows)).toBe(true);
-    expect(rows.some((row: { id: string }) => row.id === condoId)).toBe(true);
+    const payload = res.body.data ?? res.body;
+    expect(Array.isArray(payload.items)).toBe(true);
+    expect(typeof payload.total).toBe('number');
+    expect(payload.items.some((row: { id: string }) => row.id === condoId)).toBe(true);
+    expect(payload.items[0]).toEqual(
+      expect.objectContaining({
+        unitCount: expect.any(Number),
+        userCount: expect.any(Number),
+        openDefectCount: expect.any(Number),
+        overdueInvoiceCount: expect.any(Number),
+      }),
+    );
+  });
+
+  it('GET /api/platform/condos/:id/health returns health dashboard for SUPER_ADMIN', async () => {
+    const supertest = (await import('supertest')).default;
+    const res = await supertest(app.getHttpServer())
+      .get(`/api/platform/condos/${condoId}/health`)
+      .set('Authorization', `Bearer ${superToken}`)
+      .expect(200);
+
+    const payload = res.body.data ?? res.body;
+    expect(payload).toEqual(
+      expect.objectContaining({
+        condoId,
+        userCount: expect.any(Number),
+        unitCount: expect.any(Number),
+        openDefectCount: expect.any(Number),
+        billing: expect.objectContaining({
+          overdueInvoiceCount: expect.any(Number),
+          overdueAmount: expect.any(Number),
+        }),
+        recentAuditEvents: expect.any(Array),
+      }),
+    );
+  });
+
+  it('POST /api/platform/condos provisions a condo for SUPER_ADMIN', async () => {
+    const supertest = (await import('supertest')).default;
+    const slug = `integration-provision-${Date.now()}`;
+    const res = await supertest(app.getHttpServer())
+      .post('/api/platform/condos')
+      .set('Authorization', `Bearer ${superToken}`)
+      .send({
+        name: 'Integration Provision Condo',
+        slug,
+        address: '99 Provision Street',
+        timezone: 'Asia/Kuala_Lumpur',
+      })
+      .expect(201);
+
+    const payload = res.body.data ?? res.body;
+    expect(payload).toEqual(
+      expect.objectContaining({
+        slug,
+        name: 'Integration Provision Condo',
+      }),
+    );
   });
 
   it('GET /api/lost-found/condo/:id lists posts for authorized users', async () => {

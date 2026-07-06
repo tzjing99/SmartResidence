@@ -668,13 +668,13 @@ export function DefectTriageTable({
   items,
   selected,
   activeId,
-  staffOptions,
+  staffOptions: _staffOptions,
   busy,
   empty,
   onToggle,
   onSelect,
-  onAssign,
-  onStatus,
+  onAssign: _onAssign,
+  onStatus: _onStatus,
   onMarkFixed,
 }: {
   items: TriageItem[];

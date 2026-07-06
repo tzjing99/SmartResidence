@@ -165,7 +165,12 @@ export default function GuardWalkInPage() {
         />
       ) : null}
 
-      <PillTabs items={tabItems} value={tab} onChange={setTab} ariaLabel={t("visitors.guard.walkInTypeAria")} />
+      <PillTabs
+        items={tabItems}
+        value={tab}
+        onChange={setTab}
+        ariaLabel={t('visitors.guard.walkInTypeAria')}
+      />
 
       <Card className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">

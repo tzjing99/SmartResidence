@@ -10,7 +10,7 @@ GitHub Actions blocked until **2026-08-01** ($0 budget). User authorized **Path 
 
 ### `main` tip
 
-**`f07a0e1`** — Merge pull request #27 (`docs/july11-no-ci-plan`)
+**`0773c7a`** — `chore(release): version packages v0.2.0` (PR #1 merged, tag `v0.2.0`)
 
 ### Shipped Jul 7 (Path C merge train complete)
 
@@ -26,13 +26,13 @@ GitHub Actions blocked until **2026-08-01** ($0 budget). User authorized **Path 
 
 Jul 6 merge train (#6–#23) was already on `main` before Path C.
 
-### Release prep (in flight)
+### Release prep (complete)
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| **Changeset v0.2.0** | Branch `chore/changesets-jul7` | Consolidated `.changeset/v0.2.0-july-ship.md` |
-| **PR #1** | Refresh + merge | Version bump → `@smartresidence/*@0.2.0`; tag `v0.2.0` |
-| **Self-host smoke** | Config ✅ · full stack pending | See `JULY11_RELEASE_CHECKLIST.md` §3 |
+| **Changeset v0.2.0** | ✅ Merged | PR #29 — `.changeset/v0.2.0-july-ship.md` |
+| **PR #1** | ✅ Merged | `@smartresidence/*@0.2.0` — tag [`v0.2.0`](https://github.com/tzjing99/SmartResidence/releases/tag/v0.2.0) |
+| **Self-host smoke** | Config ✅ · build ❌ | Web Docker image fails Next.js resolution; dev bring-up OK |
 
 ### Closed / deferred
 

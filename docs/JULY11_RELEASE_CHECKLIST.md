@@ -4,8 +4,8 @@
 > mechanics. **Do not merge PRs from this doc alone**; use it as the operator
 > runbook.
 >
-> **Last validated:** 2026-07-07 — docker-compose config OK with
-> `deploy/.env.example` on `main` @ `f07a0e1`; full stack build not run in this pass.
+> **Last validated:** 2026-07-07 PM — config OK on `main` @ `0773c7a`; full stack
+> `up --build` **failed** (web image: Next.js module not found in Docker build).
 >
 > **Related docs (land via PR #23 until merged to `main`):**
 > [`SELF_HOSTING.md`](./SELF_HOSTING.md) · [`DEPLOYMENT.md`](./DEPLOYMENT.md) ·
@@ -17,14 +17,14 @@
 
 | Item | Status | Notes |
 | ---- | ------ | ----- |
-| `deploy/docker-compose.selfhost.yml` syntax | ✅ Pass | `docker compose -f deploy/docker-compose.selfhost.yml --env-file deploy/.env.example config` exits 0 (validated 2026-07-07 on `main` @ `f07a0e1`) |
+| `deploy/docker-compose.selfhost.yml` syntax | ✅ Pass | `docker compose -f deploy/docker-compose.selfhost.yml --env-file deploy/.env.example config` exits 0 (validated 2026-07-07 on `main` @ `0773c7a`) |
 | Compose without `--env-file` | ⚠️ Expected fail | `BETTER_AUTH_SECRET` is required (`:?` guard) — always pass `--env-file deploy/.env` |
 | `deploy/` on `main` | ✅ Merged | Via PR #23 (`feature/mobile-ux`) |
 | Self-host / deployment docs on `main` | ✅ Merged | `SELF_HOSTING.md`, `DEPLOYMENT.md`, `BUSINESS_MODEL.md` via #23 + #24 |
 | `JULY11_CRITICAL_PATH.md` | ✅ On `main` | Updated Jul 7 PM — Path C complete |
 | Path C merge train (#12, #20, #22, #24–#27) | ✅ Complete | Local lint/typecheck verified; GH Actions off until 2026-08-01 |
-| Release PR [#1](https://github.com/tzjing99/SmartResidence/pull/1) | Open | Refresh via `chore/changesets-jul7` → merge for `v0.2.0` |
-| Full stack smoke (`up --build`) | ⏳ Pending | Config-only pass done; allow 15–30 min for first build |
+| Release PR [#1](https://github.com/tzjing99/SmartResidence/pull/1) | ✅ Merged | `@smartresidence/*@0.2.0` — tag [`v0.2.0`](https://github.com/tzjing99/SmartResidence/releases/tag/v0.2.0) |
+| Full stack smoke (`up --build`) | ❌ Fail | Web Dockerfile build: `Cannot find module .../next/dist/bin/next` — use dev bring-up (§7) until fixed |
 
 ---
 

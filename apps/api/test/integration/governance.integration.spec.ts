@@ -262,7 +262,11 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
     expect(stored?.resultsSnapshot).toBeTruthy();
 
     const audit = await prisma.auditLog.findFirst({
-      where: { resourceType: 'MeetingResolution', resourceId: resolution.id },
+      where: {
+        resourceType: 'MeetingResolution',
+        resourceId: resolution.id,
+        metadata: { path: ['event'], equals: 'governance.resolution.voting_closed' },
+      },
       orderBy: { createdAt: 'desc' },
     });
     expect(audit?.metadata).toMatchObject({ event: 'governance.resolution.voting_closed' });

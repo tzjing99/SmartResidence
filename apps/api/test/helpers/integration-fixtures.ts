@@ -41,6 +41,21 @@ async function upsertWithRetry<T>(fn: () => Promise<T>, retries = 5): Promise<T>
   }
 }
 
+/**
+ * Clears transient rows left by prior @requires-db runs against the shared
+ * integration condo. Without this, invoice (unitId, periodStart) uniqueness
+ * and refresh-token rotation (global session scan) fail on dirty databases.
+ */
+async function resetIntegrationCondoData(
+  prisma: PrismaService,
+  condoId: string,
+): Promise<void> {
+  await prisma.ledgerEntry.deleteMany({ where: { condoId } });
+  await prisma.invoice.deleteMany({ where: { condoId } });
+  // Refresh rotation scans recent active sessions globally; stale rows slow auth tests.
+  await prisma.session.deleteMany({});
+}
+
 /** Idempotent seed for integration / regression suites (@requires-db). */
 export async function seedIntegrationFixtures(
   prisma: PrismaService,
@@ -165,6 +180,8 @@ export async function seedIntegrationFixtures(
       },
     }),
   );
+
+  await resetIntegrationCondoData(prisma, condo.id);
 
   await prisma.roleAssignment.deleteMany({
     where: { userId: { in: [admin.id, owner.id, guard.id] } },

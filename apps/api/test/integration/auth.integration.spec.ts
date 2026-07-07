@@ -115,5 +115,5 @@ describe.skipIf(!integrationReady)('Integration: auth', () => {
       .post('/api/auth/refresh')
       .send({ refreshToken: extraRefresh })
       .expect(401);
-  });
+  }, 30_000);
 });

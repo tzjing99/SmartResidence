@@ -1,13 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@smartresidence/ui-mobile';
 import type { ComponentProps, ReactNode } from 'react';
 import { useMemo } from 'react';
 import {
+  type AccessibilityRole,
   type GestureResponderEvent,
   Pressable,
   type StyleProp,
   StyleSheet,
   type ViewStyle,
 } from 'react-native';
+import { minTouchTargetStyle } from './accessibility';
 import { hapticLight } from './haptics';
 
 /**
@@ -22,11 +25,28 @@ type TabBarButtonProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   onPress?: (e: GestureResponderEvent) => void;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: { selected?: boolean; disabled?: boolean };
+  accessibilityLabel?: string;
   [key: string]: unknown;
 };
 
 /** @deprecated Use `useTheme().colors.bg` instead. */
 export const TAB_SCENE_BACKGROUND = '#FFF8F6';
+
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+export function TabBarIcon({ name, color }: { name: IoniconName; color: string }) {
+  return (
+    <Ionicons
+      name={name}
+      size={22}
+      color={color}
+      importantForAccessibility="no"
+      accessibilityElementsHidden
+    />
+  );
+}
 
 export function useModernTabBarOptions(bottomInset: number) {
   const { colors } = useTheme();
@@ -94,18 +114,17 @@ export function createModernTabBarOptions(bottomInset: number) {
 }
 
 function ModernTabBarButton(props: TabBarButtonProps) {
-  const { style, onPress, ...rest } = props;
-
-  const handlePress = (e: GestureResponderEvent) => {
-    hapticLight();
-    onPress?.(e);
-  };
+  const { style, onPress, accessibilityRole, ...rest } = props;
 
   return (
     <Pressable
       {...(rest as ComponentProps<typeof Pressable>)}
-      onPress={handlePress}
-      style={style}
+      accessibilityRole={accessibilityRole ?? 'tab'}
+      onPress={(e) => {
+        hapticLight();
+        onPress?.(e);
+      }}
+      style={[minTouchTargetStyle, style]}
     />
   );
 }
@@ -122,6 +141,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 4,
+    minHeight: 44,
   },
   icon: {
     alignSelf: 'center',

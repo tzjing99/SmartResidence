@@ -93,7 +93,7 @@ export function ResidentScreen({
             <AppText variant="caption" style={styles.eyebrow}>
               {eyebrow}
             </AppText>
-            <AppText numberOfLines={2} style={styles.title}>
+            <AppText accessibilityRole="header" numberOfLines={2} style={styles.title}>
               {title}
             </AppText>
             {subtitle ? (

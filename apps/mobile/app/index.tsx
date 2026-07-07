@@ -35,8 +35,12 @@ export default function Bootstrap() {
   }, [queryClient, router]);
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator color="#FF5A5F" />
+    <View
+      style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+      accessibilityLabel="Loading SmartResidence"
+      accessibilityRole="progressbar"
+    >
+      <ActivityIndicator color="#FF5A5F" accessibilityLabel="Loading" />
     </View>
   );
 }

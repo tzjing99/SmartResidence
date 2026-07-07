@@ -1,8 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoleGuardGate } from '../../src/components/role-guard-gate';
-import { useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
+import { TabBarIcon, useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
 
 export default function ResidentTabsLayout() {
   const insets = useSafeAreaInsets();
@@ -20,39 +19,40 @@ export default function ResidentTabsLayout() {
           name="home"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} />,
+            tabBarAccessibilityLabel: 'Home tab',
+            tabBarIcon: ({ color }) => <TabBarIcon name="home-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="visitors"
           options={{
             title: 'Visitors',
-            tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
+            tabBarAccessibilityLabel: 'Visitors tab',
+            tabBarIcon: ({ color }) => <TabBarIcon name="people-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="billing"
           options={{
             title: 'Fees',
-            tabBarIcon: ({ color }) => <Ionicons name="card-outline" size={22} color={color} />,
+            tabBarAccessibilityLabel: 'Fees tab',
+            tabBarIcon: ({ color }) => <TabBarIcon name="card-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="defects"
           options={{
             title: 'Defects',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="construct-outline" size={22} color={color} />
-            ),
+            tabBarAccessibilityLabel: 'Defects tab',
+            tabBarIcon: ({ color }) => <TabBarIcon name="construct-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="messages"
           options={{
             title: 'Messages',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="chatbubbles-outline" size={22} color={color} />
-            ),
+            tabBarAccessibilityLabel: 'Messages tab',
+            tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles-outline" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -78,9 +78,8 @@ export default function ResidentTabsLayout() {
           name="more"
           options={{
             title: 'More',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="ellipsis-horizontal" size={22} color={color} />
-            ),
+            tabBarAccessibilityLabel: 'More tab',
+            tabBarIcon: ({ color }) => <TabBarIcon name="ellipsis-horizontal" color={color} />,
           }}
         />
       </Tabs>

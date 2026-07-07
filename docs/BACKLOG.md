@@ -10,10 +10,11 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
-| **A1** | P2 | web | WCAG AA lite pass on high-traffic surfaces — skip links, landmarks, dialog focus trap, form labels, icon-button names, dark-mode contrast. **Partial done** (`feature/a11y-wcag-lite`). |
+| **A1** | P2 | mobile + web | WCAG AA lite pass — tab bar labels, auth screen reader labels, 44pt touch targets, landmark headers, list row labels, IconButton for back controls. **Mobile partial done** (`feature/mobile-a11y-lite`); web partial done (`feature/a11y-wcag-lite`). |
 
 ## Recently completed
 
+- ✅ **A1 — Mobile accessibility lite pass** — tab bar labels and roles, auth/loading screen reader support, 44pt touch targets, landmark headers, list row labels, IconButton back controls, ui-mobile Button/Field/AnimatedPressable defaults.
 - ✅ **GV1 — Governance core (v0.6 partial)** — `GovernanceModule` (`apps/api/src/governance/**`): `GeneralMeeting` (AGM/EGM), notice workflow, `MeetingProxy`, `MeetingResolution` with share-weighted e-voting via linked `Poll` (For/Against/Abstain); admin `/admin/governance`, resident `/(resident)/governance`, mobile `(resident)/governance`; migration `20260702170000_governance`; e2e `governance.spec.ts`. **Remaining:** minutes publication + financial/budget transparency (see ROADMAP §4.8).
 - ✅ **LF1 — Lost & found board** — `LostFoundModule` (`apps/api/src/lost-found/**`): `LostFoundPost` with kind/status + photo attachments; admin `/admin/lost-found`, resident `/(resident)/lost-found`, mobile `(resident)/lost-found`; migration `20260702160000_lost_found`; e2e `lost-found.spec.ts`.
 - ✅ **F2 (partial) — Platform console basics** — `PlatformModule` + web `/admin/platform` (condo list/search, per-condo detail, setup status badges, open-condo-admin context switch) for `SUPER_ADMIN`. Full provisioning/plans/impersonation still future.

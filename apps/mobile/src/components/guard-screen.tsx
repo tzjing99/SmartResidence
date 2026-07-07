@@ -91,7 +91,11 @@ export function GuardBrandBar() {
   const styles = useMemo(() => createGuardStyles(colors), [colors]);
 
   return (
-    <View style={styles.brandBar} accessibilityRole="header">
+    <View
+      style={styles.brandBar}
+      accessibilityRole="header"
+      accessibilityLabel="SmartResidence Gate"
+    >
       <View style={styles.brandLine}>
         <AppText style={styles.brandWord}>Smart</AppText>
         <AppText style={[styles.brandWord, styles.brandCoral]}>Residence</AppText>
@@ -130,7 +134,7 @@ export function GuardHeader({
         <AppText variant="caption" style={styles.eyebrow}>
           {eyebrow}
         </AppText>
-        <AppText numberOfLines={2} style={styles.title}>
+        <AppText accessibilityRole="header" numberOfLines={2} style={styles.title}>
           {title}
         </AppText>
         {subtitle ? (

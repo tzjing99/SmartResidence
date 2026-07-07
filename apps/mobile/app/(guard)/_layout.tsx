@@ -1,9 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoleGuardGate } from '../../src/components/role-guard-gate';
 import { useT } from '../../src/i18n/locale-provider';
-import { useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
+import { TabBarIcon, useModernTabBarOptions } from '../../src/lib/modern-tab-bar';
 
 export default function GuardLayout() {
   const t = useT();
@@ -22,39 +21,40 @@ export default function GuardLayout() {
           name="scan"
           options={{
             title: t('mobile.guard.tabs.scan'),
-            tabBarIcon: ({ color }) => <Ionicons name="qr-code-outline" size={22} color={color} />,
+            tabBarAccessibilityLabel: t('mobile.guard.tabs.scan'),
+            tabBarIcon: ({ color }) => <TabBarIcon name="qr-code-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="live"
           options={{
             title: t('mobile.guard.tabs.live'),
-            tabBarIcon: ({ color }) => <Ionicons name="radio-outline" size={22} color={color} />,
+            tabBarAccessibilityLabel: t('mobile.guard.tabs.live'),
+            tabBarIcon: ({ color }) => <TabBarIcon name="radio-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="expected"
           options={{
             title: t('mobile.guard.tabs.expected'),
-            tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={22} color={color} />,
+            tabBarAccessibilityLabel: t('mobile.guard.tabs.expected'),
+            tabBarIcon: ({ color }) => <TabBarIcon name="list-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="walkin"
           options={{
             title: t('mobile.guard.tabs.walkIn'),
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="person-add-outline" size={22} color={color} />
-            ),
+            tabBarAccessibilityLabel: t('mobile.guard.tabs.walkIn'),
+            tabBarIcon: ({ color }) => <TabBarIcon name="person-add-outline" color={color} />,
           }}
         />
         <Tabs.Screen
           name="more"
           options={{
             title: t('mobile.guard.tabs.more'),
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="ellipsis-horizontal" size={22} color={color} />
-            ),
+            tabBarAccessibilityLabel: t('mobile.guard.tabs.more'),
+            tabBarIcon: ({ color }) => <TabBarIcon name="ellipsis-horizontal" color={color} />,
           }}
         />
         <Tabs.Screen name="patrol" options={{ href: null }} />

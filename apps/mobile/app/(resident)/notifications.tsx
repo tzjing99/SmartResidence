@@ -93,7 +93,11 @@ export default function NotificationsScreen() {
           const unread = !row.readAt;
           return (
             <FadeInView key={row.id} index={index}>
-              <AnimatedPressable onPress={() => handlePress(row)}>
+              <AnimatedPressable
+                onPress={() => handlePress(row)}
+                accessibilityRole="button"
+                accessibilityLabel={`${row.title}${unread ? ', unread' : ''}. ${row.body ?? prettyLabel(row.kind)}`}
+              >
                 <Card
                   style={[
                     residentStyles.card,

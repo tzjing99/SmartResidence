@@ -1,12 +1,44 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Last updated:** 2026-07-06 EOD · **Target:** ship-ready by **2026-07-11**
+> **Last updated:** 2026-07-07 AM (Path C local verify) · **Target:** ship-ready by **2026-07-11**
 
 ---
 
-## Jul 6 end-of-day status
+## Jul 7 AM — Path C merge train (no GitHub Actions)
+
+GitHub Actions blocked until **2026-08-01** ($0 budget). User approved **Path C**: local `pnpm lint` + `pnpm typecheck` (+ API/regression when Docker/Postgres available) in place of GH CI green checks.
 
 ### `main` tip
+
+**`92e0249`** — Merge pull request #24 (`docs/selfhost-hardening`)
+
+Prior merges this session (Path C order):
+
+| PR | Title | Local verify | Merged |
+| --- | --- | --- | --- |
+| **#25** | fix(mobile): typecheck on main | *(pre-existing on main)* | Y (before Path C) |
+| **#12** | feat(governance): proxy voting + immutable results audit | lint ✓ · typecheck ✓ · api/regression N/A (Docker off) | Y |
+| **#20** | feat(pdpa): personal data export | lint ✓ · typecheck ✓ · rebase conflict fix pushed · api/regression N/A | Y |
+| **#24** | docs: July 11 release checklist + self-host validation | lint ✓ · typecheck ✓ · docs-only | Y |
+
+### Still open
+
+| PR | Title | Notes |
+| --- | --- | --- |
+| **#22** | feat(mobile): accessibility lite pass | **Kept open** — adds `accessibility.ts`, `icon-button`, min touch targets, tab-bar a11y beyond #23; not clearly redundant. Needs rebase onto `92e0249`. |
+| **#1** | chore(release): version packages | **Do not merge** without explicit PO OK |
+
+### Jul 7 remaining priorities
+
+1. **#22** — Rebase onto `main`, resolve conflicts with post-#23 mobile UX; merge if local verify green or close gaps-only cherry-picks.
+2. **Smoke test** — `deploy/docker-compose.selfhost.yml` on `main` @ `92e0249`.
+3. **Release prep** — changeset for v0.2.0; refresh #1 only with PO approval.
+
+---
+
+## Jul 6 end-of-day status (historical)
+
+### `main` tip (Jul 6 EOD)
 
 **`d9c9584`** — Merge pull request #23 (`feature/mobile-ux`)
 

@@ -1,38 +1,46 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Last updated:** 2026-07-07 AM (Path C local verify) · **Target:** ship-ready by **2026-07-11**
+> **Last updated:** 2026-07-07 PM (Path C complete) · **Target:** ship-ready by **2026-07-11**
 
 ---
 
-## Jul 7 AM — Path C merge train (no GitHub Actions)
+## Jul 7 PM — Path C complete ✅
 
-GitHub Actions blocked until **2026-08-01** ($0 budget). User approved **Path C**: local `pnpm lint` + `pnpm typecheck` (+ API/regression when Docker/Postgres available) in place of GH CI green checks.
+GitHub Actions blocked until **2026-08-01** ($0 budget). User authorized **Path C**: local `pnpm lint` + `pnpm typecheck` (+ API/regression when Docker/Postgres available) in place of GH CI green checks. **CI resets 2026-08-01** — re-enable full GitHub Actions matrix then.
 
 ### `main` tip
 
-**`92e0249`** — Merge pull request #24 (`docs/selfhost-hardening`)
+**`f07a0e1`** — Merge pull request #27 (`docs/july11-no-ci-plan`)
 
-Prior merges this session (Path C order):
+### Shipped Jul 7 (Path C merge train complete)
 
 | PR | Title | Local verify | Merged |
 | --- | --- | --- | --- |
-| **#25** | fix(mobile): typecheck on main | *(pre-existing on main)* | Y (before Path C) |
-| **#12** | feat(governance): proxy voting + immutable results audit | lint ✓ · typecheck ✓ · api/regression N/A (Docker off) | Y |
-| **#20** | feat(pdpa): personal data export | lint ✓ · typecheck ✓ · rebase conflict fix pushed · api/regression N/A | Y |
-| **#24** | docs: July 11 release checklist + self-host validation | lint ✓ · typecheck ✓ · docs-only | Y |
+| **#12** | feat(governance): proxy voting + immutable results audit | lint ✓ · typecheck ✓ | Y |
+| **#20** | feat(pdpa): personal data export | lint ✓ · typecheck ✓ | Y |
+| **#24** | docs: July 11 release checklist + self-host validation | lint ✓ · docs-only | Y |
+| **#25** | fix(mobile): typecheck on main | lint ✓ · typecheck ✓ | Y |
+| **#26** | docs: Path C Jul 7 merge record | docs-only | Y |
+| **#22** | feat(mobile): accessibility lite pass | lint ✓ · typecheck ✓ | Y |
+| **#27** | docs: expand July 11 no-CI plan | docs-only | Y |
 
-### Still open
+Jul 6 merge train (#6–#23) was already on `main` before Path C.
 
-| PR | Title | Notes |
+### Release prep (in flight)
+
+| Item | Status | Notes |
 | --- | --- | --- |
-| **#22** | feat(mobile): accessibility lite pass | **Kept open** — adds `accessibility.ts`, `icon-button`, min touch targets, tab-bar a11y beyond #23; not clearly redundant. Needs rebase onto `92e0249`. |
-| **#1** | chore(release): version packages | **Do not merge** without explicit PO OK |
+| **Changeset v0.2.0** | Branch `chore/changesets-jul7` | Consolidated `.changeset/v0.2.0-july-ship.md` |
+| **PR #1** | Refresh + merge | Version bump → `@smartresidence/*@0.2.0`; tag `v0.2.0` |
+| **Self-host smoke** | Config ✅ · full stack pending | See `JULY11_RELEASE_CHECKLIST.md` §3 |
 
-### Jul 7 remaining priorities
+### Closed / deferred
 
-1. **#22** — Rebase onto `main`, resolve conflicts with post-#23 mobile UX; merge if local verify green or close gaps-only cherry-picks.
-2. **Smoke test** — `deploy/docker-compose.selfhost.yml` on `main` @ `92e0249`.
-3. **Release prep** — changeset for v0.2.0; refresh #1 only with PO approval.
+| PR | Title | Disposition |
+| --- | --- | --- |
+| **#3** | Announcements Phase 1 + AVIF | Closed — stale |
+| **#14** | TNG adapter | Superseded by #16 Fiuu policy (TNG sandbox kept) |
+| **#21** | i18n phase 3 | Absorbed via #23 mobile-ux |
 
 ---
 

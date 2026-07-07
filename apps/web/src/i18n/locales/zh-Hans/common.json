@@ -546,6 +546,14 @@
       }
     }
   },
+  "account": {
+    "privacyTitle": "隐私与数据",
+    "privacyDesc": "下载 SmartResidence 持有的您的个人数据副本（PDPA 数据访问请求）。",
+    "downloadMyData": "下载我的数据",
+    "downloadMyDataPending": "正在准备下载…",
+    "downloadMyDataSuccess": "已开始下载",
+    "downloadMyDataError": "无法准备您的数据导出"
+  },
   "sessions": {
     "title": "设备与会话",
     "subtitle": "查看您的登录位置，并撤销不认识的访问。",

@@ -546,6 +546,14 @@
       }
     }
   },
+  "account": {
+    "privacyTitle": "Privasi & data",
+    "privacyDesc": "Muat turun salinan data peribadi anda yang disimpan oleh SmartResidence (permintaan akses data PDPA).",
+    "downloadMyData": "Muat turun data saya",
+    "downloadMyDataPending": "Menyediakan muat turun…",
+    "downloadMyDataSuccess": "Muat turun dimulakan",
+    "downloadMyDataError": "Tidak dapat menyediakan eksport data anda"
+  },
   "sessions": {
     "title": "Peranti & sesi",
     "subtitle": "Semak di mana anda log masuk dan batalkan akses yang tidak dikenali.",

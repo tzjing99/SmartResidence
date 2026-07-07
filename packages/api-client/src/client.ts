@@ -2212,6 +2212,55 @@ export class ApiClient {
     );
   }
 
+  // PDPA personal data export ---------------------------------------
+  requestDataExport() {
+    return this.request<{
+      id: string;
+      exportId: string;
+      status: 'ready';
+      createdAt: string;
+      expiresAt: string;
+    }>('POST', '/api/users/me/export');
+  }
+  async downloadDataExport(exportId: string): Promise<Blob> {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    const token = await this.cfg.getAccessToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const condoId = await this.cfg.getActiveCondoId?.();
+    if (condoId) headers['x-condo-id'] = condoId;
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const res = await fetchImpl(`${this.cfg.baseUrl}/api/users/me/export/${exportId}`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = await res.json();
+      } catch {
+        /* ignore */
+      }
+      const message =
+        (parsed as { message?: string } | null)?.message ?? `HTTP ${res.status} ${res.statusText}`;
+      throw new ApiError(res.status, parsed, message);
+    }
+    return res.blob();
+  }
+  async dataExportDownloadSource(
+    exportId: string,
+  ): Promise<{ uri: string; headers: Record<string, string> }> {
+    const token = await this.cfg.getAccessToken?.();
+    const condoId = await this.cfg.getActiveCondoId?.();
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (condoId) headers['x-condo-id'] = condoId;
+    return {
+      uri: `${this.cfg.baseUrl}/api/users/me/export/${exportId}`,
+      headers,
+    };
+  }
+
   // Owner empowerment -----------------------------------------------
   /** Revoke a delegated role grant. Instantly kills all sessions of the affected user. */
   revokeRoleAssignment(roleAssignmentId: string) {

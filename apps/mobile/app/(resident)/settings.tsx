@@ -11,9 +11,10 @@ import {
   spacing,
   useTheme,
 } from '@smartresidence/ui-mobile';
+import * as FileSystem from 'expo-file-system/legacy';
 import { type Href, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, Switch, View } from 'react-native';
+import { Alert, Linking, Pressable, Switch, View } from 'react-native';
 import {
   ResidentScreen,
   ResidentSectionHeader,
@@ -109,6 +110,23 @@ export default function SettingsScreen() {
   const [quietEnabled, setQuietEnabled] = useState(false);
   const [quietStart, setQuietStart] = useState('22:00');
   const [quietEnd, setQuietEnd] = useState('07:00');
+  const [exportPending, setExportPending] = useState(false);
+
+  async function onDownloadMyData() {
+    setExportPending(true);
+    try {
+      const meta = await api.requestDataExport();
+      const { uri, headers } = await api.dataExportDownloadSource(meta.exportId);
+      const path = `${FileSystem.cacheDirectory}data-export-${meta.exportId.slice(0, 8)}.json`;
+      const downloaded = await FileSystem.downloadAsync(uri, path, { headers });
+      await Linking.openURL(downloaded.uri);
+      Alert.alert('Download started', 'Your data export is ready to view or share.');
+    } catch (err) {
+      Alert.alert('Could not prepare export', (err as Error).message);
+    } finally {
+      setExportPending(false);
+    }
+  }
 
   useEffect(() => {
     if (!prefs.data) return;
@@ -348,6 +366,19 @@ export default function SettingsScreen() {
             </Field>
           </View>
         ) : null}
+      </Card>
+
+      <ResidentSectionHeader
+        title="Privacy & data"
+        subtitle="Download a copy of your personal data (PDPA data access request)."
+      />
+
+      <Card style={residentStyles.card}>
+        <Button
+          title={exportPending ? 'Preparing download…' : 'Download my data'}
+          onPress={() => void onDownloadMyData()}
+          disabled={exportPending}
+        />
       </Card>
 
       <ResidentSectionHeader

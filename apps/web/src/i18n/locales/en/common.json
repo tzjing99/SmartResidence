@@ -546,6 +546,14 @@
       }
     }
   },
+  "account": {
+    "privacyTitle": "Privacy & data",
+    "privacyDesc": "Download a copy of your personal data held by SmartResidence (PDPA data access request).",
+    "downloadMyData": "Download my data",
+    "downloadMyDataPending": "Preparing download…",
+    "downloadMyDataSuccess": "Download started",
+    "downloadMyDataError": "Could not prepare your data export"
+  },
   "sessions": {
     "title": "Devices & sessions",
     "subtitle": "Review where you're signed in and revoke access you don't recognize.",

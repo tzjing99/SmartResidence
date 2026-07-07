@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,7 +8,7 @@ import { usePreferences, useUpdatePreferences } from '@smartresidence/api-client
 import { MalaysiaPhoneSchema } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, MessageCircle, Moon, Save, User } from 'lucide-react';
+import { Bell, Download, MessageCircle, Moon, Save, Shield, User } from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -19,6 +20,7 @@ const profileSchema = z.object({
 });
 
 export default function ProfileSettingsPage() {
+  const t = useT();
   const qc = useQueryClient();
   const prefs = usePreferences(api);
   const save = useUpdatePreferences(api);
@@ -47,6 +49,26 @@ export default function ProfileSettingsPage() {
   const [quietEnabled, setQuietEnabled] = React.useState(false);
   const [quietStart, setQuietStart] = React.useState('22:00');
   const [quietEnd, setQuietEnd] = React.useState('07:00');
+  const [exportPending, setExportPending] = React.useState(false);
+
+  async function onDownloadMyData() {
+    setExportPending(true);
+    try {
+      const meta = await api.requestDataExport();
+      const blob = await api.downloadDataExport(meta.exportId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smartresidence-data-export-${meta.exportId.slice(0, 8)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('account.downloadMyDataSuccess'));
+    } catch (err) {
+      toast.error((err as Error).message || t('account.downloadMyDataError'));
+    } finally {
+      setExportPending(false);
+    }
+  }
 
   React.useEffect(() => {
     if (!prefs.data) return;
@@ -249,6 +271,27 @@ export default function ProfileSettingsPage() {
           >
             <Save className="size-4" />
             Save notification preferences
+          </Button>
+        </Card>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <header>
+          <h2 className="sr-section-title flex items-center gap-2">
+            <Shield className="size-5 text-coral-500" aria-hidden />
+            {t('account.privacyTitle')}
+          </h2>
+          <p className="sr-muted text-sm mt-1">{t('account.privacyDesc')}</p>
+        </header>
+
+        <Card className="!p-5">
+          <Button
+            onClick={() => void onDownloadMyData()}
+            disabled={exportPending}
+            className="self-start"
+          >
+            <Download className="size-4" />
+            {exportPending ? t('account.downloadMyDataPending') : t('account.downloadMyData')}
           </Button>
         </Card>
       </section>

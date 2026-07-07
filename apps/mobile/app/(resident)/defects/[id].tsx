@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useAddDefectUpdate, useDefect, useTransitionDefect } from '@smartresidence/api-client';
 import { DEFECT_SIGN_OFF_PROMPT_LABEL, type DefectStatus } from '@smartresidence/shared-types';
 import {

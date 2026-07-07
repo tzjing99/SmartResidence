@@ -1702,8 +1702,19 @@ export function useSubmitMeetingProxy(api: ApiClient) {
     mutationFn: (vars: { meetingId: string; data: SubmitMeetingProxyInput }) =>
       api.submitMeetingProxy(vars.meetingId, vars.data),
     onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['governance'] });
       qc.invalidateQueries({ queryKey: queryKeys.meeting(vars.meetingId) });
     },
+  });
+}
+
+export function useMeetingProxies(api: ApiClient, meetingId: string | null) {
+  return useQuery({
+    queryKey: meetingId
+      ? [...queryKeys.meeting(meetingId), 'proxies']
+      : ['governance', 'proxies', null],
+    queryFn: () => (meetingId ? api.listMeetingProxies(meetingId) : Promise.resolve([])),
+    enabled: Boolean(meetingId),
   });
 }
 

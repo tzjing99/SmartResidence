@@ -2,7 +2,7 @@ import type { LedgerService } from '@/billing/ledger.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PollsService } from '@/polls/polls.service';
 import type { PrismaService } from '@/prisma/prisma.service';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { GeneralMeetingStatus, PollStatus, RoleId } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +11,7 @@ import { GovernanceService } from './governance.service';
 const CONDO = 'condo-1';
 const UNIT = 'unit-1';
 const OWNER_ID = 'owner-1';
+const PROXY_HOLDER_ID = 'proxy-holder-1';
 const MGR_ID = 'mgr-1';
 const MEETING_ID = 'meet-1';
 
@@ -23,6 +24,18 @@ function owner(): AuthenticatedUser {
     activeCondoId: CONDO,
     activeRole: RoleId.UNIT_OWNER,
     roles: [{ roleId: RoleId.UNIT_OWNER, condoId: CONDO, unitId: UNIT, permissions: [] }],
+  };
+}
+
+function proxyHolder(): AuthenticatedUser {
+  return {
+    id: PROXY_HOLDER_ID,
+    email: 'proxy@b.c',
+    name: 'Proxy Holder',
+    locale: 'en',
+    activeCondoId: CONDO,
+    activeRole: RoleId.UNIT_OWNER,
+    roles: [{ roleId: RoleId.UNIT_OWNER, condoId: CONDO, unitId: 'unit-2', permissions: [] }],
   };
 }
 
@@ -61,7 +74,19 @@ function buildService() {
   const events = { emit: vi.fn() };
   const polls = {
     castVote: vi.fn(async () => []),
-    getOne: vi.fn(async () => ({ id: 'poll-1', status: 'OPEN', results: null })),
+    castVoteWithOwnership: vi.fn(async () => []),
+    computeResultsSnapshot: vi.fn(async () => ({
+      totalVotes: 1,
+      totalWeight: 100,
+      options: [{ id: 'opt-1', label: 'For', voteCount: 1, weightSum: 100, weightPercent: 100 }],
+    })),
+    getOne: vi.fn(async () => ({
+      id: 'poll-1',
+      status: 'CLOSED',
+      results: { totalVotes: 1, totalWeight: 100, options: [] },
+      options: [],
+      myVotes: [],
+    })),
   };
 
   const ledger = {
@@ -94,6 +119,7 @@ function buildService() {
       unit: { id: UNIT, identifier: 'A-01-01' },
     })),
     findMany: vi.fn(async () => []),
+    findUnique: vi.fn(async () => null),
   };
 
   const meetingResolution = {
@@ -106,8 +132,16 @@ function buildService() {
     findFirst: vi.fn(async () => ({
       id: 'own-1',
       sharePercent: 100,
-      unit: { condoId: CONDO },
+      unit: { id: UNIT, condoId: CONDO, blockId: 'block-1', identifier: 'A-01-01' },
     })),
+  };
+
+  const user = {
+    findUnique: vi.fn(async () => ({
+      id: PROXY_HOLDER_ID,
+      roleAssignments: [{ condoId: CONDO }],
+    })),
+    findFirst: vi.fn(async () => null),
   };
 
   const poll = {
@@ -115,12 +149,18 @@ function buildService() {
     update: vi.fn(),
   };
 
+  const auditLog = {
+    create: vi.fn(),
+  };
+
   const prisma = {
     generalMeeting,
     meetingProxy,
     meetingResolution,
     ownership,
+    user,
     poll,
+    auditLog,
     $transaction: vi.fn(async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
   } as unknown as PrismaService;
 
@@ -140,6 +180,7 @@ function buildService() {
     meetingProxy,
     generalMeeting,
     meetingResolution,
+    auditLog,
   };
 }
 
@@ -197,13 +238,15 @@ describe('GovernanceService', () => {
     );
   });
 
-  it('delegates resolution vote to PollsService', async () => {
-    const { service, polls, meetingResolution } = buildService();
+  it('delegates resolution vote to PollsService when no proxy', async () => {
+    const { service, polls, meetingResolution, meetingProxy } = buildService();
     meetingResolution.findUnique.mockResolvedValueOnce({
       id: 'res-1',
       pollId: 'poll-1',
+      meetingId: MEETING_ID,
       meeting: { condoId: CONDO },
     });
+    meetingProxy.findUnique.mockResolvedValueOnce(null);
     await service.castResolutionVote(owner(), 'res-1', {
       unitId: UNIT,
       optionId: 'opt-1',
@@ -212,6 +255,86 @@ describe('GovernanceService', () => {
       unitId: UNIT,
       optionId: 'opt-1',
     });
+  });
+
+  it('blocks owner vote when proxy submitted and routes proxy holder vote', async () => {
+    const { service, polls, meetingResolution, meetingProxy } = buildService();
+    meetingResolution.findUnique.mockResolvedValueOnce({
+      id: 'res-1',
+      pollId: 'poll-1',
+      meetingId: MEETING_ID,
+      meeting: { condoId: CONDO },
+    });
+    meetingProxy.findUnique.mockResolvedValueOnce({
+      id: 'proxy-1',
+      meetingId: MEETING_ID,
+      unitId: UNIT,
+      ownerUserId: OWNER_ID,
+      proxyHolderUserId: PROXY_HOLDER_ID,
+      proxyHolderContact: '',
+    });
+
+    await expect(
+      service.castResolutionVote(owner(), 'res-1', { unitId: UNIT, optionId: 'opt-1' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    meetingResolution.findUnique.mockResolvedValueOnce({
+      id: 'res-1',
+      pollId: 'poll-1',
+      meetingId: MEETING_ID,
+      meeting: { condoId: CONDO },
+    });
+    meetingProxy.findUnique.mockResolvedValueOnce({
+      id: 'proxy-1',
+      meetingId: MEETING_ID,
+      unitId: UNIT,
+      ownerUserId: OWNER_ID,
+      proxyHolderUserId: PROXY_HOLDER_ID,
+      proxyHolderContact: '',
+    });
+
+    await service.castResolutionVote(proxyHolder(), 'res-1', {
+      unitId: UNIT,
+      optionId: 'opt-1',
+    });
+
+    expect(polls.castVoteWithOwnership).toHaveBeenCalled();
+  });
+
+  it('closes resolution voting with immutable snapshot and audit log', async () => {
+    const { service, polls, meetingResolution, auditLog, events, prisma } = buildService();
+    meetingResolution.findUnique
+      .mockResolvedValueOnce({
+        id: 'res-1',
+        meetingId: MEETING_ID,
+        pollId: 'poll-1',
+        votingClosesAt: null,
+        meeting: { condoId: CONDO },
+        poll: { id: 'poll-1', status: PollStatus.OPEN, options: [] },
+      })
+      .mockResolvedValueOnce({
+        id: 'res-1',
+        meetingId: MEETING_ID,
+        pollId: 'poll-1',
+        votingClosesAt: new Date(),
+        resultsSnapshot: { totalVotes: 1, totalWeight: 100, options: [] },
+        poll: {
+          id: 'poll-1',
+          status: PollStatus.CLOSED,
+          opensAt: new Date(),
+          closesAt: new Date(),
+        },
+      });
+
+    await service.closeResolutionVoting(manager(), 'res-1');
+
+    expect(polls.computeResultsSnapshot).toHaveBeenCalledWith('poll-1', true);
+    expect(auditLog.create).toHaveBeenCalled();
+    expect(events.emit).toHaveBeenCalledWith(
+      'governance.resolution.closed',
+      expect.objectContaining({ resolutionId: 'res-1' }),
+    );
+    expect(prisma.poll.update).toHaveBeenCalled();
   });
 
   it('opens resolution voting by creating a poll and emitting event', async () => {

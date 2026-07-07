@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  AuditAction,
   GeneralMeetingStatus,
   PollAudienceScope,
   PollStatus,
@@ -111,6 +112,7 @@ export class GovernanceService {
     const myProxies = this.canSubmitProxy(user)
       ? await this.fetchMyProxies(user.id, id)
       : undefined;
+    const myProxyAssignments = await this.fetchMyProxyAssignments(user, id);
 
     const resolutions = await Promise.all(
       row.resolutions.map((res) => this.serializeResolution(res, user, { manage })),
@@ -120,6 +122,7 @@ export class GovernanceService {
       ...this.serializeMeeting(row, user, { manage }),
       resolutions,
       myProxies,
+      myProxyAssignments,
     };
   }
 
@@ -414,7 +417,7 @@ export class GovernanceService {
   async closeResolutionVoting(user: AuthenticatedUser, resolutionId: string) {
     const resolution = await this.prisma.meetingResolution.findUnique({
       where: { id: resolutionId },
-      include: { meeting: true, poll: true },
+      include: { meeting: true, poll: { include: { options: { orderBy: { position: 'asc' } } } } },
     });
     if (!resolution) throw new NotFoundException();
     this.assertManagement(user, resolution.meeting.condoId);
@@ -426,9 +429,41 @@ export class GovernanceService {
       throw new BadRequestException('Voting is already closed');
     }
 
-    await this.prisma.poll.update({
-      where: { id: resolution.pollId },
-      data: { status: PollStatus.CLOSED },
+    const resultsSnapshot = await this.polls.computeResultsSnapshot(resolution.pollId, true);
+    const closedAt = new Date();
+    const pollId = resolution.pollId;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.poll.update({
+        where: { id: pollId },
+        data: { status: PollStatus.CLOSED },
+      });
+
+      await tx.meetingResolution.update({
+        where: { id: resolutionId },
+        data: {
+          resultsSnapshot: resultsSnapshot as Prisma.InputJsonValue,
+          votingClosesAt: resolution.votingClosesAt ?? closedAt,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          condoId: resolution.meeting.condoId,
+          actorUserId: user.id,
+          actorRole: user.activeRole ?? undefined,
+          action: AuditAction.UPDATE,
+          resourceType: 'MeetingResolution',
+          resourceId: resolutionId,
+          metadata: {
+            event: 'governance.resolution.voting_closed',
+            meetingId: resolution.meetingId,
+            pollId: resolution.pollId,
+            closedAt: closedAt.toISOString(),
+            resultsSnapshot,
+          },
+        },
+      });
     });
 
     const updated = await this.prisma.meetingResolution.findUnique({
@@ -441,6 +476,13 @@ export class GovernanceService {
     });
 
     if (!updated) throw new NotFoundException();
+
+    this.events.emit('governance.resolution.closed', {
+      resolutionId,
+      meetingId: resolution.meetingId,
+      condoId: resolution.meeting.condoId,
+      pollId: resolution.pollId,
+    });
 
     return this.serializeResolution(updated, user, {
       manage: true,
@@ -466,13 +508,18 @@ export class GovernanceService {
     }
 
     const poll = await this.polls.getOne(user, resolution.pollId, { manage });
+    const snapshot = resolution.resultsSnapshot as Record<string, unknown> | null;
     return {
       resolutionId: resolution.id,
       title: resolution.title,
       pollId: resolution.pollId,
       votingOpensAt: resolution.votingOpensAt,
       votingClosesAt: resolution.votingClosesAt,
-      poll,
+      poll: {
+        ...poll,
+        results: snapshot ?? poll.results,
+      },
+      resultsSnapshot: snapshot ?? undefined,
     };
   }
 
@@ -488,6 +535,49 @@ export class GovernanceService {
     if (!resolution) throw new NotFoundException();
     if (!resolution.pollId) {
       throw new BadRequestException('Voting is not open for this resolution');
+    }
+
+    const proxy = await this.prisma.meetingProxy.findUnique({
+      where: {
+        meetingId_unitId: {
+          meetingId: resolution.meetingId,
+          unitId: dto.unitId,
+        },
+      },
+    });
+
+    if (proxy) {
+      if (proxy.ownerUserId === user.id) {
+        throw new ConflictException(
+          'You submitted a proxy for this unit — only your proxy holder may vote',
+        );
+      }
+      if (!this.isProxyHolder(user, proxy)) {
+        throw new ForbiddenException('You are not the designated proxy holder for this unit');
+      }
+
+      const now = new Date();
+      const ownership = await this.prisma.ownership.findFirst({
+        where: {
+          userId: proxy.ownerUserId,
+          unitId: dto.unitId,
+          status: 'ACTIVE',
+          OR: [{ endDate: null }, { endDate: { gt: now } }],
+        },
+        include: {
+          unit: { select: { id: true, condoId: true, blockId: true, identifier: true } },
+        },
+      });
+      if (!ownership) {
+        throw new BadRequestException('Proxied unit has no active ownership record');
+      }
+
+      return this.polls.castVoteWithOwnership(user, resolution.pollId, dto, ownership, {
+        viaProxy: true,
+        proxyId: proxy.id,
+        ownerUserId: proxy.ownerUserId,
+        meetingId: resolution.meetingId,
+      });
     }
 
     return this.polls.castVote(user, resolution.pollId, dto);
@@ -525,12 +615,19 @@ export class GovernanceService {
       throw new BadRequestException('Unit does not belong to this meeting');
     }
 
+    const proxyHolderUserId = await this.resolveProxyHolderUserId(
+      meeting.condoId,
+      dto.proxyHolderUserId,
+      dto.proxyHolderContact,
+    );
+
     try {
       const proxy = await this.prisma.meetingProxy.create({
         data: {
           meetingId,
           unitId: dto.unitId,
           ownerUserId: user.id,
+          proxyHolderUserId,
           proxyHolderName: dto.proxyHolderName.trim(),
           proxyHolderContact: dto.proxyHolderContact?.trim() ?? '',
         },
@@ -545,6 +642,7 @@ export class GovernanceService {
         condoId: meeting.condoId,
         ownerUserId: user.id,
         unitId: dto.unitId,
+        proxyHolderUserId,
       });
 
       return {
@@ -552,6 +650,7 @@ export class GovernanceService {
         meetingId: proxy.meetingId,
         unitId: proxy.unitId,
         unitIdentifier: proxy.unit.identifier,
+        proxyHolderUserId: proxy.proxyHolderUserId,
         proxyHolderName: proxy.proxyHolderName,
         proxyHolderContact: proxy.proxyHolderContact,
         submittedAt: proxy.submittedAt,
@@ -571,6 +670,37 @@ export class GovernanceService {
     return this.fetchMyProxies(user.id, meetingId);
   }
 
+  async listMeetingProxies(user: AuthenticatedUser, meetingId: string) {
+    const meeting = await this.prisma.generalMeeting.findUnique({ where: { id: meetingId } });
+    if (!meeting) throw new NotFoundException();
+    this.assertManagement(user, meeting.condoId);
+
+    const rows = await this.prisma.meetingProxy.findMany({
+      where: { meetingId },
+      include: {
+        unit: { select: { id: true, identifier: true } },
+        owner: { select: { id: true, name: true, email: true } },
+        proxyHolder: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: [{ submittedAt: 'asc' }],
+    });
+
+    return rows.map((p) => ({
+      id: p.id,
+      meetingId: p.meetingId,
+      unitId: p.unitId,
+      unitIdentifier: p.unit.identifier,
+      ownerUserId: p.ownerUserId,
+      ownerName: p.owner.name,
+      ownerEmail: p.owner.email,
+      proxyHolderUserId: p.proxyHolderUserId,
+      proxyHolderName: p.proxyHolderName,
+      proxyHolderContact: p.proxyHolderContact,
+      proxyHolderAccountName: p.proxyHolder?.name ?? null,
+      submittedAt: p.submittedAt,
+    }));
+  }
+
   private async fetchMyProxies(userId: string, meetingId: string) {
     const rows = await this.prisma.meetingProxy.findMany({
       where: { meetingId, ownerUserId: userId },
@@ -582,8 +712,42 @@ export class GovernanceService {
       meetingId: p.meetingId,
       unitId: p.unitId,
       unitIdentifier: p.unit.identifier,
+      proxyHolderUserId: p.proxyHolderUserId,
       proxyHolderName: p.proxyHolderName,
       proxyHolderContact: p.proxyHolderContact,
+      submittedAt: p.submittedAt,
+    }));
+  }
+
+  private async fetchMyProxyAssignments(user: AuthenticatedUser, meetingId: string) {
+    const meeting = await this.prisma.generalMeeting.findUnique({ where: { id: meetingId } });
+    if (!meeting) return [];
+
+    const rows = await this.prisma.meetingProxy.findMany({
+      where: {
+        meetingId,
+        OR: [
+          { proxyHolderUserId: user.id },
+          ...(user.email
+            ? [{ proxyHolderContact: { equals: user.email, mode: 'insensitive' as const } }]
+            : []),
+        ],
+      },
+      include: {
+        unit: { select: { id: true, identifier: true } },
+        owner: { select: { id: true, name: true } },
+      },
+      orderBy: { submittedAt: 'asc' },
+    });
+
+    return rows.map((p) => ({
+      id: p.id,
+      meetingId: p.meetingId,
+      unitId: p.unitId,
+      unitIdentifier: p.unit.identifier,
+      ownerUserId: p.ownerUserId,
+      ownerName: p.owner.name,
+      proxyHolderName: p.proxyHolderName,
       submittedAt: p.submittedAt,
     }));
   }
@@ -630,22 +794,33 @@ export class GovernanceService {
       pollId: string | null;
       votingOpensAt: Date | null;
       votingClosesAt: Date | null;
+      resultsSnapshot?: Prisma.JsonValue | null;
       position: number;
       poll?: { id: string; status: PollStatus; opensAt: Date | null; closesAt: Date | null } | null;
     },
     user: AuthenticatedUser,
     opts: { manage?: boolean; includePollDetail?: boolean; includeBreakdown?: boolean },
   ) {
+    const pollStatus = row.poll?.status;
+    const pollOpen = pollStatus === PollStatus.OPEN;
+    const pollClosed = pollStatus === PollStatus.CLOSED;
+    const needsPollDetail =
+      opts.includePollDetail || opts.manage || pollOpen || pollClosed || !!row.resultsSnapshot;
+
     let pollSummary = null;
-    if (row.pollId && (opts.includePollDetail || opts.manage)) {
+    if (row.pollId && needsPollDetail) {
       const poll = await this.polls.getOne(user, row.pollId, { manage: opts.manage });
+      const snapshotResults = row.resultsSnapshot
+        ? (row.resultsSnapshot as Record<string, unknown>)
+        : null;
+
       pollSummary = {
         id: poll.id,
         status: poll.status,
         opensAt: poll.opensAt,
         closesAt: poll.closesAt,
         options: poll.options,
-        results: poll.results,
+        results: pollClosed && snapshotResults ? snapshotResults : poll.results,
         myVotes: poll.myVotes,
       };
     } else if (row.poll) {
@@ -667,7 +842,47 @@ export class GovernanceService {
       votingClosesAt: row.votingClosesAt,
       position: row.position,
       poll: pollSummary,
+      resultsSnapshot: pollClosed && row.resultsSnapshot ? row.resultsSnapshot : undefined,
     };
+  }
+
+  private isProxyHolder(
+    user: AuthenticatedUser,
+    proxy: { proxyHolderUserId: string | null; proxyHolderContact: string },
+  ): boolean {
+    if (proxy.proxyHolderUserId && proxy.proxyHolderUserId === user.id) return true;
+    const contact = proxy.proxyHolderContact.trim().toLowerCase();
+    return contact.length > 0 && user.email != null && contact === user.email.trim().toLowerCase();
+  }
+
+  private async resolveProxyHolderUserId(
+    condoId: string,
+    explicitUserId?: string,
+    contact?: string,
+  ): Promise<string | null> {
+    if (explicitUserId) {
+      const holder = await this.prisma.user.findUnique({
+        where: { id: explicitUserId },
+        include: { roleAssignments: { where: { condoId } } },
+      });
+      if (!holder || holder.roleAssignments.length === 0) {
+        throw new BadRequestException('Proxy holder must be a registered resident in this condo');
+      }
+      return holder.id;
+    }
+
+    const email = contact?.trim();
+    if (email?.includes('@')) {
+      const holder = await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' } },
+        include: { roleAssignments: { where: { condoId } } },
+      });
+      if (holder && holder.roleAssignments.length > 0) {
+        return holder.id;
+      }
+    }
+
+    return null;
   }
 
   private canSubmitProxy(user: AuthenticatedUser): boolean {

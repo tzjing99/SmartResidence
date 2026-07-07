@@ -11,6 +11,7 @@ import {
   useCondoMeetings,
   useCreateMeeting,
   useMeeting,
+  useMeetingProxies,
   useMyCondos,
   useOpenResolutionVoting,
   usePublishMeetingMinutes,
@@ -93,6 +94,7 @@ function FinancialSnapshotTable({
 
 function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose: () => void }) {
   const meetingQuery = useMeeting(api, meetingId);
+  const proxiesQuery = useMeetingProxies(api, meetingId);
   const updateMeeting = useUpdateMeeting(api);
   const publishNotice = usePublishMeetingNotice(api);
   const publishMinutes = usePublishMeetingMinutes(api);
@@ -300,10 +302,22 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
                 ) : null}
               </div>
             </div>
-            {res.poll?.results ? (
-              <div className="mt-3 text-sm sr-muted">
-                {res.poll.results.totalVotes ?? 0} units voted ·{' '}
-                {(res.poll.results.totalWeight ?? 0).toFixed(1)}% share weight
+            {res.poll?.results || res.resultsSnapshot ? (
+              <div className="mt-3 space-y-2 text-sm">
+                {((res.poll?.results ?? res.resultsSnapshot)?.options ?? []).map((opt) => (
+                  <div key={opt.id} className="flex justify-between sr-muted">
+                    <span>{opt.label}</span>
+                    <span>
+                      {opt.weightPercent}% · {opt.voteCount} units
+                    </span>
+                  </div>
+                ))}
+                <p className="text-xs sr-muted">
+                  {(res.poll?.results ?? res.resultsSnapshot)?.totalVotes ?? 0} units ·{' '}
+                  {((res.poll?.results ?? res.resultsSnapshot)?.totalWeight ?? 0).toFixed(1)}% share
+                  weight
+                  {res.resultsSnapshot ? ' (audited snapshot)' : ''}
+                </p>
               </div>
             ) : null}
           </Card>
@@ -355,7 +369,25 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
         </form>
       ) : null}
 
-      <p className="text-sm sr-muted mt-4">{meeting.proxyCount ?? 0} proxy forms received</p>
+      <div className="border-t pt-4 mt-4">
+        <h3 className="font-medium mb-2">
+          Proxies ({proxiesQuery.data?.length ?? meeting.proxyCount ?? 0})
+        </h3>
+        {proxiesQuery.isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : (proxiesQuery.data?.length ?? 0) === 0 ? (
+          <p className="text-sm sr-muted">No proxy forms received yet.</p>
+        ) : (
+          <ul className="text-sm space-y-2">
+            {proxiesQuery.data!.map((p) => (
+              <li key={p.id} className="sr-muted">
+                <span className="font-medium text-[rgb(var(--sr-text))]">{p.unitIdentifier}</span> —{' '}
+                {p.ownerName} → {p.proxyHolderName}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </Card>
   );
 }

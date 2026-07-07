@@ -46,6 +46,17 @@ Polls and governance resolutions weight votes by **ownership share**:
 
 Configure share when assigning owners to units (**Admin → Units**). For mixed commercial/residential schemes, ensure share matches the strata schedule of parcels filed with COB.
 
+### Proxy voting (one vote per unit)
+
+When an owner submits a proxy for a unit at an AGM/EGM:
+
+- **Exactly one vote per unit** — either the owner **or** the designated proxy holder, never both.
+- After a proxy is submitted, the owner is blocked from voting on that unit; the proxy holder casts the ballot using the owner's `sharePercent` weight.
+- Link the proxy holder via `proxyHolderUserId` (registered condo member) or an email in **Contact** that matches their login.
+- Management can review all proxy forms per meeting under **Admin → Governance**.
+
+When management closes resolution voting, SmartResidence writes an **immutable `resultsSnapshot`** on the resolution and an audit log entry with the final For/Against/Abstain share-weighted totals.
+
 ## AGM financial presentation
 
 For Annual General Meetings, treasurers typically present:

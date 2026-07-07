@@ -83,6 +83,7 @@ model User {
   pollVotes            PollVote[]
   generalMeetingsCreated GeneralMeeting[] @relation("meetingAuthor")
   meetingProxiesSubmitted MeetingProxy[] @relation("proxyOwner")
+  meetingProxiesHeld      MeetingProxy[] @relation("proxyHolder")
   bookings             Booking[]
   sosRaised            SosAlert[] @relation("sosRaisedBy")
   sosAcknowledged      SosAlert[] @relation("sosAcknowledgedBy")
@@ -1935,6 +1936,8 @@ model MeetingProxy {
   unit               Unit           @relation(fields: [unitId], references: [id], onDelete: Cascade)
   ownerUserId        String         @db.Uuid
   owner              User           @relation("proxyOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  proxyHolderUserId  String?        @db.Uuid
+  proxyHolder        User?          @relation("proxyHolder", fields: [proxyHolderUserId], references: [id], onDelete: SetNull)
   proxyHolderName    String
   proxyHolderContact String         @default("")
   submittedAt        DateTime       @default(now())
@@ -1942,6 +1945,7 @@ model MeetingProxy {
   @@unique([meetingId, unitId])
   @@index([meetingId])
   @@index([ownerUserId])
+  @@index([proxyHolderUserId])
   @@map("meeting_proxies")
 }
 
@@ -1956,6 +1960,7 @@ model MeetingResolution {
   poll           Poll?          @relation(fields: [pollId], references: [id], onDelete: SetNull)
   votingOpensAt  DateTime?
   votingClosesAt DateTime?
+  resultsSnapshot Json?
   position       Int            @default(0)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt

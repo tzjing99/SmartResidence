@@ -238,6 +238,10 @@ export interface MlAssignmentStats {
   minRequired: number;
   ready: boolean;
   active: boolean;
+  /** True when a persisted category model artifact is loaded in the API. */
+  modelLoaded?: boolean;
+  modelTrainedAt?: string | null;
+  modelSampleCount?: number | null;
 }
 
 export interface SlaSettingsResponse {

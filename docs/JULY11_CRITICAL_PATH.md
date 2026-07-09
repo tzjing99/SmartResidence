@@ -49,7 +49,7 @@ GitHub Actions still blocked until **2026-08-01**. Path C local verify used for 
 ### Known gaps (non-blocking for Jul 11)
 
 - ~~Visitor management RBAC correction (mgmt read-only approve) — ROADMAP §2.1~~ ✅ corrected on `fix/visitor-mgmt-rbac` (owners/tenants no longer get CASL `manage Visitor` / gate ops; management denied unit approve/reject + gate; integration coverage)
-- Trained ML assignment (C6) — stub only
+- ~~Trained ML assignment (C6) — stub only~~ ✅ lightweight Naive Bayes artifact + train script on `feature/c6-ml-model` (not deep-learning infra)
 - Full AGM/EGM e-voting beyond proxy + minutes
 - Self-host Docker web image build failure
 - GHCR publish / hosted CI until **2026-08-01**
@@ -262,7 +262,7 @@ Billing exports (#7), platform console (#8), i18n phases 1–3 (#9, #13, mobile-
 | Dedicated TNG/Boost/GrabPay adapters | Cancelled per #16 | Close #14 |
 | Statement/CSV export polish | Pending | Addressed by #7 |
 | Full i18n (BM/EN/中文/Tamil) | 🟡 | Phased PRs + mobile-ux — not 100% coverage |
-| Trained ML assignment (C6) | Deferred | Stub only — OK for ship |
+| Trained ML assignment (C6) | ✅ Lightweight | Persisted NB category model + `ml:train-assignment` |
 | Marketplace, lost & found | ⬜ / cancelled | Out of scope |
 | SUPER_ADMIN full platform | 🟡 | #8 partial F2 |
 | Self-host production hardening | Draft on mobile-ux | **Draft compose not CI-wired** |

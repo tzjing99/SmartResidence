@@ -44,6 +44,7 @@ import {
   useResidentStyles,
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
+import { useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 import {
@@ -54,34 +55,39 @@ import {
 
 const ADVANCE_PRESETS = [100, 200, 400, 1000];
 
-async function openDownloadedFile(uri: string, filename: string) {
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+async function openDownloadedFile(uri: string, filename: string, t: Translate) {
   const canOpen = await Linking.canOpenURL(uri);
   if (canOpen) {
     await Linking.openURL(uri);
     return;
   }
-  Alert.alert('Download ready', `${filename} saved to your device cache.`);
+  Alert.alert(
+    t('mobile.billing.downloadReady'),
+    t('mobile.billing.downloadReadyBody', { filename }),
+  );
 }
 
-async function downloadStatementCsv(unitId: string, label: string) {
+async function downloadStatementCsv(unitId: string, label: string, t: Translate) {
   try {
     const { uri, headers } = await api.unitStatementCsvDownloadSource(unitId);
     const path = `${FileSystem.cacheDirectory}statement-${label.replace(/[^\w.-]+/g, '-')}.csv`;
     const downloaded = await FileSystem.downloadAsync(uri, path, { headers });
-    await openDownloadedFile(downloaded.uri, `statement-${label}.csv`);
+    await openDownloadedFile(downloaded.uri, `statement-${label}.csv`, t);
   } catch (err) {
-    Alert.alert('Download failed', (err as Error).message);
+    Alert.alert(t('mobile.billing.downloadFailed'), (err as Error).message);
   }
 }
 
-async function downloadReceiptPdf(receiptId: string, number: string) {
+async function downloadReceiptPdf(receiptId: string, number: string, t: Translate) {
   try {
     const { uri, headers } = await api.receiptPdfDownloadSource(receiptId);
     const path = `${FileSystem.cacheDirectory}${number}.pdf`;
     const downloaded = await FileSystem.downloadAsync(uri, path, { headers });
-    await openDownloadedFile(downloaded.uri, `${number}.pdf`);
+    await openDownloadedFile(downloaded.uri, `${number}.pdf`, t);
   } catch (err) {
-    Alert.alert('Download failed', (err as Error).message);
+    Alert.alert(t('mobile.billing.downloadFailed'), (err as Error).message);
   }
 }
 
@@ -99,6 +105,7 @@ function DuitNowQrCard({
   session: QrSession;
   onClose: () => void;
 }) {
+  const t = useT();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const invoicePoll = usePollDuitNowInvoiceStatus(
@@ -115,7 +122,9 @@ function DuitNowQrCard({
 
   return (
     <Card style={[styles.card, { alignItems: 'center', gap: spacing.md }]}>
-      <AppText style={{ fontWeight: '700', color: colors.fg }}>Scan DuitNow QR</AppText>
+      <AppText style={{ fontWeight: '700', color: colors.fg }}>
+        {t('mobile.billing.scanQr')}
+      </AppText>
       {session.amountLabel ? (
         <AppText variant="meta" style={{ color: colors.muted }}>
           {session.amountLabel}
@@ -139,12 +148,13 @@ function DuitNowQrCard({
       {poll.data?.settled ? (
         <AppText style={{ color: '#059669', fontWeight: '600' }}>Payment confirmed!</AppText>
       ) : null}
-      <Button title="Close" variant="secondary" size="sm" onPress={onClose} />
+      <Button title={t('actions.close')} variant="secondary" size="sm" onPress={onClose} />
     </Card>
   );
 }
 
 export default function BillingScreen() {
+  const t = useT();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const units = useMyUnits(api);
@@ -204,19 +214,19 @@ export default function BillingScreen() {
         return;
       }
       hapticSuccess();
-      Alert.alert('Payment ready', 'Confirm payment in the next screen.');
+      Alert.alert(t('mobile.billing.paymentReady'), t('mobile.billing.paymentReadyBody'));
     } catch (err) {
       hapticError();
-      Alert.alert('Payment failed', (err as Error).message);
+      Alert.alert(t('mobile.billing.paymentFailed'), (err as Error).message);
     }
   }
 
   if (units.isLoading || invoices.isLoading) {
     return (
       <ResidentScreen
-        eyebrow="Fees"
-        title="Maintenance fees"
-        subtitle="Review statements, formulas, and payment options without hidden surprises."
+        eyebrow={t('mobile.billing.eyebrow')}
+        title={t('mobile.billing.title')}
+        subtitle={t('mobile.billing.subtitle')}
       >
         <SkeletonList rows={3} rowHeight={120} />
       </ResidentScreen>
@@ -225,9 +235,9 @@ export default function BillingScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Fees"
-      title="Maintenance fees"
-      subtitle="Review statements, formulas, and payment options without hidden surprises."
+      eyebrow={t('mobile.billing.eyebrow')}
+      title={t('mobile.billing.title')}
+      subtitle={t('mobile.billing.subtitle')}
       scrollProps={{ refreshControl }}
     >
       {qrSession ? <DuitNowQrCard session={qrSession} onClose={() => setQrSession(null)} /> : null}
@@ -236,13 +246,16 @@ export default function BillingScreen() {
         onClose={() => setHostedSession(null)}
         onComplete={() => {
           void invoices.refetch();
-          Alert.alert('Payment submitted', 'We are confirming your payment with the bank.');
+          Alert.alert(
+            t('mobile.billing.paymentSubmitted'),
+            t('mobile.billing.paymentSubmittedBody'),
+          );
         }}
       />
 
       <Card style={[styles.card, { gap: 4 }]}>
         <AppText variant="meta" style={{ color: colors.muted, fontWeight: '600' }}>
-          Outstanding balance
+          {t('mobile.billing.outstanding')}
         </AppText>
         <AppText
           style={{
@@ -253,28 +266,34 @@ export default function BillingScreen() {
             letterSpacing: -0.3,
           }}
         >
-          {openItems.length === 0 ? 'All clear' : formatMoney(totalOutstanding)}
+          {openItems.length === 0 ? t('mobile.billing.allClear') : formatMoney(totalOutstanding)}
         </AppText>
         <AppText variant="meta" style={{ color: colors.muted }}>
           {openItems.length === 0
-            ? 'No active invoices need payment right now.'
-            : `${openItems.length} active invoice(s). Pay the invoice that is due soonest first.`}
+            ? t('mobile.billing.noActiveInvoices')
+            : t('mobile.billing.activeInvoices', { count: openItems.length })}
         </AppText>
         {statement.data ? (
           <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
-            Account credit: {formatMoney(statement.data.creditBalance)}
+            {t('mobile.billing.accountCredit', {
+              amount: formatMoney(statement.data.creditBalance),
+            })}
           </AppText>
         ) : null}
         {unit?.id ? (
           <Button
-            title={downloadingStatement ? 'Downloading…' : 'Download statement (CSV)'}
+            title={
+              downloadingStatement
+                ? t('mobile.billing.downloading')
+                : t('mobile.billing.downloadStatement')
+            }
             variant="secondary"
             size="sm"
             disabled={downloadingStatement}
             onPress={async () => {
               setDownloadingStatement(true);
               try {
-                await downloadStatementCsv(unit.id, unit.identifier ?? unit.id);
+                await downloadStatementCsv(unit.id, unit.identifier ?? unit.id, t);
               } finally {
                 setDownloadingStatement(false);
               }
@@ -285,14 +304,14 @@ export default function BillingScreen() {
       </Card>
 
       <ResidentSectionHeader
-        title="Statements"
-        subtitle="Each charge keeps its formula visible for easier checking."
+        title={t('mobile.billing.statements')}
+        subtitle={t('mobile.billing.statementsDesc')}
       />
 
       {items.length === 0 ? (
         <EmptyState
-          title="No invoices"
-          description="Your fee statements appear here once issued."
+          title={t('mobile.billing.noInvoices')}
+          description={t('mobile.billing.noInvoicesDesc')}
         />
       ) : (
         items.map((inv, index) => (
@@ -433,13 +452,16 @@ export default function BillingScreen() {
       ) : null}
 
       <ResidentSectionHeader
-        title="Receipts"
-        subtitle="Download official PDF receipts for payments on your unit."
+        title={t('billing.receiptsTitle')}
+        subtitle={t('billing.receiptsDesc')}
       />
       {receipts.isLoading ? (
         <SkeletonList rows={2} rowHeight={72} />
       ) : receiptItems.length === 0 ? (
-        <EmptyState title="No receipts yet" description="Receipts appear here once issued." />
+        <EmptyState
+          title={t('billing.noReceiptsTitle')}
+          description={t('billing.noReceiptsDesc')}
+        />
       ) : (
         receiptItems.map((r, index) => (
           <FadeInView key={r.id} index={index}>
@@ -461,10 +483,10 @@ export default function BillingScreen() {
                   </AppText>
                 </View>
                 <Button
-                  title="Download PDF"
+                  title={t('actions.downloadPdf')}
                   variant="secondary"
                   size="sm"
-                  onPress={() => downloadReceiptPdf(r.id, r.number)}
+                  onPress={() => downloadReceiptPdf(r.id, r.number, t)}
                 />
               </View>
             </Card>
@@ -476,6 +498,7 @@ export default function BillingScreen() {
 }
 
 function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoId: string }) {
+  const t = useT();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const methods = usePayableMethods(api, condoId);
@@ -489,7 +512,7 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
 
   async function startAdvancePayment(provider: string) {
     if (!Number.isFinite(amount) || amount <= 0) {
-      Alert.alert('Enter an amount', 'Choose or enter a valid advance payment amount.');
+      Alert.alert(t('mobile.billing.enterAmountTitle'), t('mobile.billing.enterAmountBody'));
       return;
     }
     const amountLabel = formatMoney(amount);
@@ -509,7 +532,10 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         return;
       }
       if (res.formPost) {
-        setHostedSession({ title: `Pay ${amountLabel} in advance`, formPost: res.formPost });
+        setHostedSession({
+          title: `Pay ${amountLabel} in advance`,
+          formPost: res.formPost,
+        });
         return;
       }
       if (res.redirectUrl) {
@@ -523,12 +549,9 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         }
         return;
       }
-      Alert.alert(
-        'Advance payment started',
-        'Complete the gateway prompt to add prepaid credit to your account.',
-      );
+      Alert.alert(t('billing.advanceEyebrow'), t('billing.advanceStartedToast'));
     } catch (err) {
-      Alert.alert('Could not start advance payment', (err as Error).message);
+      Alert.alert(t('mobile.billing.advanceFailed'), (err as Error).message);
     }
   }
 
@@ -539,17 +562,19 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
         session={hostedSession}
         onClose={() => setHostedSession(null)}
         onComplete={() => {
-          Alert.alert('Payment submitted', 'We are confirming your advance payment with the bank.');
+          Alert.alert(
+            t('mobile.billing.paymentSubmitted'),
+            t('mobile.billing.advanceSubmittedBody'),
+          );
         }}
       />
       <ResidentSectionHeader
-        title="Pay in advance"
-        subtitle="Add prepaid credit that is automatically applied to your next maintenance invoice."
+        title={t('mobile.billing.payAdvance')}
+        subtitle={t('billing.advanceDesc')}
       />
       <Card style={[styles.card, { gap: spacing.md }]}>
         <AppText variant="bodySm" style={{ color: colors.muted }}>
-          Choose an amount to pay ahead. After the gateway confirms payment, the amount becomes
-          prepaid credit and offsets your next fee invoice.
+          {t('billing.advanceConfirmNote')}
         </AppText>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -565,7 +590,7 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
             />
           ))}
           <Chip
-            label="Other"
+            label={t('billing.otherAmount')}
             active={selected === 'OTHER'}
             onPress={() => {
               hapticSelection();
@@ -578,7 +603,7 @@ function AdvanceMaintenancePayment({ unitId, condoId }: { unitId: string; condoI
           <Input
             value={customAmount}
             onChangeText={setCustomAmount}
-            placeholder="Enter amount (MYR)"
+            placeholder={t('billing.otherAmountLabel')}
             keyboardType="decimal-pad"
           />
         ) : null}

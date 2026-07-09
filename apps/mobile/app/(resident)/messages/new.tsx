@@ -20,21 +20,23 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PhotoPicker } from '../../../src/components/photo-picker';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
 
-const CATEGORIES: Array<{ value: ThreadCategory; label: string }> = [
-  { value: 'BILLING', label: 'Billing' },
-  { value: 'MAINTENANCE', label: 'Maintenance' },
-  { value: 'FACILITY', label: 'Facilities' },
-  { value: 'SECURITY', label: 'Security' },
-  { value: 'COMPLAINT', label: 'Complaint' },
-  { value: 'SUGGESTION', label: 'Suggestion' },
-  { value: 'GOVERNANCE', label: 'Governance' },
-  { value: 'GENERAL', label: 'General' },
+const CATEGORIES: Array<{ value: ThreadCategory; labelKey: string }> = [
+  { value: 'BILLING', labelKey: 'helpdesk.category.BILLING' },
+  { value: 'MAINTENANCE', labelKey: 'helpdesk.category.MAINTENANCE' },
+  { value: 'FACILITY', labelKey: 'helpdesk.category.FACILITY' },
+  { value: 'SECURITY', labelKey: 'helpdesk.category.SECURITY' },
+  { value: 'COMPLAINT', labelKey: 'helpdesk.category.COMPLAINT' },
+  { value: 'SUGGESTION', labelKey: 'helpdesk.category.SUGGESTION' },
+  { value: 'GOVERNANCE', labelKey: 'helpdesk.category.GOVERNANCE' },
+  { value: 'GENERAL', labelKey: 'helpdesk.category.GENERAL' },
 ];
 
 export default function NewMessageScreen() {
+  const t = useT();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -83,11 +85,11 @@ export default function NewMessageScreen() {
 
   async function onSend() {
     if (!subject.trim() || !body.trim()) {
-      Alert.alert('Missing fields', 'Add a subject and message');
+      Alert.alert(t('mobile.messages.missingFields'), t('mobile.messages.missingFieldsBody'));
       return;
     }
     if (photos.uploading) {
-      Alert.alert('Please wait', 'Photos are still uploading.');
+      Alert.alert(t('mobile.messages.pleaseWait'), t('mobile.messages.photosUploading'));
       return;
     }
     try {
@@ -101,7 +103,7 @@ export default function NewMessageScreen() {
       photos.reset();
       router.replace(`/(resident)/messages/${thread.id}` as Href);
     } catch (err) {
-      Alert.alert('Error', (err as Error).message);
+      Alert.alert(t('mobile.messages.errorTitle'), (err as Error).message);
     }
   }
 
@@ -109,10 +111,10 @@ export default function NewMessageScreen() {
     if (!deflection) return;
     try {
       await helpful.mutateAsync(deflection.articleId);
-      Alert.alert('Thanks!', 'Glad the FAQ helped — no thread opened.');
+      Alert.alert(t('mobile.messages.faqHelpedTitle'), t('mobile.messages.faqHelpedBody'));
       router.back();
     } catch (err) {
-      Alert.alert('Error', (err as Error).message);
+      Alert.alert(t('mobile.messages.errorTitle'), (err as Error).message);
     }
   }
 
@@ -129,15 +131,17 @@ export default function NewMessageScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-        <AppText style={{ fontSize: 24, fontWeight: '700' }}>New message</AppText>
+        <AppText style={{ fontSize: 24, fontWeight: '700' }}>{t('messages.new')}</AppText>
 
         {deflection && !dismissed ? (
           <Card>
-            <AppText style={{ fontWeight: '600', color: '#16a34a' }}>FAQ might answer this</AppText>
+            <AppText style={{ fontWeight: '600', color: '#16a34a' }}>
+              {t('messages.deflectTitle')}
+            </AppText>
             <AppText style={{ fontWeight: '600', marginTop: 8 }}>{deflection.question}</AppText>
             <AppText style={{ color: colors.muted, marginTop: 6 }}>{deflection.answer}</AppText>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-              <Button title="This answered my question" onPress={onAnswered} />
+              <Button title={t('messages.deflectAnswered')} onPress={onAnswered} />
             </View>
             <Pressable
               onPress={() => {
@@ -147,14 +151,14 @@ export default function NewMessageScreen() {
               style={{ marginTop: 8, minHeight: 44, justifyContent: 'center' }}
             >
               <AppText style={{ color: colors.coral, textAlign: 'center' }}>
-                Still need help
+                {t('messages.deflectStillNeedHelp')}
               </AppText>
             </Pressable>
           </Card>
         ) : null}
 
         <Card>
-          <AppText style={{ fontWeight: '600', marginBottom: 8 }}>Subject</AppText>
+          <AppText style={{ fontWeight: '600', marginBottom: 8 }}>{t('messages.subject')}</AppText>
           <TextInput
             value={subject}
             onChangeText={(v) => {
@@ -162,6 +166,7 @@ export default function NewMessageScreen() {
               setDismissed(false);
             }}
             placeholderTextColor={colors.muted}
+            placeholder={t('messages.subjectPlaceholder')}
             style={{
               borderWidth: 1,
               borderColor: colors.border,
@@ -171,7 +176,9 @@ export default function NewMessageScreen() {
               backgroundColor: colors.inputBg,
             }}
           />
-          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Category</AppText>
+          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>
+            {t('messages.category')}
+          </AppText>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {CATEGORIES.map((c) => {
               const selected = category === c.value;
@@ -195,13 +202,15 @@ export default function NewMessageScreen() {
                       fontWeight: '600',
                     }}
                   >
-                    {c.label}
+                    {t(c.labelKey)}
                   </AppText>
                 </Pressable>
               );
             })}
           </View>
-          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Message</AppText>
+          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>
+            {t('messages.bodyLabel')}
+          </AppText>
           <TextInput
             value={body}
             onChangeText={(v) => {
@@ -211,6 +220,7 @@ export default function NewMessageScreen() {
             multiline
             numberOfLines={5}
             placeholderTextColor={colors.muted}
+            placeholder={t('messages.bodyPlaceholder')}
             style={{
               borderWidth: 1,
               borderColor: colors.border,
@@ -222,11 +232,13 @@ export default function NewMessageScreen() {
               backgroundColor: colors.inputBg,
             }}
           />
-          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>Photos</AppText>
+          <AppText style={{ fontWeight: '600', marginTop: 12, marginBottom: 8 }}>
+            {t('upload.photos')}
+          </AppText>
           <PhotoPicker controller={photos} />
           <View style={{ marginTop: 16 }}>
             <Button
-              title={create.isPending ? 'Sending…' : 'Send message'}
+              title={create.isPending ? t('messages.sending') : t('messages.send')}
               onPress={onSend}
               disabled={create.isPending || photos.uploading}
             />

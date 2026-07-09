@@ -22,6 +22,7 @@ import {
   prettyLabel,
   useResidentStyles,
 } from '../../../src/components/resident-screen';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { confirmDefectSignOff } from '../../../src/lib/defect-sign-off';
 import { usePhotoUpload } from '../../../src/lib/use-photo-upload';
@@ -51,6 +52,7 @@ type DefectDetail = {
 };
 
 export default function DefectDetailScreen() {
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
@@ -90,7 +92,7 @@ export default function DefectDetailScreen() {
   async function submitComment() {
     if (!id || !comment.trim()) return;
     if (photo.uploading) {
-      Alert.alert('Please wait', 'Photos are still uploading.');
+      Alert.alert(t('mobile.defects.pleaseWait'), t('mobile.defects.photosUploading'));
       return;
     }
     try {
@@ -101,9 +103,9 @@ export default function DefectDetailScreen() {
       });
       setComment('');
       photo.reset();
-      Alert.alert('Sent', 'Your comment was added.');
+      Alert.alert(t('mobile.defects.sent'), t('mobile.defects.commentAdded'));
     } catch (err) {
-      Alert.alert('Could not send', (err as Error).message);
+      Alert.alert(t('mobile.defects.couldNotSend'), (err as Error).message);
     }
   }
 
@@ -113,11 +115,11 @@ export default function DefectDetailScreen() {
       try {
         await transition.mutateAsync({ id, status });
         Alert.alert(
-          status === 'CLOSED' ? 'Signed off' : 'Sent back',
-          status === 'CLOSED' ? 'Defect signed off and closed.' : 'Defect sent back for more work.',
+          status === 'CLOSED' ? t('mobile.defects.signedOff') : t('mobile.defects.sent'),
+          status === 'CLOSED' ? t('defects.signedOffToast') : t('defects.reopenedToast'),
         );
       } catch (err) {
-        Alert.alert('Could not update', (err as Error).message);
+        Alert.alert(t('mobile.defects.couldNotUpdate'), (err as Error).message);
       }
     };
     if (status === 'CLOSED') {
@@ -131,8 +133,8 @@ export default function DefectDetailScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Defect"
-      title={d?.title ?? 'Loading…'}
+      eyebrow={t('defects.title')}
+      title={d?.title ?? t('actions.loading')}
       subtitle={
         d
           ? `${d.category}${d.location ? ` · ${d.location}` : ''} · raised ${new Date(d.createdAt).toLocaleDateString()}`
@@ -146,11 +148,11 @@ export default function DefectDetailScreen() {
     >
       {detail.isLoading ? (
         <AppText variant="meta" style={{ color: colors.muted }}>
-          Loading defect…
+          {t('actions.loading')}
         </AppText>
       ) : !d ? (
         <AppText variant="meta" style={{ color: colors.muted }}>
-          This defect could not be found.
+          {t('defects.notFound')}
         </AppText>
       ) : (
         <Stack gap={spacing.md}>
@@ -163,7 +165,7 @@ export default function DefectDetailScreen() {
                     ? 'primary'
                     : 'info'
               }
-              label={d.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(d.status)}
+              label={d.status === 'RESOLVED' ? t('defects.waitingSignOff') : prettyLabel(d.status)}
             />
             {d.assignedTo?.name ? (
               <AppText variant="meta" style={{ color: colors.muted }}>
@@ -175,7 +177,7 @@ export default function DefectDetailScreen() {
           {d.status === 'RESOLVED' ? (
             <Card style={[styles.card, signOffCardStyle]}>
               <AppText style={{ fontWeight: '600', color: isDark ? '#A7F3D0' : '#065F46' }}>
-                Fixed by management — please verify
+                {t('mobile.defects.verifyTitle')}
               </AppText>
               <AppText
                 variant="meta"
@@ -192,7 +194,7 @@ export default function DefectDetailScreen() {
                   style={{ flexGrow: 1 }}
                 />
                 <Button
-                  title="Reject — more work"
+                  title={t('mobile.defects.rejectMoreWork')}
                   variant="secondary"
                   size="sm"
                   disabled={transition.isPending}
@@ -204,12 +206,12 @@ export default function DefectDetailScreen() {
           ) : null}
 
           <Card style={[styles.card, { gap: spacing.sm }]}>
-            <AppText variant="subheading">Description</AppText>
+            <AppText variant="subheading">{t('defects.description')}</AppText>
             <AppText style={{ color: colors.fg, lineHeight: 22 }}>{d.description}</AppText>
             {(d.attachments?.length ?? 0) > 0 ? (
               <View style={{ gap: spacing.sm, marginTop: 4 }}>
                 <AppText variant="meta" style={{ color: colors.muted, fontWeight: '600' }}>
-                  Photos
+                  {t('defects.photos')}
                 </AppText>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -223,7 +225,7 @@ export default function DefectDetailScreen() {
           </Card>
 
           <Card style={[styles.card, { gap: spacing.sm }]}>
-            <AppText variant="subheading">Activity</AppText>
+            <AppText variant="subheading">{t('defects.activity')}</AppText>
             {visibleUpdates.length === 0 ? (
               <AppText variant="meta" style={{ color: colors.muted }}>
                 No activity yet.
@@ -267,7 +269,7 @@ export default function DefectDetailScreen() {
 
             <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
               <TextInput
-                placeholder="Add a comment for the management team…"
+                placeholder={t('defects.commentPlaceholder')}
                 placeholderTextColor={colors.muted}
                 value={comment}
                 onChangeText={setComment}
@@ -276,7 +278,7 @@ export default function DefectDetailScreen() {
               />
               <PhotoPicker controller={photo} />
               <Button
-                title={addUpdate.isPending ? 'Sending…' : 'Add comment'}
+                title={addUpdate.isPending ? t('messages.sending') : t('actions.addComment')}
                 size="sm"
                 loading={addUpdate.isPending}
                 disabled={!comment.trim() || photo.uploading}

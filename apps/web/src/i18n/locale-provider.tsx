@@ -1,36 +1,77 @@
 'use client';
 
-import { api, readSession } from '@/lib/api';
-import { useMe } from '@smartresidence/api-client';
 import * as React from 'react';
-import { DEFAULT_LOCALE, type Locale, normalizeLocale, translate } from './messages';
+import {
+  LOCALE_STORAGE_KEY,
+  type LocalePreference,
+  detectBrowserLocale,
+  parseLocalePreference,
+  resolveLocale,
+} from './detect-locale';
+import { DEFAULT_LOCALE, type Locale, translate } from './messages';
 
 type TFunction = (key: string, vars?: Record<string, string | number>) => string;
 
-const LocaleContext = React.createContext<{ locale: Locale; t: TFunction }>({
+type LocaleContextValue = {
+  locale: Locale;
+  preference: LocalePreference;
+  setPreference: (next: LocalePreference) => void;
+  t: TFunction;
+};
+
+const LocaleContext = React.createContext<LocaleContextValue>({
   locale: DEFAULT_LOCALE,
+  preference: 'system',
+  setPreference: () => undefined,
   t: (key) => key,
 });
 
+function readStoredPreference(): LocalePreference {
+  if (typeof window === 'undefined') return 'system';
+  try {
+    return parseLocalePreference(window.localStorage.getItem(LOCALE_STORAGE_KEY)) ?? 'system';
+  } catch {
+    return 'system';
+  }
+}
+
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const hasSession = Boolean(readSession()?.accessToken);
-  const me = useMe(api, { enabled: hasSession });
-  const locale = normalizeLocale(
-    (me.data?.user as { locale?: string } | undefined)?.locale ?? DEFAULT_LOCALE,
-  );
+  const [preference, setPreferenceState] = React.useState<LocalePreference>('system');
+  const [systemLocale, setSystemLocale] = React.useState<Locale>(DEFAULT_LOCALE);
+  const [hydrated, setHydrated] = React.useState(false);
 
   React.useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = locale === 'zh-Hans' ? 'zh-Hans' : locale;
+    setPreferenceState(readStoredPreference());
+    setSystemLocale(detectBrowserLocale());
+    setHydrated(true);
+  }, []);
+
+  const setPreference = React.useCallback((next: LocalePreference) => {
+    setPreferenceState(next);
+    try {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
+      // Mirror to cookie for optional SSR / Accept-Language-adjacent tooling
+      document.cookie = `${LOCALE_STORAGE_KEY}=${encodeURIComponent(next)};path=/;max-age=31536000;SameSite=Lax`;
+    } catch {
+      // ignore quota / private mode
     }
-  }, [locale]);
+  }, []);
+
+  const locale = resolveLocale(preference, systemLocale);
+
+  React.useEffect(() => {
+    if (!hydrated || typeof document === 'undefined') return;
+    document.documentElement.lang = locale === 'zh-Hans' ? 'zh-Hans' : locale;
+  }, [hydrated, locale]);
 
   const value = React.useMemo(
     () => ({
       locale,
+      preference,
+      setPreference,
       t: (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars),
     }),
-    [locale],
+    [locale, preference, setPreference],
   );
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

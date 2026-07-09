@@ -127,6 +127,7 @@ function StandaloneDefectCard({
 }: {
   defect: { id: string; title: string; category: string; status: DefectStatus; createdAt: string };
 }) {
+  const t = useT();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useResidentStyles();
@@ -159,7 +160,11 @@ function StandaloneDefectCard({
                   ? 'primary'
                   : 'info'
             }
-            label={defect.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(defect.status)}
+            label={
+              defect.status === 'RESOLVED'
+                ? t('defects.waitingSignOff')
+                : prettyLabel(defect.status)
+            }
           />
         </View>
       </Card>
@@ -168,6 +173,7 @@ function StandaloneDefectCard({
 }
 
 function PackageCard({ report }: { report: DefectReportSummary }) {
+  const t = useT();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useResidentStyles();
@@ -190,7 +196,9 @@ function PackageCard({ report }: { report: DefectReportSummary }) {
           }}
         >
           <View style={{ flex: 1, minWidth: 0 }}>
-            <AppText style={{ fontWeight: '700', color: colors.fg }}>Defect Report</AppText>
+            <AppText style={{ fontWeight: '700', color: colors.fg }}>
+              {t('defects.defectReport')}
+            </AppText>
             <AppText
               style={{
                 fontFamily: 'monospace',
@@ -236,7 +244,7 @@ function PackageCard({ report }: { report: DefectReportSummary }) {
                   ? 'primary'
                   : 'info'
             }
-            label={status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(status)}
+            label={status === 'RESOLVED' ? t('defects.waitingSignOff') : prettyLabel(status)}
           />
         </View>
       </Card>
@@ -259,6 +267,7 @@ function reportStatus(report: DefectReportSummary): DefectStatus {
 }
 
 function SingleDefectForm({ unitId }: { unitId?: string }) {
+  const t = useT();
   const create = useCreateDefect(api);
   const photo = usePhotoUpload();
   const { colors } = useTheme();
@@ -281,11 +290,11 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
 
   async function submit() {
     if (!unitId || !title.trim() || !description.trim()) {
-      Alert.alert('Please fill title and description');
+      Alert.alert(t('mobile.defects.fillTitleDesc'));
       return;
     }
     if (photo.uploading) {
-      Alert.alert('Please wait', 'Photos are still uploading.');
+      Alert.alert(t('mobile.defects.pleaseWait'), t('mobile.defects.photosUploading'));
       return;
     }
     try {
@@ -299,9 +308,9 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
       setTitle('');
       setDescription('');
       photo.reset();
-      Alert.alert('Submitted', 'Your defect report was sent to management.');
+      Alert.alert(t('mobile.defects.submitted'), t('mobile.defects.submittedBody'));
     } catch (err) {
-      Alert.alert('Could not submit', (err as Error).message);
+      Alert.alert(t('mobile.defects.couldNotSubmit'), (err as Error).message);
     }
   }
 
@@ -349,6 +358,7 @@ interface DraftItem extends HandoverReportItemInput {
 }
 
 function HandoverComposer({ unitId }: { unitId?: string }) {
+  const t = useT();
   const template = useUnitHandoverTemplate(api, unitId ?? null);
   const create = useCreateHandoverReport(api);
   const photo = usePhotoUpload();
@@ -389,15 +399,15 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
   function addItem() {
     if (!room) return;
     if (photo.uploading) {
-      Alert.alert('Please wait', 'Photos are still uploading.');
+      Alert.alert(t('mobile.defects.pleaseWait'), t('mobile.defects.photosUploading'));
       return;
     }
     if (elements.length > 0 && !elementId) {
-      Alert.alert('Pick an element');
+      Alert.alert(t('mobile.defects.pickElement'));
       return;
     }
     if (elements.length === 0 && !note.trim()) {
-      Alert.alert('Add a note describing the issue');
+      Alert.alert(t('mobile.defects.addNote'));
       return;
     }
     const issue = issues.find((i) => i.id === issueId);
@@ -438,10 +448,10 @@ function HandoverComposer({ unitId }: { unitId?: string }) {
       await new Promise((resolve) => setTimeout(resolve, 900));
       setItems([]);
       setSubmitPhase('idle');
-      Alert.alert('Submitted', `${count} defect(s) submitted.`);
+      Alert.alert(t('mobile.defects.submitted'), t('mobile.defects.submittedCount', { count }));
     } catch (err) {
       setSubmitPhase('idle');
-      Alert.alert('Could not submit', (err as Error).message);
+      Alert.alert(t('mobile.defects.couldNotSubmit'), (err as Error).message);
     }
   }
 

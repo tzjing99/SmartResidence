@@ -1,10 +1,10 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Last updated:** 2026-07-10 (FINALIZE + concurrency #46) · **Target:** ship-ready by **2026-07-11**
+> **Last updated:** 2026-07-10 (OVERNIGHT FINALIZE COMPLETE) · **Target:** ship-ready by **2026-07-11**
 >
-> **Status: FINALIZE COMPLETE** — backlog PRs #35–#44 + release #45 + concurrency #46 on `main`;
-> tag **`v0.3.0`**. Hosted GitHub Actions remain blocked until **2026-08-01** (minutes exhausted);
-> Path C local verify is the gate. Canonical next-AI handoff: [`HANDOFF_JULY10.md`](./HANDOFF_JULY10.md).
+> **Status: OVERNIGHT FINALIZE COMPLETE** — backlog PRs #35–#46 on `main`; tag **`v0.3.0`** pushed.
+> Hosted GitHub Actions remain blocked until **2026-08-01** (minutes exhausted); Path C local verify used.
+> Canonical next-AI handoff: [`HANDOFF_JULY10.md`](./HANDOFF_JULY10.md).
 
 ---
 
@@ -14,58 +14,60 @@ Merged [#46](https://github.com/tzjing99/SmartResidence/pull/46) (`fix/visitor-c
 
 - Overnight holiday slot allocation: **Serializable** transaction + P2034 retry
 - Access codes: unique-constraint insert + **P2002** retry (visitor / recurring / form permit)
-- Tests: `access-code-concurrency.spec.ts` + visitor service race cases (70 passed locally)
-
-### `main` tip (after #46 / #47)
-
-**`85fc98e`** — Merge pull request #47 (handoff docs). Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** remains on release merge **`4338f3c`**.
+- Tests: `access-code-concurrency.spec.ts` + visitor service race cases
 
 ---
 
-## Jul 10 — FINALIZE COMPLETE ✅
+## Jul 10 overnight — FINALIZE COMPLETE ✅
 
-User authorized merge-all via Path C (local verify, no GitHub CI). All 10 backlog PRs rebased, verified, and merged in dependency order.
+User authorized merge-all + tag via Path C (local verify, no GitHub CI). All backlog PRs rebased, verified, and merged. Post-release hotfix #46 landed on `main` after the v0.3.0 tag.
 
-### `main` tip (after finalize / before #46)
+### `main` tip (final)
 
-**`4338f3c`** — Merge pull request #45 (`chore/release-v0.3.0`); tag **`v0.3.0`** on this commit. Docs tip briefly at **`e6cb82b`**.
+**`1202dfe`** — Merge pull request #48 (handoff tip SHA). Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** on release merge **`4338f3c`**.
 
-### Merged this session (2026-07-10)
+### Release tag
+
+**`v0.3.0`** → **`4338f3c`** (PR #45 `chore/release-v0.3.0`); pushed to `origin`. `main` is ahead of the tag (#46 concurrency fix + handoff/docs).
+
+### Merged (2026-07-09 overnight session)
 
 | PR | Branch | Local verify | Merged |
 | --- | --- | --- | --- |
 | **#37** | `fix/visitor-mgmt-rbac` | lint ✓ · typecheck ✓ | ✅ |
-| **#44** | `feature/i18n-system-locale` | lint ✓ · typecheck ✓ · rebase conflict-free | ✅ |
-| **#42** | `feature/i18n-errors-toasts` | lint ✓ · typecheck ✓ · i18n key conflicts resolved | ✅ |
-| **#41** | `feature/mobile-dynamic-type` | lint ✓ · typecheck ✓ · settings conflict resolved | ✅ |
-| **#43** | `feature/permit-print-qr-verify` | lint ✓ · typecheck ✓ · RBAC spec merged | ✅ |
-| **#40** | `feature/pdpa-account-deletion` | lint ✓ · typecheck ✓ · locale/settings conflicts resolved | ✅ |
+| **#44** | `feature/i18n-system-locale` | lint ✓ · typecheck ✓ | ✅ |
+| **#42** | `feature/i18n-errors-toasts` | lint ✓ · typecheck ✓ | ✅ |
+| **#41** | `feature/mobile-dynamic-type` | lint ✓ · typecheck ✓ | ✅ |
+| **#43** | `feature/permit-print-qr-verify` | lint ✓ · typecheck ✓ | ✅ |
+| **#40** | `feature/pdpa-account-deletion` | lint ✓ · typecheck ✓ | ✅ |
 | **#36** | `feature/governance-agm-evoting` | lint ✓ · typecheck ✓ | ✅ |
-| **#35** | `feature/c6-ml-model` | lint ✓ · typecheck ✓ · docs conflict resolved | ✅ |
+| **#35** | `feature/c6-ml-model` | lint ✓ · typecheck ✓ | ✅ |
 | **#38** | `fix/selfhost-web-docker` | lint ✓ · typecheck ✓ | ✅ |
 | **#39** | `feature/platform-f2-extras` | lint ✓ · typecheck ✓ | ✅ |
-| **#45** | `chore/release-v0.3.0` | changesets version | ✅ |
-| **#46** | `fix/visitor-concurrency-races` | api typecheck · 70 visitor concurrency tests | ✅ |
+| **#45** | `chore/release-v0.3.0` | changeset version ✓ · typecheck ✓ | ✅ |
+| **#46** | `fix/visitor-concurrency-races` | typecheck ✓ · api tests ✓ | ✅ |
 
-### Full local health gate (2026-07-10, Path C — post-merge `main`)
+### Full local health gate (2026-07-10 overnight, Path C — `main` @ `2d11208`)
 
 | Gate | Result |
 | --- | --- |
-| `pnpm lint` | ✅ 0 errors (100 warnings, pre-existing) |
-| `pnpm -r run typecheck` | ✅ all packages |
-| `ci:test:api` | ✅ **73 files / 469 tests** passed (13 skipped) |
-| `ci:test:regression` | ⏭ integration suites skipped (no `DATABASE_URL` in env; Docker infra up) |
-| Test fixes | ✅ `visitor.service.spec.ts` + `recurring-pass.service.spec.ts` mocks updated for `formSubmission`/`recurringPass` access-code collision checks |
+| `@smartresidence/api` typecheck | ✅ |
+| `@smartresidence/web` typecheck | ✅ |
+| `shared-types` tests | ✅ **30 tests** |
+| `web` tests | ✅ **47 tests** |
+| `api` vitest (full suite) | ✅ **478 passed** / 59 skipped (537 total; 74 files passed, 13 skipped) |
+| Integration / `@requires-db` | ⏭ skipped (no `DATABASE_URL` in env) |
 | Concurrency (#46) | ✅ overnight Serializable + access-code P2002 retry |
 
 ### Release completeness
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| **v0.3.0 tag** | ✅ | `@smartresidence/*@0.3.0` via changesets on `chore/release-v0.3.0` |
-| **Backlog PRs #35–#44** | ✅ All merged | Plus #45 release + #46 concurrency |
+| **v0.3.0 tag** | ✅ pushed | `@smartresidence/*@0.3.0` via changesets on `chore/release-v0.3.0` (`4338f3c`) |
+| **Backlog PRs #35–#46** | ✅ All merged | **Zero open PRs** |
 | **GHCR images** | ⏭ Skipped | `release.yml` blocked until Actions minutes reset Aug 1 |
-| **GitHub Release page for v0.3.0** | 🟡 | Git tag exists; may still need `gh release create` |
+| **`docs/selfhost-hardening`** | ⏭ stale | 74 commits behind `main`, 0 ahead — superseded by merged docs on `main` |
+| **GitHub Release page for v0.3.0** | 🟡 | Git tag exists; `gh release create` pending |
 
 ### Known gaps (non-blocking)
 

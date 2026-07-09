@@ -120,7 +120,7 @@ describe.skipIf(!integrationReady)('Integration: forms', () => {
         answers: {
           workScope: 'Kitchen remodel',
           contractorCompany: 'ABC Builders',
-          startDate: '2026-08-01',
+          startDate: '2026-07-01',
           endDate: '2026-08-15',
           depositAcknowledgement: true,
         },

@@ -1,6 +1,64 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Last updated:** 2026-07-07 PM (Path C complete) · **Target:** ship-ready by **2026-07-11**
+> **Last updated:** 2026-07-09 (plan COMPLETE) · **Target:** ship-ready by **2026-07-11**
+>
+> **Status: COMPLETE** for the July 11 Path C ship plan. Hosted GitHub Actions remain
+> blocked until **2026-08-01** (minutes exhausted); local verify is the gate until then.
+
+---
+
+## Jul 9 — Plan COMPLETE ✅
+
+GitHub Actions still blocked until **2026-08-01**. Path C local verify used for remaining merges.
+
+### `main` tip (after this session)
+
+See latest `origin/main` after merge of this doc PR. Prior tip before docs commit:
+**`f98dc92`** — Merge pull request #31 (`fix/main-health-jul9`).
+
+### Shipped this session (2026-07-09)
+
+| PR | Title | Local verify | Merged |
+| --- | --- | --- | --- |
+| **#28** | docs: local CI fallback (`LOCAL_CI.md`) | docs-only · rebased onto main | Y |
+| **#30** | fix(api): integration DB isolation between `@requires-db` suites | *(already on main at session start)* | Y |
+| **#31** | fix(api): Biome format on integration fixtures | lint ✓ · api ✓ · regression ✓ | Y |
+
+### Full local health gate (2026-07-09, Path C)
+
+| Gate | Result |
+| --- | --- |
+| `pnpm lint` | ✅ 0 errors (warnings only) |
+| `pnpm -r run typecheck` | ✅ all packages |
+| `ci:test:shared-types` | ✅ 30 tests |
+| `ci:test:web` | ✅ 40 tests |
+| `ci:test:api` | ✅ **81 files / 492 tests** |
+| `ci:test:regression` | ✅ **11 files / 40 tests** |
+| Self-host `compose config` | ✅ exit 0 with `deploy/.env.example` |
+| Self-host `up --build` | ❌ known gap — web image Next.js module resolution (use §7 dev bring-up) |
+
+### Release completeness
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| **v0.2.0 tag** | ✅ | Annotated tag + [GitHub Release](https://github.com/tzjing99/SmartResidence/releases/tag/v0.2.0) |
+| **PR #1 changeset release** | ✅ Merged | `@smartresidence/*@0.2.0` |
+| **GHCR images** | ⏭ Skipped | `release.yml` blocked until Actions minutes reset Aug 1 |
+
+### Known gaps (non-blocking for Jul 11)
+
+- Visitor management RBAC correction (mgmt read-only approve) — ROADMAP §2.1
+- Trained ML assignment (C6) — stub only
+- Full AGM/EGM e-voting beyond proxy + minutes
+- Self-host Docker web image build failure
+- GHCR publish / hosted CI until **2026-08-01**
+- Homepage marketing copy approval (§6 of release checklist)
+
+### Operator next step
+
+```powershell
+git pull origin main
+```
 
 ---
 
@@ -8,7 +66,7 @@
 
 GitHub Actions blocked until **2026-08-01** ($0 budget). User authorized **Path C**: local `pnpm lint` + `pnpm typecheck` (+ API/regression when Docker/Postgres available) in place of GH CI green checks. **CI resets 2026-08-01** — re-enable full GitHub Actions matrix then.
 
-### `main` tip
+### `main` tip (Jul 7 PM)
 
 **`0773c7a`** — `chore(release): version packages v0.2.0` (PR #1 merged, tag `v0.2.0`)
 

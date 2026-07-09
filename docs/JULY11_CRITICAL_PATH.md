@@ -24,7 +24,7 @@ User authorized merge-all + tag via Path C (local verify, no GitHub CI). All bac
 
 ### `main` tip (final)
 
-**`1782ec4`** — fix(test): forms integration permit startDate (post-release). Prior: **`20da3e7`** (GitHub Release notes). Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** on release merge **`4338f3c`**.
+**`321ddd4`** — docs tip (handoff SHA sync). Substantive code tip: **`1782ec4`** fix(test): forms integration permit startDate (post-release). Prior: **`20da3e7`** (GitHub Release notes). Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** on release merge **`4338f3c`**.
 
 ### Release tag
 

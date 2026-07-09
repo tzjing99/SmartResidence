@@ -15,9 +15,9 @@
 | Local path | `C:\dev\SmartResidence` |
 | GitHub | [`tzjing99/SmartResidence`](https://github.com/tzjing99/SmartResidence) |
 | Default branch | `main` |
-| **`main` tip** | Always run `git rev-parse origin/main` (overnight chain ends at **`1202dfe`** #48 or newer after this polish) |
+| **`main` tip** | Always run `git rev-parse origin/main` (docs tip **`321ddd4`**; substantive code tip **`1782ec4`** forms integration fix) |
 | Handoff content landed | **`85fc98e`** — Merge #47 · file `docs/HANDOFF_JULY10.md` |
-| Prior tips | **`2d11208`** #46 concurrency · **`e6cb82b`** docs follow-up · **`4338f3c`** release/`v0.3.0` |
+| Prior tips | **`1202dfe`** #48 tip polish · **`2d11208`** #46 concurrency · **`e6cb82b`** docs follow-up · **`4338f3c`** release/`v0.3.0` |
 | Latest tags | **`v0.3.0`** → `4338f3c` (release merge #45) · **`v0.2.0`** → `0773c7a` / annotated `ae98ba7` |
 | Package versions | `@smartresidence/*@0.3.0` (changesets via #45) |
 | Open PRs | **None** after #46–#48 (confirm with `gh pr list --state open`) |
@@ -52,7 +52,7 @@ User authorized **Path C** (local verify instead of GitHub CI). Parallel finaliz
 | **#39** | SUPER_ADMIN feature flags (F2 extras) | ✅ Merged |
 | **#45** | `chore/release-v0.3.0` changeset version bump | ✅ Merged · tag **`v0.3.0`** |
 
-Recorded in [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) (Jul 10 FINALIZE COMPLETE section). Tip after release was `4338f3c` / docs follow-up `e6cb82b`; concurrency **#46** → `2d11208`; handoff **#47** → `85fc98e`; tip-SHA polish **#48** → `1202dfe`.
+Recorded in [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) (Jul 10 FINALIZE COMPLETE section). Tip after release was `4338f3c` / docs follow-up `e6cb82b`; concurrency **#46** → `2d11208`; handoff **#47** → `85fc98e`; tip-SHA polish **#48** → `1202dfe`; forms fix **`1782ec4`**; current docs tip **`321ddd4`**.
 
 ### 2.2 Copilot / review concurrency fixes (#46)
 
@@ -149,7 +149,7 @@ cd C:\dev\SmartResidence
 git fetch origin --tags --prune
 git checkout main   # if blocked by release worktree, pull inside that worktree or remove it
 git pull origin main
-git rev-parse HEAD  # expect 1202dfe or newer
+git rev-parse HEAD  # expect 321ddd4 or newer
 ```
 
 ### 4.2 Local verify (Path C)
@@ -265,7 +265,7 @@ Architecture underneath is already there; the gap is verification under load + m
 | --- | --- |
 | PRs merged (finalize) | **#35–#44** + release **#45** |
 | Concurrency | ✅ **#46** → `a2f2a0a` / merge `2d11208` |
-| Handoff | ✅ **#47** `85fc98e` (+ tip polish **#48** `1202dfe`) · `docs/HANDOFF_JULY10.md` |
+| Handoff | ✅ **#47** `85fc98e` (+ tip polish **#48** · docs tip **`321ddd4`**) · `docs/HANDOFF_JULY10.md` |
 | Tag | **`v0.3.0`** on `4338f3c` |
 | Blockers | Actions minutes until Aug 1 · security audit unpaid · marketing/README honesty · stale worktrees |
 | Do next | Pull `main`, Path C verify, optional `gh release create v0.3.0`, security pass |
@@ -274,5 +274,5 @@ Architecture underneath is already there; the gap is verification under load + m
 git pull origin main
 git log -1 --oneline
 git rev-parse origin/main
-# expect 1202dfe or newer
+# expect 321ddd4 or newer
 ```

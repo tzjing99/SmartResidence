@@ -24,7 +24,7 @@ User authorized merge-all + tag via Path C (local verify, no GitHub CI). All bac
 
 ### `main` tip (final)
 
-**`1202dfe`** — Merge pull request #48 (handoff tip SHA). Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** on release merge **`4338f3c`**.
+**`e6021fd`** — docs: overnight finalize test counts + release notes. Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** on release merge **`4338f3c`**.
 
 ### Release tag
 
@@ -67,7 +67,7 @@ User authorized merge-all + tag via Path C (local verify, no GitHub CI). All bac
 | **Backlog PRs #35–#46** | ✅ All merged | **Zero open PRs** |
 | **GHCR images** | ⏭ Skipped | `release.yml` blocked until Actions minutes reset Aug 1 |
 | **`docs/selfhost-hardening`** | ⏭ stale | 74 commits behind `main`, 0 ahead — superseded by merged docs on `main` |
-| **GitHub Release page for v0.3.0** | 🟡 | Git tag exists; `gh release create` pending |
+| **GitHub Release page for v0.3.0** | ✅ | [GitHub Release](https://github.com/tzjing99/SmartResidence/releases/tag/v0.3.0) |
 
 ### Known gaps (non-blocking)
 

@@ -130,7 +130,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Safety / SOS + guard patrol** | ✅ | `SafetyModule` — SOS alerts + patrol rounds/checkpoints; admin `/admin/safety` + `/admin/patrol`; migration `20260701210000_safety_patrol` |
 | **Delivery / e-hailing visitor passes** | ✅ | Lighter delivery & e-hailing passes (ties to Visitor + parcels); shipped with visitor module updates in `6dd4f00` / `a4baa2a` |
 | **MY e-Invoice (MyInvois)** | ✅ | Production **MyInvois** provider seam + sandbox delegation; admin `/admin/settings/einvoice`; migration `20260701200000_einvoice_myinvois` |
-| **Admin / platform (multi-condo super-admin)** | 🟡 | **Basics ✅** — `PlatformModule` + `/admin/platform` condo list/search/detail for `SUPER_ADMIN` (F2 partial). **Still ⬜:** provisioning, plan/usage, feature flags, support impersonation |
+| **Admin / platform (multi-condo super-admin)** | 🟡 | **Basics ✅** — `PlatformModule` + `/admin/platform` condo list/search/detail/provisioning + **feature flags** for `SUPER_ADMIN` (F2 partial). **Still ⬜:** plan/usage metrics, support impersonation |
 | **i18n (BM / EN / 中文 / Tamil)** | 🟡 | `locale` fields on `User` & `Condo`; UI string externalization not complete |
 
 **Surprises worth flagging (more built than expected):**
@@ -351,9 +351,10 @@ The flagship resident-empowerment flow. Two explicit paths:
 ### 4.14 Admin / platform (multi-condo super-admin)  *(🟡 basics ✅)*
 - `SUPER_ADMIN` + `manage all` exist. **Shipped (F2 partial):** `PlatformModule`
   + web `/admin/platform` — cross-condo list/search, per-condo detail, setup
-  status badges, and "open condo admin" context switch for `SUPER_ADMIN`.
-- **Target (still ⬜):** condo provisioning, plan/usage, feature flags, support
-  impersonation (audited), aggregate health dashboard.
+  status badges, provisioning, feature flag toggles, and "open condo admin"
+  context switch for `SUPER_ADMIN`.
+- **Target (still ⬜):** plan/usage metrics, support impersonation (audited),
+  aggregate health dashboard.
 - **Shipped (admin capability):** **MCP integrations** — per-condo
   `McpServerConnection` (`integrations/**`, `mcp-client.ts`) managed from
   `/admin/settings/integrations`, gated by the CASL `McpServer` subject

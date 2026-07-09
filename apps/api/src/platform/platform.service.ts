@@ -12,9 +12,16 @@ import { AuditAction, DefectStatus, InvoiceStatus, type Prisma, RoleId } from '@
 import type {
   CreatePlatformCondoResult,
   PlatformCondoDetail,
+  PlatformCondoFeatureFlags,
   PlatformCondoHealth,
   PlatformCondoSummary,
+  PlatformFeatureFlagKey,
 } from '@smartresidence/shared-types';
+import {
+  changedFlagKeys,
+  mergePlatformFeatureFlags,
+  resolvePlatformFeatureFlags,
+} from './feature-flags-settings';
 
 const CLOSED_DEFECT_STATUSES: DefectStatus[] = [DefectStatus.CLOSED, DefectStatus.RESOLVED];
 
@@ -317,6 +324,73 @@ export class PlatformService {
       setupCompleted: Boolean(setupStatus.completedAt),
       setupReady: setupStatus.ready,
     };
+  }
+
+  async getFeatureFlags(
+    _user: AuthenticatedUser,
+    condoId: string,
+  ): Promise<PlatformCondoFeatureFlags> {
+    const condo = await this.prisma.condo.findFirst({
+      where: { id: condoId, deletedAt: null },
+      select: { id: true, settings: true },
+    });
+    if (!condo) throw new NotFoundException('Condo not found');
+    return resolvePlatformFeatureFlags(condo.id, condo.settings);
+  }
+
+  async updateFeatureFlags(
+    user: AuthenticatedUser,
+    condoId: string,
+    patch: Partial<Record<PlatformFeatureFlagKey, boolean>>,
+  ): Promise<PlatformCondoFeatureFlags> {
+    const entries = Object.entries(patch).filter(([, v]) => typeof v === 'boolean') as Array<
+      [PlatformFeatureFlagKey, boolean]
+    >;
+    if (entries.length === 0) {
+      throw new BadRequestException('At least one feature flag must be provided');
+    }
+
+    const condo = await this.prisma.condo.findFirst({
+      where: { id: condoId, deletedAt: null },
+      select: { id: true, settings: true },
+    });
+    if (!condo) throw new NotFoundException('Condo not found');
+
+    const before = resolvePlatformFeatureFlags(condo.id, condo.settings);
+    const patchMap = Object.fromEntries(entries) as Partial<
+      Record<PlatformFeatureFlagKey, boolean>
+    >;
+    const mergedSettings = mergePlatformFeatureFlags(condo.settings, patchMap);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.condo.update({
+        where: { id: condoId },
+        data: { settings: mergedSettings as Prisma.InputJsonValue },
+      });
+
+      const after = resolvePlatformFeatureFlags(condoId, mergedSettings);
+      const changed = changedFlagKeys(before, after);
+      if (changed.length > 0) {
+        await tx.auditLog.create({
+          data: {
+            condoId,
+            actorUserId: user.id,
+            actorRole: user.activeRole ?? RoleId.SUPER_ADMIN,
+            action: AuditAction.UPDATE,
+            resourceType: 'CondoFeatureFlags',
+            resourceId: condoId,
+            metadata: {
+              source: 'platform.featureFlags',
+              changed,
+              before: Object.fromEntries(before.flags.map((f) => [f.key, f.enabled])),
+              after: Object.fromEntries(after.flags.map((f) => [f.key, f.enabled])),
+            },
+          },
+        });
+      }
+    });
+
+    return resolvePlatformFeatureFlags(condoId, mergedSettings);
   }
 
   async provisionCondo(

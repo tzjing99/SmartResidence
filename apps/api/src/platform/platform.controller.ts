@@ -1,9 +1,13 @@
 import { CheckAbility } from '@/auth/abilities/check-ability.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CreatePlatformCondoDto, ListPlatformCondosQueryDto } from './dto/platform.dto';
+import {
+  CreatePlatformCondoDto,
+  ListPlatformCondosQueryDto,
+  UpdatePlatformFeatureFlagsDto,
+} from './dto/platform.dto';
 import { PlatformService } from './platform.service';
 
 @ApiTags('Platform')
@@ -42,5 +46,26 @@ export class PlatformController {
   @ApiOperation({ summary: 'Condo health dashboard for platform operators' })
   getHealth(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.platform.getCondoHealth(user, id);
+  }
+
+  @Get(':id/feature-flags')
+  @CheckAbility({ action: 'read', subject: 'Platform' })
+  @ApiOperation({ summary: 'List feature flags for a condo (platform operators)' })
+  getFeatureFlags(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.platform.getFeatureFlags(user, id);
+  }
+
+  @Patch(':id/feature-flags')
+  @CheckAbility({ action: 'manage', subject: 'Platform' })
+  @ApiOperation({ summary: 'Update feature flags for a condo (super-admin only)' })
+  updateFeatureFlags(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdatePlatformFeatureFlagsDto,
+  ) {
+    return this.platform.updateFeatureFlags(user, id, dto);
   }
 }

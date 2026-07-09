@@ -1,6 +1,6 @@
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class ListPlatformCondosQueryDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Filter by name, slug, or address' })
@@ -37,4 +37,26 @@ export class CreatePlatformCondoDto {
   @MinLength(2)
   @MaxLength(64)
   timezone!: string;
+}
+
+export class UpdatePlatformFeatureFlagsDto {
+  @ApiPropertyOptional({ description: 'Helpdesk ML assignee suggestions (C6)' })
+  @IsOptional()
+  @IsBoolean()
+  helpdeskMlAssignee?: boolean;
+
+  @ApiPropertyOptional({ description: 'Helpdesk ML priority suggestions (C6)' })
+  @IsOptional()
+  @IsBoolean()
+  helpdeskMlPriority?: boolean;
+
+  @ApiPropertyOptional({ description: 'WhatsApp outbound notifications' })
+  @IsOptional()
+  @IsBoolean()
+  whatsappNotifications?: boolean;
+
+  @ApiPropertyOptional({ description: 'Resident AI assist seam' })
+  @IsOptional()
+  @IsBoolean()
+  residentAiAssist?: boolean;
 }

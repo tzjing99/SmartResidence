@@ -65,6 +65,8 @@ export const queryKeys = {
     ['platform', 'condos', params ?? {}] as const,
   platformCondoSummary: (condoId: string) => ['platform', 'condos', condoId, 'summary'] as const,
   platformCondoHealth: (condoId: string) => ['platform', 'condos', condoId, 'health'] as const,
+  platformCondoFeatureFlags: (condoId: string) =>
+    ['platform', 'condos', condoId, 'feature-flags'] as const,
   myUnits: ['units', 'mine'] as const,
   unitVisitors: (unitId: string, view?: string) =>
     ['visitors', 'unit', unitId, view ?? 'all'] as const,
@@ -299,6 +301,39 @@ export function usePlatformCondoSummary(
       condoId ? api.platformCondoSummary(condoId) : Promise.reject(new Error('no condo')),
     enabled: (options?.enabled ?? true) && Boolean(condoId),
     staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function usePlatformCondoFeatureFlags(
+  api: ApiClient,
+  condoId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.platformCondoFeatureFlags(condoId)
+      : ['platform', 'condos', null, 'feature-flags'],
+    queryFn: () =>
+      condoId ? api.platformCondoFeatureFlags(condoId) : Promise.reject(new Error('no condo')),
+    enabled: (options?.enabled ?? true) && Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useUpdatePlatformCondoFeatureFlags(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      condoId,
+      data,
+    }: {
+      condoId: string;
+      data: Parameters<ApiClient['updatePlatformCondoFeatureFlags']>[1];
+    }) => api.updatePlatformCondoFeatureFlags(condoId, data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.platformCondoFeatureFlags(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.platformCondoHealth(vars.condoId) });
+    },
   });
 }
 

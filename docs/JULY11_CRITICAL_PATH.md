@@ -1,9 +1,24 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Last updated:** 2026-07-10 (FINALIZE COMPLETE) · **Target:** ship-ready by **2026-07-11**
+> **Last updated:** 2026-07-10 (FINALIZE + concurrency #46) · **Target:** ship-ready by **2026-07-11**
 >
-> **Status: FINALIZE COMPLETE** — all backlog PRs #35–#44 merged to `main`; **v0.3.0** tagged.
-> Hosted GitHub Actions remain blocked until **2026-08-01** (minutes exhausted); Path C local verify used.
+> **Status: FINALIZE COMPLETE** — backlog PRs #35–#44 + release #45 + concurrency #46 on `main`;
+> tag **`v0.3.0`**. Hosted GitHub Actions remain blocked until **2026-08-01** (minutes exhausted);
+> Path C local verify is the gate. Canonical next-AI handoff: [`HANDOFF_JULY10.md`](./HANDOFF_JULY10.md).
+
+---
+
+## Jul 10 — Copilot concurrency fix ✅
+
+Merged [#46](https://github.com/tzjing99/SmartResidence/pull/46) (`fix/visitor-concurrency-races`):
+
+- Overnight holiday slot allocation: **Serializable** transaction + P2034 retry
+- Access codes: unique-constraint insert + **P2002** retry (visitor / recurring / form permit)
+- Tests: `access-code-concurrency.spec.ts` + visitor service race cases (70 passed locally)
+
+### `main` tip (after #46)
+
+**`2d11208`** — Merge pull request #46. Tag **`v0.3.0`** remains on release merge **`4338f3c`** (earlier on main).
 
 ---
 
@@ -11,9 +26,9 @@
 
 User authorized merge-all via Path C (local verify, no GitHub CI). All 10 backlog PRs rebased, verified, and merged in dependency order.
 
-### `main` tip (after finalize)
+### `main` tip (after finalize / before #46)
 
-**`4338f3c`** — Merge pull request #45 (`chore/release-v0.3.0`); tag **`v0.3.0`** on this commit.
+**`4338f3c`** — Merge pull request #45 (`chore/release-v0.3.0`); tag **`v0.3.0`** on this commit. Docs tip briefly at **`e6cb82b`**.
 
 ### Merged this session (2026-07-10)
 
@@ -29,6 +44,8 @@ User authorized merge-all via Path C (local verify, no GitHub CI). All 10 backlo
 | **#35** | `feature/c6-ml-model` | lint ✓ · typecheck ✓ · docs conflict resolved | ✅ |
 | **#38** | `fix/selfhost-web-docker` | lint ✓ · typecheck ✓ | ✅ |
 | **#39** | `feature/platform-f2-extras` | lint ✓ · typecheck ✓ | ✅ |
+| **#45** | `chore/release-v0.3.0` | changesets version | ✅ |
+| **#46** | `fix/visitor-concurrency-races` | api typecheck · 70 visitor concurrency tests | ✅ |
 
 ### Full local health gate (2026-07-10, Path C — post-merge `main`)
 
@@ -39,14 +56,16 @@ User authorized merge-all via Path C (local verify, no GitHub CI). All 10 backlo
 | `ci:test:api` | ✅ **73 files / 469 tests** passed (13 skipped) |
 | `ci:test:regression` | ⏭ integration suites skipped (no `DATABASE_URL` in env; Docker infra up) |
 | Test fixes | ✅ `visitor.service.spec.ts` + `recurring-pass.service.spec.ts` mocks updated for `formSubmission`/`recurringPass` access-code collision checks |
+| Concurrency (#46) | ✅ overnight Serializable + access-code P2002 retry |
 
 ### Release completeness
 
 | Item | Status | Notes |
 | --- | --- | --- |
 | **v0.3.0 tag** | ✅ | `@smartresidence/*@0.3.0` via changesets on `chore/release-v0.3.0` |
-| **Backlog PRs #35–#44** | ✅ All merged | Zero open PRs |
+| **Backlog PRs #35–#44** | ✅ All merged | Plus #45 release + #46 concurrency |
 | **GHCR images** | ⏭ Skipped | `release.yml` blocked until Actions minutes reset Aug 1 |
+| **GitHub Release page for v0.3.0** | 🟡 | Git tag exists; may still need `gh release create` |
 
 ### Known gaps (non-blocking)
 
@@ -59,14 +78,17 @@ User authorized merge-all via Path C (local verify, no GitHub CI). All 10 backlo
 - ~~C6 trained ML assignment model~~ ✅ #35
 - ~~Self-host Docker web image build~~ ✅ #38
 - ~~SUPER_ADMIN feature flags (F2 extras)~~ ✅ #39
+- ~~Overnight-slot + access-code concurrency~~ ✅ #46
 - GHCR publish / hosted CI until **2026-08-01**
 - Homepage marketing copy approval (§6 of release checklist)
+- Independent security pass on payments / PDPA (see [`HANDOFF_JULY10.md`](./HANDOFF_JULY10.md))
 
 ### Operator next step
 
 ```powershell
 git pull origin main
-git checkout v0.3.0   # or stay on main after release merge
+# tip should be 2d11208 or newer
+# handoff: docs/HANDOFF_JULY10.md
 ```
 
 ---

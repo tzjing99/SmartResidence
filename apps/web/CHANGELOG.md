@@ -1,5 +1,22 @@
 # @smartresidence/web
 
+## 0.3.0
+
+### Minor Changes
+
+- 44cd07d: AGM/EGM e-voting: share-weighted quorum, eligibility API, immutable ballot audit (proxy-honoring tallies)
+- e0900ef: PDPA account deletion: resident-initiated anonymization with confirmation, session revoke, and billing history retained
+- Finalize Jul 11 backlog: visitor RBAC correction, i18n locale picker + error toasts, renovation permit QR verify/PDF, self-host Docker web build fix, and SUPER_ADMIN feature flags (F2 extras).
+
+### Patch Changes
+
+- Updated dependencies [7cb6774]
+- Updated dependencies [44cd07d]
+- Updated dependencies [e0900ef]
+- Updated dependencies
+  - @smartresidence/api-client@0.3.0
+  - @smartresidence/shared-types@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

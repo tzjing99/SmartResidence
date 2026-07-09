@@ -1,5 +1,12 @@
 # @smartresidence/ui-mobile
 
+## 0.2.1
+
+### Patch Changes
+
+- 1c1a1b9: Follow OS Dynamic Type / Android font scale with tiered maxFontSizeMultiplier caps.
+- Finalize Jul 11 backlog: visitor RBAC correction, i18n locale picker + error toasts, renovation permit QR verify/PDF, self-host Docker web build fix, and SUPER_ADMIN feature flags (F2 extras).
+
 ## 0.2.0
 
 ### Minor Changes

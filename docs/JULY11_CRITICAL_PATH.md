@@ -1,9 +1,73 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Last updated:** 2026-07-09 (plan COMPLETE) · **Target:** ship-ready by **2026-07-11**
+> **Last updated:** 2026-07-10 (FINALIZE COMPLETE) · **Target:** ship-ready by **2026-07-11**
 >
-> **Status: COMPLETE** for the July 11 Path C ship plan. Hosted GitHub Actions remain
-> blocked until **2026-08-01** (minutes exhausted); local verify is the gate until then.
+> **Status: FINALIZE COMPLETE** — all backlog PRs #35–#44 merged to `main`; **v0.3.0** tagged.
+> Hosted GitHub Actions remain blocked until **2026-08-01** (minutes exhausted); Path C local verify used.
+
+---
+
+## Jul 10 — FINALIZE COMPLETE ✅
+
+User authorized merge-all via Path C (local verify, no GitHub CI). All 10 backlog PRs rebased, verified, and merged in dependency order.
+
+### `main` tip (after finalize)
+
+**`09ea392`** — Merge pull request #39 (`feature/platform-f2-extras`) — pre-release bump; **v0.3.0** tag follows on `chore/release-v0.3.0`.
+
+### Merged this session (2026-07-10)
+
+| PR | Branch | Local verify | Merged |
+| --- | --- | --- | --- |
+| **#37** | `fix/visitor-mgmt-rbac` | lint ✓ · typecheck ✓ | ✅ |
+| **#44** | `feature/i18n-system-locale` | lint ✓ · typecheck ✓ · rebase conflict-free | ✅ |
+| **#42** | `feature/i18n-errors-toasts` | lint ✓ · typecheck ✓ · i18n key conflicts resolved | ✅ |
+| **#41** | `feature/mobile-dynamic-type` | lint ✓ · typecheck ✓ · settings conflict resolved | ✅ |
+| **#43** | `feature/permit-print-qr-verify` | lint ✓ · typecheck ✓ · RBAC spec merged | ✅ |
+| **#40** | `feature/pdpa-account-deletion` | lint ✓ · typecheck ✓ · locale/settings conflicts resolved | ✅ |
+| **#36** | `feature/governance-agm-evoting` | lint ✓ · typecheck ✓ | ✅ |
+| **#35** | `feature/c6-ml-model` | lint ✓ · typecheck ✓ · docs conflict resolved | ✅ |
+| **#38** | `fix/selfhost-web-docker` | lint ✓ · typecheck ✓ | ✅ |
+| **#39** | `feature/platform-f2-extras` | lint ✓ · typecheck ✓ | ✅ |
+
+### Full local health gate (2026-07-10, Path C — post-merge `main`)
+
+| Gate | Result |
+| --- | --- |
+| `pnpm lint` | ✅ 0 errors (100 warnings, pre-existing) |
+| `pnpm -r run typecheck` | ✅ all packages |
+| `ci:test:api` | ✅ **73 files / 469 tests** passed (13 skipped) |
+| `ci:test:regression` | ⏭ integration suites skipped (no `DATABASE_URL` in env; Docker infra up) |
+| Test fixes | ✅ `visitor.service.spec.ts` + `recurring-pass.service.spec.ts` mocks updated for `formSubmission`/`recurringPass` access-code collision checks |
+
+### Release completeness
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| **v0.3.0 tag** | ✅ | `@smartresidence/*@0.3.0` via changesets on `chore/release-v0.3.0` |
+| **Backlog PRs #35–#44** | ✅ All merged | Zero open PRs |
+| **GHCR images** | ⏭ Skipped | `release.yml` blocked until Actions minutes reset Aug 1 |
+
+### Known gaps (non-blocking)
+
+- ~~Visitor management RBAC correction — ROADMAP §2.1~~ ✅ #37
+- ~~i18n system locale + error toasts~~ ✅ #44, #42
+- ~~Mobile Dynamic Type~~ ✅ #41
+- ~~Renovation permit QR verify + PDF~~ ✅ #43
+- ~~PDPA account deletion~~ ✅ #40
+- ~~AGM/EGM e-voting quorum/eligibility/audit~~ ✅ #36
+- ~~C6 trained ML assignment model~~ ✅ #35
+- ~~Self-host Docker web image build~~ ✅ #38
+- ~~SUPER_ADMIN feature flags (F2 extras)~~ ✅ #39
+- GHCR publish / hosted CI until **2026-08-01**
+- Homepage marketing copy approval (§6 of release checklist)
+
+### Operator next step
+
+```powershell
+git pull origin main
+git checkout v0.3.0   # or stay on main after release merge
+```
 
 ---
 

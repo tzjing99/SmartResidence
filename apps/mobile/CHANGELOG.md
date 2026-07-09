@@ -1,5 +1,25 @@
 # @smartresidence/mobile
 
+## 0.3.0
+
+### Minor Changes
+
+- e0900ef: PDPA account deletion: resident-initiated anonymization with confirmation, session revoke, and billing history retained
+- Finalize Jul 11 backlog: visitor RBAC correction, i18n locale picker + error toasts, renovation permit QR verify/PDF, self-host Docker web build fix, and SUPER_ADMIN feature flags (F2 extras).
+
+### Patch Changes
+
+- 44cd07d: AGM/EGM e-voting: share-weighted quorum, eligibility API, immutable ballot audit (proxy-honoring tallies)
+- 1c1a1b9: Follow OS Dynamic Type / Android font scale with tiered maxFontSizeMultiplier caps.
+- Updated dependencies [7cb6774]
+- Updated dependencies [44cd07d]
+- Updated dependencies [1c1a1b9]
+- Updated dependencies [e0900ef]
+- Updated dependencies
+  - @smartresidence/api-client@0.3.0
+  - @smartresidence/shared-types@0.3.0
+  - @smartresidence/ui-mobile@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes

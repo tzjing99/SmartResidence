@@ -4,27 +4,31 @@
 > mechanics. **Do not merge PRs from this doc alone**; use it as the operator
 > runbook.
 >
-> **Last validated:** 2026-07-07 PM — config OK on `main` @ `0773c7a`; full stack
-> `up --build` **failed** (web image: Next.js module not found in Docker build).
+> **Last validated:** 2026-07-09 — Path C plan **COMPLETE**. Config OK on `main` @
+> `f98dc92`; full stack `up --build` still **failed** (web image: Next.js module
+> not found). API + regression green locally (492 + 40 tests).
 >
-> **Related docs (land via PR #23 until merged to `main`):**
+> **Related docs:**
 > [`SELF_HOSTING.md`](./SELF_HOSTING.md) · [`DEPLOYMENT.md`](./DEPLOYMENT.md) ·
-> [`BUSINESS_MODEL.md`](./BUSINESS_MODEL.md) · [`deploy/`](../deploy/README.md)
+> [`BUSINESS_MODEL.md`](./BUSINESS_MODEL.md) · [`LOCAL_CI.md`](./LOCAL_CI.md) ·
+> [`deploy/`](../deploy/README.md)
 
 ---
 
-## 1. Pre-flight status (2026-07-07)
+## 1. Pre-flight status (2026-07-09 COMPLETE)
 
 | Item | Status | Notes |
 | ---- | ------ | ----- |
-| `deploy/docker-compose.selfhost.yml` syntax | ✅ Pass | `docker compose -f deploy/docker-compose.selfhost.yml --env-file deploy/.env.example config` exits 0 (validated 2026-07-07 on `main` @ `0773c7a`) |
+| `deploy/docker-compose.selfhost.yml` syntax | ✅ Pass | Re-validated 2026-07-09 with `deploy/.env.example` |
 | Compose without `--env-file` | ⚠️ Expected fail | `BETTER_AUTH_SECRET` is required (`:?` guard) — always pass `--env-file deploy/.env` |
 | `deploy/` on `main` | ✅ Merged | Via PR #23 (`feature/mobile-ux`) |
 | Self-host / deployment docs on `main` | ✅ Merged | `SELF_HOSTING.md`, `DEPLOYMENT.md`, `BUSINESS_MODEL.md` via #23 + #24 |
-| `JULY11_CRITICAL_PATH.md` | ✅ On `main` | Updated Jul 7 PM — Path C complete |
-| Path C merge train (#12, #20, #22, #24–#27) | ✅ Complete | Local lint/typecheck verified; GH Actions off until 2026-08-01 |
+| `JULY11_CRITICAL_PATH.md` | ✅ On `main` | Updated Jul 9 — plan COMPLETE |
+| Path C merge train | ✅ Complete | #12, #20, #22, #24–#31; GH Actions off until 2026-08-01 |
 | Release PR [#1](https://github.com/tzjing99/SmartResidence/pull/1) | ✅ Merged | `@smartresidence/*@0.2.0` — tag [`v0.2.0`](https://github.com/tzjing99/SmartResidence/releases/tag/v0.2.0) |
+| Local API + regression | ✅ Pass | `ci:test:api` 492 tests; `ci:test:regression` 40 tests (2026-07-09) |
 | Full stack smoke (`up --build`) | ❌ Fail | Web Dockerfile build: `Cannot find module .../next/dist/bin/next` — use dev bring-up (§7) until fixed |
+| GHCR images | ⏭ Blocked | Hosted Actions minutes exhausted until 2026-08-01 |
 
 ---
 
@@ -188,12 +192,13 @@ CI refuses merges without a changeset (docs-only/chore exempt).
 
 ### 5.3 July 11 release checklist (operator)
 
-- [ ] All critical-path PRs merged (#21, #23)
-- [ ] Fresh changeset summarizing v0.2.0 scope merged to `main`
-- [ ] PR #1 updated and merged
-- [ ] `v0.2.0` tag pushed; GHCR images published
-- [ ] Self-host smoke (§3) passed on tagged commit
-- [ ] Demo seeded or setup wizard verified
+- [x] All critical-path PRs merged (#21 absorbed via #23; #23 merged)
+- [x] Fresh changeset summarizing v0.2.0 scope merged to `main` (#29)
+- [x] PR #1 updated and merged
+- [x] `v0.2.0` tag pushed; GitHub Release published
+- [ ] GHCR images published — blocked until Actions minutes reset **2026-08-01**
+- [x] Self-host config smoke (§3.1) passed; full `up --build` still fails (web image)
+- [ ] Demo seeded or setup wizard verified (operator day-of)
 - [ ] Homepage copy reviewed (§6) — **do not edit live site until approved**
 
 ---

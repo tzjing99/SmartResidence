@@ -3,11 +3,29 @@
 import { AdminPageHeader } from '@/components/admin-ui';
 import { api, setActiveCondo } from '@/lib/api';
 import { hasAbility } from '@/lib/roles';
+import { toast } from '@/lib/toast';
 import { useRoleGuard } from '@/lib/use-role-guard';
-import { usePlatformCondoHealth, usePlatformCondoSummary } from '@smartresidence/api-client';
-import { type PlatformAuditEvent, setupProgress } from '@smartresidence/shared-types';
-import { Badge, Button, Card, EmptyState, Skeleton } from '@smartresidence/ui-web';
-import { AlertTriangle, ArrowLeft, Building2, ChevronRight, Receipt, Users } from 'lucide-react';
+import {
+  usePlatformCondoFeatureFlags,
+  usePlatformCondoHealth,
+  usePlatformCondoSummary,
+  useUpdatePlatformCondoFeatureFlags,
+} from '@smartresidence/api-client';
+import {
+  type PlatformAuditEvent,
+  type PlatformFeatureFlagKey,
+  setupProgress,
+} from '@smartresidence/shared-types';
+import { Badge, Button, Card, EmptyState, Skeleton, Switch } from '@smartresidence/ui-web';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Building2,
+  ChevronRight,
+  Flag,
+  Receipt,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -35,9 +53,13 @@ export default function PlatformCondoDetailPage() {
   const router = useRouter();
   const { abilities, ready } = useRoleGuard('admin');
   const canView = hasAbility(abilities, 'read', 'Platform');
+  const canManage = hasAbility(abilities, 'manage', 'Platform');
   const { id } = useParams<{ id: string }>();
   const summary = usePlatformCondoSummary(api, canView ? id : null);
   const health = usePlatformCondoHealth(api, canView ? id : null);
+  const featureFlags = usePlatformCondoFeatureFlags(api, canView ? id : null);
+  const updateFlags = useUpdatePlatformCondoFeatureFlags(api);
+  const [pendingKey, setPendingKey] = React.useState<PlatformFeatureFlagKey | null>(null);
 
   React.useEffect(() => {
     if (ready && !canView) router.replace('/admin');
@@ -46,6 +68,19 @@ export default function PlatformCondoDetailPage() {
   function openCondoAdmin() {
     setActiveCondo(id);
     router.push('/admin');
+  }
+
+  async function handleFlagToggle(key: PlatformFeatureFlagKey, enabled: boolean) {
+    if (!canManage) return;
+    setPendingKey(key);
+    try {
+      await updateFlags.mutateAsync({ condoId: id, data: { [key]: enabled } });
+      toast.success(enabled ? 'Feature enabled' : 'Feature disabled');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update feature flag');
+    } finally {
+      setPendingKey(null);
+    }
   }
 
   if (!ready || !canView) {
@@ -135,6 +170,47 @@ export default function PlatformCondoDetailPage() {
           </p>
         </Card>
       </div>
+
+      <Card className="p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Flag className="size-4 sr-muted" aria-hidden />
+            <h2 className="font-semibold">Feature flags</h2>
+          </div>
+          {!canManage ? <Badge tone="neutral">Read only</Badge> : null}
+        </div>
+        <p className="text-sm sr-muted">
+          Opt-in capabilities for this condo. Changes are audited for platform operators.
+        </p>
+        {featureFlags.isLoading ? (
+          <Skeleton className="h-40 w-full rounded-xl" />
+        ) : featureFlags.isError || !featureFlags.data ? (
+          <p className="text-sm sr-muted">Could not load feature flags.</p>
+        ) : (
+          <ul className="divide-y divide-stone-200/60 dark:divide-stone-800/60">
+            {featureFlags.data.flags.map((flag) => (
+              <li
+                key={flag.key}
+                className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm">{flag.label}</p>
+                  <p className="text-sm sr-muted mt-0.5">{flag.description}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-medium">{flag.enabled ? 'On' : 'Off'}</span>
+                  <Switch
+                    checked={flag.enabled}
+                    disabled={!canManage || pendingKey === flag.key || updateFlags.isPending}
+                    onCheckedChange={(next) => void handleFlagToggle(flag.key, next)}
+                    aria-label={`Toggle ${flag.label}`}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card className="p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">

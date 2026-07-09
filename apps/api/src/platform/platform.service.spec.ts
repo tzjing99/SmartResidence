@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import type { PrismaService } from '@/prisma/prisma.service';
 import type { SetupService } from '@/setup/setup.service';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { RoleId } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { PlatformService } from './platform.service';
@@ -71,6 +71,10 @@ function makeService() {
       create: vi.fn(async (args: { data: Record<string, unknown> }) => ({
         id: CONDO_ID,
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        ...args.data,
+      })),
+      update: vi.fn(async (args: { data: Record<string, unknown> }) => ({
+        ...condoRow,
         ...args.data,
       })),
     },
@@ -222,6 +226,56 @@ describe('PlatformService', () => {
     vi.mocked(prisma.condo.findFirst).mockResolvedValueOnce(null);
     await expect(service.getCondoSummary(superAdmin(), CONDO_ID)).rejects.toBeInstanceOf(
       NotFoundException,
+    );
+  });
+
+  it('returns default feature flags for a condo', async () => {
+    const { service } = makeService();
+    const flags = await service.getFeatureFlags(superAdmin(), CONDO_ID);
+    expect(flags.condoId).toBe(CONDO_ID);
+    expect(flags.flags).toHaveLength(4);
+    expect(flags.flags.every((f) => f.enabled === false)).toBe(true);
+  });
+
+  it('updates feature flags, persists settings, and audits changes', async () => {
+    const { service, prisma } = makeService();
+    const result = await service.updateFeatureFlags(superAdmin(), CONDO_ID, {
+      helpdeskMlPriority: true,
+      whatsappNotifications: true,
+    });
+    expect(result.flags.find((f) => f.key === 'helpdeskMlPriority')?.enabled).toBe(true);
+    expect(result.flags.find((f) => f.key === 'whatsappNotifications')?.enabled).toBe(true);
+    expect(prisma.condo.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: CONDO_ID },
+        data: expect.objectContaining({
+          settings: expect.objectContaining({
+            featureFlags: expect.objectContaining({
+              helpdeskMlPriority: true,
+              whatsappNotifications: true,
+            }),
+          }),
+        }),
+      }),
+    );
+    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          resourceType: 'CondoFeatureFlags',
+          action: 'UPDATE',
+          metadata: expect.objectContaining({
+            source: 'platform.featureFlags',
+            changed: expect.arrayContaining(['helpdeskMlPriority', 'whatsappNotifications']),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('rejects empty feature flag patches', async () => {
+    const { service } = makeService();
+    await expect(service.updateFeatureFlags(superAdmin(), CONDO_ID, {})).rejects.toBeInstanceOf(
+      BadRequestException,
     );
   });
 });

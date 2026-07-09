@@ -185,6 +185,41 @@ describe.skipIf(!integrationReady)('API integration (authenticated)', () => {
     );
   });
 
+  it('GET /api/platform/condos/:id/feature-flags returns catalog for SUPER_ADMIN', async () => {
+    const supertest = (await import('supertest')).default;
+    const res = await supertest(app.getHttpServer())
+      .get(`/api/platform/condos/${condoId}/feature-flags`)
+      .set('Authorization', `Bearer ${superToken}`)
+      .expect(200);
+
+    const payload = res.body.data ?? res.body;
+    expect(payload.condoId).toBe(condoId);
+    expect(Array.isArray(payload.flags)).toBe(true);
+    expect(payload.flags.length).toBeGreaterThanOrEqual(4);
+    expect(payload.flags[0]).toEqual(
+      expect.objectContaining({
+        key: expect.any(String),
+        label: expect.any(String),
+        enabled: expect.any(Boolean),
+      }),
+    );
+  });
+
+  it('PATCH /api/platform/condos/:id/feature-flags updates flags for SUPER_ADMIN', async () => {
+    const supertest = (await import('supertest')).default;
+    const res = await supertest(app.getHttpServer())
+      .patch(`/api/platform/condos/${condoId}/feature-flags`)
+      .set('Authorization', `Bearer ${superToken}`)
+      .send({ whatsappNotifications: true })
+      .expect(200);
+
+    const payload = res.body.data ?? res.body;
+    const flag = payload.flags.find(
+      (row: { key: string; enabled: boolean }) => row.key === 'whatsappNotifications',
+    );
+    expect(flag?.enabled).toBe(true);
+  });
+
   it('GET /api/lost-found/condo/:id lists posts for authorized users', async () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())

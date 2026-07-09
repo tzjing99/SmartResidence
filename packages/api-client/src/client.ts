@@ -106,6 +106,7 @@ import type {
   PaymentIntentResponse,
   PaymentIssue,
   PlatformCondoDetail,
+  PlatformCondoFeatureFlags,
   PlatformCondoHealth,
   PlatformCondosPage,
   Poll,
@@ -146,6 +147,7 @@ import type {
   UpdateFormTemplateInput,
   UpdateGeneralMeetingInput,
   UpdatePatrolCheckpointInput,
+  UpdatePlatformFeatureFlagsBody,
   UpdatePollInput,
   UpdateRecurringPassInput,
   UpdateSetupStepInput,
@@ -2135,6 +2137,19 @@ export class ApiClient {
   }
   createPlatformCondo(data: CreatePlatformCondoInput) {
     return this.request<CreatePlatformCondoResult>('POST', '/api/platform/condos', data);
+  }
+  platformCondoFeatureFlags(condoId: string) {
+    return this.request<PlatformCondoFeatureFlags>(
+      'GET',
+      `/api/platform/condos/${condoId}/feature-flags`,
+    );
+  }
+  updatePlatformCondoFeatureFlags(condoId: string, data: UpdatePlatformFeatureFlagsBody) {
+    return this.request<PlatformCondoFeatureFlags>(
+      'PATCH',
+      `/api/platform/condos/${condoId}/feature-flags`,
+      data,
+    );
   }
 
   // Lost & found -----------------------------------------------------

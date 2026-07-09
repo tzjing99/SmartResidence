@@ -25,6 +25,7 @@ export * from './accounting';
 export * from './procurement';
 export * from './whatsapp';
 export * from './platform';
+export * from './feature-flags';
 export * from './cob';
 
 export const APP_NAME = 'SmartResidence';

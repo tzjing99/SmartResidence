@@ -13,7 +13,7 @@ User authorized merge-all via Path C (local verify, no GitHub CI). All 10 backlo
 
 ### `main` tip (after finalize)
 
-**`09ea392`** — Merge pull request #39 (`feature/platform-f2-extras`) — pre-release bump; **v0.3.0** tag follows on `chore/release-v0.3.0`.
+**`4338f3c`** — Merge pull request #45 (`chore/release-v0.3.0`); tag **`v0.3.0`** on this commit.
 
 ### Merged this session (2026-07-10)
 

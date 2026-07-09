@@ -16,9 +16,9 @@ Merged [#46](https://github.com/tzjing99/SmartResidence/pull/46) (`fix/visitor-c
 - Access codes: unique-constraint insert + **P2002** retry (visitor / recurring / form permit)
 - Tests: `access-code-concurrency.spec.ts` + visitor service race cases (70 passed locally)
 
-### `main` tip (after #46)
+### `main` tip (after #46 / #47)
 
-**`2d11208`** — Merge pull request #46. Tag **`v0.3.0`** remains on release merge **`4338f3c`** (earlier on main).
+**`85fc98e`** — Merge pull request #47 (handoff docs). Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** remains on release merge **`4338f3c`**.
 
 ---
 

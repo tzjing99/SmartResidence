@@ -15,10 +15,11 @@
 | Local path | `C:\dev\SmartResidence` |
 | GitHub | [`tzjing99/SmartResidence`](https://github.com/tzjing99/SmartResidence) |
 | Default branch | `main` |
-| **`main` SHA (this handoff)** | **`2d11208`** — Merge pull request #46 (`fix/visitor-concurrency-races`) |
+| **`main` tip (includes this handoff)** | **`85fc98e`** — Merge pull request #47 (`docs/july10-handoff`) |
+| Prior tip before handoff doc | **`2d11208`** — Merge #46 concurrency · before that **`e6cb82b`** docs follow-up · release **`4338f3c`** |
 | Latest tags | **`v0.3.0`** → `4338f3c` (release merge #45) · **`v0.2.0`** → `0773c7a` / annotated `ae98ba7` |
 | Package versions | `@smartresidence/*@0.3.0` (changesets via #45) |
-| Open PRs | **None** after #46 merge (confirm with `gh pr list --state open`) |
+| Open PRs | **None** after #46/#47 (confirm with `gh pr list --state open`) |
 | Hosted CI | 🟡 **GitHub Actions minutes exhausted until ~2026-08-01** — do **not** claim live CI is green |
 
 ```powershell
@@ -50,7 +51,7 @@ User authorized **Path C** (local verify instead of GitHub CI). Parallel finaliz
 | **#39** | SUPER_ADMIN feature flags (F2 extras) | ✅ Merged |
 | **#45** | `chore/release-v0.3.0` changeset version bump | ✅ Merged · tag **`v0.3.0`** |
 
-Recorded in [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) (Jul 10 FINALIZE COMPLETE section). Tip after release was `4338f3c` / docs follow-up `e6cb82b`; concurrency fix then advanced tip to **`2d11208`**.
+Recorded in [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) (Jul 10 FINALIZE COMPLETE section). Tip after release was `4338f3c` / docs follow-up `e6cb82b`; concurrency fix advanced tip to **`2d11208`**; this handoff merge is **`85fc98e`**.
 
 ### 2.2 Copilot / review concurrency fixes (#46)
 
@@ -147,7 +148,7 @@ cd C:\dev\SmartResidence
 git fetch origin --tags --prune
 git checkout main   # if blocked by release worktree, pull inside that worktree or remove it
 git pull origin main
-git rev-parse HEAD  # expect 2d11208 or newer
+git rev-parse HEAD  # expect 85fc98e or newer
 ```
 
 ### 4.2 Local verify (Path C)
@@ -262,14 +263,15 @@ Architecture underneath is already there; the gap is verification under load + m
 | Item | Value |
 | --- | --- |
 | PRs merged (finalize) | **#35–#44** + release **#45** |
-| Concurrency | **#46** merged → `2d11208` |
-| Tag | **`v0.3.0`** on `4338f3c` (main tip newer after #46) |
-| Handoff | **`docs/HANDOFF_JULY10.md`** |
+| Concurrency | **#46** → `2d11208` |
+| Handoff docs | **#47** → tip **`85fc98e`** |
+| Tag | **`v0.3.0`** on `4338f3c` (main tip newer after #46/#47) |
+| Handoff file | **`docs/HANDOFF_JULY10.md`** |
 | Blockers | Actions minutes until Aug 1 · security audit unpaid · marketing/README honesty · stale worktrees |
 | Do next | Pull `main`, Path C verify, optional `gh release create v0.3.0`, security pass |
 
 ```powershell
 git pull origin main
 git log -1 --oneline
-# 2d11208 Merge pull request #46 from tzjing99/fix/visitor-concurrency-races
+# 85fc98e Merge pull request #47 from tzjing99/docs/july10-handoff
 ```

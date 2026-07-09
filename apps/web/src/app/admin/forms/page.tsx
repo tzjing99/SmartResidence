@@ -19,6 +19,7 @@ import type {
 import {
   FORM_SUBMISSION_STATUS_LABELS,
   FORM_TEMPLATE_KIND_LABELS,
+  isPermitFormKind,
 } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { ClipboardList } from 'lucide-react';
@@ -66,6 +67,20 @@ function SubmissionQueue({ condoId }: { condoId: string }) {
     try {
       await approve.mutateAsync(id);
       toast.success('Form approved — resident notified');
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const printPermit = async (id: string) => {
+    try {
+      const blob = await api.downloadFormPermitPdf(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `permit-${id.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -139,6 +154,18 @@ function SubmissionQueue({ condoId }: { condoId: string }) {
                     </Button>
                     <Button size="sm" variant="secondary" onClick={() => setRejectId(s.id)}>
                       Reject
+                    </Button>
+                  </div>
+                ) : s.status === 'APPROVED' &&
+                  isPermitFormKind(s.template?.kind) &&
+                  s.accessCode ? (
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <p className="text-sm">
+                      Gate code:{' '}
+                      <span className="font-mono font-bold tracking-widest">{s.accessCode}</span>
+                    </p>
+                    <Button size="sm" variant="secondary" onClick={() => void printPermit(s.id)}>
+                      Print permit
                     </Button>
                   </div>
                 ) : s.reviewNote ? (

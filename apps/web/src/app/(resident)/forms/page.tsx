@@ -20,6 +20,7 @@ import type {
 import {
   FORM_SUBMISSION_STATUS_LABELS,
   FORM_TEMPLATE_KIND_LABELS,
+  isPermitFormKind,
 } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Label, Skeleton } from '@smartresidence/ui-web';
 import { ChevronRight, ClipboardList } from 'lucide-react';
@@ -44,6 +45,80 @@ function fmtDate(d: Date | string | null | undefined) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function ApprovedPermitCard({ submission: s }: { submission: FormSubmission }) {
+  const [qrPng, setQrPng] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const showPermit =
+    s.status === 'APPROVED' && isPermitFormKind(s.template?.kind) && Boolean(s.accessCode);
+
+  React.useEffect(() => {
+    if (!showPermit) return;
+    let cancelled = false;
+    void api
+      .getFormPermitQr(s.id)
+      .then((qr) => {
+        if (!cancelled) setQrPng(qr.png);
+      })
+      .catch(() => {
+        if (!cancelled) setQrPng(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [s.id, showPermit]);
+
+  const downloadPdf = async () => {
+    setBusy(true);
+    try {
+      const blob = await api.downloadFormPermitPdf(s.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `permit-${s.id.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="p-4 flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="font-medium">{s.template?.title ?? 'Form'}</div>
+          <div className="text-sm sr-muted">
+            {s.unit?.identifier} · {fmtDate(s.submittedAt ?? s.createdAt)}
+          </div>
+          {s.reviewNote ? <p className="text-sm mt-1 text-red-600">{s.reviewNote}</p> : null}
+        </div>
+        <Badge tone={STATUS_TONE[s.status]}>{FORM_SUBMISSION_STATUS_LABELS[s.status]}</Badge>
+      </div>
+      {showPermit ? (
+        <div className="flex flex-wrap items-start gap-4 border-t border-[rgb(var(--sr-border))] pt-3">
+          {qrPng ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={qrPng} alt="Permit QR code" className="size-28 rounded border bg-white p-1" />
+          ) : (
+            <Skeleton className="size-28" />
+          )}
+          <div className="space-y-2 min-w-0">
+            <p className="text-sm sr-muted">
+              Show this code to the guard, or print the permit PDF.
+            </p>
+            <p className="font-mono text-2xl font-bold tracking-widest">{s.accessCode}</p>
+            <Button size="sm" variant="secondary" onClick={() => void downloadPdf()} loading={busy}>
+              Download permit PDF
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </Card>
+  );
 }
 
 function FieldInput({
@@ -274,20 +349,7 @@ export default function ResidentFormsPage() {
         ) : (
           <div className="grid gap-3">
             {myItems.map((s) => (
-              <Card key={s.id} className="p-4 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <div className="font-medium">{s.template?.title ?? 'Form'}</div>
-                  <div className="text-sm sr-muted">
-                    {s.unit?.identifier} · {fmtDate(s.submittedAt ?? s.createdAt)}
-                  </div>
-                  {s.reviewNote ? (
-                    <p className="text-sm mt-1 text-red-600">{s.reviewNote}</p>
-                  ) : null}
-                </div>
-                <Badge tone={STATUS_TONE[s.status]}>
-                  {FORM_SUBMISSION_STATUS_LABELS[s.status]}
-                </Badge>
-              </Card>
+              <ApprovedPermitCard key={s.id} submission={s} />
             ))}
           </div>
         )}

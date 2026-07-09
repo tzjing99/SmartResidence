@@ -3,7 +3,7 @@
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import type { RecurringPassVerify } from '@smartresidence/shared-types';
+import type { FormPermitVerify, RecurringPassVerify } from '@smartresidence/shared-types';
 import {
   deliveryPlatformLabel,
   guardVisitorStatusLabel,
@@ -29,10 +29,13 @@ type VerifiedVisitor = {
   status: string;
 };
 
-type VerifiedPass = VerifiedVisitor | (RecurringPassVerify & { name?: string });
+type VerifiedPass = VerifiedVisitor | (RecurringPassVerify & { name?: string }) | FormPermitVerify;
 
 function unitLabel(v: VerifiedPass, t: ReturnType<typeof useT>) {
   if ('passType' in v && v.passType === 'recurring') {
+    return v.unitLabel ?? '—';
+  }
+  if ('passType' in v && v.passType === 'form_permit') {
     return v.unitLabel ?? '—';
   }
   const visitor = v as VerifiedVisitor;
@@ -46,6 +49,9 @@ function unitLabel(v: VerifiedPass, t: ReturnType<typeof useT>) {
 
 function displayName(v: VerifiedPass): string {
   if ('passType' in v && v.passType === 'recurring') return v.guestName;
+  if ('passType' in v && v.passType === 'form_permit') {
+    return v.contractorCompany || v.residentName || v.templateTitle;
+  }
   return (v as VerifiedVisitor).name;
 }
 
@@ -75,7 +81,12 @@ export default function GuardCheckInPage() {
         const recurring = await api.verifyRecurringPass(code.trim());
         setPass(recurring);
       } catch (recurringErr) {
-        toast.error((recurringErr as Error).message);
+        try {
+          const permit = await api.verifyFormPermit(code.trim());
+          setPass(permit);
+        } catch {
+          toast.error((recurringErr as Error).message);
+        }
       }
     } finally {
       setBusy(false);
@@ -84,6 +95,16 @@ export default function GuardCheckInPage() {
 
   async function allowEntry() {
     if (!pass) return;
+    if ('passType' in pass && pass.passType === 'form_permit') {
+      if (!pass.valid) {
+        toast.error(pass.message ?? 'Permit is not valid');
+        return;
+      }
+      toast.success(`Permit verified — ${displayName(pass)}`);
+      setPass(null);
+      setCode('');
+      return;
+    }
     setBusy(true);
     setBlacklistAlert(null);
     try {
@@ -109,8 +130,14 @@ export default function GuardCheckInPage() {
   }
 
   const isRecurring = pass && 'passType' in pass && pass.passType === 'recurring';
+  const isFormPermit = pass && 'passType' in pass && pass.passType === 'form_permit';
   const canCheckIn =
-    pass && (isRecurring ? pass.withinSchedule : (pass as VerifiedVisitor).status === 'APPROVED');
+    pass &&
+    (isFormPermit
+      ? pass.valid
+      : isRecurring
+        ? pass.withinSchedule
+        : (pass as VerifiedVisitor).status === 'APPROVED');
 
   return (
     <div className="max-w-md flex flex-col gap-6">
@@ -149,7 +176,12 @@ export default function GuardCheckInPage() {
         <Card className="flex flex-col gap-4">
           <div>
             <p className="font-semibold text-lg">{displayName(pass)}</p>
-            {!isRecurring && isQuickEntryPass(pass as VerifiedVisitor) ? (
+            {isFormPermit ? (
+              <span className="inline-flex items-center rounded-full border border-sky-500/40 bg-sky-500/10 px-2.5 py-0.5 text-xs font-semibold text-sky-800 mt-1">
+                {pass.templateTitle}
+              </span>
+            ) : null}
+            {!isRecurring && !isFormPermit && isQuickEntryPass(pass as VerifiedVisitor) ? (
               <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-800 mt-1">
                 {(() => {
                   const v = pass as VerifiedVisitor;
@@ -162,6 +194,14 @@ export default function GuardCheckInPage() {
             <p className="text-sm sr-muted">
               {t('visitors.guard.unitPrefix', { unit: unitLabel(pass, t) })}
             </p>
+            {isFormPermit && pass.residentName ? (
+              <p className="text-sm sr-muted mt-1">Resident: {pass.residentName}</p>
+            ) : null}
+            {isFormPermit && pass.message ? (
+              <p className={`text-sm mt-1 ${pass.valid ? 'sr-muted' : 'text-red-600'}`}>
+                {pass.message}
+              </p>
+            ) : null}
             {isRecurring ? (
               <p className="text-xs sr-muted mt-1">
                 {t('visitors.guard.recurringPassMeta', {
@@ -172,7 +212,7 @@ export default function GuardCheckInPage() {
             {pass.accessCode ? (
               <p className="font-mono text-xl font-bold tracking-widest mt-2">{pass.accessCode}</p>
             ) : null}
-            {!isRecurring && (pass as VerifiedVisitor).entryMode ? (
+            {!isRecurring && !isFormPermit && (pass as VerifiedVisitor).entryMode ? (
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="inline-flex items-center rounded-full border border-[rgb(var(--sr-border))] px-2 py-0.5 text-xs font-medium">
                   {(pass as VerifiedVisitor).entryMode === 'DRIVE_IN'
@@ -187,14 +227,14 @@ export default function GuardCheckInPage() {
                 ) : null}
               </div>
             ) : null}
-            {!isRecurring ? (
-              <p className="text-xs sr-muted mt-1">
-                {guardVisitorStatusLabel((pass as VerifiedVisitor).status)}
+            {!isRecurring && !isFormPermit ? (
+              <p className="text-sm mt-2">
+                Status: {guardVisitorStatusLabel((pass as VerifiedVisitor).status)}
               </p>
             ) : null}
           </div>
-          <Button onClick={allowEntry} disabled={busy || !canCheckIn}>
-            {t('visitors.guard.allowEntry')}
+          <Button onClick={() => void allowEntry()} disabled={busy || !canCheckIn}>
+            {isFormPermit ? 'Confirm permit' : t('visitors.guard.allowEntry')}
           </Button>
         </Card>
       ) : null}

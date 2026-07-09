@@ -107,6 +107,30 @@ export default function ManualScreen() {
     }
   }
 
+  async function tryFormPermitVerify(pass: string): Promise<boolean> {
+    try {
+      const permit = await api.verifyFormPermit(pass);
+      const who = permit.contractorCompany || permit.residentName || permit.templateTitle;
+      if (!permit.valid) {
+        const message = permit.message ?? 'This permit is not valid right now.';
+        setError(message);
+        setCode('');
+        Alert.alert('Permit not valid', message);
+        return true;
+      }
+      setSuccess(`${who} — permit verified.`);
+      Alert.alert(
+        'Permit verified',
+        `${who}${permit.unitLabel ? ` · ${permit.unitLabel}` : ''}\nCode ${permit.accessCode ?? '—'}`,
+      );
+      setCode('');
+      setNotes('');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function verifyAndCheckIn(pass: string) {
     if (busy || pass.length !== ACCESS_CODE_LENGTH) return;
     setBusy(true);
@@ -134,8 +158,8 @@ export default function ManualScreen() {
       }
 
       if (!verifiedVisitor) {
-        // Not a one-off pass — it may be a recurring pass access code.
-        const handled = await tryRecurringCheckIn(pass);
+        // Not a one-off pass — try recurring, then renovation/form permit.
+        const handled = (await tryRecurringCheckIn(pass)) || (await tryFormPermitVerify(pass));
         if (handled) return;
         setError('Access code not valid. Please check the visitor pass and try again.');
         setCode('');

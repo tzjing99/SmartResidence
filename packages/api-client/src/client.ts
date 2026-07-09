@@ -75,6 +75,7 @@ import type {
   FacilityAvailability,
   FavouriteVisitor,
   FeeScheduleExtraLine,
+  FormPermitVerify,
   FormSubmission,
   FormTemplate,
   FundBalance,
@@ -1802,6 +1803,46 @@ export class ApiClient {
   }
   rejectFormSubmission(id: string, body: RejectFormSubmissionInput = {}) {
     return this.request<FormSubmission>('POST', `/api/form-submissions/${id}/reject`, body);
+  }
+  verifyFormPermit(pass: string) {
+    return this.request<FormPermitVerify>(
+      'POST',
+      `/api/form-submissions/verify/${encodeURIComponent(pass)}`,
+    );
+  }
+  getFormPermitQr(id: string) {
+    return this.request<{
+      qrPayload: string;
+      accessCode: string;
+      png: string;
+      permitValidFrom: string | Date | null;
+      permitValidUntil: string | Date | null;
+    }>('GET', `/api/form-submissions/${id}/qr`);
+  }
+  async downloadFormPermitPdf(id: string): Promise<Blob> {
+    const headers: Record<string, string> = { Accept: 'application/pdf' };
+    const token = await this.cfg.getAccessToken?.();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const condoId = await this.cfg.getActiveCondoId?.();
+    if (condoId) headers['x-condo-id'] = condoId;
+    const fetchImpl = this.cfg.fetch ?? globalThis.fetch;
+    const res = await fetchImpl(`${this.cfg.baseUrl}/api/form-submissions/${id}/pdf`, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      let parsed: unknown = null;
+      try {
+        parsed = await res.json();
+      } catch {
+        /* ignore */
+      }
+      const message =
+        (parsed as { message?: string } | null)?.message ?? `HTTP ${res.status} ${res.statusText}`;
+      throw new ApiError(res.status, parsed, message);
+    }
+    return res.blob();
   }
 
   // Documents vault ---------------------------------------------------

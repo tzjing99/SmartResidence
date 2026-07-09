@@ -131,6 +131,32 @@ export default function ScanScreen() {
     }
   }
 
+  /** Fall back to renovation/form permit when visitor + recurring lookups miss. */
+  async function tryFormPermitScan(pass: string): Promise<boolean> {
+    try {
+      const permit = await api.verifyFormPermit(pass);
+      setActiveScanning(false);
+      const who = permit.contractorCompany || permit.residentName || permit.templateTitle;
+      const unit = permit.unitLabel ? ` · ${permit.unitLabel}` : '';
+      if (!permit.valid) {
+        Alert.alert('Permit not valid', permit.message ?? `${who}${unit}`);
+        return true;
+      }
+      Alert.alert('Permit verified', `${who}${unit}\nCode ${permit.accessCode ?? '—'}`, [
+        {
+          text: 'OK',
+          onPress: () => {
+            setVisitor(null);
+            setScannedPass(null);
+          },
+        },
+      ]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function onScan(value: string) {
     if (busy || value === last) return;
     setBusy(true);
@@ -162,8 +188,8 @@ export default function ScanScreen() {
         setVisitor(null);
         setScannedPass(null);
       } else {
-        // Not a one-off pass — it may be a recurring pass QR.
-        const handled = await tryRecurringScan(value);
+        // Not a one-off pass — try recurring, then renovation/form permit.
+        const handled = (await tryRecurringScan(value)) || (await tryFormPermitScan(value));
         if (!handled) {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           Alert.alert('Unknown pass', message);

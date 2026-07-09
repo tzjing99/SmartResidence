@@ -51,26 +51,27 @@ const TEMPLATE = {
   position: 0,
 };
 
-function makeService() {
+function makeService(template: typeof TEMPLATE = TEMPLATE) {
   const submissions: Array<Record<string, unknown>> = [];
   const prisma = {
     formTemplate: {
       findMany: vi.fn(async () => []),
-      findUnique: vi.fn(async () => TEMPLATE),
+      findUnique: vi.fn(async () => template),
       createMany: vi.fn(async () => ({ count: 0 })),
-      create: vi.fn(async () => TEMPLATE),
-      update: vi.fn(async () => TEMPLATE),
-      delete: vi.fn(async () => TEMPLATE),
+      create: vi.fn(async () => template),
+      update: vi.fn(async () => template),
+      delete: vi.fn(async () => template),
     },
     formSubmission: {
       findMany: vi.fn(async () => submissions),
       findUnique: vi.fn(async () => submissions[0] ?? null),
+      findFirst: vi.fn(async () => submissions[0] ?? null),
       count: vi.fn(async () => submissions.length),
       create: vi.fn(async (args: { data: Record<string, unknown> }) => {
         const row = {
           id: 'sub-1',
           ...args.data,
-          template: TEMPLATE,
+          template,
           unit: { id: UNIT, identifier: 'A-01-01' },
           user: { id: 'owner-1', name: 'Owner' },
           reviewedBy: null,
@@ -78,14 +79,24 @@ function makeService() {
         submissions[0] = row;
         return row;
       }),
-      update: vi.fn(async (args: { data: Record<string, unknown> }) => ({
-        ...(submissions[0] ?? {}),
-        ...args.data,
-        template: TEMPLATE,
-        unit: { id: UNIT, identifier: 'A-01-01' },
-        user: { id: 'owner-1', name: 'Owner' },
-        reviewedBy: null,
-      })),
+      update: vi.fn(async (args: { data: Record<string, unknown> }) => {
+        const row = {
+          ...(submissions[0] ?? {}),
+          ...args.data,
+          template: (submissions[0]?.template as typeof template) ?? template,
+          unit: { id: UNIT, identifier: 'A-01-01' },
+          user: { id: 'owner-1', name: 'Owner' },
+          reviewedBy: null,
+        };
+        submissions[0] = row;
+        return row;
+      }),
+    },
+    visitor: {
+      findUnique: vi.fn(async () => null),
+    },
+    recurringPass: {
+      findUnique: vi.fn(async () => null),
     },
     unit: {
       findUnique: vi.fn(async () => ({ id: UNIT, condoId: CONDO })),
@@ -171,6 +182,7 @@ describe('FormsService.approveSubmission', () => {
       userId: 'owner-1',
       status: FormSubmissionStatus.SUBMITTED,
       template: TEMPLATE,
+      answers: {},
     };
     const row = await svc.approveSubmission(manager(), 'sub-1');
     expect(row.status).toBe(FormSubmissionStatus.APPROVED);
@@ -178,5 +190,90 @@ describe('FormsService.approveSubmission', () => {
       'form.approved',
       expect.objectContaining({ submissionId: 'sub-1', userId: 'owner-1' }),
     );
+  });
+
+  it('issues access code + QR when approving a renovation permit', async () => {
+    const { svc, submissions, prisma } = makeService();
+    const renoTemplate = {
+      ...TEMPLATE,
+      kind: FormTemplateKind.RENOVATION,
+      title: 'Renovation permit',
+    };
+    submissions[0] = {
+      id: 'sub-reno',
+      condoId: CONDO,
+      unitId: UNIT,
+      userId: 'owner-1',
+      status: FormSubmissionStatus.SUBMITTED,
+      template: renoTemplate,
+      answers: {
+        workScope: 'Kitchen remodel',
+        contractorCompany: 'ABC Builders',
+        startDate: '2026-08-01',
+        endDate: '2026-08-15',
+        depositAcknowledgement: true,
+      },
+    };
+    (prisma.formTemplate.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(renoTemplate);
+    (prisma.visitor.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.recurringPass.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.formSubmission.findUnique as ReturnType<typeof vi.fn>).mockImplementation(
+      async (args: { where: Record<string, unknown> }) => {
+        if ('condoId_accessCode' in args.where) return null;
+        return submissions[0] ?? null;
+      },
+    );
+
+    const row = await svc.approveSubmission(manager(), 'sub-reno');
+    expect(row.status).toBe(FormSubmissionStatus.APPROVED);
+    expect(row.accessCode).toMatch(/^[A-Z0-9]{6}$/);
+    expect(row.qrPayload).toContain(CONDO);
+    expect(row.qrPayload).toContain('sub-reno');
+    expect(row.permitValidFrom).toBeTruthy();
+    expect(row.permitValidUntil).toBeTruthy();
+  });
+});
+
+describe('FormsService.verifyPermit', () => {
+  function guard(): AuthenticatedUser {
+    return {
+      id: 'guard-1',
+      email: 'g@b.c',
+      name: 'Guard',
+      locale: 'en',
+      activeCondoId: CONDO,
+      activeRole: RoleId.SECURITY_GUARD,
+      roles: [{ roleId: RoleId.SECURITY_GUARD, condoId: CONDO, unitId: null, permissions: [] }],
+    };
+  }
+
+  it('verifies an approved renovation permit by access code', async () => {
+    const renoTemplate = {
+      ...TEMPLATE,
+      kind: FormTemplateKind.RENOVATION,
+      title: 'Renovation permit',
+    };
+    const { svc, submissions } = makeService(renoTemplate);
+    submissions[0] = {
+      id: 'sub-1',
+      condoId: CONDO,
+      unitId: UNIT,
+      userId: 'owner-1',
+      status: FormSubmissionStatus.APPROVED,
+      accessCode: 'ABC234',
+      qrPayload: `${CONDO}:sub-1:ABC234`,
+      permitValidFrom: new Date('2026-01-01T00:00:00.000Z'),
+      permitValidUntil: new Date('2099-12-31T23:59:59.999Z'),
+      answers: { contractorCompany: 'ABC Renovation', workScope: 'Kitchen' },
+      template: renoTemplate,
+      unit: { id: UNIT, identifier: 'A-01-01' },
+      user: { id: 'owner-1', name: 'Owner' },
+    };
+
+    const result = await svc.verifyPermit(guard(), 'ABC234');
+    expect(result.passType).toBe('form_permit');
+    expect(result.valid).toBe(true);
+    expect(result.accessCode).toBe('ABC234');
+    expect(result.contractorCompany).toBe('ABC Renovation');
   });
 });

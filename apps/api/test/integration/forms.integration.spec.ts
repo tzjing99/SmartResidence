@@ -76,4 +76,88 @@ describe.skipIf(!integrationReady)('Integration: forms', () => {
     expect(Array.isArray(items)).toBe(true);
     expect(items.some((s: { id: string }) => s.id === submission.id)).toBe(true);
   });
+
+  it('approves a renovation permit, verifies by access code, and returns a PDF', async () => {
+    const supertest = (await import('supertest')).default;
+    const server = app.getHttpServer();
+    const adminHeaders = authHeaders(fx.tokens.admin, fx.condoId);
+    const ownerHeaders = authHeaders(fx.tokens.owner, fx.condoId);
+    const guardHeaders = authHeaders(fx.tokens.guard, fx.condoId);
+
+    const templateRes = await supertest(server)
+      .post('/api/form-templates')
+      .set(adminHeaders)
+      .send({
+        condoId: fx.condoId,
+        kind: 'RENOVATION',
+        title: 'Integration renovation permit',
+        fields: {
+          fields: [
+            { id: 'workScope', type: 'textarea', label: 'Scope', required: true },
+            { id: 'contractorCompany', type: 'text', label: 'Contractor', required: true },
+            { id: 'startDate', type: 'date', label: 'Start', required: true },
+            { id: 'endDate', type: 'date', label: 'End', required: true },
+            {
+              id: 'depositAcknowledgement',
+              type: 'boolean',
+              label: 'Deposit ack',
+              required: true,
+            },
+          ],
+        },
+      })
+      .expect(201);
+
+    const template = templateRes.body.data ?? templateRes.body;
+
+    const submitRes = await supertest(server)
+      .post('/api/form-submissions')
+      .set(ownerHeaders)
+      .send({
+        templateId: template.id,
+        unitId: fx.unitId,
+        submit: true,
+        answers: {
+          workScope: 'Kitchen remodel',
+          contractorCompany: 'ABC Builders',
+          startDate: '2026-08-01',
+          endDate: '2026-08-15',
+          depositAcknowledgement: true,
+        },
+      })
+      .expect(201);
+
+    const submission = submitRes.body.data ?? submitRes.body;
+
+    const approveRes = await supertest(server)
+      .post(`/api/form-submissions/${submission.id}/approve`)
+      .set(adminHeaders)
+      .expect(201);
+
+    const approved = approveRes.body.data ?? approveRes.body;
+    expect(approved.status).toBe('APPROVED');
+    expect(approved.accessCode).toMatch(/^[A-Z2-9]{6}$/);
+    expect(approved.qrPayload).toContain(approved.accessCode);
+
+    const verifyRes = await supertest(server)
+      .post(`/api/form-submissions/verify/${encodeURIComponent(approved.accessCode)}`)
+      .set(guardHeaders)
+      .expect(201);
+
+    const verified = verifyRes.body.data ?? verifyRes.body;
+    expect(verified.passType).toBe('form_permit');
+    expect(verified.valid).toBe(true);
+    expect(verified.accessCode).toBe(approved.accessCode);
+
+    const pdfRes = await supertest(server)
+      .get(`/api/form-submissions/${submission.id}/pdf`)
+      .set(adminHeaders)
+      .expect(200);
+
+    expect(pdfRes.headers['content-type']).toMatch(/application\/pdf/);
+    expect(Buffer.isBuffer(pdfRes.body) || typeof pdfRes.body === 'string').toBe(true);
+    const pdfBuf = Buffer.isBuffer(pdfRes.body) ? pdfRes.body : Buffer.from(pdfRes.body);
+    expect(pdfBuf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(pdfBuf.length).toBeGreaterThan(800);
+  });
 });

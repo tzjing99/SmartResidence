@@ -181,10 +181,21 @@ export class VisitorService {
   private async uniqueAccessCode(condoId: string): Promise<string> {
     for (let attempt = 0; attempt < 8; attempt++) {
       const accessCode = generateAccessCode();
-      const existing = await this.prisma.visitor.findUnique({
-        where: { condoId_accessCode: { condoId, accessCode } },
-      });
-      if (!existing) return accessCode;
+      const [visitor, recurring, form] = await Promise.all([
+        this.prisma.visitor.findUnique({
+          where: { condoId_accessCode: { condoId, accessCode } },
+          select: { id: true },
+        }),
+        this.prisma.recurringPass.findUnique({
+          where: { condoId_accessCode: { condoId, accessCode } },
+          select: { id: true },
+        }),
+        this.prisma.formSubmission.findUnique({
+          where: { condoId_accessCode: { condoId, accessCode } },
+          select: { id: true },
+        }),
+      ]);
+      if (!visitor && !recurring && !form) return accessCode;
     }
     throw new BadRequestException('Could not allocate access code — try again');
   }

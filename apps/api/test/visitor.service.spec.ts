@@ -327,6 +327,80 @@ describe('VisitorService', () => {
     } as any);
     expect(v.status).toBe('PENDING_MANAGEMENT_APPROVAL');
     expect(v.accessCode).toBeNull();
+    expect(prisma.$transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ isolationLevel: 'Serializable' }),
+    );
+  });
+
+  it('rejects holiday overnight when slots are full inside Serializable allocation', async () => {
+    const { svc, prisma } = service();
+    mockOvernightEligibility(prisma);
+    const expectedAt = new Date('2026-06-07T20:00:00'); // Sunday
+    prisma.unit.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: {
+        id: 'c1',
+        settings: {
+          visitor: {
+            overnightSlotsPerNight: 1,
+            holidayOvernightAutoApprove: true,
+            publicHolidays: ['2026-06-07'],
+            workingDays: { weekdays: [1, 2, 3, 4, 5] },
+          },
+        },
+      },
+    });
+    prisma.visitor.count.mockResolvedValue(1);
+    await expect(
+      svc.create(host, {
+        unitId: 'u1',
+        name: 'Holiday guest',
+        phone: '123456789',
+        vehiclePlate: 'HOL1234',
+        vehiclePlatePhotoUrl: 'uploads/plate-hol.jpg',
+        expectedAt,
+        overnight: true,
+        urgentReason: 'family visit',
+      } as any),
+    ).rejects.toThrow(/No overnight slots left/i);
+    expect(prisma.visitor.create).not.toHaveBeenCalled();
+  });
+
+  it('retries visitor create when access-code unique constraint races (P2002)', async () => {
+    const { svc, prisma } = service();
+    const { Prisma } = await import('@prisma/client');
+    prisma.unit.findUnique.mockResolvedValueOnce({
+      id: 'u1',
+      condoId: 'c1',
+      condo: { id: 'c1', settings: {} },
+    });
+    prisma.visitor.findUnique.mockResolvedValue(null);
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
+    prisma.visitor.create
+      .mockRejectedValueOnce(conflict)
+      .mockResolvedValueOnce({ id: 'v-retry', condoId: 'c1' });
+    prisma.visitor.update.mockResolvedValueOnce({
+      id: 'v-retry',
+      condoId: 'c1',
+      accessCode: 'RETRY1',
+      status: 'APPROVED',
+    });
+
+    const v = await svc.create(host, {
+      unitId: 'u1',
+      name: 'Retry guest',
+      phone: '123456789',
+      vehiclePlate: 'ABC1234',
+      expectedAt: new Date('2026-06-10T10:00:00Z'),
+    } as any);
+
+    expect(v.id).toBe('v-retry');
+    expect(prisma.visitor.create).toHaveBeenCalledTimes(2);
   });
 
   it('rejects overnight on walk-in unit registration', async () => {

@@ -13,7 +13,7 @@ import {
   DeliveryPlatform,
   NotificationKind,
   OwnershipStatus,
-  type Prisma,
+  Prisma,
   RoleId,
   TenancyStatus,
   VisitorEntryMode,
@@ -31,11 +31,13 @@ import {
 } from '@smartresidence/shared-types';
 import * as QRCode from 'qrcode';
 import {
+  AccessCodeConflictError,
   buildQrPayload,
-  generateAccessCode,
   isVisitorId,
   normalizePassInput,
   parseQrPayload,
+  withSerializableRetry,
+  withUniqueAccessCodeRetry,
 } from './access-code';
 import { condoDayBounds } from './condo-timezone';
 import type {
@@ -178,26 +180,31 @@ export class VisitorService {
     return [...new Set([...ownerships.map((o) => o.userId), ...tenancies.map((t) => t.userId)])];
   }
 
-  private async uniqueAccessCode(condoId: string): Promise<string> {
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const accessCode = generateAccessCode();
-      const [visitor, recurring, form] = await Promise.all([
-        this.prisma.visitor.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-        this.prisma.recurringPass.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-        this.prisma.formSubmission.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-      ]);
-      if (!visitor && !recurring && !form) return accessCode;
-    }
-    throw new BadRequestException('Could not allocate access code — try again');
+  /**
+   * Soft cross-entity uniqueness (visitor / recurring / form share the gate alphabet).
+   * Hard uniqueness is enforced by `@@unique([condoId, accessCode])` on insert — callers
+   * must use {@link withUniqueAccessCodeRetry} so P2002 races retry with a fresh code.
+   */
+  private async assertAccessCodeFree(
+    db: Prisma.TransactionClient | PrismaService,
+    condoId: string,
+    accessCode: string,
+  ): Promise<void> {
+    const [visitor, recurring, form] = await Promise.all([
+      db.visitor.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+      db.recurringPass.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+      db.formSubmission.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+    ]);
+    if (visitor || recurring || form) throw new AccessCodeConflictError();
   }
 
   private passFields(condoId: string, visitorId: string, accessCode: string) {
@@ -330,9 +337,13 @@ export class VisitorService {
     return checkInAt < dayStart ? dayStart : null;
   }
 
-  private async countOvernightSlots(condoId: string, expectedAt: Date): Promise<number> {
+  private async countOvernightSlots(
+    db: Prisma.TransactionClient | PrismaService,
+    condoId: string,
+    expectedAt: Date,
+  ): Promise<number> {
     const { start, end } = nightRangeForArrival(expectedAt);
-    return this.prisma.visitor.count({
+    return db.visitor.count({
       where: {
         condoId,
         overnight: true,
@@ -442,7 +453,7 @@ export class VisitorService {
     }
     const condo = await this.prisma.condo.findUnique({ where: { id: condoId } });
     if (!condo) throw new NotFoundException('Condo not found');
-    const occupied = await this.countOvernightSlots(condoId, expectedAt);
+    const occupied = await this.countOvernightSlots(this.prisma, condoId, expectedAt);
     return buildOvernightHelperMessage(new Date(), expectedAt, condo.settings, occupied);
   }
 
@@ -469,11 +480,10 @@ export class VisitorService {
     let pendingManagementReview = false;
     let approvedByUserId: string | null = user.id;
     let approvedAt: Date | null = now;
-    let accessCode: string | null = null;
-    let expiresAt: Date | null = null;
 
     if (overnight) {
-      const occupied = await this.countOvernightSlots(unit.condoId, dto.expectedAt);
+      // Fast-fail preview; authoritative slot check runs inside Serializable insert below.
+      const occupied = await this.countOvernightSlots(this.prisma, unit.condoId, dto.expectedAt);
       try {
         const outcome = resolveOvernightOutcome(now, dto.expectedAt, unit.condo.settings, occupied);
         status = outcome.status as VisitorStatus;
@@ -495,58 +505,104 @@ export class VisitorService {
     }
 
     const visitorSettings = parseCondoVisitorSettings(unit.condo.settings);
-
-    if (status === VisitorStatus.APPROVED) {
-      accessCode = await this.uniqueAccessCode(unit.condoId);
-      expiresAt = this.computePreRegExpiresAt(dto.expectedAt, duration, visitorSettings);
-    }
-
     const phone = this.normalizeMalaysiaPhoneField(dto.phone, true)!;
+    const needsPass = status === VisitorStatus.APPROVED;
+    const expiresAt = needsPass
+      ? this.computePreRegExpiresAt(dto.expectedAt, duration, visitorSettings)
+      : null;
 
-    const visitor = await this.prisma.visitor.create({
-      data: {
-        condoId: unit.condoId,
-        visitType: VisitorVisitType.PRE_REG,
-        unitId: unit.id,
-        hostUserId: user.id,
-        name: dto.name,
-        identification: dto.identification,
-        phone,
-        phoneCountryCode: '+60',
-        entryMode,
-        vehiclePlate: entryMode === VisitorEntryMode.DRIVE_IN ? dto.vehiclePlate?.trim() : null,
-        vehiclePlatePhotoUrl: overnight ? dto.vehiclePlatePhotoUrl?.trim() : null,
-        purpose: dto.purpose ?? visitorSettings.defaultPurpose,
-        overnight,
-        urgentOvernight,
-        urgentReason: urgentOvernight ? dto.urgentReason?.trim() : null,
-        pendingManagementReview,
-        expectedAt: dto.expectedAt,
-        expectedDurationMins: duration,
-        status,
-        approvedByUserId,
-        approvedAt,
-        expiresAt,
-        accessCode,
-        qrPayload: accessCode ? buildQrPayload(unit.condoId, 'pending', accessCode) : null,
-        qrCode: null,
-      },
-    });
+    const baseData = {
+      condoId: unit.condoId,
+      visitType: VisitorVisitType.PRE_REG,
+      unitId: unit.id,
+      hostUserId: user.id,
+      name: dto.name,
+      identification: dto.identification,
+      phone,
+      phoneCountryCode: '+60',
+      entryMode,
+      vehiclePlate: entryMode === VisitorEntryMode.DRIVE_IN ? dto.vehiclePlate?.trim() : null,
+      vehiclePlatePhotoUrl: overnight ? dto.vehiclePlatePhotoUrl?.trim() : null,
+      purpose: dto.purpose ?? visitorSettings.defaultPurpose,
+      overnight,
+      urgentOvernight,
+      urgentReason: urgentOvernight ? dto.urgentReason?.trim() : null,
+      pendingManagementReview,
+      expectedAt: dto.expectedAt,
+      expectedDurationMins: duration,
+      status,
+      approvedByUserId,
+      approvedAt,
+      expiresAt,
+      qrCode: null as string | null,
+    };
 
-    let updated = visitor;
-    if (accessCode) {
-      const pass = this.passFields(unit.condoId, visitor.id, accessCode);
-      updated = await this.prisma.visitor.update({
-        where: { id: visitor.id },
-        data: pass,
+    const insertVisitor = async (
+      db: Prisma.TransactionClient | PrismaService,
+      accessCode: string | null,
+    ) => {
+      const visitor = await db.visitor.create({
+        data: {
+          ...baseData,
+          accessCode,
+          qrPayload: accessCode ? buildQrPayload(unit.condoId, 'pending', accessCode) : null,
+        },
       });
+      if (!accessCode) return visitor;
+      const pass = this.passFields(unit.condoId, visitor.id, accessCode);
+      return db.visitor.update({ where: { id: visitor.id }, data: pass });
+    };
+
+    let updated;
+    try {
+      if (overnight) {
+        // Count + insert under Serializable so concurrent holiday auto-approvals
+        // cannot both slip past the overnight capacity check.
+        updated = await withSerializableRetry(() =>
+          this.prisma.$transaction(
+            async (tx) => {
+              const occupied = await this.countOvernightSlots(tx, unit.condoId, dto.expectedAt);
+              try {
+                resolveOvernightOutcome(now, dto.expectedAt, unit.condo.settings, occupied);
+              } catch (err) {
+                if (err instanceof Error && err.message === 'OVERNIGHT_SLOTS_FULL') {
+                  throw new BadRequestException(
+                    'No overnight slots left tonight — contact management or register as urgent and visit the management office',
+                  );
+                }
+                throw err;
+              }
+
+              if (!needsPass) return insertVisitor(tx, null);
+
+              return withUniqueAccessCodeRetry(async (accessCode) => {
+                await this.assertAccessCodeFree(tx, unit.condoId, accessCode);
+                return insertVisitor(tx, accessCode);
+              });
+            },
+            { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+          ),
+        );
+      } else if (needsPass) {
+        updated = await withUniqueAccessCodeRetry(async (accessCode) => {
+          await this.assertAccessCodeFree(this.prisma, unit.condoId, accessCode);
+          return insertVisitor(this.prisma, accessCode);
+        });
+      } else {
+        updated = await insertVisitor(this.prisma, null);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === 'Could not allocate access code — try again') {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
     }
 
     this.events.emit('visitor.created', { visitorId: updated.id, condoId: updated.condoId });
     return updated;
   }
 
-  /** Quick-entry pass for food delivery riders or e-hailing drivers — shorter validity, no phone required. */
+    /** Quick-entry pass for food delivery riders or e-hailing drivers — shorter validity, no phone required. */
   async createDeliveryPass(user: AuthenticatedUser, dto: CreateDeliveryPassDto) {
     const unit = await this.prisma.unit.findUnique({
       where: { id: dto.unitId },
@@ -564,40 +620,41 @@ export class VisitorService {
     const name =
       dto.name?.trim() || defaultQuickEntryPassName(passKind, dto.platform as DeliveryPlatform);
     const now = new Date();
-    const accessCode = await this.uniqueAccessCode(unit.condoId);
     const expiresAt = this.computeQuickEntryExpiresAt(dto.expectedAt, duration);
 
-    const visitor = await this.prisma.visitor.create({
-      data: {
-        condoId: unit.condoId,
-        visitType: VisitorVisitType.PRE_REG,
-        passKind,
-        deliveryPlatform: dto.platform,
-        unitId: unit.id,
-        hostUserId: user.id,
-        name,
-        phone: null,
-        phoneCountryCode: '+60',
-        entryMode,
-        vehiclePlate: plate,
-        purpose:
-          passKind === VisitorPassKind.DELIVERY ? VisitorPurpose.DELIVERY : VisitorPurpose.VISITOR,
-        overnight: false,
-        expectedAt: dto.expectedAt,
-        expectedDurationMins: duration,
-        status: VisitorStatus.APPROVED,
-        approvedByUserId: user.id,
-        approvedAt: now,
-        expiresAt,
-        accessCode,
-        qrPayload: buildQrPayload(unit.condoId, 'pending', accessCode),
-        qrCode: null,
-      },
-    });
-
-    const updated = await this.prisma.visitor.update({
-      where: { id: visitor.id },
-      data: this.passFields(unit.condoId, visitor.id, accessCode),
+    const updated = await withUniqueAccessCodeRetry(async (accessCode) => {
+      await this.assertAccessCodeFree(this.prisma, unit.condoId, accessCode);
+      const visitor = await this.prisma.visitor.create({
+        data: {
+          condoId: unit.condoId,
+          visitType: VisitorVisitType.PRE_REG,
+          passKind,
+          deliveryPlatform: dto.platform,
+          unitId: unit.id,
+          hostUserId: user.id,
+          name,
+          phone: null,
+          phoneCountryCode: '+60',
+          entryMode,
+          vehiclePlate: plate,
+          purpose:
+            passKind === VisitorPassKind.DELIVERY ? VisitorPurpose.DELIVERY : VisitorPurpose.VISITOR,
+          overnight: false,
+          expectedAt: dto.expectedAt,
+          expectedDurationMins: duration,
+          status: VisitorStatus.APPROVED,
+          approvedByUserId: user.id,
+          approvedAt: now,
+          expiresAt,
+          accessCode,
+          qrPayload: buildQrPayload(unit.condoId, 'pending', accessCode),
+          qrCode: null,
+        },
+      });
+      return this.prisma.visitor.update({
+        where: { id: visitor.id },
+        data: this.passFields(unit.condoId, visitor.id, accessCode),
+      });
     });
 
     this.events.emit('visitor.created', { visitorId: updated.id, condoId: updated.condoId });
@@ -622,35 +679,37 @@ export class VisitorService {
 
     const condo = await this.prisma.condo.findUnique({ where: { id: visitor.condoId } });
     const visitorSettings = parseCondoVisitorSettings(condo?.settings);
-    const accessCode = await this.uniqueAccessCode(visitor.condoId);
     const duration = visitor.expectedDurationMins ?? DEFAULT_VISIT_DURATION_MINS;
     const expiresAt = this.computePreRegExpiresAt(visitor.expectedAt, duration, visitorSettings);
-    const pass = this.passFields(visitor.condoId, visitor.id, accessCode);
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const v = await tx.visitor.update({
-        where: { id: visitorId },
-        data: {
-          status: VisitorStatus.APPROVED,
-          approvedByUserId: user.id,
-          approvedAt: new Date(),
-          expiresAt,
-          ...pass,
-        },
+    const updated = await withUniqueAccessCodeRetry(async (accessCode) => {
+      await this.assertAccessCodeFree(this.prisma, visitor.condoId, accessCode);
+      const pass = this.passFields(visitor.condoId, visitor.id, accessCode);
+      return this.prisma.$transaction(async (tx) => {
+        const v = await tx.visitor.update({
+          where: { id: visitorId },
+          data: {
+            status: VisitorStatus.APPROVED,
+            approvedByUserId: user.id,
+            approvedAt: new Date(),
+            expiresAt,
+            ...pass,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            condoId: visitor.condoId,
+            unitId: visitor.unitId,
+            actorUserId: user.id,
+            actorRole: user.activeRole,
+            action: AuditAction.UPDATE,
+            resourceType: 'Visitor',
+            resourceId: visitorId,
+            metadata: { decision: 'overnight_approved' },
+          },
+        });
+        return v;
       });
-      await tx.auditLog.create({
-        data: {
-          condoId: visitor.condoId,
-          unitId: visitor.unitId,
-          actorUserId: user.id,
-          actorRole: user.activeRole,
-          action: AuditAction.UPDATE,
-          resourceType: 'Visitor',
-          resourceId: visitorId,
-          metadata: { decision: 'overnight_approved' },
-        },
-      });
-      return v;
     });
 
     this.events.emit('visitor.approved', { visitorId, condoId: visitor.condoId });

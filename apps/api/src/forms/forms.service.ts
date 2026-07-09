@@ -22,11 +22,12 @@ import {
 } from '@smartresidence/shared-types';
 import * as QRCode from 'qrcode';
 import {
+  AccessCodeConflictError,
   buildQrPayload,
-  generateAccessCode,
   isVisitorId,
   normalizePassInput,
   parseQrPayload,
+  withUniqueAccessCodeRetry,
 } from '../visitor/access-code';
 import type {
   CreateFormSubmissionDto,
@@ -692,26 +693,22 @@ export class FormsService {
     }
   }
 
-  private async uniquePermitAccessCode(condoId: string): Promise<string> {
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const accessCode = generateAccessCode();
-      const [visitorHit, recurringHit, formHit] = await Promise.all([
-        this.prisma.visitor.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-        this.prisma.recurringPass.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-        this.prisma.formSubmission.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-      ]);
-      if (!visitorHit && !recurringHit && !formHit) return accessCode;
-    }
-    throw new BadRequestException('Could not allocate access code — try again');
+  private async assertPermitAccessCodeFree(condoId: string, accessCode: string): Promise<void> {
+    const [visitorHit, recurringHit, formHit] = await Promise.all([
+      this.prisma.visitor.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+      this.prisma.recurringPass.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+      this.prisma.formSubmission.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+    ]);
+    if (visitorHit || recurringHit || formHit) throw new AccessCodeConflictError();
   }
 
   private async allocatePermitFields(
@@ -724,14 +721,16 @@ export class FormsService {
     permitValidFrom: Date | null;
     permitValidUntil: Date | null;
   }> {
-    const accessCode = await this.uniquePermitAccessCode(condoId);
     const record = answers as Record<string, unknown>;
-    return {
-      accessCode,
-      qrPayload: buildQrPayload(condoId, submissionId, accessCode),
-      permitValidFrom: parseAnswerDate(record, 'startDate'),
-      permitValidUntil: endOfDay(parseAnswerDate(record, 'endDate')),
-    };
+    return withUniqueAccessCodeRetry(async (accessCode) => {
+      await this.assertPermitAccessCodeFree(condoId, accessCode);
+      return {
+        accessCode,
+        qrPayload: buildQrPayload(condoId, submissionId, accessCode),
+        permitValidFrom: parseAnswerDate(record, 'startDate'),
+        permitValidUntil: endOfDay(parseAnswerDate(record, 'endDate')),
+      };
+    });
   }
 
   private async resolvePermitPass(

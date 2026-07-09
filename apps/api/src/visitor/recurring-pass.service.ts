@@ -11,11 +11,12 @@ import { AuditAction, type Prisma, RoleId, VisitorStatus, VisitorVisitType } fro
 import { isValidMalaysiaPhone, normalizeMalaysiaPhone } from '@smartresidence/shared-types';
 import { formatUnitLabel } from '@smartresidence/shared-types';
 import {
+  AccessCodeConflictError,
   buildQrPayload,
-  generateAccessCode,
   isVisitorId,
   normalizePassInput,
   parseQrPayload,
+  withUniqueAccessCodeRetry,
 } from './access-code';
 import type { CreateRecurringPassDto, UpdateRecurringPassDto } from './dto/recurring-pass.dto';
 import type { CheckInVisitorDto } from './dto/visitor.dto';
@@ -82,31 +83,33 @@ export class RecurringPassService {
     }
 
     const guestPhone = dto.guestPhone ? this.normalizePhone(dto.guestPhone) : null;
-    const accessCode = await this.uniqueAccessCode(unit.condoId);
 
-    const pass = await this.prisma.recurringPass.create({
-      data: {
-        condoId: unit.condoId,
-        unitId: unit.id,
-        hostUserId: user.id,
-        guestName: dto.guestName.trim(),
-        guestPhone,
-        vehiclePlate: normalizePlate(dto.vehiclePlate),
-        schedule: dto.schedule as unknown as Prisma.InputJsonValue,
-        validFrom: dto.validFrom,
-        validUntil: dto.validUntil,
-        accessCode,
-        qrPayload: buildQrPayload(unit.condoId, 'pending', accessCode),
-      },
-      include: passInclude,
+    const updated = await withUniqueAccessCodeRetry(async (accessCode) => {
+      await this.assertAccessCodeFree(unit.condoId, accessCode);
+      const pass = await this.prisma.recurringPass.create({
+        data: {
+          condoId: unit.condoId,
+          unitId: unit.id,
+          hostUserId: user.id,
+          guestName: dto.guestName.trim(),
+          guestPhone,
+          vehiclePlate: normalizePlate(dto.vehiclePlate),
+          schedule: dto.schedule as unknown as Prisma.InputJsonValue,
+          validFrom: dto.validFrom,
+          validUntil: dto.validUntil,
+          accessCode,
+          qrPayload: buildQrPayload(unit.condoId, 'pending', accessCode),
+        },
+        include: passInclude,
+      });
+      const qrPayload = buildQrPayload(unit.condoId, pass.id, accessCode);
+      return this.prisma.recurringPass.update({
+        where: { id: pass.id },
+        data: { qrPayload, qrCode: qrPayload },
+        include: passInclude,
+      });
     });
-
-    const qrPayload = buildQrPayload(unit.condoId, pass.id, accessCode);
-    const updated = await this.prisma.recurringPass.update({
-      where: { id: pass.id },
-      data: { qrPayload, qrCode: qrPayload },
-      include: passInclude,
-    });
+    const pass = updated;
 
     await this.prisma.auditLog.create({
       data: {
@@ -361,26 +364,22 @@ export class RecurringPassService {
     throw new NotFoundException('Unknown recurring pass — check the QR or access code');
   }
 
-  private async uniqueAccessCode(condoId: string): Promise<string> {
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const accessCode = generateAccessCode();
-      const [visitor, recurring, form] = await Promise.all([
-        this.prisma.visitor.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-        this.prisma.recurringPass.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-        this.prisma.formSubmission.findUnique({
-          where: { condoId_accessCode: { condoId, accessCode } },
-          select: { id: true },
-        }),
-      ]);
-      if (!visitor && !recurring && !form) return accessCode;
-    }
-    throw new BadRequestException('Could not allocate access code — try again');
+  private async assertAccessCodeFree(condoId: string, accessCode: string): Promise<void> {
+    const [visitor, recurring, form] = await Promise.all([
+      this.prisma.visitor.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+      this.prisma.recurringPass.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+      this.prisma.formSubmission.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode } },
+        select: { id: true },
+      }),
+    ]);
+    if (visitor || recurring || form) throw new AccessCodeConflictError();
   }
 
   private userCanManageUnit(user: AuthenticatedUser, unitId: string): boolean {

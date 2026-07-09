@@ -94,6 +94,7 @@ import type {
   McpServerConnectionView,
   MeetingProxy,
   MeetingProxyAdmin,
+  MeetingQuorum,
   MeetingResolution,
   OpenResolutionVotingInput,
   Parcel,
@@ -122,6 +123,8 @@ import type {
   RecurringPassVerify,
   RefundDepositInput,
   RejectFormSubmissionInput,
+  ResolutionBallotsPage,
+  ResolutionVotingEligibility,
   ResolveSosInput,
   SetupStatus,
   SosAlert,
@@ -2091,6 +2094,21 @@ export class ApiClient {
       `/api/governance/resolutions/${resolutionId}/vote`,
       data,
     );
+  }
+  resolutionVotingEligibility(resolutionId: string) {
+    return this.request<ResolutionVotingEligibility>(
+      'GET',
+      `/api/governance/resolutions/${resolutionId}/eligibility`,
+    );
+  }
+  listResolutionBallots(resolutionId: string) {
+    return this.request<ResolutionBallotsPage>(
+      'GET',
+      `/api/governance/resolutions/${resolutionId}/ballots`,
+    );
+  }
+  meetingQuorum(meetingId: string) {
+    return this.request<MeetingQuorum>('GET', `/api/governance/${meetingId}/quorum`);
   }
 
   // Platform console (super-admin) -----------------------------------

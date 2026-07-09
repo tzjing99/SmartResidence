@@ -4,6 +4,7 @@ import {
   useMeeting,
   useMyCondos,
   useMyUnits,
+  useResolutionVotingEligibility,
   useSubmitMeetingProxy,
 } from '@smartresidence/api-client';
 import type {
@@ -268,7 +269,7 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
       {(meeting.resolutions?.length ?? 0) > 0 ? (
         <>
           <ResidentSectionHeader title="Resolutions" />
-          {meeting.resolutions!.map((res) => (
+          {(meeting.resolutions ?? []).map((res) => (
             <ResolutionCard key={res.id} resolution={res} />
           ))}
         </>
@@ -280,48 +281,47 @@ function MeetingDetail({ meetingId }: { meetingId: string }) {
 function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
   const { colors } = useTheme();
   const castVote = useCastResolutionVote(api);
-  const unitsQuery = useMyUnits(api);
+  const eligibilityQuery = useResolutionVotingEligibility(api, resolution.id ?? null);
   const [unitId, setUnitId] = useState('');
   const [optionId, setOptionId] = useState('');
 
-  const votedUnitIds = useMemo(
-    () => new Set(resolution.poll?.myVotes?.map((v) => v.unitId).filter(Boolean) as string[]),
-    [resolution.poll?.myVotes],
+  const castableUnits = useMemo(
+    () =>
+      (eligibilityQuery.data?.eligibleUnits ?? []).filter(
+        (u) => !u.blockedReason && !u.alreadyVoted,
+      ),
+    [eligibilityQuery.data?.eligibleUnits],
   );
 
-  const ownedUnits = useMemo(() => {
-    const rows = (unitsQuery.data ?? []) as Array<{
-      id?: string;
-      identifier?: string;
-      ownerships?: Array<{ status?: string }>;
-    }>;
-    return rows.filter(
-      (u) => u.ownerships?.some((o) => o.status === 'ACTIVE') && u.id && !votedUnitIds.has(u.id),
-    );
-  }, [unitsQuery.data, votedUnitIds]);
-
   const pollOpen = resolution.poll?.status === 'OPEN';
+  const quorum = eligibilityQuery.data?.quorum;
 
   return (
     <Card style={[residentStyles.card, { marginBottom: 8 }]}>
       <AppText variant="subheading">{resolution.title}</AppText>
+      {quorum ? (
+        <AppText variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
+          Quorum: {quorum.castSharePercentOfEligible.toFixed(1)}% / {quorum.quorumPercent}%
+          {quorum.met ? ' · met' : ''}
+        </AppText>
+      ) : null}
       {resolution.poll?.results?.options?.map((opt) => (
         <AppText key={opt.id} variant="meta" style={{ color: colors.muted, marginTop: 4 }}>
           {opt.label}: {opt.weightPercent}% weighted
         </AppText>
       ))}
 
-      {pollOpen && ownedUnits.length > 0 ? (
+      {pollOpen && castableUnits.length > 0 ? (
         <View style={{ marginTop: 12, gap: 8 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {ownedUnits.map((u) => (
+            {castableUnits.map((u) => (
               <Chip
-                key={u.id}
-                label={u.identifier ?? ''}
-                active={unitId === u.id}
+                key={u.unitId}
+                label={u.viaProxy ? `${u.unitIdentifier} (proxy)` : u.unitIdentifier}
+                active={unitId === u.unitId}
                 onPress={() => {
                   hapticSelection();
-                  if (u.id) setUnitId(u.id);
+                  setUnitId(u.unitId);
                 }}
               />
             ))}
@@ -340,7 +340,7 @@ function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
             ))}
           </View>
           <Button
-            title="Cast vote"
+            title="Cast ballot"
             disabled={castVote.isPending || !unitId || !optionId}
             loading={castVote.isPending}
             onPress={() =>
@@ -350,7 +350,8 @@ function ResolutionCard({ resolution }: { resolution: MeetingResolution }) {
                 {
                   onSuccess: () => {
                     hapticSuccess();
-                    Alert.alert('Vote recorded');
+                    Alert.alert('Ballot recorded');
+                    void eligibilityQuery.refetch();
                   },
                   onError: (e) => {
                     hapticError();

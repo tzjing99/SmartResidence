@@ -53,6 +53,15 @@ export class GovernanceController {
     return this.governance.getMyProxies(user, id);
   }
 
+  @Get(':id/quorum')
+  @CheckAbility({ action: 'read', subject: 'GeneralMeeting' })
+  meetingQuorum(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.governance.getMeetingQuorum(user, id);
+  }
+
   @Get(':id')
   @CheckAbility({ action: 'read', subject: 'GeneralMeeting' })
   getOne(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
@@ -187,6 +196,21 @@ export class GovernanceController {
   @CheckAbility({ action: 'read', subject: 'MeetingResolution' })
   results(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.governance.getResolutionResults(user, id);
+  }
+
+  @Get('resolutions/:id/eligibility')
+  @CheckAbility({ action: 'read', subject: 'MeetingResolution' })
+  eligibility(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.governance.getVotingEligibility(user, id);
+  }
+
+  @Get('resolutions/:id/ballots')
+  @CheckAbility({ action: 'manage', subject: 'MeetingResolution' })
+  ballots(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.governance.listResolutionBallots(user, id);
   }
 
   @Post('resolutions/:id/vote')

@@ -282,6 +282,7 @@ export class PollsService {
     ownership: {
       id: string;
       sharePercent: Prisma.Decimal;
+      userId?: string;
       unit: { id: string; condoId: string; blockId: string; identifier: string };
     },
     auditExtra?: Record<string, unknown>,
@@ -337,11 +338,22 @@ export class PollsService {
     ownership: {
       id: string;
       sharePercent: Prisma.Decimal;
+      userId?: string;
       unit: { id: string; condoId: string; blockId: string; identifier: string };
     },
     dto: CastPollVoteDto,
     auditExtra?: Record<string, unknown>,
   ) {
+    const viaProxy = auditExtra?.viaProxy === true;
+    const proxyId =
+      typeof auditExtra?.proxyId === 'string' ? (auditExtra.proxyId as string) : undefined;
+    const meetingId =
+      typeof auditExtra?.meetingId === 'string' ? (auditExtra.meetingId as string) : undefined;
+    const ownerUserId =
+      typeof auditExtra?.ownerUserId === 'string'
+        ? (auditExtra.ownerUserId as string)
+        : (ownership.userId ?? user.id);
+
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.pollVote.create({
@@ -352,6 +364,10 @@ export class PollsService {
             userId: user.id,
             ownershipId: ownership.id,
             weight: ownership.sharePercent,
+            viaProxy,
+            proxyId: proxyId ?? null,
+            meetingId: meetingId ?? null,
+            ownerUserId,
           },
         });
 
@@ -365,10 +381,16 @@ export class PollsService {
             resourceType: 'PollVote',
             resourceId: poll.id,
             metadata: {
+              event: meetingId ? 'governance.resolution.ballot_cast' : 'poll.vote_cast',
               optionId: dto.optionId,
               optionLabel: option.label,
               ownershipId: ownership.id,
               weight: Number(ownership.sharePercent),
+              viaProxy,
+              proxyId: proxyId ?? null,
+              meetingId: meetingId ?? null,
+              ownerUserId,
+              immutable: true,
               ...auditExtra,
             },
           },

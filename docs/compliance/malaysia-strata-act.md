@@ -55,7 +55,14 @@ When an owner submits a proxy for a unit at an AGM/EGM:
 - Link the proxy holder via `proxyHolderUserId` (registered condo member) or an email in **Contact** that matches their login.
 - Management can review all proxy forms per meeting under **Admin → Governance**.
 
-When management closes resolution voting, SmartResidence writes an **immutable `resultsSnapshot`** on the resolution and an audit log entry with the final For/Against/Abstain share-weighted totals.
+When management closes resolution voting, SmartResidence writes an **immutable `resultsSnapshot`** on the resolution and an audit log entry with the final For/Against/Abstain share-weighted totals, including a **quorum** block (`quorumPercent` threshold vs cast share weight).
+
+### Quorum & ballot audit (AGM/EGM e-voting)
+
+- Each `GeneralMeeting` has a configurable **`quorumPercent`** (default **50**): share-weighted participation required for the resolution close snapshot to report `quorum.met`.
+- Residents cast ballots via `POST /api/governance/resolutions/:id/vote`. Eligibility (owned units without proxy, or units held as proxy) is available at `GET .../eligibility`.
+- Each ballot is stored on `PollVote` with immutable audit fields (`viaProxy`, `proxyId`, `meetingId`, `ownerUserId`) plus an audit log event `governance.resolution.ballot_cast`.
+- Management can review the ballot ledger at `GET .../ballots` (Admin → Governance → Show ballot audit).
 
 ## AGM financial presentation
 

@@ -122,7 +122,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Web perf (lite HSR)** | ✅ | **U1** — route-level `loading.tsx` skeletons, nav prefetch, shell retention during auth, `keepPreviousData` on thread lists (commits `ce33631`–`32cd37e`) |
 | **Facility booking** | ✅ | `Facility`/`Booking` module; admin `/admin/facilities`; resident booking with deposits → Billing; migration `20260701190000_facility_booking` |
 | **Parcels / deliveries** | ✅ | `Parcel`/`ParcelEvent`; guard logging + resident collection sign-off + reminders; admin `/admin/parcels`; migration `20260702120000_parcels` |
-| **Governance (AGM/EGM, e-voting, financial transparency, minutes)** | 🟡 | **Core ✅** — `GovernanceModule` (`GeneralMeeting`/`MeetingProxy`/`MeetingResolution` + share-weighted resolution voting via `PollsModule`); admin `/admin/governance` + resident/mobile; migration `20260702170000_governance`; e2e `governance.spec.ts`. **Remaining ⬜:** minutes publication + financial/budget transparency views (§4.8) |
+| **Governance (AGM/EGM, e-voting, financial transparency, minutes)** | 🟡 | **Core ✅** — meetings, proxy, share-weighted resolution voting, minutes + financial snapshot, **quorum + eligibility + immutable ballot audit**. **Remaining ⬜:** deeper financial/budget transparency views; one-unit-one-vote motion modes (§4.8 / open questions) |
 | **Forms & workflows (move-in/out, renovation permit, vehicle sticker)** | ✅ | `FormTemplate`/`FormSubmission` with approval routing; admin `/admin/forms`; migration `20260702130000_forms_workflows` |
 | **Community (marketplace, polls, lost & found)** | ✅ | **Polls ✅** (governance-lite owner-verified voting — see row above); **lost & found ✅** — `LostFoundModule`, admin `/admin/lost-found`, resident/mobile, migration `20260702160000_lost_found`, e2e `lost-found.spec.ts`; **marketplace cancelled** (product decision — code removed) |
 | **Documents vault** | ✅ | `Document`/`DocumentVersion` with role-scoped visibility; admin `/admin/documents`; migration `20260702140000_documents_vault` |
@@ -274,17 +274,19 @@ The flagship resident-empowerment flow. Two explicit paths:
   visitor flow ties in (§4.2 future).
 - **Deps:** Notifications, Visitor (gate context), Audit.
 
-### 4.8 Governance (AGM/EGM, e-voting, financial transparency, minutes)  *(🟡 core ✅ → minutes + financials ⬜)*
-- **Shipped (v0.6 core):** `GovernanceModule` — `GeneralMeeting` (AGM/EGM),
-  notice body + status workflow (`DRAFT` → `NOTICE_PUBLISHED` → `IN_PROGRESS` →
-  `CLOSED`), **proxy** submission per unit (`MeetingProxy`), resolution motions
-  (`MeetingResolution`) with share-weighted e-voting via linked `Poll` (For /
-  Against / Abstain; eligibility = active ownership + `sharePercent` weighting).
-  Admin `/admin/governance`, resident `/(resident)/governance`, mobile
-  `(resident)/governance`; migration `20260702170000_governance`; e2e
-  `governance.spec.ts`.
-- **Still ⬜:** **minutes** publication (→ Documents vault), **audited
-  financials / budget transparency** views (→ Billing ledger + reports).
+### 4.8 Governance (AGM/EGM, e-voting, financial transparency, minutes)  *(🟡 core ✅ → deeper financials ⬜)*
+- **Shipped (v0.6 core + e-voting slice):** `GovernanceModule` — `GeneralMeeting`
+  (AGM/EGM), notice workflow, **proxy** per unit, resolution motions with
+  share-weighted e-voting via linked `Poll` (For / Against / Abstain), minutes
+  publication + financial snapshot at notice, **`quorumPercent`** + live quorum
+  on close, **eligibility** API (owner vs proxy holder), **immutable ballot
+  audit** on `PollVote` (`viaProxy` / `proxyId` / `meetingId` / `ownerUserId`) +
+  management ballot ledger. Admin `/admin/governance`, resident + mobile
+  governance screens; migrations `20260702170000_governance` …
+  `20260709120000_governance_agm_evoting`; e2e / integration `governance*.spec.ts`.
+- **Still ⬜:** richer **financial/budget transparency** views beyond the notice
+  snapshot; optional Documents-vault minutes attachment; one-unit-one-vote
+  motion modes (open question).
 - **Deps:** Billing (financial transparency), Documents vault (minutes/
   budgets), Identity (eligibility = active ownership). **High-trust — remaining
   gaps in active development.**

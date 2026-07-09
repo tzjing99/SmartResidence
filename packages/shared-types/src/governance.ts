@@ -71,6 +71,34 @@ export const MeetingResolutionPollSummarySchema = z.object({
   myVotes: z.array(PollMyVoteSchema).optional(),
 });
 
+/** Share-weighted quorum status for an AGM/EGM (or a resolution poll). */
+export const MeetingQuorumSchema = z.object({
+  quorumPercent: z.number(),
+  eligibleUnitCount: z.number().int(),
+  eligibleShareWeight: z.number(),
+  castUnitCount: z.number().int(),
+  castShareWeight: z.number(),
+  castSharePercentOfEligible: z.number(),
+  met: z.boolean(),
+});
+export type MeetingQuorum = z.infer<typeof MeetingQuorumSchema>;
+
+export const EligibilitySnapshotUnitSchema = z.object({
+  unitId: z.string().uuid(),
+  unitIdentifier: z.string(),
+  sharePercent: z.number(),
+  ownerUserId: z.string().uuid(),
+  ownerName: z.string(),
+});
+
+export const EligibilitySnapshotSchema = z.object({
+  capturedAt: z.string(),
+  unitCount: z.number().int(),
+  totalShareWeight: z.number(),
+  units: z.array(EligibilitySnapshotUnitSchema),
+});
+export type EligibilitySnapshot = z.infer<typeof EligibilitySnapshotSchema>;
+
 export const MeetingResolutionSchema = z.object({
   id: z.string().uuid(),
   meetingId: z.string().uuid(),
@@ -81,7 +109,12 @@ export const MeetingResolutionSchema = z.object({
   votingClosesAt: z.coerce.date().nullable().optional(),
   position: z.number().int().optional(),
   poll: MeetingResolutionPollSummarySchema.nullable().optional(),
-  resultsSnapshot: PollResultsSchema.nullable().optional(),
+  eligibilitySnapshot: EligibilitySnapshotSchema.nullable().optional(),
+  resultsSnapshot: PollResultsSchema.extend({
+    quorum: MeetingQuorumSchema.optional(),
+  })
+    .nullable()
+    .optional(),
 });
 export type MeetingResolution = z.infer<typeof MeetingResolutionSchema>;
 
@@ -95,6 +128,8 @@ export const GeneralMeetingSchema = z.object({
   minutesBody: z.string().optional(),
   minutesPublishedAt: z.coerce.date().nullable().optional(),
   financialSnapshot: MeetingFinancialSnapshotSchema.nullable().optional(),
+  /** Share-weighted quorum threshold (0–100). */
+  quorumPercent: z.number().optional(),
   status: GeneralMeetingStatus,
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
@@ -119,6 +154,7 @@ export const CreateGeneralMeetingInputSchema = z.object({
   title: z.string().min(4).max(200),
   scheduledAt: z.coerce.date(),
   noticeBody: z.string().optional(),
+  quorumPercent: z.number().min(0).max(100).optional(),
 });
 export type CreateGeneralMeetingInput = z.infer<typeof CreateGeneralMeetingInputSchema>;
 
@@ -129,6 +165,7 @@ export const UpdateGeneralMeetingInputSchema = z.object({
   noticeBody: z.string().optional(),
   minutesBody: z.string().optional(),
   status: GeneralMeetingStatus.optional(),
+  quorumPercent: z.number().min(0).max(100).optional(),
 });
 export type UpdateGeneralMeetingInput = z.infer<typeof UpdateGeneralMeetingInputSchema>;
 
@@ -174,6 +211,60 @@ export const ResolutionResultsSchema = z.object({
   votingOpensAt: z.coerce.date().nullable().optional(),
   votingClosesAt: z.coerce.date().nullable().optional(),
   poll: PollSchema,
-  resultsSnapshot: PollResultsSchema.nullable().optional(),
+  resultsSnapshot: PollResultsSchema.extend({
+    quorum: MeetingQuorumSchema.optional(),
+  })
+    .nullable()
+    .optional(),
 });
 export type ResolutionResults = z.infer<typeof ResolutionResultsSchema>;
+
+export const VotingEligibleUnitSchema = z.object({
+  unitId: z.string().uuid(),
+  unitIdentifier: z.string(),
+  sharePercent: z.number(),
+  viaProxy: z.boolean(),
+  ownerName: z.string().optional(),
+  alreadyVoted: z.boolean(),
+  blockedReason: z.string().optional(),
+});
+export type VotingEligibleUnit = z.infer<typeof VotingEligibleUnitSchema>;
+
+export const ResolutionVotingEligibilitySchema = z.object({
+  resolutionId: z.string().uuid(),
+  meetingId: z.string().uuid(),
+  pollId: z.string().uuid().nullable(),
+  pollStatus: z.enum(['DRAFT', 'OPEN', 'CLOSED']).nullable(),
+  votingOpen: z.boolean(),
+  quorum: MeetingQuorumSchema,
+  eligibleUnits: z.array(VotingEligibleUnitSchema),
+  castableUnitCount: z.number().int(),
+});
+export type ResolutionVotingEligibility = z.infer<typeof ResolutionVotingEligibilitySchema>;
+
+export const ResolutionBallotSchema = z.object({
+  id: z.string().uuid(),
+  unitId: z.string().uuid(),
+  unitIdentifier: z.string(),
+  optionId: z.string().uuid(),
+  optionLabel: z.string(),
+  weight: z.number(),
+  viaProxy: z.boolean(),
+  proxyId: z.string().uuid().nullable().optional(),
+  ownerUserId: z.string().uuid().nullable().optional(),
+  castByUserId: z.string().uuid(),
+  castByName: z.string(),
+  castByEmail: z.string().nullable().optional(),
+  castAt: z.coerce.date(),
+  immutable: z.literal(true),
+});
+export type ResolutionBallot = z.infer<typeof ResolutionBallotSchema>;
+
+export const ResolutionBallotsPageSchema = z.object({
+  resolutionId: z.string().uuid(),
+  meetingId: z.string().uuid(),
+  pollId: z.string().uuid(),
+  quorum: MeetingQuorumSchema,
+  ballots: z.array(ResolutionBallotSchema),
+});
+export type ResolutionBallotsPage = z.infer<typeof ResolutionBallotsPageSchema>;

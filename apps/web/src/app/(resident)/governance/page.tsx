@@ -12,6 +12,7 @@ import {
   useMeeting,
   useMyCondos,
   useMyUnits,
+  useResolutionVotingEligibility,
   useSubmitMeetingProxy,
 } from '@smartresidence/api-client';
 import type {
@@ -178,33 +179,41 @@ function ResolutionVotePanel({
   canVote: boolean;
 }) {
   const castVote = useCastResolutionVote(api);
-  const unitsQuery = useMyUnits(api);
+  const eligibilityQuery = useResolutionVotingEligibility(api, resolution.id ?? null);
   const [unitId, setUnitId] = React.useState('');
   const [optionId, setOptionId] = React.useState('');
 
-  const votedUnitIds = React.useMemo(
-    () => new Set(resolution.poll?.myVotes?.map((v) => v.unitId).filter(Boolean) as string[]),
-    [resolution.poll?.myVotes],
+  const castableUnits = React.useMemo(
+    () =>
+      (eligibilityQuery.data?.eligibleUnits ?? []).filter(
+        (u) => !u.blockedReason && !u.alreadyVoted,
+      ),
+    [eligibilityQuery.data?.eligibleUnits],
   );
 
-  const ownedUnits = React.useMemo(() => {
-    const rows = (unitsQuery.data ?? []) as Array<{
-      id?: string;
-      identifier?: string;
-      ownerships?: Array<{ status?: string }>;
-    }>;
-    return rows.filter(
-      (u) => u.ownerships?.some((o) => o.status === 'ACTIVE') && u.id && !votedUnitIds.has(u.id),
-    );
-  }, [unitsQuery.data, votedUnitIds]);
-
   const pollOpen = resolution.poll?.status === 'OPEN';
+  const quorum = eligibilityQuery.data?.quorum;
+  const snapshotQuorum = (
+    resolution.resultsSnapshot as {
+      quorum?: { met?: boolean; castSharePercentOfEligible?: number; quorumPercent?: number };
+    } | null
+  )?.quorum;
 
   return (
     <Card className="p-4 border border-[rgb(var(--sr-border))]">
       <p className="font-medium">{resolution.title}</p>
       {resolution.description ? (
         <p className="text-sm sr-muted mt-1">{resolution.description}</p>
+      ) : null}
+
+      {quorum || snapshotQuorum ? (
+        <p className="text-xs sr-muted mt-2">
+          Quorum:{' '}
+          {(quorum ?? snapshotQuorum)?.castSharePercentOfEligible?.toFixed?.(1) ??
+            (quorum ?? snapshotQuorum)?.castSharePercentOfEligible}
+          % of share cast · threshold {(quorum ?? snapshotQuorum)?.quorumPercent}%
+          {(quorum ?? snapshotQuorum)?.met ? ' · met' : ' · not yet met'}
+        </p>
       ) : null}
 
       {(resolution.poll?.results ?? resolution.resultsSnapshot) ? (
@@ -228,7 +237,7 @@ function ResolutionVotePanel({
         </div>
       ) : null}
 
-      {pollOpen && canVote && ownedUnits.length > 0 ? (
+      {pollOpen && canVote && castableUnits.length > 0 ? (
         <form
           className="mt-4 space-y-3 border-t pt-3"
           onSubmit={(e) => {
@@ -237,7 +246,10 @@ function ResolutionVotePanel({
             castVote.mutate(
               { resolutionId: resolution.id, data: { unitId, optionId } },
               {
-                onSuccess: () => toast.success('Vote recorded'),
+                onSuccess: () => {
+                  toast.success('Ballot recorded');
+                  void eligibilityQuery.refetch();
+                },
                 onError: (err) => toast.error(err.message),
               },
             );
@@ -251,9 +263,11 @@ function ResolutionVotePanel({
               onChange={(e) => setUnitId(e.target.value)}
             >
               <option value="">Select unit</option>
-              {ownedUnits.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.identifier}
+              {castableUnits.map((u) => (
+                <option key={u.unitId} value={u.unitId}>
+                  {u.unitIdentifier}
+                  {u.viaProxy ? ` (proxy for ${u.ownerName ?? 'owner'})` : ''} · {u.sharePercent}%
+                  share
                 </option>
               ))}
             </select>
@@ -279,7 +293,7 @@ function ResolutionVotePanel({
             disabled={castVote.isPending || !unitId || !optionId}
             loading={castVote.isPending}
           >
-            Cast vote
+            Cast ballot
           </Button>
         </form>
       ) : resolution.poll?.myVotes?.length ? (
@@ -288,7 +302,9 @@ function ResolutionVotePanel({
           {resolution.poll.myVotes.map((v) => `${v.unitIdentifier}: ${v.optionLabel}`).join(', ')}
         </p>
       ) : pollOpen ? (
-        <p className="text-sm sr-muted mt-3">You have voted on all eligible units.</p>
+        <p className="text-sm sr-muted mt-3">
+          No castable units — you may have already voted or submitted a proxy.
+        </p>
       ) : null}
     </Card>
   );

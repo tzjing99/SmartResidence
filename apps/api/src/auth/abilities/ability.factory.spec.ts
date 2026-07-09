@@ -53,7 +53,12 @@ describe('AbilityFactory', () => {
       }),
     );
     expect(ability.can('read', 'AuditLog')).toBe(true);
-    expect(ability.can('manage', 'Visitor')).toBe(true);
+    expect(ability.can('create', 'Visitor')).toBe(true);
+    expect(ability.can('approve', 'Visitor')).toBe(true);
+    // Never grant blanket `manage Visitor` — that implies gate ops.
+    expect(ability.can('manage', 'Visitor')).toBe(false);
+    expect(ability.can('check-in', 'Visitor')).toBe(false);
+    expect(ability.can('create-walk-in', 'Visitor')).toBe(false);
   });
 
   it('does not let a security guard read invoices', () => {
@@ -66,6 +71,9 @@ describe('AbilityFactory', () => {
       }),
     );
     expect(ability.can('check-in', 'Visitor')).toBe(true);
+    expect(ability.can('create-walk-in', 'Visitor')).toBe(true);
+    expect(ability.can('approve', 'Visitor')).toBe(false);
+    expect(ability.can('reject', 'Visitor')).toBe(false);
     expect(ability.can('read', subject('Unit', { condoId: 'condo-1' }))).toBe(true);
     expect(ability.can('read', 'Invoice')).toBe(false);
     expect(ability.can('manage', 'Defect')).toBe(false);
@@ -81,12 +89,32 @@ describe('AbilityFactory', () => {
       }),
     );
     expect(ability.can('read', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('approve', 'Visitor')).toBe(false);
     expect(ability.can('approve', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
     expect(ability.can('approve-overnight', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
-    expect(ability.can('reject', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
+    expect(ability.can('reject', 'Visitor')).toBe(false);
     expect(ability.can('create', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
+    expect(ability.can('check-in', 'Visitor')).toBe(false);
+    expect(ability.can('create-walk-in', 'Visitor')).toBe(false);
   });
 
+  it('lets management staff read the visitor log but not overnight-approve or gate-operate', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.MANAGEMENT_STAFF, condoId: 'condo-1', unitId: null, permissions: [] },
+        ],
+        activeRole: RoleId.MANAGEMENT_STAFF,
+      }),
+    );
+    expect(ability.can('read', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('approve', 'Visitor')).toBe(false);
+    expect(ability.can('reject', 'Visitor')).toBe(false);
+    expect(ability.can('approve-overnight', 'Visitor')).toBe(false);
+    expect(ability.can('manage-overnight-policy', 'Visitor')).toBe(false);
+    expect(ability.can('check-in', 'Visitor')).toBe(false);
+    expect(ability.can('create-walk-in', 'Visitor')).toBe(false);
+  });
   it('lets management admin manage handover config but staff only read it', () => {
     const admin = factory.build(
       user({
@@ -138,9 +166,49 @@ describe('AbilityFactory', () => {
     );
     expect(ability.can('approve', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
     expect(ability.can('reject', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
+    expect(ability.can('delete', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
     expect(ability.can('approve', subject('Visitor', { unitId: 'unit-2' }))).toBe(false);
+    expect(ability.can('check-in', subject('Visitor', { unitId: 'unit-1' }))).toBe(false);
+    expect(ability.can('create-walk-in', subject('Visitor', { condoId: 'condo-1' }))).toBe(false);
   });
 
+  it('does not let household members approve or reject walk-ins', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          {
+            roleId: RoleId.HOUSEHOLD_MEMBER,
+            condoId: 'condo-1',
+            unitId: 'unit-1',
+            permissions: [],
+          },
+        ],
+        activeRole: RoleId.HOUSEHOLD_MEMBER,
+      }),
+    );
+    expect(ability.can('create', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
+    expect(ability.can('read', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
+    expect(ability.can('delete', subject('Visitor', { unitId: 'unit-1' }))).toBe(true);
+    expect(ability.can('approve', subject('Visitor', { unitId: 'unit-1' }))).toBe(false);
+    expect(ability.can('reject', subject('Visitor', { unitId: 'unit-1' }))).toBe(false);
+    expect(ability.can('check-in', 'Visitor')).toBe(false);
+  });
+
+  it('lets a dual management+guard user keep gate ops while denying unit approve', () => {
+    const ability = factory.build(
+      user({
+        roles: [
+          { roleId: RoleId.MANAGEMENT_ADMIN, condoId: 'condo-1', unitId: null, permissions: [] },
+          { roleId: RoleId.SECURITY_GUARD, condoId: 'condo-1', unitId: null, permissions: [] },
+        ],
+        activeRole: RoleId.SECURITY_GUARD,
+      }),
+    );
+    expect(ability.can('check-in', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('create-walk-in', subject('Visitor', { condoId: 'condo-1' }))).toBe(true);
+    expect(ability.can('approve', 'Visitor')).toBe(false);
+    expect(ability.can('reject', 'Visitor')).toBe(false);
+  });
   it('lets residents create and resolve their own lost & found posts', () => {
     const ability = factory.build(
       user({

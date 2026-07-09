@@ -48,7 +48,7 @@ GitHub Actions still blocked until **2026-08-01**. Path C local verify used for 
 
 ### Known gaps (non-blocking for Jul 11)
 
-- Visitor management RBAC correction (mgmt read-only approve) — ROADMAP §2.1
+- ~~Visitor management RBAC correction (mgmt read-only approve) — ROADMAP §2.1~~ ✅ corrected on `fix/visitor-mgmt-rbac` (owners/tenants no longer get CASL `manage Visitor` / gate ops; management denied unit approve/reject + gate; integration coverage)
 - Trained ML assignment (C6) — stub only
 - Full AGM/EGM e-voting beyond proxy + minutes
 - Self-host Docker web image build failure
@@ -258,7 +258,7 @@ Billing exports (#7), platform console (#8), i18n phases 1–3 (#9, #13, mobile-
 | Gap | ROADMAP status | July 11 impact |
 | --- | --- | --- |
 | Full AGM/EGM e-voting | ⬜ §4.8 | Partial via #10/#12 only |
-| Visitor management RBAC correction (mgmt read-only approve) | ⚠️ §2.1 pending | **MVP trust gap** — document as known limitation |
+| Visitor management RBAC correction (mgmt read-only approve) | ✅ §2.1 | Fixed: explicit resident visitor actions; management read/overnight only; gate ops guard-only |
 | Dedicated TNG/Boost/GrabPay adapters | Cancelled per #16 | Close #14 |
 | Statement/CSV export polish | Pending | Addressed by #7 |
 | Full i18n (BM/EN/中文/Tamil) | 🟡 | Phased PRs + mobile-ux — not 100% coverage |

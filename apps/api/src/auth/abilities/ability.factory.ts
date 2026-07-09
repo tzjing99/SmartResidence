@@ -151,12 +151,18 @@ export class AbilityFactory {
         can('manage', 'Unit', { condoId: scope.condoId ?? '' });
         can('manage', 'Ownership');
         can('manage', 'Tenancy');
-        // Management is read/audit only on the visitor log: they can view and
-        // export it, but approving/rejecting visitors belongs to residents.
+        // Management is read/audit only on unit walk-ins: they can view and
+        // export the log, but approving/rejecting unit visitors belongs to
+        // residents. Overnight pre-reg review remains a management exception.
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
         can('export', 'Visitor', { condoId: scope.condoId ?? '' });
         can('approve-overnight', 'Visitor', { condoId: scope.condoId ?? '' });
         can('manage-overnight-policy', 'Visitor', { condoId: scope.condoId ?? '' });
+        cannot('approve', 'Visitor');
+        cannot('reject', 'Visitor');
+        cannot('check-in', 'Visitor');
+        cannot('check-out', 'Visitor');
+        cannot('create-walk-in', 'Visitor');
         can('manage', 'VisitorBlacklist', { condoId: scope.condoId ?? '' });
         can('read', 'RecurringPass', { condoId: scope.condoId ?? '' });
         can('manage', 'Invoice', { condoId: scope.condoId ?? '' });
@@ -213,6 +219,14 @@ export class AbilityFactory {
         can('read', 'Condo', { id: scope.condoId ?? '' });
         can('read', 'Unit', { condoId: scope.condoId ?? '' });
         can('read', 'Visitor', { condoId: scope.condoId ?? '' });
+        // Staff: visitor log read-only (no overnight approve / gate / unit approve).
+        cannot('approve', 'Visitor');
+        cannot('reject', 'Visitor');
+        cannot('approve-overnight', 'Visitor');
+        cannot('manage-overnight-policy', 'Visitor');
+        cannot('check-in', 'Visitor');
+        cannot('check-out', 'Visitor');
+        cannot('create-walk-in', 'Visitor');
         can('read', 'RecurringPass', { condoId: scope.condoId ?? '' });
         can('read', 'Defect', { condoId: scope.condoId ?? '' });
         can('update', 'Defect', { condoId: scope.condoId ?? '' });
@@ -292,7 +306,13 @@ export class AbilityFactory {
       case RoleId.UNIT_OWNER:
         can('read', 'Condo', { id: scope.condoId ?? '' });
         can('read', 'Unit', { id: scope.unitId ?? '' });
-        can('manage', 'Visitor', { unitId: scope.unitId ?? '' });
+        // Explicit visitor actions only — never `manage Visitor`, which would
+        // also imply gate ops (check-in / create-walk-in) via CASL.
+        can('create', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('read', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('delete', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('approve', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('reject', 'Visitor', { unitId: scope.unitId ?? '' });
         can('manage', 'FavouriteVisitor', { unitId: scope.unitId ?? '' });
         can('manage', 'RecurringPass', { unitId: scope.unitId ?? '' });
         can('read', 'Invoice', { unitId: scope.unitId ?? '' });
@@ -353,7 +373,12 @@ export class AbilityFactory {
       case RoleId.TENANT:
         can('read', 'Condo', { id: scope.condoId ?? '' });
         can('read', 'Unit', { id: scope.unitId ?? '' });
-        can('manage', 'Visitor', { unitId: scope.unitId ?? '' });
+        // Same as owner: unit-scoped visitor CRUD/approve — not gate operations.
+        can('create', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('read', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('delete', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('approve', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('reject', 'Visitor', { unitId: scope.unitId ?? '' });
         can('manage', 'FavouriteVisitor', { unitId: scope.unitId ?? '' });
         can('manage', 'RecurringPass', { unitId: scope.unitId ?? '' });
         can('read', 'Invoice', { unitId: scope.unitId ?? '' });
@@ -399,8 +424,10 @@ export class AbilityFactory {
 
       case RoleId.HOUSEHOLD_MEMBER:
         can('read', 'Unit', { id: scope.unitId ?? '' });
+        // Household may pre-register / cancel / view — not approve walk-ins (owner/tenant).
         can('create', 'Visitor', { unitId: scope.unitId ?? '' });
         can('read', 'Visitor', { unitId: scope.unitId ?? '' });
+        can('delete', 'Visitor', { unitId: scope.unitId ?? '' });
         can('read', 'Announcement', { condoId: scope.condoId ?? '' });
         can('read', 'Poll', { condoId: scope.condoId ?? '' });
         can('read', 'Facility', { condoId: scope.condoId ?? '' });

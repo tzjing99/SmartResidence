@@ -233,6 +233,12 @@ export class RecurringPassService {
   }
 
   async checkIn(pass: string, guard: AuthenticatedUser, dto: CheckInVisitorDto) {
+    const isGateOp = guard.roles.some(
+      (r) => r.roleId === RoleId.SUPER_ADMIN || r.roleId === RoleId.SECURITY_GUARD,
+    );
+    if (!isGateOp) {
+      throw new ForbiddenException('Only security guards can check in recurring passes');
+    }
     const condoId = guard.activeCondoId;
     if (!condoId) throw new BadRequestException('Active condo context required');
 

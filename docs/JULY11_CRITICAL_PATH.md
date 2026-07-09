@@ -13,8 +13,7 @@ GitHub Actions still blocked until **2026-08-01**. Path C local verify used for 
 
 ### `main` tip (after this session)
 
-See latest `origin/main` after merge of this doc PR. Prior tip before docs commit:
-**`f98dc92`** — Merge pull request #31 (`fix/main-health-jul9`).
+**`097cc07`** — Merge pull request #33 (`fix/regression-file-serial`).
 
 ### Shipped this session (2026-07-09)
 
@@ -22,18 +21,20 @@ See latest `origin/main` after merge of this doc PR. Prior tip before docs commi
 | --- | --- | --- | --- |
 | **#28** | docs: local CI fallback (`LOCAL_CI.md`) | docs-only · rebased onto main | Y |
 | **#30** | fix(api): integration DB isolation between `@requires-db` suites | *(already on main at session start)* | Y |
-| **#31** | fix(api): Biome format on integration fixtures | lint ✓ · api ✓ · regression ✓ | Y |
+| **#31** | fix(api): Biome format on integration fixtures | lint ✓ · api ✓ | Y |
+| **#32** | docs: mark July 11 Path C plan complete | docs-only | Y |
+| **#33** | fix(test): serialize `@requires-db` suites + uniquify invoice periods | regression ✓ 11/40 | Y |
 
 ### Full local health gate (2026-07-09, Path C)
 
 | Gate | Result |
 | --- | --- |
 | `pnpm lint` | ✅ 0 errors (warnings only) |
-| `pnpm -r run typecheck` | ✅ all packages |
+| `pnpm -r run typecheck` / `npx pnpm@9.12.0 typecheck` | ✅ all packages |
 | `ci:test:shared-types` | ✅ 30 tests |
 | `ci:test:web` | ✅ 40 tests |
-| `ci:test:api` | ✅ **81 files / 492 tests** |
-| `ci:test:regression` | ✅ **11 files / 40 tests** |
+| `ci:test:api` | ✅ **81 files / 492 tests** (pre-#33; includes integration) |
+| `ci:test:regression` | ✅ **11 files / 40 tests** (post-#33, `--no-file-parallelism`) |
 | Self-host `compose config` | ✅ exit 0 with `deploy/.env.example` |
 | Self-host `up --build` | ❌ known gap — web image Next.js module resolution (use §7 dev bring-up) |
 

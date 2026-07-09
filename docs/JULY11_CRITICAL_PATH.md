@@ -24,11 +24,11 @@ User authorized merge-all + tag via Path C (local verify, no GitHub CI). All bac
 
 ### `main` tip (final)
 
-**`e6021fd`** — docs: overnight finalize test counts + release notes. Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** on release merge **`4338f3c`**.
+**`1782ec4`** — fix(test): forms integration permit startDate (post-release). Prior: **`20da3e7`** (GitHub Release notes). Concurrency: **`2d11208`** (#46). Tag **`v0.3.0`** on release merge **`4338f3c`**.
 
 ### Release tag
 
-**`v0.3.0`** → **`4338f3c`** (PR #45 `chore/release-v0.3.0`); pushed to `origin`. `main` is ahead of the tag (#46 concurrency fix + handoff/docs).
+**`v0.3.0`** → **`4338f3c`** (PR #45 `chore/release-v0.3.0`); pushed to `origin`. `main` is ahead of the tag (#46 concurrency + handoff/docs + forms test fix).
 
 ### Merged (2026-07-09 overnight session)
 

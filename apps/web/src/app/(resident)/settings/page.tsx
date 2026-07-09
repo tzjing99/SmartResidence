@@ -2,19 +2,30 @@
 
 import type { LocalePreference } from '@/i18n/detect-locale';
 import { useLocale, useT } from '@/i18n/locale-provider';
-import { api } from '@/lib/api';
+import { api, writeSession } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { usePreferences, useUpdatePreferences } from '@smartresidence/api-client';
 import { MalaysiaPhoneSchema } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Download, Globe, MessageCircle, Moon, Save, Shield, User } from 'lucide-react';
+import {
+  Bell,
+  Download,
+  Globe,
+  MessageCircle,
+  Moon,
+  Save,
+  Shield,
+  Trash2,
+  User,
+} from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 const LOCALE_OPTIONS: LocalePreference[] = ['system', 'en', 'ms', 'zh-Hans'];
+const DELETE_CONFIRM_PHRASE = 'DELETE MY ACCOUNT';
 
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -61,6 +72,7 @@ export default function ProfileSettingsPage() {
   const [quietStart, setQuietStart] = React.useState('22:00');
   const [quietEnd, setQuietEnd] = React.useState('07:00');
   const [exportPending, setExportPending] = React.useState(false);
+  const [deletePending, setDeletePending] = React.useState(false);
 
   async function onDownloadMyData() {
     setExportPending(true);
@@ -78,6 +90,32 @@ export default function ProfileSettingsPage() {
       toast.error((err as Error).message || t('account.downloadMyDataError'));
     } finally {
       setExportPending(false);
+    }
+  }
+
+  async function onDeleteAccount() {
+    if (!window.confirm(t('account.deleteAccountDesc'))) return;
+    const typed = window.prompt(t('account.deleteAccountConfirmPrompt'), '');
+    if (typed === null) {
+      return;
+    }
+    if (typed.trim() !== DELETE_CONFIRM_PHRASE) {
+      toast.error(t('account.deleteAccountError'));
+      return;
+    }
+    setDeletePending(true);
+    try {
+      await api.deleteAccount(DELETE_CONFIRM_PHRASE);
+      writeSession(null);
+      qc.clear();
+      toast.success(t('account.deleteAccountSuccess'));
+      if (typeof window !== 'undefined') {
+        window.location.href = '/sign-in';
+      }
+    } catch (err) {
+      toast.error((err as Error).message || t('account.deleteAccountError'));
+    } finally {
+      setDeletePending(false);
     }
   }
 
@@ -330,15 +368,28 @@ export default function ProfileSettingsPage() {
           <p className="sr-muted text-sm mt-1">{t('account.privacyDesc')}</p>
         </header>
 
-        <Card className="!p-5">
+        <Card className="!p-5 flex flex-col gap-4">
           <Button
             onClick={() => void onDownloadMyData()}
-            disabled={exportPending}
+            disabled={exportPending || deletePending}
             className="self-start"
           >
             <Download className="size-4" />
             {exportPending ? t('account.downloadMyDataPending') : t('account.downloadMyData')}
           </Button>
+
+          <div className="border-t border-border/60 pt-4 flex flex-col gap-2">
+            <p className="text-sm sr-muted">{t('account.deleteAccountDesc')}</p>
+            <Button
+              variant="destructive"
+              onClick={() => void onDeleteAccount()}
+              disabled={deletePending || exportPending}
+              className="self-start"
+            >
+              <Trash2 className="size-4" />
+              {deletePending ? t('account.deleteAccountPending') : t('account.deleteAccount')}
+            </Button>
+          </div>
         </Card>
       </section>
     </div>

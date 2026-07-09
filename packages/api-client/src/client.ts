@@ -2253,7 +2253,7 @@ export class ApiClient {
     );
   }
 
-  // PDPA personal data export ---------------------------------------
+  // PDPA personal data export / deletion ----------------------------
   requestDataExport() {
     return this.request<{
       id: string;
@@ -2262,6 +2262,14 @@ export class ApiClient {
       createdAt: string;
       expiresAt: string;
     }>('POST', '/api/users/me/export');
+  }
+  /** Irreversible PDPA account deletion / anonymization. Confirmation must be exactly `DELETE MY ACCOUNT`. */
+  deleteAccount(confirmation: string) {
+    return this.request<{
+      id: string;
+      status: 'deleted';
+      deletedAt: string;
+    }>('DELETE', '/api/users/me', { confirmation });
   }
   async downloadDataExport(exportId: string): Promise<Blob> {
     const headers: Record<string, string> = { Accept: 'application/json' };

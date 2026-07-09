@@ -637,7 +637,7 @@
   },
   "account": {
     "privacyTitle": "Privasi & data",
-    "privacyDesc": "Muat turun salinan data peribadi anda yang disimpan oleh SmartResidence (permintaan akses data PDPA).",
+    "privacyDesc": "Muat turun salinan data peribadi anda, atau padam akaun anda secara kekal (akses / pemadaman PDPA).",
     "downloadMyData": "Muat turun data saya",
     "downloadMyDataPending": "Menyediakan muat turun…",
     "downloadMyDataSuccess": "Muat turun dimulakan",
@@ -682,7 +682,15 @@
     "roleGuard": "Pengawal",
     "roleOwner": "Pemilik",
     "roleTenant": "Penyewa",
-    "roleManagement": "Pengurusan"
+    "roleManagement": "Pengurusan",
+    "deleteAccount": "Padam akaun saya",
+    "deleteAccountPending": "Memadam akaun…",
+    "deleteAccountDesc": "Ini menganonimkan data peribadi anda, log keluar dari semua peranti, dan menamatkan akses unit. Sejarah bil dan kondominium dikekalkan untuk rekod undang-undang.",
+    "deleteAccountConfirmPrompt": "Taip DELETE MY ACCOUNT untuk mengesahkan. Tindakan ini tidak boleh dibatalkan.",
+    "deleteAccountConfirmPhrase": "DELETE MY ACCOUNT",
+    "deleteAccountSuccess": "Akaun anda telah dipadam",
+    "deleteAccountError": "Tidak dapat memadam akaun anda",
+    "deleteAccountCancelled": "Pemadaman akaun dibatalkan"
   },
   "sessions": {
     "title": "Peranti & sesi",

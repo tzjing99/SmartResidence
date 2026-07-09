@@ -637,7 +637,7 @@
   },
   "account": {
     "privacyTitle": "隐私与数据",
-    "privacyDesc": "下载 SmartResidence 持有的您的个人数据副本（PDPA 数据访问请求）。",
+    "privacyDesc": "下载您的个人数据副本，或永久删除账户（PDPA 访问 / 删除请求）。",
     "downloadMyData": "下载我的数据",
     "downloadMyDataPending": "正在准备下载…",
     "downloadMyDataSuccess": "已开始下载",
@@ -682,7 +682,15 @@
     "roleGuard": "保安",
     "roleOwner": "业主",
     "roleTenant": "租户",
-    "roleManagement": "管理处"
+    "roleManagement": "管理处",
+    "deleteAccount": "删除我的账户",
+    "deleteAccountPending": "正在删除账户…",
+    "deleteAccountDesc": "这将匿名化您的个人数据、在所有设备上退出登录，并结束单元访问。账单与公寓历史将保留以作法律记录。",
+    "deleteAccountConfirmPrompt": "请输入 DELETE MY ACCOUNT 以确认。此操作无法撤销。",
+    "deleteAccountConfirmPhrase": "DELETE MY ACCOUNT",
+    "deleteAccountSuccess": "您的账户已删除",
+    "deleteAccountError": "无法删除您的账户",
+    "deleteAccountCancelled": "已取消删除账户"
   },
   "sessions": {
     "title": "设备与会话",

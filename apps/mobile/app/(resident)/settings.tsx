@@ -122,6 +122,9 @@ export default function SettingsScreen() {
   const [quietStart, setQuietStart] = useState('22:00');
   const [quietEnd, setQuietEnd] = useState('07:00');
   const [exportPending, setExportPending] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   async function onDownloadMyData() {
     setExportPending(true);
@@ -136,6 +139,41 @@ export default function SettingsScreen() {
       Alert.alert(t('account.exportErrorTitle'), (err as Error).message);
     } finally {
       setExportPending(false);
+    }
+  }
+
+  function onRequestDeleteAccount() {
+    Alert.alert(
+      'Delete my account',
+      'This anonymizes your personal data, signs you out everywhere, and ends unit access. Billing and condo history stay for legal records.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            setDeleteConfirmText('');
+            setDeleteConfirmOpen(true);
+          },
+        },
+      ],
+    );
+  }
+
+  async function onConfirmDeleteAccount() {
+    if (deleteConfirmText.trim() !== 'DELETE MY ACCOUNT') {
+      Alert.alert('Could not delete account', 'Type DELETE MY ACCOUNT exactly to confirm.');
+      return;
+    }
+    setDeletePending(true);
+    try {
+      await api.deleteAccount('DELETE MY ACCOUNT');
+      setDeleteConfirmOpen(false);
+      await signOut();
+    } catch (err) {
+      Alert.alert('Could not delete account', (err as Error).message);
+    } finally {
+      setDeletePending(false);
     }
   }
 
@@ -440,8 +478,50 @@ export default function SettingsScreen() {
         <Button
           title={exportPending ? t('account.downloadMyDataPending') : t('account.downloadMyData')}
           onPress={() => void onDownloadMyData()}
-          disabled={exportPending}
+          disabled={exportPending || deletePending}
         />
+        <View style={{ height: spacing.md }} />
+        <AppText muted style={{ marginBottom: spacing.sm }}>
+          Deleting anonymizes your personal data and signs you out everywhere. Billing history is
+          kept for legal records.
+        </AppText>
+        {!deleteConfirmOpen ? (
+          <Button
+            title="Delete my account"
+            variant="destructive"
+            onPress={onRequestDeleteAccount}
+            disabled={exportPending || deletePending}
+          />
+        ) : (
+          <View style={{ gap: spacing.sm }}>
+            <Field label="Type DELETE MY ACCOUNT to confirm">
+              <Input
+                value={deleteConfirmText}
+                onChangeText={setDeleteConfirmText}
+                autoCapitalize="characters"
+                editable={!deletePending}
+                placeholder="DELETE MY ACCOUNT"
+              />
+            </Field>
+            <AlignRow gap={spacing.sm}>
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={() => {
+                  setDeleteConfirmOpen(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deletePending}
+              />
+              <Button
+                title={deletePending ? 'Deleting…' : 'Confirm delete'}
+                variant="destructive"
+                onPress={() => void onConfirmDeleteAccount()}
+                disabled={deletePending}
+              />
+            </AlignRow>
+          </View>
+        )}
       </Card>
 
       <ResidentSectionHeader title={t('account.moreTitle')} subtitle={t('account.moreSubtitle')} />

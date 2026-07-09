@@ -214,6 +214,7 @@ export class AbilityFactory {
         can('read', 'User');
         can('update', 'User');
         can('export', 'User', { id: scope.userId });
+        can('delete', 'User', { id: scope.userId });
         can('export', 'Invoice', { condoId: scope.condoId ?? '' });
         return;
 
@@ -283,6 +284,7 @@ export class AbilityFactory {
         can('update', 'VendorBill', { condoId: scope.condoId ?? '' });
         can('read', 'Notification', { condoId: scope.condoId ?? '' });
         can('export', 'User', { id: scope.userId });
+        can('delete', 'User', { id: scope.userId });
         return;
 
       case RoleId.SECURITY_GUARD:
@@ -305,6 +307,7 @@ export class AbilityFactory {
         can('collect', 'Parcel', { condoId: scope.condoId ?? '' });
         can('verify', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('export', 'User', { id: scope.userId });
+        can('delete', 'User', { id: scope.userId });
         return;
 
       case RoleId.UNIT_OWNER:
@@ -372,6 +375,7 @@ export class AbilityFactory {
         can('read', 'User', { id: scope.userId });
         can('update', 'User', { id: scope.userId });
         can('export', 'User', { id: scope.userId });
+        can('delete', 'User', { id: scope.userId });
         return;
 
       case RoleId.TENANT:
@@ -424,6 +428,7 @@ export class AbilityFactory {
         can('read', 'User', { id: scope.userId });
         can('update', 'User', { id: scope.userId });
         can('export', 'User', { id: scope.userId });
+        can('delete', 'User', { id: scope.userId });
         return;
 
       case RoleId.HOUSEHOLD_MEMBER:
@@ -462,11 +467,14 @@ export class AbilityFactory {
         can('cancel', 'SosAlert', { condoId: scope.condoId ?? '' });
         can('read', 'User', { id: scope.userId });
         can('export', 'User', { id: scope.userId });
+        can('delete', 'User', { id: scope.userId });
         return;
 
       case RoleId.CONTRACTOR:
         can('read', 'Defect');
         can('update', 'Defect');
+        can('export', 'User', { id: scope.userId });
+        can('delete', 'User', { id: scope.userId });
         return;
     }
   }

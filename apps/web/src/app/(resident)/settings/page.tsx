@@ -1,6 +1,7 @@
 'use client';
 
-import { useT } from '@/i18n/locale-provider';
+import type { LocalePreference } from '@/i18n/detect-locale';
+import { useLocale, useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,10 +9,12 @@ import { usePreferences, useUpdatePreferences } from '@smartresidence/api-client
 import { MalaysiaPhoneSchema } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label, Skeleton } from '@smartresidence/ui-web';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Download, MessageCircle, Moon, Save, Shield, User } from 'lucide-react';
+import { Bell, Download, Globe, MessageCircle, Moon, Save, Shield, User } from 'lucide-react';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+
+const LOCALE_OPTIONS: LocalePreference[] = ['system', 'en', 'ms', 'zh-Hans'];
 
 const profileSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -21,9 +24,17 @@ const profileSchema = z.object({
 
 export default function ProfileSettingsPage() {
   const t = useT();
+  const { preference: localePreference, setPreference: setLocalePreference } = useLocale();
   const qc = useQueryClient();
   const prefs = usePreferences(api);
   const save = useUpdatePreferences(api);
+
+  const localeLabels: Record<LocalePreference, string> = {
+    system: t('account.localeSystem'),
+    en: t('account.localeEn'),
+    ms: t('account.localeMs'),
+    'zh-Hans': t('account.localeZhHans'),
+  };
 
   const profile = useQuery({
     queryKey: ['auth', 'profile'],
@@ -160,6 +171,41 @@ export default function ProfileSettingsPage() {
               Save profile
             </Button>
           </form>
+        </Card>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <header>
+          <h2 className="sr-section-title flex items-center gap-2">
+            <Globe className="size-5 text-coral-500" aria-hidden />
+            {t('account.languageTitle')}
+          </h2>
+          <p className="sr-muted text-sm mt-1">{t('account.languageDesc')}</p>
+        </header>
+
+        <Card className="!p-5">
+          <fieldset className="m-0 min-w-0 border-0 p-0">
+            <legend className="sr-only">{t('account.languageTitle')}</legend>
+            <div className="flex flex-wrap gap-2">
+              {LOCALE_OPTIONS.map((value) => {
+                const active = localePreference === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setLocalePreference(value)}
+                    className={
+                      active
+                        ? 'rounded-xl border border-coral-500 bg-coral-50 px-3 py-2 text-sm font-semibold text-coral-600 dark:bg-coral-950/40'
+                        : 'rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] px-3 py-2 text-sm font-semibold text-[rgb(var(--sr-fg))]'
+                    }
+                  >
+                    {localeLabels[value]}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
         </Card>
       </section>
 

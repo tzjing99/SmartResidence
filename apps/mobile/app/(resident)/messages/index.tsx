@@ -21,6 +21,7 @@ import {
   residentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { RESIDENT_THREAD_INBOX_PARAMS } from '../../../src/lib/resident-threads';
 
@@ -42,6 +43,7 @@ const STATUS_TONE: Record<string, 'neutral' | 'success' | 'warning' | 'info'> = 
 };
 
 export default function MessagesScreen() {
+  const t = useT();
   const { colors } = useTheme();
   const router = useRouter();
   const threads = useThreads(api, RESIDENT_THREAD_INBOX_PARAMS);
@@ -51,33 +53,30 @@ export default function MessagesScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Messages"
-      title="Ask management"
-      subtitle="Keep every request, reply, and resolution in one conversation."
+      eyebrow={t('messages.title')}
+      title={t('nav.screens.messages')}
+      subtitle={t('messages.subtitle')}
       scrollProps={{ refreshControl }}
       headerAction={
         <Button
-          title="New message"
+          title={t('messages.new')}
           onPress={() => router.push('/(resident)/messages/new' as Href)}
         />
       }
     >
       {threads.isLoading && !threads.data ? (
         <AppText variant="meta" style={{ color: colors.muted }}>
-          Loading conversations...
+          {t('actions.loading')}
         </AppText>
       ) : items.length === 0 ? (
-        <EmptyState
-          title="No conversations yet"
-          description="Start a message when you need help from management."
-        />
+        <EmptyState title={t('messages.empty')} description={t('messages.subtitle')} />
       ) : (
-        items.map((t, index) => (
-          <FadeInView key={t.id} index={index}>
+        items.map((thread, index) => (
+          <FadeInView key={thread.id} index={index}>
             <AnimatedPressable
-              onPress={() => router.push(`/(resident)/messages/${t.id}` as Href)}
+              onPress={() => router.push(`/(resident)/messages/${thread.id}` as Href)}
               accessibilityRole="button"
-              accessibilityLabel={`${t.subject}. ${prettyLabel(t.category)}, ${t._count?.messages ?? 0} messages, ${prettyLabel(t.status)}`}
+              accessibilityLabel={`${thread.subject}. ${prettyLabel(thread.category)}, ${thread._count?.messages ?? 0} messages, ${prettyLabel(thread.status)}`}
             >
               <Card style={[residentStyles.card, { padding: 16 }]}>
                 <AlignRow
@@ -86,13 +85,13 @@ export default function MessagesScreen() {
                 >
                   <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
                     <AppText variant="label" numberOfLines={2}>
-                      {t.subject}
+                      {thread.subject}
                     </AppText>
                     <MetaLine
                       parts={[
-                        prettyLabel(t.category),
-                        `${t._count?.messages ?? 0} messages`,
-                        `updated ${new Date(t.lastMessageAt).toLocaleDateString()}`,
+                        prettyLabel(thread.category),
+                        `${thread._count?.messages ?? 0} messages`,
+                        `updated ${new Date(thread.lastMessageAt).toLocaleDateString()}`,
                       ]}
                     />
                   </View>
@@ -107,14 +106,17 @@ export default function MessagesScreen() {
                     }}
                   >
                     <Pill
-                      tone={PRIORITY_TONE[t.priority] ?? 'neutral'}
-                      label={prettyLabel(t.priority)}
+                      tone={PRIORITY_TONE[thread.priority] ?? 'neutral'}
+                      label={prettyLabel(thread.priority)}
                     />
-                    <Pill tone={STATUS_TONE[t.status] ?? 'neutral'} label={prettyLabel(t.status)} />
+                    <Pill
+                      tone={STATUS_TONE[thread.status] ?? 'neutral'}
+                      label={prettyLabel(thread.status)}
+                    />
                   </View>
                 </AlignRow>
                 <AppText variant="meta" style={{ color: colors.muted, marginTop: spacing.sm }}>
-                  Tap to view the full thread.
+                  {t('actions.view')}
                 </AppText>
               </Card>
             </AnimatedPressable>

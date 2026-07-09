@@ -57,7 +57,10 @@ export function translate(
   key: string,
   vars?: Record<string, string | number>,
 ): string {
-  const template = lookup(MESSAGES[locale] as Record<string, unknown>, key) ?? key;
+  const template =
+    lookup(MESSAGES[locale] as Record<string, unknown>, key) ??
+    lookup(MESSAGES.en as Record<string, unknown>, key) ??
+    key;
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));
 }

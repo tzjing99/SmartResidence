@@ -25,6 +25,7 @@ import {
   prettyLabel,
   useResidentStyles,
 } from '../../../../src/components/resident-screen';
+import { useT } from '../../../../src/i18n/locale-provider';
 import { api } from '../../../../src/lib/api';
 import {
   confirmDefectBulkSignOff,
@@ -32,6 +33,7 @@ import {
 } from '../../../../src/lib/defect-sign-off';
 
 export default function DefectPackageDetailScreen() {
+  const t = useT();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
@@ -60,11 +62,11 @@ export default function DefectPackageDetailScreen() {
         await transition.mutateAsync({ id: itemId, status });
         qc.invalidateQueries({ queryKey: queryKeys.defectReport(id) });
         Alert.alert(
-          status === 'CLOSED' ? 'Signed off' : 'Sent back',
-          status === 'CLOSED' ? 'Defect signed off and closed.' : 'Defect sent back for more work.',
+          status === 'CLOSED' ? t('mobile.defects.signedOff') : t('mobile.defects.sent'),
+          status === 'CLOSED' ? t('defects.signedOffToast') : t('defects.reopenedToast'),
         );
       } catch (err) {
-        Alert.alert('Could not update', (err as Error).message);
+        Alert.alert(t('mobile.defects.couldNotUpdate'), (err as Error).message);
       } finally {
         setPendingIds((prev) => {
           const next = new Set(prev);
@@ -87,9 +89,12 @@ export default function DefectPackageDetailScreen() {
     confirmDefectBulkSignOff(ids.length, async () => {
       try {
         const res = await bulk.mutateAsync({ id, data: { defectIds: ids, status: 'CLOSED' } });
-        Alert.alert('Signed off', `${res.updated} defect(s) signed off and closed.`);
+        Alert.alert(
+          t('mobile.defects.signedOff'),
+          t('mobile.defects.signedOffBody', { count: res.updated }),
+        );
       } catch (err) {
-        Alert.alert('Could not sign off all', (err as Error).message);
+        Alert.alert(t('mobile.defects.couldNotSignOff'), (err as Error).message);
       }
     });
   }
@@ -110,8 +115,8 @@ export default function DefectPackageDetailScreen() {
 
   return (
     <ResidentScreen
-      eyebrow="Defect report"
-      title={detail ? 'Defect Report' : 'Loading…'}
+      eyebrow={t('defects.defectReport')}
+      title={detail ? t('defects.defectReport') : t('actions.loading')}
       subtitle={
         detail ? `${defectReference(detail.id)} · ${detail.itemCount} defect(s)` : undefined
       }
@@ -123,7 +128,7 @@ export default function DefectPackageDetailScreen() {
     >
       {report.isLoading ? (
         <AppText variant="meta" style={{ color: colors.muted }}>
-          Loading report…
+          {t('actions.loading')}
         </AppText>
       ) : !detail ? (
         <AppText variant="meta" style={{ color: colors.muted }}>
@@ -156,7 +161,7 @@ export default function DefectPackageDetailScreen() {
                 />
               </View>
               <AppText variant="meta" style={{ color: colors.fg, fontWeight: '600' }}>
-                {done}/{detail.itemCount} fixed
+                {t('defects.fixedProgress', { done, total: detail.itemCount })}
               </AppText>
             </View>
 
@@ -230,7 +235,9 @@ export default function DefectPackageDetailScreen() {
                             : 'info'
                       }
                       label={
-                        item.status === 'RESOLVED' ? 'Waiting sign-off' : prettyLabel(item.status)
+                        item.status === 'RESOLVED'
+                          ? t('defects.waitingSignOff')
+                          : prettyLabel(item.status)
                       }
                     />
                   </View>
@@ -250,7 +257,7 @@ export default function DefectPackageDetailScreen() {
                           style={{ flexGrow: 1 }}
                         />
                         <Button
-                          title="Reject — more work"
+                          title={t('mobile.defects.rejectMoreWork')}
                           variant="secondary"
                           size="sm"
                           disabled={pendingIds.has(item.id) || bulk.isPending}

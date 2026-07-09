@@ -466,60 +466,151 @@
   },
   "mobile": {
     "billing": {
-      "title": "Maintenance fees",
-      "outstanding": "Outstanding balance",
-      "noInvoices": "No invoices yet",
-      "scanQr": "Scan DuitNow QR",
-      "payAdvance": "Pay in advance",
-      "viewInvoices": "View invoices"
+      "title": "Yuran penyelenggaraan",
+      "subtitle": "Semak penyata, formula, dan pilihan bayaran tanpa kejutan tersembunyi.",
+      "eyebrow": "Yuran",
+      "outstanding": "Baki tertunggak",
+      "allClear": "Semua selesai",
+      "noActiveInvoices": "Tiada invois aktif yang perlu dibayar sekarang.",
+      "activeInvoices": "{count} invois aktif. Bayar invois yang paling hampir tempoh dahulu.",
+      "accountCredit": "Kredit akaun: {amount}",
+      "downloadStatement": "Muat turun penyata (CSV)",
+      "downloading": "Memuat turun…",
+      "statements": "Penyata",
+      "statementsDesc": "Setiap caj mengekalkan formula untuk semakan lebih mudah.",
+      "noInvoices": "Tiada invois",
+      "noInvoicesDesc": "Penyata yuran anda muncul di sini selepas dikeluarkan.",
+      "scanQr": "Imbas DuitNow QR",
+      "payAdvance": "Bayar pendahuluan",
+      "viewInvoices": "Lihat invois",
+      "downloadReady": "Muat turun sedia",
+      "downloadReadyBody": "{filename} disimpan dalam cache peranti.",
+      "downloadFailed": "Muat turun gagal",
+      "paymentReady": "Bayaran sedia",
+      "paymentReadyBody": "Sahkan bayaran pada skrin seterusnya.",
+      "paymentFailed": "Bayaran gagal",
+      "paymentSubmitted": "Bayaran dihantar",
+      "paymentSubmittedBody": "Kami sedang mengesahkan bayaran anda dengan bank.",
+      "enterAmountTitle": "Masukkan jumlah",
+      "enterAmountBody": "Pilih atau masukkan jumlah bayaran pendahuluan yang sah.",
+      "advanceFailed": "Tidak dapat mulakan bayaran pendahuluan",
+      "advanceSubmittedBody": "Kami sedang mengesahkan bayaran pendahuluan anda dengan bank.",
+      "scanQrHint": "Buka aplikasi bank anda, pilih DuitNow QR, dan imbas. Kekalkan skrin ini terbuka sehingga bayaran disahkan.",
+      "paymentConfirmed": "Bayaran disahkan!",
+      "close": "Tutup",
+      "advanceStartedTitle": "Bayaran pendahuluan dimulakan",
+      "advanceStartedBody": "Lengkapkan gesaan gateway untuk menambah kredit prabayar ke akaun anda.",
+      "payAdvanceDesc": "Tambah kredit prabayar yang digunakan secara automatik pada invois penyelenggaraan seterusnya.",
+      "payAdvanceBody": "Pilih jumlah untuk bayar awal. Selepas gateway mengesahkan bayaran, jumlah menjadi kredit prabayar dan mengurangkan invois yuran seterusnya.",
+      "otherAmount": "Lain",
+      "enterAmountPlaceholder": "Masukkan jumlah (MYR)",
+      "payInAdvanceTitle": "Bayar {amount} pendahuluan",
+      "receipts": "Resit",
+      "receiptsDesc": "Muat turun resit PDF rasmi untuk bayaran unit anda.",
+      "noReceipts": "Tiada resit lagi",
+      "noReceiptsDesc": "Resit muncul di sini selepas dikeluarkan.",
+      "downloadPdf": "Muat turun PDF"
     },
     "defects": {
-      "title": "Defects",
-      "singleDefect": "Single defect",
-      "repairHistory": "Repair history",
-      "emptyTitle": "No defects yet",
-      "verifyTitle": "Fixed by management — please verify",
-      "rejectMoreWork": "Reject — more work"
+      "title": "Kecacatan",
+      "singleDefect": "Kecacatan tunggal",
+      "repairHistory": "Sejarah pembaikan",
+      "emptyTitle": "Tiada kecacatan lagi",
+      "verifyTitle": "Dibaiki pengurusan — sila sahkan",
+      "rejectMoreWork": "Tolak — kerja lanjut",
+      "fillTitleDesc": "Sila isi tajuk dan penerangan",
+      "pleaseWait": "Sila tunggu",
+      "photosUploading": "Foto masih dimuat naik.",
+      "submitted": "Dihantar",
+      "submittedBody": "Laporan kecacatan anda telah dihantar kepada pengurusan.",
+      "couldNotSubmit": "Tidak dapat hantar",
+      "pickElement": "Pilih elemen",
+      "addNote": "Tambah nota yang menerangkan isu",
+      "submittedCount": "{count} kecacatan dihantar.",
+      "sent": "Dihantar",
+      "commentAdded": "Komen anda telah ditambah.",
+      "couldNotSend": "Tidak dapat hantar",
+      "couldNotUpdate": "Tidak dapat kemas kini",
+      "signedOff": "Disahkan",
+      "signedOffBody": "{count} kecacatan disahkan dan ditutup.",
+      "couldNotSignOff": "Tidak dapat sahkan semua"
+    },
+    "visitors": {
+      "preRegisterCta": "Pra-daftar pelawat",
+      "recurringPasses": "Pas berulang",
+      "onSiteNowCount": "Di tapak sekarang ({count})",
+      "phoneRequiredTitle": "Telefon diperlukan",
+      "phoneRequiredBody": "Tambah nombor telefon pada kegemaran ini untuk pas pantas.",
+      "couldNotInvite": "Tidak dapat jemput semula",
+      "couldNotCancel": "Tidak dapat batalkan",
+      "approvedTitle": "Diluluskan",
+      "approvedBody": "Pengawal boleh daftar masuk pelawat.",
+      "couldNotApprove": "Tidak dapat luluskan",
+      "rejectedTitle": "Ditolak",
+      "rejectedBody": "Pengawal telah dimaklumkan.",
+      "couldNotReject": "Tidak dapat tolak",
+      "savedTitle": "Disimpan",
+      "savedBody": "Pelawat kegemaran ditambah.",
+      "couldNotSave": "Tidak dapat simpan",
+      "couldNotRemove": "Tidak dapat buang",
+      "guestNameRequired": "Nama tetamu diperlukan",
+      "guestNameRequiredBody": "Masukkan nama tetamu berulang (sekurang-kurangnya 2 aksara).",
+      "pickDays": "Pilih hari",
+      "pickDaysBody": "Pilih sekurang-kurangnya satu hari dalam minggu.",
+      "passCreated": "Pas dicipta",
+      "passCreatedBody": "Pas pelawat berulang kini aktif.",
+      "couldNotCreatePass": "Tidak dapat cipta pas",
+      "removePassTitle": "Buang pas berulang ini?",
+      "removePassBody": "{name} akan hilang akses berulang."
+    },
+    "messages": {
+      "missingFields": "Medan tidak lengkap",
+      "missingFieldsBody": "Tambah subjek dan mesej",
+      "pleaseWait": "Sila tunggu",
+      "photosUploading": "Foto masih dimuat naik.",
+      "errorTitle": "Ralat",
+      "faqHelpedTitle": "Terima kasih!",
+      "faqHelpedBody": "Gembira FAQ membantu — tiada utasan dibuka."
     },
     "announcements": {
-      "title": "Announcements",
-      "emptyTitle": "Nothing new"
+      "title": "Pengumuman",
+      "emptyTitle": "Tiada yang baharu"
     },
     "documents": {
-      "title": "Documents",
-      "emptyTitle": "No documents yet"
+      "title": "Dokumen",
+      "emptyTitle": "Tiada dokumen lagi"
     },
     "forms": {
-      "title": "Forms",
-      "emptyTitle": "No forms available"
+      "title": "Borang",
+      "emptyTitle": "Tiada borang tersedia"
     },
     "polls": {
-      "title": "Polls",
-      "emptyTitle": "No polls right now"
+      "title": "Undian",
+      "emptyTitle": "Tiada undian sekarang"
     },
     "lostFound": {
-      "title": "Lost & found",
-      "emptyTitle": "Nothing on the board"
+      "title": "Hilang & jumpa",
+      "emptyTitle": "Tiada di papan"
     },
     "governance": {
-      "title": "Governance",
-      "emptyTitle": "No meetings scheduled"
+      "title": "Tadbir urus",
+      "emptyTitle": "Tiada mesyuarat dijadualkan"
     },
     "home": {
       "greeting": "Helo",
-      "visitors": "Visitors",
-      "defects": "Defects",
-      "fees": "Fees",
-      "messages": "Messages",
-      "announcements": "Announcements",
-      "emergencySos": "Emergency SOS",
-      "quickActions": "Quick actions"
+      "visitors": "Pelawat",
+      "defects": "Kecacatan",
+      "fees": "Yuran",
+      "messages": "Mesej",
+      "announcements": "Pengumuman",
+      "emergencySos": "SOS kecemasan",
+      "quickActions": "Tindakan pantas"
     },
     "helpdesk": {
-      "claimTicket": "Claim ticket",
-      "proposeSolved": "Propose solved",
-      "requestInfo": "Request info",
-      "closeAbuse": "Close abuse"
+      "claimTicket": "Ambil tiket",
+      "proposeSolved": "Cadang selesai",
+      "requestInfo": "Minta maklumat",
+      "closeAbuse": "Tutup penyalahgunaan"
     }
   }
 }

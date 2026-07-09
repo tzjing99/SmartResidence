@@ -39,17 +39,15 @@ import {
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { VisitorPassCard } from '../../../src/components/visitor-pass-card';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../../src/lib/haptics';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
 
 type VisitorTab = VisitorListView | 'favourites';
 
-function liveTabLabel(count: number): string {
-  return count > 0 ? `On site now (${count})` : 'On site now';
-}
-
 export default function VisitorsScreen() {
+  const t = useT();
   const router = useRouter();
   const { twoColumn } = useTabletLayout();
   const { colors } = useTheme();
@@ -61,12 +59,18 @@ export default function VisitorsScreen() {
   const liveCount = liveVisitors.data?.total ?? 0;
   const tabs = useMemo<{ id: VisitorTab; label: string }[]>(
     () => [
-      { id: 'upcoming', label: 'Upcoming' },
-      { id: 'live', label: liveTabLabel(liveCount) },
-      { id: 'history', label: 'History' },
-      { id: 'favourites', label: 'Favourites' },
+      { id: 'upcoming', label: t('visitors.tabs.upcoming') },
+      {
+        id: 'live',
+        label:
+          liveCount > 0
+            ? t('mobile.visitors.onSiteNowCount', { count: liveCount })
+            : t('visitors.onSiteNow'),
+      },
+      { id: 'history', label: t('visitors.tabs.history') },
+      { id: 'favourites', label: t('visitors.tabs.favourites') },
     ],
-    [liveCount],
+    [liveCount, t],
   );
   const listView: VisitorListView | undefined =
     tab === 'upcoming' || tab === 'history' || tab === 'live' ? tab : undefined;
@@ -87,30 +91,33 @@ export default function VisitorsScreen() {
   const handlePreRegisterFavourite = useCallback(
     (fav: FavouriteVisitor) => {
       if (!fav.phone?.trim()) {
-        Alert.alert('Phone required', 'Add a phone number to this favourite for quick passes.');
+        Alert.alert(
+          t('mobile.visitors.phoneRequiredTitle'),
+          t('mobile.visitors.phoneRequiredBody'),
+        );
         return;
       }
       const qs = new URLSearchParams(favouriteToPreRegParams(fav)).toString();
       router.push(`/(resident)/visitors/new?${qs}` as Href);
     },
-    [router],
+    [router, t],
   );
 
   return (
     <ResidentScreen
-      eyebrow="Visitors"
-      title="Guest access"
-      subtitle="Pre-register guests for a fast gate pass, or track walk-ins waiting for approval."
+      eyebrow={t('visitors.title')}
+      title={t('nav.screens.visitors')}
+      subtitle={t('visitors.subtitle')}
       scrollProps={{ refreshControl }}
       headerAction={
         <View style={{ gap: 8 }}>
           <Button
-            title="Pre-register a visitor"
+            title={t('mobile.visitors.preRegisterCta')}
             size="lg"
             onPress={() => router.push('/(resident)/visitors/new' as Href)}
           />
           <Button
-            title="Recurring passes"
+            title={t('mobile.visitors.recurringPasses')}
             size="sm"
             variant="secondary"
             onPress={() => router.push('/(resident)/visitors/recurring' as Href)}
@@ -120,12 +127,12 @@ export default function VisitorsScreen() {
     >
       <Card style={[styles.card, { padding: 8 }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {tabs.map((t) => {
-            const active = tab === t.id;
+          {tabs.map((item) => {
+            const active = tab === item.id;
             return (
               <Pressable
-                key={t.id}
-                onPress={() => setTab(t.id)}
+                key={item.id}
+                onPress={() => setTab(item.id)}
                 style={{
                   paddingHorizontal: 16,
                   paddingVertical: 10,
@@ -143,7 +150,7 @@ export default function VisitorsScreen() {
                   }}
                   numberOfLines={1}
                 >
-                  {t.label}
+                  {item.label}
                 </Text>
               </Pressable>
             );
@@ -185,6 +192,7 @@ function VisitorsTab({
   isLoading: boolean;
   twoColumn?: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const { colors } = useTheme();
   const fieldStyle = useMemo(
@@ -226,7 +234,7 @@ function VisitorsTab({
       setInviteAgainVisitor(null);
       router.push(`/(resident)/visitors/${created.id}` as Href);
     } catch (err) {
-      Alert.alert('Could not invite again', (err as Error).message);
+      Alert.alert(t('mobile.visitors.couldNotInvite'), (err as Error).message);
       const qs = new URLSearchParams(visitorToPreRegParams(inviteAgainVisitor)).toString();
       setInviteAgainVisitor(null);
       router.push(`/(resident)/visitors/new?${qs}` as Href);
@@ -234,33 +242,31 @@ function VisitorsTab({
   }
 
   function promptCancelPass(v: Visitor) {
-    Alert.alert(
-      'Cancel this visitor pass?',
-      'The access code will stop working immediately. Your guest will not be able to check in.',
-      [
-        { text: 'Keep pass', style: 'cancel' },
-        {
-          text: 'Cancel pass',
-          style: 'destructive',
-          onPress: () => {
-            if (!unitId) return;
-            void cancelPass
-              .mutateAsync({ visitorId: v.id, unitId })
-              .catch((err) => Alert.alert('Could not cancel', (err as Error).message));
-          },
+    Alert.alert(t('visitors.cancelPassConfirmTitle'), t('visitors.cancelPassConfirmBody'), [
+      { text: t('actions.cancel'), style: 'cancel' },
+      {
+        text: t('visitors.cancelPassConfirm'),
+        style: 'destructive',
+        onPress: () => {
+          if (!unitId) return;
+          void cancelPass
+            .mutateAsync({ visitorId: v.id, unitId })
+            .catch((err) =>
+              Alert.alert(t('mobile.visitors.couldNotCancel'), (err as Error).message),
+            );
         },
-      ],
-    );
+      },
+    ]);
   }
 
   async function onApprove(id: string) {
     try {
       await approve.mutateAsync(id);
       hapticSuccess();
-      Alert.alert('Approved', 'Guard may check the visitor in.');
+      Alert.alert(t('mobile.visitors.approvedTitle'), t('mobile.visitors.approvedBody'));
     } catch (err) {
       hapticError();
-      Alert.alert('Could not approve', (err as Error).message);
+      Alert.alert(t('mobile.visitors.couldNotApprove'), (err as Error).message);
     }
   }
 
@@ -268,10 +274,10 @@ function VisitorsTab({
     try {
       await reject.mutateAsync({ visitorId: id });
       hapticSuccess();
-      Alert.alert('Rejected', 'Guard has been notified.');
+      Alert.alert(t('mobile.visitors.rejectedTitle'), t('mobile.visitors.rejectedBody'));
     } catch (err) {
       hapticError();
-      Alert.alert('Could not reject', (err as Error).message);
+      Alert.alert(t('mobile.visitors.couldNotReject'), (err as Error).message);
     }
   }
 
@@ -284,17 +290,17 @@ function VisitorsTab({
       <EmptyState
         title={
           tab === 'upcoming'
-            ? 'No upcoming visitors'
+            ? t('visitors.emptyUpcoming')
             : tab === 'live'
-              ? 'No one on site'
-              : 'No visit history yet'
+              ? t('visitors.emptyLive')
+              : t('visitors.emptyHistory')
         }
         description={
           tab === 'upcoming'
-            ? 'Pre-registered visitors and pending walk-ins show up here.'
+            ? t('visitors.emptyUpcomingHint')
             : tab === 'live'
-              ? 'When a guest checks in at the gate, they appear here until they leave.'
-              : 'Past check-ins and expired passes appear here.'
+              ? t('visitors.emptyLiveHint')
+              : t('visitors.emptyHistoryHint')
         }
       />
     );
@@ -357,7 +363,7 @@ function VisitorsTab({
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={{ fontSize: 18, fontWeight: '700', color: colors.fg }}>
-              Invite this visitor again?
+              {t('visitors.inviteAgainConfirmTitle')}
             </Text>
             {inviteAgainVisitor ? (
               <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 20 }}>
@@ -373,7 +379,7 @@ function VisitorsTab({
             ) : null}
             <View style={{ gap: 6 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: colors.fg }}>
-                Which visit session?
+                {t('visitors.inviteAgainSessionQuestion')}
               </Text>
               <TextInput
                 value={
@@ -392,13 +398,13 @@ function VisitorsTab({
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
               <Button
-                title="Cancel"
+                title={t('actions.cancel')}
                 size="sm"
                 variant="secondary"
                 onPress={() => setInviteAgainVisitor(null)}
               />
               <Button
-                title="Send invite"
+                title={t('visitors.inviteAgainConfirm')}
                 size="sm"
                 loading={create.isPending}
                 onPress={() => void confirmInviteAgain()}
@@ -420,6 +426,7 @@ function FavouritesTab({
   items: FavouriteVisitor[];
   onPreRegister: (fav: FavouriteVisitor) => void;
 }) {
+  const t = useT();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const fieldStyle = useMemo(
@@ -457,9 +464,9 @@ function FavouritesTab({
       setPhone('');
       setPlate('');
       setShowForm(false);
-      Alert.alert('Saved', 'Favourite visitor added.');
+      Alert.alert(t('mobile.visitors.savedTitle'), t('mobile.visitors.savedBody'));
     } catch (err) {
-      Alert.alert('Could not save', (err as Error).message);
+      Alert.alert(t('mobile.visitors.couldNotSave'), (err as Error).message);
     }
   }
 
@@ -468,20 +475,20 @@ function FavouritesTab({
     try {
       await deleteFav.mutateAsync({ id, unitId });
     } catch (err) {
-      Alert.alert('Could not remove', (err as Error).message);
+      Alert.alert(t('mobile.visitors.couldNotRemove'), (err as Error).message);
     }
   }
 
   return (
     <>
       <ResidentSectionHeader
-        title="Favourite guests"
-        subtitle="Save frequent visitors so the next pass takes less time."
+        title={t('visitors.tabs.favourites')}
+        subtitle={t('visitors.favourites.blurb')}
       />
 
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
         <Button
-          title={showForm ? 'Cancel' : 'Add favourite'}
+          title={showForm ? t('actions.cancel') : t('visitors.favourites.addCta')}
           size="sm"
           variant="secondary"
           onPress={() => setShowForm((v) => !v)}
@@ -490,16 +497,18 @@ function FavouritesTab({
 
       {showForm ? (
         <Card style={[styles.card, { gap: 10 }]}>
-          <Text style={{ fontWeight: '700', color: colors.fg }}>New favourite</Text>
+          <Text style={{ fontWeight: '700', color: colors.fg }}>
+            {t('visitors.favourites.addCta')}
+          </Text>
           <TextInput
-            placeholder="Name"
+            placeholder={t('visitors.favourites.nameLabel')}
             value={name}
             onChangeText={setName}
             style={fieldStyle}
             placeholderTextColor={colors.muted}
           />
           <TextInput
-            placeholder="Phone"
+            placeholder={t('visitors.favourites.phoneLabel')}
             value={phone}
             onChangeText={setPhone}
             style={[fieldStyle, { marginTop: 10 }]}
@@ -507,22 +516,26 @@ function FavouritesTab({
             placeholderTextColor={colors.muted}
           />
           <TextInput
-            placeholder="Plate (optional)"
+            placeholder={t('visitors.favourites.plateLabel')}
             value={plate}
             onChangeText={setPlate}
             style={[fieldStyle, { marginTop: 10 }]}
             placeholderTextColor={colors.muted}
           />
           <View style={{ marginTop: 12 }}>
-            <Button title="Save" loading={createFav.isPending} onPress={onSave} />
+            <Button
+              title={t('visitors.favourites.saveCta')}
+              loading={createFav.isPending}
+              onPress={onSave}
+            />
           </View>
         </Card>
       ) : null}
 
       {items.length === 0 ? (
         <EmptyState
-          title="No favourites yet"
-          description="Save frequent guests for quick pre-registration."
+          title={t('visitors.favourites.emptyTitle')}
+          description={t('visitors.favourites.emptyDesc')}
         />
       ) : (
         items.map((fav) => (
@@ -548,7 +561,7 @@ function FavouritesTab({
                 >
                   {[formatMalaysiaPhoneDisplay(fav.phone, fav.phoneCountryCode), fav.vehiclePlate]
                     .filter(Boolean)
-                    .join(' · ') || 'No details'}
+                    .join(' · ') || t('visitors.favourites.noContact')}
                 </Text>
                 {fav.entryMode ? (
                   <View style={{ alignSelf: 'flex-start', marginTop: 8 }}>
@@ -557,8 +570,17 @@ function FavouritesTab({
                 ) : null}
               </View>
               <View style={{ gap: 8, minWidth: 132, flexGrow: 1 }}>
-                <Button title="Pre-register" size="sm" onPress={() => onPreRegister(fav)} />
-                <Button title="Remove" size="sm" variant="ghost" onPress={() => onDelete(fav.id)} />
+                <Button
+                  title={t('visitors.preRegister')}
+                  size="sm"
+                  onPress={() => onPreRegister(fav)}
+                />
+                <Button
+                  title={t('actions.delete')}
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => onDelete(fav.id)}
+                />
               </View>
             </View>
           </Card>

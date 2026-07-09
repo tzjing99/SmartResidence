@@ -466,60 +466,151 @@
   },
   "mobile": {
     "billing": {
-      "title": "Maintenance fees",
-      "outstanding": "Outstanding balance",
-      "noInvoices": "No invoices yet",
-      "scanQr": "Scan DuitNow QR",
-      "payAdvance": "Pay in advance",
-      "viewInvoices": "View invoices"
+      "title": "维修费",
+      "subtitle": "查看账单、计费公式和付款选项，无隐藏费用。",
+      "eyebrow": "费用",
+      "outstanding": "未结余额",
+      "allClear": "已结清",
+      "noActiveInvoices": "目前没有需要支付的有效账单。",
+      "activeInvoices": "{count} 张有效账单。请优先支付最早到期的账单。",
+      "accountCredit": "账户余额：{amount}",
+      "downloadStatement": "下载对账单（CSV）",
+      "downloading": "下载中…",
+      "statements": "账单",
+      "statementsDesc": "每笔费用保留计费公式，便于核对。",
+      "noInvoices": "暂无账单",
+      "noInvoicesDesc": "管理处开具后，费用账单将显示在这里。",
+      "scanQr": "扫描 DuitNow 二维码",
+      "payAdvance": "预付",
+      "viewInvoices": "查看账单",
+      "downloadReady": "下载就绪",
+      "downloadReadyBody": "{filename} 已保存到设备缓存。",
+      "downloadFailed": "下载失败",
+      "paymentReady": "付款就绪",
+      "paymentReadyBody": "请在下一屏确认付款。",
+      "paymentFailed": "付款失败",
+      "paymentSubmitted": "已提交付款",
+      "paymentSubmittedBody": "我们正在与银行确认您的付款。",
+      "enterAmountTitle": "输入金额",
+      "enterAmountBody": "请选择或输入有效的预付金额。",
+      "advanceFailed": "无法开始预付",
+      "advanceSubmittedBody": "我们正在与银行确认您的预付款。",
+      "scanQrHint": "打开银行应用，选择 DuitNow 二维码并扫描。请保持此屏幕打开直至付款确认。",
+      "paymentConfirmed": "付款已确认！",
+      "close": "关闭",
+      "advanceStartedTitle": "已开始预付",
+      "advanceStartedBody": "请完成支付网关提示，以便将预付余额加入账户。",
+      "payAdvanceDesc": "添加预付余额，将自动用于抵扣下一张维修费账单。",
+      "payAdvanceBody": "选择预付金额。网关确认付款后，金额将成为预付余额并抵扣下一张费用账单。",
+      "otherAmount": "其他",
+      "enterAmountPlaceholder": "输入金额（MYR）",
+      "payInAdvanceTitle": "预付 {amount}",
+      "receipts": "收据",
+      "receiptsDesc": "下载本单位付款的正式 PDF 收据。",
+      "noReceipts": "暂无收据",
+      "noReceiptsDesc": "开具后收据将显示在这里。",
+      "downloadPdf": "下载 PDF"
     },
     "defects": {
-      "title": "Defects",
-      "singleDefect": "Single defect",
-      "repairHistory": "Repair history",
-      "emptyTitle": "No defects yet",
-      "verifyTitle": "Fixed by management — please verify",
-      "rejectMoreWork": "Reject — more work"
+      "title": "缺陷报修",
+      "singleDefect": "单个缺陷",
+      "repairHistory": "维修记录",
+      "emptyTitle": "暂无缺陷",
+      "verifyTitle": "管理处已修复 — 请确认",
+      "rejectMoreWork": "驳回 — 需继续处理",
+      "fillTitleDesc": "请填写标题和描述",
+      "pleaseWait": "请稍候",
+      "photosUploading": "照片仍在上传。",
+      "submitted": "已提交",
+      "submittedBody": "您的缺陷报告已发送给管理处。",
+      "couldNotSubmit": "无法提交",
+      "pickElement": "请选择项目",
+      "addNote": "请添加问题说明",
+      "submittedCount": "已提交 {count} 个缺陷。",
+      "sent": "已发送",
+      "commentAdded": "您的评论已添加。",
+      "couldNotSend": "无法发送",
+      "couldNotUpdate": "无法更新",
+      "signedOff": "已签收",
+      "signedOffBody": "已签收并关闭 {count} 个缺陷。",
+      "couldNotSignOff": "无法全部签收"
+    },
+    "visitors": {
+      "preRegisterCta": "预登记访客",
+      "recurringPasses": "定期通行证",
+      "onSiteNowCount": "当前在场（{count}）",
+      "phoneRequiredTitle": "需要电话",
+      "phoneRequiredBody": "请为此收藏添加电话号码以便快速通行。",
+      "couldNotInvite": "无法再次邀请",
+      "couldNotCancel": "无法取消",
+      "approvedTitle": "已批准",
+      "approvedBody": "保安可为访客办理入场。",
+      "couldNotApprove": "无法批准",
+      "rejectedTitle": "已拒绝",
+      "rejectedBody": "已通知保安。",
+      "couldNotReject": "无法拒绝",
+      "savedTitle": "已保存",
+      "savedBody": "已添加收藏访客。",
+      "couldNotSave": "无法保存",
+      "couldNotRemove": "无法移除",
+      "guestNameRequired": "需要访客姓名",
+      "guestNameRequiredBody": "请输入定期访客姓名（至少 2 个字符）。",
+      "pickDays": "选择日期",
+      "pickDaysBody": "请至少选择一周中的一天。",
+      "passCreated": "通行证已创建",
+      "passCreatedBody": "定期访客通行证现已生效。",
+      "couldNotCreatePass": "无法创建通行证",
+      "removePassTitle": "移除此定期通行证？",
+      "removePassBody": "{name} 将失去定期通行权限。"
+    },
+    "messages": {
+      "missingFields": "字段不完整",
+      "missingFieldsBody": "请添加主题和消息",
+      "pleaseWait": "请稍候",
+      "photosUploading": "照片仍在上传。",
+      "errorTitle": "错误",
+      "faqHelpedTitle": "谢谢！",
+      "faqHelpedBody": "很高兴 FAQ 有帮助 — 未创建工单。"
     },
     "announcements": {
-      "title": "Announcements",
-      "emptyTitle": "Nothing new"
+      "title": "公告",
+      "emptyTitle": "暂无新内容"
     },
     "documents": {
-      "title": "Documents",
-      "emptyTitle": "No documents yet"
+      "title": "文档",
+      "emptyTitle": "暂无文档"
     },
     "forms": {
-      "title": "Forms",
-      "emptyTitle": "No forms available"
+      "title": "表格",
+      "emptyTitle": "暂无可用表格"
     },
     "polls": {
-      "title": "Polls",
-      "emptyTitle": "No polls right now"
+      "title": "投票",
+      "emptyTitle": "暂无投票"
     },
     "lostFound": {
-      "title": "Lost & found",
-      "emptyTitle": "Nothing on the board"
+      "title": "失物招领",
+      "emptyTitle": "板上暂无内容"
     },
     "governance": {
-      "title": "Governance",
-      "emptyTitle": "No meetings scheduled"
+      "title": "治理",
+      "emptyTitle": "暂无会议安排"
     },
     "home": {
       "greeting": "您好",
-      "visitors": "Visitors",
-      "defects": "Defects",
-      "fees": "Fees",
-      "messages": "Messages",
-      "announcements": "Announcements",
-      "emergencySos": "Emergency SOS",
-      "quickActions": "Quick actions"
+      "visitors": "访客",
+      "defects": "缺陷",
+      "fees": "费用",
+      "messages": "消息",
+      "announcements": "公告",
+      "emergencySos": "紧急 SOS",
+      "quickActions": "快捷操作"
     },
     "helpdesk": {
-      "claimTicket": "Claim ticket",
-      "proposeSolved": "Propose solved",
-      "requestInfo": "Request info",
-      "closeAbuse": "Close abuse"
+      "claimTicket": "领取工单",
+      "proposeSolved": "提议已解决",
+      "requestInfo": "请求信息",
+      "closeAbuse": "关闭滥用"
     }
   }
 }

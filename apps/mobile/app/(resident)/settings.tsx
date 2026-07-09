@@ -21,27 +21,13 @@ import {
   residentStyles,
   useResidentColors,
 } from '../../src/components/resident-screen';
+import type { LocalePreference } from '../../src/i18n/detect-locale';
+import { useLocale, useT } from '../../src/i18n/locale-provider';
 import { api } from '../../src/lib/api';
 import type { MeResponse } from '../../src/lib/roles';
 import { useSignOut } from '../../src/lib/use-sign-out';
 
-const mapRoleLabel = (role: string | null | undefined): string => {
-  if (!role) return 'Resident';
-  if (role === 'SECURITY_GUARD') return 'Guard';
-  if (role === 'UNIT_OWNER' || role === 'OWNER') return 'Owner';
-  if (role === 'TENANT') return 'Tenant';
-  if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF')
-    return 'Management';
-  return 'Resident';
-};
-
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
-
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-];
 
 function MoreLink({
   icon,
@@ -97,6 +83,8 @@ function MoreLink({
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const t = useT();
+  const { preference: localePreference, setPreference: setLocalePreference } = useLocale();
   const me = useMe(api);
   const user = (me.data as MeResponse | undefined)?.user;
   const prefs = usePreferences(api);
@@ -104,6 +92,29 @@ export default function SettingsScreen() {
   const { signOut, busy: signingOut } = useSignOut();
   const { preference, setPreference, colors } = useTheme();
   const residentColors = useResidentColors();
+
+  const mapRoleLabel = (role: string | null | undefined): string => {
+    if (!role) return t('account.roleResident');
+    if (role === 'SECURITY_GUARD') return t('account.roleGuard');
+    if (role === 'UNIT_OWNER' || role === 'OWNER') return t('account.roleOwner');
+    if (role === 'TENANT') return t('account.roleTenant');
+    if (role === 'SUPER_ADMIN' || role === 'MANAGEMENT_ADMIN' || role === 'MANAGEMENT_STAFF')
+      return t('account.roleManagement');
+    return t('account.roleResident');
+  };
+
+  const themeOptions: { value: ThemePreference; label: string }[] = [
+    { value: 'system', label: t('account.themeSystem') },
+    { value: 'light', label: t('account.themeLight') },
+    { value: 'dark', label: t('account.themeDark') },
+  ];
+
+  const localeOptions: { value: LocalePreference; label: string }[] = [
+    { value: 'system', label: t('account.localeSystem') },
+    { value: 'en', label: t('account.localeEn') },
+    { value: 'ms', label: t('account.localeMs') },
+    { value: 'zh-Hans', label: t('account.localeZhHans') },
+  ];
 
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [whatsappNotifications, setWhatsappNotifications] = useState(false);
@@ -120,9 +131,9 @@ export default function SettingsScreen() {
       const path = `${FileSystem.cacheDirectory}data-export-${meta.exportId.slice(0, 8)}.json`;
       const downloaded = await FileSystem.downloadAsync(uri, path, { headers });
       await Linking.openURL(downloaded.uri);
-      Alert.alert('Download started', 'Your data export is ready to view or share.');
+      Alert.alert(t('account.downloadStartedTitle'), t('account.downloadStartedBody'));
     } catch (err) {
-      Alert.alert('Could not prepare export', (err as Error).message);
+      Alert.alert(t('account.exportErrorTitle'), (err as Error).message);
     } finally {
       setExportPending(false);
     }
@@ -178,7 +189,7 @@ export default function SettingsScreen() {
         })
         .catch((err: Error) => {
           revertFromServer();
-          Alert.alert('Error', err.message);
+          Alert.alert(t('account.errorTitle'), err.message);
         });
     },
     [
@@ -189,14 +200,15 @@ export default function SettingsScreen() {
       quietEnd,
       revertFromServer,
       save,
+      t,
     ],
   );
 
   return (
     <ResidentScreen
-      eyebrow="Settings"
-      title="Account and home"
-      subtitle="Keep your profile, notifications, and sign-in access in one place."
+      eyebrow={t('account.settingsEyebrow')}
+      title={t('account.settingsTitle')}
+      subtitle={t('account.settingsSubtitle')}
     >
       <Card
         style={[
@@ -225,7 +237,7 @@ export default function SettingsScreen() {
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <AppText style={{ fontSize: 16, fontWeight: '700', color: colors.fg }} numberOfLines={2}>
-            {user?.name ?? 'Loading...'}
+            {user?.name ?? t('account.loading')}
           </AppText>
           {user?.email ? (
             <AppText style={{ fontSize: 13, color: colors.muted }} numberOfLines={1}>
@@ -252,13 +264,13 @@ export default function SettingsScreen() {
       </Card>
 
       <ResidentSectionHeader
-        title="Appearance"
-        subtitle="Match your device or choose light or dark mode."
+        title={t('account.appearanceTitle')}
+        subtitle={t('account.appearanceDesc')}
       />
 
       <Card style={residentStyles.card}>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {THEME_OPTIONS.map((option) => {
+          {themeOptions.map((option) => {
             const active = preference === option.value;
             return (
               <Pressable
@@ -291,15 +303,57 @@ export default function SettingsScreen() {
       </Card>
 
       <ResidentSectionHeader
-        title="Notifications"
-        subtitle="In-app and push stay on by default. Configure email, WhatsApp, and quiet hours below."
+        title={t('account.languageTitle')}
+        subtitle={t('account.languageDesc')}
+      />
+
+      <Card style={residentStyles.card}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {localeOptions.map((option) => {
+            const active = localePreference === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                onPress={() => setLocalePreference(option.value)}
+                style={{
+                  flexGrow: 1,
+                  flexBasis: '45%',
+                  minHeight: 40,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: active ? colors.coral : colors.border,
+                  backgroundColor: active ? colors.messageMgmtCoralBg : colors.messageResidentBg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 8,
+                }}
+              >
+                <AppText
+                  style={{
+                    fontWeight: '700',
+                    color: active ? colors.coral : colors.fg,
+                    fontSize: 13,
+                  }}
+                  numberOfLines={1}
+                >
+                  {option.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Card>
+
+      <ResidentSectionHeader
+        title={t('account.notificationsTitle')}
+        subtitle={t('account.notificationsDesc')}
       />
 
       <Card style={residentStyles.card}>
         <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }}>
           <View style={{ flex: 1, paddingRight: 12, gap: 4 }}>
-            <AppText variant="label">Email for threads</AppText>
-            <AppText variant="meta">Opt in to email notifications for helpdesk updates</AppText>
+            <AppText variant="label">{t('account.emailThreads')}</AppText>
+            <AppText variant="meta">{t('account.emailThreadsDesc')}</AppText>
           </View>
           <Switch
             value={emailNotifications}
@@ -312,13 +366,11 @@ export default function SettingsScreen() {
       <Card style={residentStyles.card}>
         <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }}>
           <View style={{ flex: 1, paddingRight: 12, gap: 4 }}>
-            <AppText variant="label">WhatsApp alerts</AppText>
-            <AppText variant="meta">
-              Parcel, visitor, and billing reminders on your verified phone
-            </AppText>
+            <AppText variant="label">{t('account.whatsappAlerts')}</AppText>
+            <AppText variant="meta">{t('account.whatsappAlertsDesc')}</AppText>
             {!prefs.data?.whatsappEligible ? (
               <AppText variant="meta" style={{ marginTop: 4 }}>
-                Add and verify your mobile number in Profile first.
+                {t('account.whatsappNeedPhone')}
               </AppText>
             ) : null}
           </View>
@@ -333,10 +385,8 @@ export default function SettingsScreen() {
       <Card style={residentStyles.card}>
         <AlignRow style={{ alignItems: 'flex-start', minHeight: 0 }}>
           <View style={{ flex: 1, paddingRight: 12, gap: 4 }}>
-            <AppText variant="label">Quiet hours</AppText>
-            <AppText variant="meta">
-              Suppress push during these hours (in-app still delivered)
-            </AppText>
+            <AppText variant="label">{t('account.quietHours')}</AppText>
+            <AppText variant="meta">{t('account.quietHoursDesc')}</AppText>
           </View>
           <Switch
             value={quietEnabled}
@@ -346,7 +396,7 @@ export default function SettingsScreen() {
         </AlignRow>
         {quietEnabled ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 }}>
-            <Field label="From" containerStyle={{ flex: 1, minWidth: 120 }}>
+            <Field label={t('account.quietFrom')} containerStyle={{ flex: 1, minWidth: 120 }}>
               <Input
                 value={quietStart}
                 onChangeText={setQuietStart}
@@ -355,7 +405,7 @@ export default function SettingsScreen() {
                 editable={!save.isPending}
               />
             </Field>
-            <Field label="Until" containerStyle={{ flex: 1, minWidth: 120 }}>
+            <Field label={t('account.quietUntil')} containerStyle={{ flex: 1, minWidth: 120 }}>
               <Input
                 value={quietEnd}
                 onChangeText={setQuietEnd}
@@ -369,70 +419,67 @@ export default function SettingsScreen() {
       </Card>
 
       <ResidentSectionHeader
-        title="Privacy & data"
-        subtitle="Download a copy of your personal data (PDPA data access request)."
+        title={t('account.privacyTitle')}
+        subtitle={t('account.privacyDesc')}
       />
 
       <Card style={residentStyles.card}>
         <Button
-          title={exportPending ? 'Preparing download…' : 'Download my data'}
+          title={exportPending ? t('account.downloadMyDataPending') : t('account.downloadMyData')}
           onPress={() => void onDownloadMyData()}
           disabled={exportPending}
         />
       </Card>
 
-      <ResidentSectionHeader
-        title="More"
-        subtitle="Everything else your resident account can do."
-      />
+      <ResidentSectionHeader title={t('account.moreTitle')} subtitle={t('account.moreSubtitle')} />
 
       <Card style={[residentStyles.card, { paddingVertical: 4 }]}>
         <MoreLink
           icon="notifications-outline"
-          title="Notifications"
-          subtitle="Alerts, approvals, and updates"
+          title={t('nav.screens.notifications')}
+          subtitle={t('account.notificationsDesc')}
           onPress={() => router.push('/(resident)/notifications' as Href)}
         />
         <MoreLink
           icon="podium-outline"
-          title="MC polls"
-          subtitle="Vote in owner consultations"
+          title={t('nav.screens.polls')}
+          subtitle={t('nav.sections.community')}
           onPress={() => router.push('/(resident)/polls' as Href)}
         />
         <MoreLink
           icon="calendar-outline"
-          title="Facilities"
-          subtitle="Book shared amenities"
+          title={t('nav.screens.facilities')}
+          subtitle={t('nav.sections.amenities')}
           onPress={() => router.push('/(resident)/facilities' as Href)}
         />
         <MoreLink
           icon="document-text-outline"
-          title="Documents"
-          subtitle="House rules, minutes, and circulars"
+          title={t('nav.screens.documents')}
+          subtitle={t('nav.sections.notices')}
           onPress={() => router.push('/(resident)/documents' as Href)}
         />
         <MoreLink
           icon="repeat-outline"
-          title="Recurring visitor passes"
-          subtitle="Repeat access for regular guests"
+          title={t('nav.screens.recurringPasses')}
+          subtitle={t('nav.screens.visitors')}
           onPress={() => router.push('/(resident)/visitors/recurring' as Href)}
         />
         <MoreLink
           icon="help-circle-outline"
-          title="Help & FAQ"
-          subtitle="Answers from your management office"
+          title={t('nav.screens.faq')}
+          subtitle={t('faq.subtitle')}
           onPress={() => router.push('/(resident)/faq' as Href)}
         />
         <MoreLink
           icon="warning-outline"
-          title="Emergency SOS"
-          subtitle="Alert guards in a real emergency"
+          title={t('mobile.home.emergencySos')}
+          subtitle={t('mobile.home.quickActions')}
           onPress={() => router.push('/(resident)/sos' as Href)}
         />
         <MoreLink
           icon="key-outline"
-          title="Who has access to my unit"
-          subtitle="Review and revoke delegated access"
+          title={t('nav.screens.access')}
+          subtitle={t('nav.manageAccess')}
           onPress={() => router.push('/(resident)/access' as Href)}
           isLast
         />
@@ -440,13 +487,17 @@ export default function SettingsScreen() {
 
       <View style={{ gap: spacing.sm }}>
         <Button
-          title="Sign out"
+          title={t('account.signOut')}
           variant="secondary"
           loading={signingOut}
           onPress={() => {
-            Alert.alert('Sign out?', 'You will need to sign in again to continue.', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+            Alert.alert(t('account.signOutConfirmTitle'), t('account.signOutConfirmBody'), [
+              { text: t('account.cancel'), style: 'cancel' },
+              {
+                text: t('account.signOut'),
+                style: 'destructive',
+                onPress: () => void signOut(),
+              },
             ]);
           }}
         />

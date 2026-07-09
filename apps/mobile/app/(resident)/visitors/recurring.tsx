@@ -24,6 +24,7 @@ import {
   useResidentStyles,
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
+import { useT } from '../../../src/i18n/locale-provider';
 import { api } from '../../../src/lib/api';
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
@@ -35,6 +36,7 @@ function isoDate(offsetDays = 0): string {
 }
 
 export default function RecurringPassesScreen() {
+  const t = useT();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const units = useMyUnits(api);
@@ -77,11 +79,14 @@ export default function RecurringPassesScreen() {
   async function onSubmit() {
     if (!unitId) return;
     if (guestName.trim().length < 2) {
-      Alert.alert('Guest name required', 'Enter the recurring guest name (at least 2 characters).');
+      Alert.alert(
+        t('mobile.visitors.guestNameRequired'),
+        t('mobile.visitors.guestNameRequiredBody'),
+      );
       return;
     }
     if (days.length === 0) {
-      Alert.alert('Pick days', 'Select at least one day of the week.');
+      Alert.alert(t('mobile.visitors.pickDays'), t('mobile.visitors.pickDaysBody'));
       return;
     }
     try {
@@ -99,26 +104,32 @@ export default function RecurringPassesScreen() {
       });
       resetForm();
       setShowForm(false);
-      Alert.alert('Pass created', 'The recurring visitor pass is now active.');
+      Alert.alert(t('mobile.visitors.passCreated'), t('mobile.visitors.passCreatedBody'));
     } catch (err) {
-      Alert.alert('Could not create pass', (err as Error).message);
+      Alert.alert(t('mobile.visitors.couldNotCreatePass'), (err as Error).message);
     }
   }
 
   function confirmDelete(pass: RecurringPass) {
-    Alert.alert('Remove this recurring pass?', `${pass.guestName} will lose recurring access.`, [
-      { text: 'Keep', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          if (!unitId) return;
-          void deletePass
-            .mutateAsync({ id: pass.id, unitId })
-            .catch((err) => Alert.alert('Could not remove', (err as Error).message));
+    Alert.alert(
+      t('mobile.visitors.removePassTitle'),
+      t('mobile.visitors.removePassBody', { name: pass.guestName }),
+      [
+        { text: t('actions.cancel'), style: 'cancel' },
+        {
+          text: t('upload.remove'),
+          style: 'destructive',
+          onPress: () => {
+            if (!unitId) return;
+            void deletePass
+              .mutateAsync({ id: pass.id, unitId })
+              .catch((err) =>
+                Alert.alert(t('mobile.visitors.couldNotRemove'), (err as Error).message),
+              );
+          },
         },
-      },
-    ]);
+      ],
+    );
   }
 
   return (

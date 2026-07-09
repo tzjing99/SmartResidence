@@ -637,7 +637,7 @@
   },
   "account": {
     "privacyTitle": "Privacy & data",
-    "privacyDesc": "Download a copy of your personal data held by SmartResidence (PDPA data access request).",
+    "privacyDesc": "Download a copy of your personal data, or permanently delete your account (PDPA access / erasure).",
     "downloadMyData": "Download my data",
     "downloadMyDataPending": "Preparing download…",
     "downloadMyDataSuccess": "Download started",
@@ -682,7 +682,15 @@
     "roleGuard": "Guard",
     "roleOwner": "Owner",
     "roleTenant": "Tenant",
-    "roleManagement": "Management"
+    "roleManagement": "Management",
+    "deleteAccount": "Delete my account",
+    "deleteAccountPending": "Deleting account…",
+    "deleteAccountDesc": "This anonymizes your personal data, signs you out everywhere, and ends unit access. Billing and condo history stay for legal records.",
+    "deleteAccountConfirmPrompt": "Type DELETE MY ACCOUNT to confirm. This cannot be undone.",
+    "deleteAccountConfirmPhrase": "DELETE MY ACCOUNT",
+    "deleteAccountSuccess": "Your account has been deleted",
+    "deleteAccountError": "Could not delete your account",
+    "deleteAccountCancelled": "Account deletion cancelled"
   },
   "sessions": {
     "title": "Devices & sessions",

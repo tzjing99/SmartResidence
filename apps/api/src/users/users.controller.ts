@@ -3,7 +3,9 @@ import { Audit } from '@/common/decorators/audit.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import {
+  Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -15,13 +17,18 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
 import type { Response } from 'express';
+import { DeleteAccountDto } from './dto/delete-account.dto';
+import { UserAccountDeletionService } from './user-account-deletion.service';
 import { UserDataExportService } from './user-data-export.service';
 
 @ApiTags('Users')
 @ApiBearerAuth('access')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly exports: UserDataExportService) {}
+  constructor(
+    private readonly exports: UserDataExportService,
+    private readonly deletions: UserAccountDeletionService,
+  ) {}
 
   @Post('me/export')
   @HttpCode(HttpStatus.CREATED)
@@ -51,5 +58,16 @@ export class UsersController {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(JSON.stringify(bundle, null, 2));
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @CheckAbility({ action: 'delete', subject: 'User' })
+  @Audit({ action: AuditAction.DELETE, resourceType: 'User', resourceIdFrom: 'response.id' })
+  @ApiOperation({
+    summary: 'Delete / anonymize the current account (PDPA erasure). Requires confirmation phrase.',
+  })
+  deleteAccount(@CurrentUser() user: AuthenticatedUser, @Body() _dto: DeleteAccountDto) {
+    return this.deletions.deleteAccount(user);
   }
 }

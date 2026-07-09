@@ -70,9 +70,11 @@ export class CacheService {
   private async namespaceVersion(namespace: string): Promise<number> {
     try {
       const v = await this.client.get(`cachever:${namespace}`);
-      return v ? Number(v) : 1;
+      // Default 0 so the first `incr` (→ 1) actually retires keys written before any bump.
+      // Using 1 here made the first invalidate a no-op (missing key and incr both read as 1).
+      return v ? Number(v) : 0;
     } catch {
-      return 1;
+      return 0;
     }
   }
 

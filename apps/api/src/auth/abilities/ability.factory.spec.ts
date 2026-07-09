@@ -157,6 +157,19 @@ describe('AbilityFactory', () => {
     expect(ability.can('manage', 'UnitType')).toBe(false);
   });
 
+  it('lets residents delete their own account (PDPA erasure)', () => {
+    const ability = factory.build(
+      user({
+        id: 'owner-1',
+        roles: [
+          { roleId: RoleId.UNIT_OWNER, condoId: 'condo-1', unitId: 'unit-1', permissions: [] },
+        ],
+      }),
+    );
+    expect(ability.can('delete', 'User')).toBe(true);
+    expect(ability.can('export', 'User')).toBe(true);
+  });
+
   it('lets a unit owner approve and reject visitors for their own unit', () => {
     const ability = factory.build(
       user({

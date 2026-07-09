@@ -129,6 +129,9 @@ export class AuthService {
       },
     });
     if (!user) throw new UnauthorizedException('User no longer exists');
+    if (user.status === UserStatus.DEACTIVATED || user.deletedAt) {
+      throw new UnauthorizedException('Account has been deleted');
+    }
 
     const roles = user.roleAssignments.map((r) => ({
       roleId: r.roleId,

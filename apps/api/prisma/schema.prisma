@@ -2326,10 +2326,19 @@ model FormSubmission {
   reviewedAt       DateTime?
   reviewNote       String?
   submittedAt      DateTime?
+  /// Short gate code issued on approval for renovations (and similar printable permits).
+  accessCode       String?
+  /// QR payload `condoId:submissionId:accessCode` for guard scan.
+  qrPayload        String?              @unique
+  /// Optional validity window for the printable/digital permit (from form answers when present).
+  permitValidFrom  DateTime?
+  permitValidUntil DateTime?
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
+  @@unique([condoId, accessCode])
   @@index([condoId, status])
+  @@index([condoId, accessCode])
   @@index([userId])
   @@index([unitId])
   @@index([templateId])

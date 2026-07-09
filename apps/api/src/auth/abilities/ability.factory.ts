@@ -97,7 +97,8 @@ export type Action =
   | 'invite'
   | 'revoke'
   | 'export'
-  | 'collect';
+  | 'collect'
+  | 'verify';
 
 export type AppAbility = PureAbility<[Action, Subject]>;
 const AppAbility = PureAbility as AbilityClass<AppAbility>;
@@ -200,6 +201,7 @@ export class AbilityFactory {
         can('manage', 'Parcel', { condoId: scope.condoId ?? '' });
         can('manage', 'FormTemplate', { condoId: scope.condoId ?? '' });
         can('manage', 'FormSubmission', { condoId: scope.condoId ?? '' });
+        can('verify', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('manage', 'DocumentFolder', { condoId: scope.condoId ?? '' });
         can('manage', 'Document', { condoId: scope.condoId ?? '' });
         can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
@@ -269,6 +271,7 @@ export class AbilityFactory {
         can('read', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('approve', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('reject', 'FormSubmission', { condoId: scope.condoId ?? '' });
+        can('verify', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('read', 'DocumentFolder', { condoId: scope.condoId ?? '' });
         can('read', 'Document', { condoId: scope.condoId ?? '' });
         can('manage', 'DocumentVersion', { condoId: scope.condoId ?? '' });
@@ -300,6 +303,7 @@ export class AbilityFactory {
         can('create', 'Parcel', { condoId: scope.condoId ?? '' });
         can('read', 'Parcel', { condoId: scope.condoId ?? '' });
         can('collect', 'Parcel', { condoId: scope.condoId ?? '' });
+        can('verify', 'FormSubmission', { condoId: scope.condoId ?? '' });
         can('export', 'User', { id: scope.userId });
         return;
 

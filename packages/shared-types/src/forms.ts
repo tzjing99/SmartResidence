@@ -77,6 +77,12 @@ export const FormSubmissionSchema = z.object({
   reviewedAt: z.coerce.date().nullable().optional(),
   reviewNote: z.string().nullable().optional(),
   submittedAt: z.coerce.date().nullable().optional(),
+  /** Gate verification code issued on approval for printable permits (e.g. renovation). */
+  accessCode: z.string().nullable().optional(),
+  /** QR payload `condoId:submissionId:accessCode` for guard scan. */
+  qrPayload: z.string().nullable().optional(),
+  permitValidFrom: z.coerce.date().nullable().optional(),
+  permitValidUntil: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),
   template: FormTemplateSchema.partial().optional(),
@@ -85,6 +91,44 @@ export const FormSubmissionSchema = z.object({
   reviewedBy: z.object({ id: z.string().uuid(), name: z.string() }).nullable().optional(),
 });
 export type FormSubmission = z.infer<typeof FormSubmissionSchema>;
+
+/** Template kinds that issue a gate-verifiable permit (QR + short code) on approval. */
+export const PERMIT_FORM_KINDS = ['RENOVATION'] as const satisfies readonly FormTemplateKind[];
+export type PermitFormKind = (typeof PERMIT_FORM_KINDS)[number];
+
+export function isPermitFormKind(kind: FormTemplateKind | string | null | undefined): boolean {
+  return PERMIT_FORM_KINDS.includes(kind as PermitFormKind);
+}
+
+/** Guard verify result for an approved renovation (or similar) form permit. */
+export const FormPermitVerifySchema = z.object({
+  passType: z.literal('form_permit'),
+  id: z.string().uuid(),
+  condoId: z.string().uuid(),
+  status: FormSubmissionStatus,
+  accessCode: z.string().nullable().optional(),
+  qrPayload: z.string().nullable().optional(),
+  permitValidFrom: z.coerce.date().nullable().optional(),
+  permitValidUntil: z.coerce.date().nullable().optional(),
+  templateKind: FormTemplateKind,
+  templateTitle: z.string(),
+  unitLabel: z.string().nullable().optional(),
+  residentName: z.string().nullable().optional(),
+  contractorCompany: z.string().nullable().optional(),
+  workScope: z.string().nullable().optional(),
+  valid: z.boolean(),
+  message: z.string().optional(),
+});
+export type FormPermitVerify = z.infer<typeof FormPermitVerifySchema>;
+
+export const FormPermitQrSchema = z.object({
+  qrPayload: z.string(),
+  accessCode: z.string(),
+  png: z.string(),
+  permitValidFrom: z.coerce.date().nullable().optional(),
+  permitValidUntil: z.coerce.date().nullable().optional(),
+});
+export type FormPermitQr = z.infer<typeof FormPermitQrSchema>;
 
 export const CreateFormTemplateInputSchema = z.object({
   condoId: z.string().uuid(),

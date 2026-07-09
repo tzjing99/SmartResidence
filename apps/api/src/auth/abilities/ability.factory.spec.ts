@@ -74,6 +74,7 @@ describe('AbilityFactory', () => {
     expect(ability.can('create-walk-in', 'Visitor')).toBe(true);
     expect(ability.can('approve', 'Visitor')).toBe(false);
     expect(ability.can('reject', 'Visitor')).toBe(false);
+    expect(ability.can('verify', 'FormSubmission')).toBe(true);
     expect(ability.can('read', subject('Unit', { condoId: 'condo-1' }))).toBe(true);
     expect(ability.can('read', 'Invoice')).toBe(false);
     expect(ability.can('manage', 'Defect')).toBe(false);

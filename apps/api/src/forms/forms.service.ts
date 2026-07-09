@@ -14,7 +14,20 @@ import {
   type Prisma,
   RoleId,
 } from '@prisma/client';
-import { DEFAULT_FORM_TEMPLATES, type FormFields } from '@smartresidence/shared-types';
+import {
+  DEFAULT_FORM_TEMPLATES,
+  type FormFields,
+  type FormPermitVerify,
+  isPermitFormKind,
+} from '@smartresidence/shared-types';
+import * as QRCode from 'qrcode';
+import {
+  buildQrPayload,
+  generateAccessCode,
+  isVisitorId,
+  normalizePassInput,
+  parseQrPayload,
+} from '../visitor/access-code';
 import type {
   CreateFormSubmissionDto,
   CreateFormTemplateDto,
@@ -23,6 +36,7 @@ import type {
   UpdateFormSubmissionDto,
   UpdateFormTemplateDto,
 } from './dto/forms.dto';
+import { buildPermitPdf } from './permit-pdf';
 
 const submissionInclude = {
   template: { select: { id: true, kind: true, title: true, fields: true, active: true } },
@@ -30,6 +44,10 @@ const submissionInclude = {
   user: { select: { id: true, name: true } },
   reviewedBy: { select: { id: true, name: true } },
 } satisfies Prisma.FormSubmissionInclude;
+
+type SubmissionWithRelations = Prisma.FormSubmissionGetPayload<{
+  include: typeof submissionInclude;
+}>;
 
 @Injectable()
 export class FormsService {
@@ -341,6 +359,10 @@ export class FormsService {
       throw new BadRequestException('Only submitted forms can be approved');
     }
 
+    const permitFields = isPermitFormKind(existing.template.kind)
+      ? await this.allocatePermitFields(existing.condoId, id, existing.answers)
+      : null;
+
     const updated = await this.prisma.formSubmission.update({
       where: { id },
       data: {
@@ -348,6 +370,7 @@ export class FormsService {
         reviewedByUserId: actor.id,
         reviewedAt: new Date(),
         reviewNote: null,
+        ...(permitFields ?? {}),
       },
       include: submissionInclude,
     });
@@ -359,7 +382,10 @@ export class FormsService {
       AuditAction.UPDATE,
       'FormSubmission',
       id,
-      { status: FormSubmissionStatus.APPROVED },
+      {
+        status: FormSubmissionStatus.APPROVED,
+        ...(permitFields?.accessCode ? { accessCode: permitFields.accessCode } : {}),
+      },
     );
 
     this.emitUpdate(updated);
@@ -369,6 +395,105 @@ export class FormsService {
       userId: existing.userId,
     });
     return updated;
+  }
+
+  /**
+   * Guard verify for renovation (and similar) form permits by QR payload,
+   * short access code, or submission UUID.
+   */
+  async verifyPermit(
+    actor: AuthenticatedUser,
+    pass: string,
+    condoId?: string,
+  ): Promise<FormPermitVerify> {
+    const scopeCondoId = condoId ?? this.guardCondoId(actor);
+    this.assertGuardOrManagement(actor, scopeCondoId);
+
+    const row = await this.resolvePermitPass(pass, scopeCondoId);
+    if (!row) throw new NotFoundException('Permit not found');
+    if (row.condoId !== scopeCondoId) {
+      throw new ForbiddenException('Permit is not for this condo');
+    }
+    if (!isPermitFormKind(row.template.kind)) {
+      throw new BadRequestException('This form is not a gate-verifiable permit');
+    }
+
+    return this.toPermitVerify(row);
+  }
+
+  async getPermitQr(actor: AuthenticatedUser, id: string) {
+    const row = await this.getSubmission(actor, id);
+    if (row.status !== FormSubmissionStatus.APPROVED || !row.qrPayload || !row.accessCode) {
+      throw new BadRequestException('This submission has no printable permit yet');
+    }
+    if (!isPermitFormKind(row.template.kind)) {
+      throw new BadRequestException('This form kind does not issue a gate permit');
+    }
+    const png = await QRCode.toDataURL(row.qrPayload, { errorCorrectionLevel: 'M', width: 512 });
+    return {
+      qrPayload: row.qrPayload,
+      accessCode: row.accessCode,
+      png,
+      permitValidFrom: row.permitValidFrom,
+      permitValidUntil: row.permitValidUntil,
+    };
+  }
+
+  async exportPermitPdf(actor: AuthenticatedUser, id: string) {
+    const row = await this.prisma.formSubmission.findUnique({
+      where: { id },
+      include: {
+        ...submissionInclude,
+        condo: { select: { id: true, name: true } },
+      },
+    });
+    if (!row) throw new NotFoundException('Form submission not found');
+    const owns = row.userId === actor.id;
+    if (!owns && !this.isManagement(actor, row.condoId)) {
+      throw new ForbiddenException('You cannot print this permit');
+    }
+    if (row.status !== FormSubmissionStatus.APPROVED || !row.accessCode || !row.qrPayload) {
+      throw new BadRequestException('Only approved permits with an access code can be printed');
+    }
+    if (!isPermitFormKind(row.template.kind)) {
+      throw new BadRequestException('This form kind does not issue a printable permit');
+    }
+
+    const qr = QRCode.create(row.qrPayload, { errorCorrectionLevel: 'M' });
+    const modules: boolean[][] = [];
+    const size = qr.modules.size;
+    for (let rowIdx = 0; rowIdx < size; rowIdx++) {
+      const line: boolean[] = [];
+      for (let col = 0; col < size; col++) line.push(Boolean(qr.modules.get(rowIdx, col)));
+      modules.push(line);
+    }
+
+    const answers = (row.answers ?? {}) as Record<string, unknown>;
+    const buffer = buildPermitPdf({
+      organizationName: row.condo.name,
+      permitTitle: row.template.title || 'Renovation permit',
+      reference: row.id.slice(0, 8).toUpperCase(),
+      unitLabel: row.unit?.identifier ?? '—',
+      residentName: row.user?.name ?? '—',
+      contractorCompany: stringAnswer(answers, 'contractorCompany'),
+      workScope: stringAnswer(answers, 'workScope'),
+      validFrom: formatPermitDate(row.permitValidFrom),
+      validUntil: formatPermitDate(row.permitValidUntil),
+      accessCode: row.accessCode,
+      qrModules: modules,
+      approvedByName: row.reviewedBy?.name ?? undefined,
+      approvedAt: formatPermitDateTime(row.reviewedAt),
+    });
+
+    const safeTitle = (row.template.title || 'permit')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40);
+    return {
+      buffer,
+      filename: `${safeTitle || 'permit'}-${row.id.slice(0, 8)}.pdf`,
+    };
   }
 
   async rejectSubmission(actor: AuthenticatedUser, id: string, dto: RejectFormSubmissionDto) {
@@ -550,4 +675,176 @@ export class FormsService {
     );
     if (!ok) throw new ForbiddenException('You cannot submit forms for this unit');
   }
+
+  private guardCondoId(actor: AuthenticatedUser): string {
+    const condoId = actor.activeCondoId;
+    if (!condoId) throw new BadRequestException('Active condo context required');
+    return condoId;
+  }
+
+  private isGuard(actor: AuthenticatedUser, condoId: string): boolean {
+    return actor.roles.some((r) => r.condoId === condoId && r.roleId === RoleId.SECURITY_GUARD);
+  }
+
+  private assertGuardOrManagement(actor: AuthenticatedUser, condoId: string) {
+    if (!this.isGuard(actor, condoId) && !this.isManagement(actor, condoId)) {
+      throw new ForbiddenException('Guard or management access required');
+    }
+  }
+
+  private async uniquePermitAccessCode(condoId: string): Promise<string> {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const accessCode = generateAccessCode();
+      const [visitorHit, recurringHit, formHit] = await Promise.all([
+        this.prisma.visitor.findUnique({
+          where: { condoId_accessCode: { condoId, accessCode } },
+          select: { id: true },
+        }),
+        this.prisma.recurringPass.findUnique({
+          where: { condoId_accessCode: { condoId, accessCode } },
+          select: { id: true },
+        }),
+        this.prisma.formSubmission.findUnique({
+          where: { condoId_accessCode: { condoId, accessCode } },
+          select: { id: true },
+        }),
+      ]);
+      if (!visitorHit && !recurringHit && !formHit) return accessCode;
+    }
+    throw new BadRequestException('Could not allocate access code — try again');
+  }
+
+  private async allocatePermitFields(
+    condoId: string,
+    submissionId: string,
+    answers: unknown,
+  ): Promise<{
+    accessCode: string;
+    qrPayload: string;
+    permitValidFrom: Date | null;
+    permitValidUntil: Date | null;
+  }> {
+    const accessCode = await this.uniquePermitAccessCode(condoId);
+    const record = answers as Record<string, unknown>;
+    return {
+      accessCode,
+      qrPayload: buildQrPayload(condoId, submissionId, accessCode),
+      permitValidFrom: parseAnswerDate(record, 'startDate'),
+      permitValidUntil: endOfDay(parseAnswerDate(record, 'endDate')),
+    };
+  }
+
+  private async resolvePermitPass(
+    pass: string,
+    condoId: string,
+  ): Promise<SubmissionWithRelations | null> {
+    const normalized = normalizePassInput(pass);
+
+    if (isVisitorId(normalized)) {
+      const byId = await this.prisma.formSubmission.findUnique({
+        where: { id: normalized },
+        include: submissionInclude,
+      });
+      if (byId) return byId;
+    }
+
+    const parsed = parseQrPayload(normalized);
+    if (parsed) {
+      const byParts = await this.prisma.formSubmission.findFirst({
+        where: { id: parsed.visitorId, condoId: parsed.condoId },
+        include: submissionInclude,
+      });
+      if (byParts) return byParts;
+    }
+
+    const [byPayload, byCode] = await Promise.all([
+      this.prisma.formSubmission.findUnique({
+        where: { qrPayload: normalized },
+        include: submissionInclude,
+      }),
+      this.prisma.formSubmission.findUnique({
+        where: { condoId_accessCode: { condoId, accessCode: normalized } },
+        include: submissionInclude,
+      }),
+    ]);
+    return byPayload ?? byCode ?? null;
+  }
+
+  private toPermitVerify(row: SubmissionWithRelations): FormPermitVerify {
+    const answers = (row.answers ?? {}) as Record<string, unknown>;
+    const now = new Date();
+    let valid = row.status === FormSubmissionStatus.APPROVED;
+    let message: string | undefined;
+
+    if (row.status !== FormSubmissionStatus.APPROVED) {
+      valid = false;
+      message = `Permit is ${row.status}`;
+    } else if (row.permitValidFrom && row.permitValidFrom > now) {
+      valid = false;
+      message = 'Permit is not yet valid';
+    } else if (row.permitValidUntil && row.permitValidUntil < now) {
+      valid = false;
+      message = 'Permit has expired';
+    }
+
+    return {
+      passType: 'form_permit',
+      id: row.id,
+      condoId: row.condoId,
+      status: row.status,
+      accessCode: row.accessCode,
+      qrPayload: row.qrPayload,
+      permitValidFrom: row.permitValidFrom,
+      permitValidUntil: row.permitValidUntil,
+      templateKind: row.template.kind,
+      templateTitle: row.template.title,
+      unitLabel: row.unit?.identifier ?? null,
+      residentName: row.user?.name ?? null,
+      contractorCompany: stringAnswer(answers, 'contractorCompany') ?? null,
+      workScope: stringAnswer(answers, 'workScope') ?? null,
+      valid,
+      message,
+    };
+  }
+}
+
+function stringAnswer(answers: Record<string, unknown>, key: string): string | undefined {
+  const value = answers[key];
+  if (value === undefined || value === null || value === '') return undefined;
+  return String(value);
+}
+
+function parseAnswerDate(answers: Record<string, unknown>, key: string): Date | null {
+  const raw = answers[key];
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Inclusive end-of-day for date-only permit answers (local calendar day). */
+function endOfDay(d: Date | null): Date | null {
+  if (!d) return null;
+  const out = new Date(d);
+  out.setHours(23, 59, 59, 999);
+  return out;
+}
+
+function formatPermitDate(d: Date | string | null | undefined): string | undefined {
+  if (!d) return undefined;
+  return new Date(d).toLocaleDateString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function formatPermitDateTime(d: Date | string | null | undefined): string | undefined {
+  if (!d) return undefined;
+  return new Date(d).toLocaleString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }

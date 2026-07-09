@@ -578,6 +578,55 @@ export class PdfDocument {
     return this;
   }
 
+  /**
+   * Draw a scannable QR as filled modules (no image XObject).
+   * `modules` is a square boolean matrix from `qrcode` (`true` = dark).
+   */
+  qrMatrix(
+    modules: ReadonlyArray<ReadonlyArray<boolean>>,
+    opts: { size?: number; caption?: string } = {},
+  ): this {
+    const n = modules.length;
+    if (n === 0) return this;
+    const sizePt = opts.size ?? 120;
+    const captionH = opts.caption ? 14 : 0;
+    this.ensure(sizePt + captionH + 16);
+    this.y -= 8;
+    const cell = sizePt / n;
+    const originX = this.left + (this.contentWidth - sizePt) / 2;
+    const originY = this.y - sizePt;
+    this.fillRect(originX - 4, originY - 4, sizePt + 8, sizePt + 8, rgb(255, 255, 255));
+    for (let row = 0; row < n; row++) {
+      const line = modules[row];
+      if (!line) continue;
+      for (let col = 0; col < n; col++) {
+        if (!line[col]) continue;
+        this.fillRect(
+          originX + col * cell,
+          originY + (n - 1 - row) * cell,
+          cell + 0.15,
+          cell + 0.15,
+          PDF_COLORS.ink,
+        );
+      }
+    }
+    this.y = originY;
+    if (opts.caption) {
+      this.y -= 12;
+      this.drawText(
+        this.left,
+        this.y,
+        opts.caption,
+        8,
+        false,
+        PDF_COLORS.muted,
+        'center',
+        this.contentWidth,
+      );
+    }
+    return this;
+  }
+
   /** A framed callout box (used for the e-invoice / QR placeholder). */
   calloutBox(lines: TextRun[], opts: { qrPlaceholder?: string } = {}): this {
     const innerPad = 12;

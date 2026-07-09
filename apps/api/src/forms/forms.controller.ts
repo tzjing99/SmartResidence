@@ -13,9 +13,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuditAction } from '@prisma/client';
+import type { Response } from 'express';
 import {
   CreateFormSubmissionDto,
   CreateFormTemplateDto,
@@ -102,10 +104,38 @@ export class FormSubmissionController {
     return this.forms.listSubmissionsForCondo(user, condoId, query);
   }
 
+  @Post('verify/:pass')
+  @CheckAbility({ action: 'verify', subject: 'FormSubmission' })
+  @ApiOperation({ summary: 'Guard verify of a renovation/form permit by QR or access code' })
+  verify(@CurrentUser() user: AuthenticatedUser, @Param('pass') pass: string) {
+    return this.forms.verifyPermit(user, pass);
+  }
+
   @Get(':id')
   @CheckAbility({ action: 'read', subject: 'FormSubmission' })
   getOne(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.forms.getSubmission(user, id);
+  }
+
+  @Get(':id/qr')
+  @CheckAbility({ action: 'read', subject: 'FormSubmission' })
+  @ApiOperation({ summary: 'QR PNG + access code for an approved printable permit' })
+  getQr(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.forms.getPermitQr(user, id);
+  }
+
+  @Get(':id/pdf')
+  @CheckAbility({ action: 'read', subject: 'FormSubmission' })
+  @ApiOperation({ summary: 'Download printable permit PDF (approved renovation, etc.)' })
+  async exportPdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.forms.exportPermitPdf(user, id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 
   @Post()

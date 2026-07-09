@@ -14,6 +14,7 @@ import type {
 import {
   FORM_SUBMISSION_STATUS_LABELS,
   FORM_TEMPLATE_KIND_LABELS,
+  isPermitFormKind,
 } from '@smartresidence/shared-types';
 import {
   AnimatedPressable,
@@ -28,6 +29,7 @@ import {
 } from '@smartresidence/ui-mobile';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import {
   RESIDENT_CORAL,
   ResidentScreen,
@@ -288,6 +290,35 @@ export default function FormsScreen() {
                 <AppText variant="meta" style={{ color: colors.muted }}>
                   {s.unit?.identifier} · {fmtDate(s.submittedAt ?? s.createdAt)}
                 </AppText>
+                {s.status === 'APPROVED' && isPermitFormKind(s.template?.kind) && s.accessCode ? (
+                  <View style={{ gap: 8, marginTop: 4, alignItems: 'flex-start' }}>
+                    {s.qrPayload ? (
+                      <View
+                        style={{
+                          padding: 8,
+                          backgroundColor: '#FFFFFF',
+                          borderRadius: 8,
+                        }}
+                      >
+                        <QRCode value={s.qrPayload} size={120} />
+                      </View>
+                    ) : null}
+                    <AppText variant="meta" style={{ color: colors.muted }}>
+                      Gate code for guards
+                    </AppText>
+                    <AppText
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: 22,
+                        fontWeight: '800',
+                        letterSpacing: 3,
+                        color: colors.fg,
+                      }}
+                    >
+                      {s.accessCode}
+                    </AppText>
+                  </View>
+                ) : null}
                 {s.reviewNote ? (
                   <AppText variant="bodySm" style={{ color: RESIDENT_CORAL }}>
                     {s.reviewNote}

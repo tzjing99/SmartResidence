@@ -46,10 +46,7 @@ async function upsertWithRetry<T>(fn: () => Promise<T>, retries = 5): Promise<T>
  * integration condo. Without this, invoice (unitId, periodStart) uniqueness
  * and refresh-token rotation (global session scan) fail on dirty databases.
  */
-async function resetIntegrationCondoData(
-  prisma: PrismaService,
-  condoId: string,
-): Promise<void> {
+async function resetIntegrationCondoData(prisma: PrismaService, condoId: string): Promise<void> {
   await prisma.ledgerEntry.deleteMany({ where: { condoId } });
   await prisma.invoice.deleteMany({ where: { condoId } });
   // Refresh rotation scans recent active sessions globally; stale rows slow auth tests.

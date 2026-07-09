@@ -83,14 +83,16 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
   it('billing: markPaymentSucceeded is idempotent for the same provider reference', async () => {
     const admin = await auth.loadUser(fx.userIds.admin, fx.condoId);
 
+    // Far-future period avoids collisions with parallel billing integration suites
+    // that share the integration condo (partial unique on unitId+periodStart).
     const invoice = await prisma.invoice.create({
       data: {
         condoId: fx.condoId,
         unitId: fx.secondUnitId,
         number: `INV-REG-${Date.now()}`,
-        periodStart: new Date('2026-09-01'),
-        periodEnd: new Date('2026-09-30'),
-        dueDate: new Date('2026-09-15'),
+        periodStart: new Date('2031-03-01'),
+        periodEnd: new Date('2031-03-31'),
+        dueDate: new Date('2031-03-15'),
         status: 'ISSUED',
         subtotal: 100,
         total: 100,
@@ -130,9 +132,9 @@ describe.skipIf(!regressionReady)('Regression: critical paths', () => {
         condoId: fx.condoId,
         unitId: fx.secondUnitId,
         number: `INV-LEDGER-${Date.now()}`,
-        periodStart: new Date('2026-07-01'),
-        periodEnd: new Date('2026-07-31'),
-        dueDate: new Date('2026-07-15'),
+        periodStart: new Date('2031-04-01'),
+        periodEnd: new Date('2031-04-30'),
+        dueDate: new Date('2031-04-15'),
         status: 'ISSUED',
         subtotal: 400,
         total: 400,

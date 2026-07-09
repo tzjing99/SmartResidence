@@ -1,9 +1,11 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { parseHelpdeskSettings } from '@/sla/helpdesk-settings';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { ThreadCategory } from '@prisma/client';
 import type { AssignmentAssistInput, AssignmentSuggestion } from '../ai/assignment-assist.provider';
 import { resolveRulesPool } from '../ai/assignment-assist.provider';
+import { type AssignmentCategoryModel, predictCategoryFromText } from './assignment-category-model';
+import { loadAssignmentCategoryModelFromDisk } from './assignment-model-store';
 import {
   CLOSED_THREAD_STATUSES,
   ML_ASSIGNMENT_MIN_CLOSED_THREADS,
@@ -15,25 +17,17 @@ export interface MlAssignmentStats {
   minRequired: number;
   ready: boolean;
   active: boolean;
+  modelLoaded: boolean;
+  modelSampleCount: number | null;
+  modelTrainedAt: string | null;
 }
-
-/** Keyword → category heuristics for the phase-2 stub (not a real model). */
-const CATEGORY_KEYWORDS: Array<{ category: ThreadCategory; keywords: string[] }> = [
-  {
-    category: 'BILLING',
-    keywords: ['invoice', 'billing', 'payment', 'fee', 'charge', 'statement'],
-  },
-  {
-    category: 'MAINTENANCE',
-    keywords: ['leak', 'repair', 'broken', 'pipe', 'lift', 'elevator', 'aircon', 'water'],
-  },
-  { category: 'SECURITY', keywords: ['security', 'theft', 'break-in', 'cctv', 'access card'] },
-  { category: 'FACILITY', keywords: ['gym', 'pool', 'bbq', 'facility', 'function room'] },
-  { category: 'COMPLAINT', keywords: ['noise', 'complaint', 'neighbour', 'smoking', 'parking'] },
-];
 
 @Injectable()
 export class MlAssignmentService {
+  private readonly logger = new Logger(MlAssignmentService.name);
+  private cachedModel: AssignmentCategoryModel | null | undefined;
+  private testOverride: AssignmentCategoryModel | null | undefined;
+
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats(condoId: string): Promise<MlAssignmentStats> {
@@ -45,25 +39,34 @@ export class MlAssignmentService {
     const closedThreadCount = await this.countClosedThreads(condoId);
     const ready = closedThreadCount >= ML_ASSIGNMENT_MIN_CLOSED_THREADS;
     const enabled = helpdesk.autoAssignment?.mlEnabled === true;
+    const model = this.getModel();
     return {
       enabled,
       closedThreadCount,
       minRequired: ML_ASSIGNMENT_MIN_CLOSED_THREADS,
       ready,
       active: enabled && ready,
+      modelLoaded: model !== null,
+      modelSampleCount: model?.totalSamples ?? null,
+      modelTrainedAt: model?.trainedAt ?? null,
     };
   }
 
   /**
-   * Stub assignee suggestion: keyword/category heuristics labeled `ml-stub`.
-   * Returns null when disabled or insufficient closed-thread history.
+   * Trained-model assignee suggestion (C6): Naive Bayes category inference →
+   * category pool. Returns null when disabled, below the closed-thread gate,
+   * or when no model artifact is available (caller falls back to rules).
    */
   async suggestPool(input: AssignmentAssistInput): Promise<AssignmentSuggestion | null> {
     const stats = await this.getStats(input.condoId);
     if (!stats.active) return null;
 
-    const inferred = this.inferCategory(`${input.subject} ${input.body ?? ''}`);
-    const category = inferred ?? input.category;
+    const model = this.getModel();
+    if (!model) return null;
+
+    const prediction = predictCategoryFromText(model, `${input.subject} ${input.body ?? ''}`);
+    const category: ThreadCategory = prediction?.category ?? input.category;
+
     const poolUserIds = resolveRulesPool(
       input.helpdesk.autoAssignment,
       category,
@@ -71,15 +74,35 @@ export class MlAssignmentService {
     );
     if (poolUserIds.length === 0) return null;
 
-    return { poolUserIds, source: 'ml-stub' };
+    return { poolUserIds, source: 'ml' };
   }
 
-  private inferCategory(text: string): ThreadCategory | null {
-    const lower = text.toLowerCase();
-    for (const { category, keywords } of CATEGORY_KEYWORDS) {
-      if (keywords.some((k) => lower.includes(k))) return category;
+  /** Force reload from disk (e.g. after `ml:train-assignment`). */
+  invalidateModel(): void {
+    this.cachedModel = undefined;
+  }
+
+  /** Test-only: inject or clear the in-memory model without touching disk. */
+  setModelForTests(model: AssignmentCategoryModel | null): void {
+    this.testOverride = model;
+  }
+
+  private getModel(): AssignmentCategoryModel | null {
+    if (this.testOverride !== undefined) return this.testOverride;
+    if (this.cachedModel !== undefined) return this.cachedModel;
+
+    const loaded = loadAssignmentCategoryModelFromDisk();
+    this.cachedModel = loaded;
+    if (loaded) {
+      this.logger.log(
+        `Loaded assignment ML model (${loaded.totalSamples} samples, trained ${loaded.trainedAt})`,
+      );
+    } else {
+      this.logger.warn(
+        'Assignment ML model artifact missing; ML suggestions disabled until trained',
+      );
     }
-    return null;
+    return loaded;
   }
 
   private countClosedThreads(condoId: string): Promise<number> {

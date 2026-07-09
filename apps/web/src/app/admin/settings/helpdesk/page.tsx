@@ -416,6 +416,16 @@ export default function HelpdeskSettingsPage() {
               ) : (
                 <Badge tone="neutral">Collecting data</Badge>
               )}
+              {mlAssignment.modelLoaded ? (
+                <Badge tone="neutral">
+                  Model
+                  {mlAssignment.modelSampleCount != null
+                    ? ` (${mlAssignment.modelSampleCount} samples)`
+                    : ''}
+                </Badge>
+              ) : (
+                <Badge tone="warning">No model artifact</Badge>
+              )}
             </div>
             <label className="flex items-center gap-2 text-sm cursor-pointer w-fit">
               <input
@@ -430,6 +440,15 @@ export default function HelpdeskSettingsPage() {
               />
               Enable smart assignment suggestions
             </label>
+            {mlAssignment.enabled && mlAssignment.ready && !mlAssignment.modelLoaded ? (
+              <p className="text-xs sr-muted">
+                Smart assignment is on, but no trained model artifact is loaded. Run{' '}
+                <code className="text-[11px]">pnpm ml:train-assignment</code> in{' '}
+                <code className="text-[11px]">apps/api</code> (or set{' '}
+                <code className="text-[11px]">ML_ASSIGNMENT_MODEL_PATH</code>). Rules-based pools
+                are used until a model is available.
+              </p>
+            ) : null}
             {!mlAssignment.ready ? (
               <p className="text-xs sr-muted">
                 Need {mlAssignment.minRequired - mlAssignment.closedThreadCount} more closed tickets

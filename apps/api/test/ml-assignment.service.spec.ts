@@ -4,6 +4,10 @@ import { ThreadCategory } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { RuleBasedAssignmentAssistProvider } from '../src/threads/ai/assignment-assist.provider';
 import { CompositeAssignmentAssistProvider } from '../src/threads/ai/composite-assignment-assist.provider';
+import {
+  buildSyntheticAssignmentSamples,
+  trainAssignmentCategoryModel,
+} from '../src/threads/ml/assignment-category-model';
 import { ML_ASSIGNMENT_MIN_CLOSED_THREADS } from '../src/threads/ml/ml-assignment.constants';
 import { MlAssignmentService } from '../src/threads/ml/ml-assignment.service';
 
@@ -26,8 +30,12 @@ function helpdeskSettings(mlEnabled: boolean) {
   });
 }
 
-describe('CompositeAssignmentAssistProvider (C6 phase 2)', () => {
-  function provider(opts: { closedCount?: number; mlEnabled?: boolean }) {
+describe('CompositeAssignmentAssistProvider (C6 trained model)', () => {
+  function provider(opts: {
+    closedCount?: number;
+    mlEnabled?: boolean;
+    withModel?: boolean;
+  }) {
     const prisma = {
       condo: {
         findUnique: vi.fn(async () => ({
@@ -44,6 +52,12 @@ describe('CompositeAssignmentAssistProvider (C6 phase 2)', () => {
     } as unknown as PrismaService;
 
     const ml = new MlAssignmentService(prisma);
+    if (opts.withModel !== false) {
+      const model = trainAssignmentCategoryModel(buildSyntheticAssignmentSamples());
+      ml.setModelForTests(model);
+    } else {
+      ml.setModelForTests(null);
+    }
     const rules = new RuleBasedAssignmentAssistProvider();
     return new CompositeAssignmentAssistProvider(ml, rules);
   }
@@ -74,8 +88,12 @@ describe('CompositeAssignmentAssistProvider (C6 phase 2)', () => {
     expect(result).toEqual({ poolUserIds: ['general-1'], source: 'rules' });
   });
 
-  it('uses ml-stub when ML enabled and enough closed threads', async () => {
-    const assist = provider({ closedCount: ML_ASSIGNMENT_MIN_CLOSED_THREADS, mlEnabled: true });
+  it('uses rules when ML enabled and ready but no model artifact', async () => {
+    const assist = provider({
+      closedCount: ML_ASSIGNMENT_MIN_CLOSED_THREADS,
+      mlEnabled: true,
+      withModel: false,
+    });
     const helpdesk = helpdeskSettings(true);
     const result = await assist.suggestPool({
       condoId: CONDO,
@@ -84,9 +102,46 @@ describe('CompositeAssignmentAssistProvider (C6 phase 2)', () => {
       repeatComplainant: false,
       helpdesk,
     });
+    expect(result).toEqual({ poolUserIds: ['general-1'], source: 'rules' });
+  });
+
+  it('uses trained ml source when enabled, ready, and model loaded', async () => {
+    const assist = provider({
+      closedCount: ML_ASSIGNMENT_MIN_CLOSED_THREADS,
+      mlEnabled: true,
+      withModel: true,
+    });
+    const helpdesk = helpdeskSettings(true);
+    const result = await assist.suggestPool({
+      condoId: CONDO,
+      category: ThreadCategory.GENERAL,
+      subject: 'Leaking pipe in kitchen water repair',
+      body: 'Broken pipe under sink',
+      repeatComplainant: false,
+      helpdesk,
+    });
     expect(result).toEqual({
       poolUserIds: ['maint-1', 'maint-2'],
-      source: 'ml-stub',
+      source: 'ml',
     });
+  });
+
+  it('reports model metadata in getStats when loaded', async () => {
+    const prisma = {
+      condo: {
+        findUnique: vi.fn(async () => ({
+          settings: { helpdesk: { autoAssignment: { mlEnabled: true } } },
+        })),
+      },
+      thread: { count: vi.fn(async () => 250) },
+    } as unknown as PrismaService;
+    const ml = new MlAssignmentService(prisma);
+    const model = trainAssignmentCategoryModel(buildSyntheticAssignmentSamples());
+    ml.setModelForTests(model);
+    const stats = await ml.getStats(CONDO);
+    expect(stats.active).toBe(true);
+    expect(stats.modelLoaded).toBe(true);
+    expect(stats.modelSampleCount).toBe(model?.totalSamples);
+    expect(stats.modelTrainedAt).toBeTruthy();
   });
 });

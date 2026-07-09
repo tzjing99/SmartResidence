@@ -108,7 +108,7 @@ Legend: ✅ Done · 🟡 In progress · ⬜ Planned
 | **Self-serve payment gateways (Stripe / Fiuu / iPay88)** | ✅ (core) | Per-condo `PaymentGatewayConnection` with AES-256-GCM envelope-encrypted secrets; Stripe live + Fiuu/iPay88 sandbox-ready (signed redirect + callback verify); condo-aware webhooks; resident Pay-now method picker |
 | **MY e-wallets (DuitNow QR / TNG / Boost / GrabPay)** | ✅ (DuitNow QR + Fiuu) | **DuitNow QR** first-class adapter + admin gateway UI; **Fiuu (Razer)** is the canonical production path for TNG/Boost/GrabPay/FPX/cards (single merchant contract, hosted checkout); dedicated **Boost/GrabPay adapters cancelled** (product decision); optional **TNG sandbox adapter** only; statement/CSV export still pending |
 | **Defects / maintenance** | ✅ | Full lifecycle (`NEW→…→CLOSED/REOPENED`), updates, internal notes, attachments, severity; web + mobile |
-| **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic send, socket cache, live inbox); priority-change reassignment (`assignOnPriorityChange`) + **C6** ML-assignment scaffold now shipped (seam + 200-thread gate + opt-in toggle + stub provider). Still deferred: a real trained ML model (**C6**), Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
+| **Communication threads + SLA + AI seam** | ✅ | Core + v0.2 polish shipped (**F3**–**G2**, **D7**, **E1**, **E5**, **G1**, pool editor); **H2** realtime helpdesk (optimistic send, socket cache, live inbox); priority-change reassignment (`assignOnPriorityChange`) + **C6** ML assignment (seam + 200-thread gate + opt-in toggle + persisted Naive Bayes category model via `ml:train-assignment`). Visitor **F1** — see [BACKLOG](./BACKLOG.md) |
 | **FAQ knowledge base** | ✅ | `FaqModule` shipped (`apps/api/src/faq/**`): controller/service, admin authoring (`/admin/faq`), resident browse (`/(resident)/faq`) + mobile FAQ, and thread-compose deflection (`POST /faq/deflect-match`) |
 | **Announcements** | ✅ | `Announcement` + `AnnouncementAck`; importance, audience JSON, pinned, requiresAck; web admin + resident views |
 | **Notifications (push/email)** | ✅ (core) | `Notification` + `PushSubscription` (Expo & Web); notification dispatch in services |
@@ -249,11 +249,10 @@ The flagship resident-empowerment flow. Two explicit paths:
   `RealtimeProvider` on web + mobile).
 - **Also shipped:** priority-change reassignment (`ThreadAssignmentService.assignOnPriorityChange`
   re-routes the assignee on reprioritisation) and the **C6** ML-assignment
-  scaffold/seam (`AssignmentAssistProvider` + `ml/ml-assignment.service.ts`
-  gated by `ML_ASSIGNMENT_MIN_CLOSED_THREADS = 200` + an opt-in admin toggle on
-  `/admin/settings/helpdesk`; stub provider, deterministic rules remain fallback).
-- **Deferred follow-ons** (see [docs/BACKLOG.md](./BACKLOG.md)): a real **trained**
-  ML assignment model (**C6** — only the seam/stub is shipped).
+  path (`AssignmentAssistProvider` + `ml/ml-assignment.service.ts` + persisted
+  category Naive Bayes artifact under `apps/api/ml-models/`, gated by
+  `ML_ASSIGNMENT_MIN_CLOSED_THREADS = 200` + an opt-in admin toggle on
+  `/admin/settings/helpdesk`; deterministic rules remain fallback).
 - **Deps:** Identity, Notifications, Storage, Realtime.
 
 ### 4.5 Announcements  *(✅, iterate)*
@@ -483,8 +482,8 @@ flowchart LR
   - **M2** ✅ (phase 1) — category → assignee pool, triage pool, recategorise
     reassign, repeat complainant routing, duplicate suggestions, inbox sort (F3),
     FAQ deflection (F4), PDF export (G2), plus priority-change reassignment
-    (`assignOnPriorityChange`). ML phase 2 (**C6**) scaffold/seam shipped
-    (200-thread gate + opt-in toggle + stub provider); trained model deferred.
+    (`assignOnPriorityChange`). ML phase 2 (**C6**) trained category model shipped
+    (200-thread gate + opt-in toggle + `ml:train-assignment` artifact); rules remain fallback.
   - **H2** ✅ — optimistic message send, Socket.IO cache patches, live inbox,
     assigned-to badge; `RealtimeProvider` on web + mobile. **Shipped:** `299531f`.
   - **U1** ✅ — **lite HSR**: route `loading.tsx` skeletons, nav prefetch,

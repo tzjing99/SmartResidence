@@ -441,6 +441,9 @@ export class VisitorService {
       include: { condo: true },
     });
     if (!unit) throw new NotFoundException('Unit not found');
+    if (!this.userCanManageUnit(user, unit.id)) {
+      throw new ForbiddenException('You can only pre-register visitors for your own units');
+    }
 
     await this.validatePreRegDto(dto, unit);
 
@@ -666,6 +669,7 @@ export class VisitorService {
   }
 
   async createWalkInUnit(guard: AuthenticatedUser, dto: CreateWalkInUnitDto) {
+    this.assertGateOperator(guard);
     this.rejectWalkInOvernight(dto.overnight);
     const condoId = this.guardCondoId(guard);
     const unit = await this.prisma.unit.findFirst({
@@ -726,6 +730,16 @@ export class VisitorService {
 
   private isGuard(user: AuthenticatedUser): boolean {
     return user.roles.some((r) => r.roleId === RoleId.SECURITY_GUARD);
+  }
+
+  /** Gate ops (walk-in / check-in / check-out) are guard-only — never management or residents. */
+  private assertGateOperator(user: AuthenticatedUser): void {
+    const allowed = user.roles.some(
+      (r) => r.roleId === RoleId.SUPER_ADMIN || r.roleId === RoleId.SECURITY_GUARD,
+    );
+    if (!allowed) {
+      throw new ForbiddenException('Only security guards can perform gate operations');
+    }
   }
 
   private async condoTimezone(condoId: string): Promise<string> {
@@ -997,6 +1011,7 @@ export class VisitorService {
   }
 
   async createWalkInOffice(guard: AuthenticatedUser, dto: CreateWalkInOfficeDto) {
+    this.assertGateOperator(guard);
     this.rejectWalkInOvernight(dto.overnight);
     const condoId = this.guardCondoId(guard);
     if (!dto.purpose?.trim()) {
@@ -1118,6 +1133,7 @@ export class VisitorService {
     guard: AuthenticatedUser,
     method: GuardApprovalMethod,
   ) {
+    this.assertGateOperator(guard);
     const condoId = this.guardCondoId(guard);
     const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
     if (!visitor || visitor.condoId !== condoId) {
@@ -1203,6 +1219,7 @@ export class VisitorService {
    * Used when the owner responded in-app while the visitor waits at the gate.
    */
   async acknowledgeWalkIn(visitorId: string, guard: AuthenticatedUser, dto: CheckInVisitorDto) {
+    this.assertGateOperator(guard);
     const condoId = this.guardCondoId(guard);
     const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
     if (!visitor || visitor.condoId !== condoId) {
@@ -1298,9 +1315,19 @@ export class VisitorService {
     return updated;
   }
 
-  async getQrPng(visitorId: string) {
+  async getQrPng(visitorId: string, user: AuthenticatedUser) {
     const visitor = await this.prisma.visitor.findUnique({ where: { id: visitorId } });
     if (!visitor) throw new NotFoundException();
+    // AbilitiesGuard only checks bare `read Visitor` — enforce unit/condo scope here.
+    const condoScoped =
+      this.userIsManagement(user, visitor.condoId) ||
+      this.isGuard(user) ||
+      user.roles.some((r) => r.roleId === RoleId.SUPER_ADMIN);
+    if (visitor.unitId) {
+      if (!condoScoped) await this.assertUnitAccess(user, visitor.unitId);
+    } else if (!condoScoped) {
+      throw new ForbiddenException('You cannot view this visitor pass');
+    }
     const payload = visitor.qrPayload ?? visitor.qrCode;
     if (!payload) throw new BadRequestException('This visitor pass has no QR code');
     const png = await QRCode.toDataURL(payload, { errorCorrectionLevel: 'M', width: 512 });
@@ -1425,8 +1452,18 @@ export class VisitorService {
       viewer?: AuthenticatedUser;
     },
   ) {
-    if (opts.viewer && !this.userIsCondoMember(opts.viewer, condoId)) {
-      throw new ForbiddenException('You cannot view visitors for this condo');
+    if (opts.viewer) {
+      if (!this.userIsCondoMember(opts.viewer, condoId)) {
+        throw new ForbiddenException('You cannot view visitors for this condo');
+      }
+      // Condo-wide log is management audit + guard gate duty — not resident-scoped.
+      const canListCondo =
+        this.userIsManagement(opts.viewer, condoId) ||
+        this.isGuard(opts.viewer) ||
+        opts.viewer.roles.some((r) => r.roleId === RoleId.SUPER_ADMIN);
+      if (!canListCondo) {
+        throw new ForbiddenException('You cannot view the condo-wide visitor log');
+      }
     }
     const viewStatuses = statusesForView(opts.view);
     const statusFilter = opts.status
@@ -1678,6 +1715,7 @@ export class VisitorService {
   }
 
   async checkIn(pass: string, guard: AuthenticatedUser, dto: CheckInVisitorDto) {
+    this.assertGateOperator(guard);
     const condoId = this.guardCondoId(guard);
     const visitor = await this.verifyByPass(pass, condoId);
     if (visitor.condoId !== condoId) {
@@ -1734,6 +1772,7 @@ export class VisitorService {
   }
 
   async checkOut(pass: string, guard: AuthenticatedUser) {
+    this.assertGateOperator(guard);
     const condoId = this.guardCondoId(guard);
     const normalized = normalizePassInput(pass);
     if (isVisitorId(normalized)) {

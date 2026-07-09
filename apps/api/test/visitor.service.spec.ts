@@ -687,13 +687,26 @@ describe('VisitorService', () => {
       },
     ]);
     prisma.visitor.count.mockResolvedValueOnce(1);
+    const admin: any = {
+      id: 'admin-user',
+      activeRole: 'MANAGEMENT_ADMIN',
+      activeCondoId: 'c1',
+      roles: [{ roleId: 'MANAGEMENT_ADMIN', condoId: 'c1', unitId: null, permissions: [] }],
+    };
     const result = await svc.listForCondo('c1', {
       limit: 20,
       offset: 0,
-      viewer: owner,
+      viewer: admin,
     });
     expect(result.items[0]).not.toHaveProperty('ownerContacts');
     expect(prisma.ownership.findMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects unit owners from the condo-wide visitor log', async () => {
+    const { svc } = service();
+    await expect(svc.listForCondo('c1', { limit: 20, offset: 0, viewer: owner })).rejects.toThrow(
+      /condo-wide visitor log/i,
+    );
   });
 
   it('checks in unit walk-in immediately when owner approval is disabled', async () => {

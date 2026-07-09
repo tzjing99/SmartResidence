@@ -81,8 +81,11 @@ role-differentiated navigation already implemented in
 
 **RBAC ✅ shipped.** `ability.factory.ts` grants `MANAGEMENT_ADMIN` /
 `MANAGEMENT_STAFF` **read-only** visitor access in condo scope (plus
-overnight-policy abilities for admins); unit-scoped `manage`/`approve`/`reject`
-remain on owners and tenants only. Covered by `ability.factory.spec.ts`.
+overnight-policy / overnight-approve for admins). Owners and tenants get
+**explicit** unit-scoped `create`/`read`/`delete`/`approve`/`reject` — not
+CASL `manage Visitor` (which would imply gate ops). Guards alone get
+`check-in` / `check-out` / `create-walk-in`. Covered by `ability.factory.spec.ts`
+and visitor integration tests.
 
 ---
 
@@ -200,8 +203,9 @@ The flagship resident-empowerment flow. Two explicit paths:
 
 - **Offline tolerance** at the gate: guard device queues check-ins and syncs
   when connectivity returns.
-- **RBAC correction ✅ shipped:** management = **read/audit only**; residents =
-  **only** approvers; guards = check-in/out only (see §2.1).
+- **RBAC correction ✅ shipped:** management = **read/audit only** (overnight
+  review excepted); residents = **only** unit approvers (explicit actions, not
+  CASL `manage`); guards = check-in/out / walk-in only (see §2.1).
 - **Shipped:** **blacklist** (`VisitorBlacklistService` + web `visitor-blacklist-panel.tsx` + guard blacklist alerts on scan/manual) and **recurring passes** (`RecurringPassService` + resident `visitors/recurring.tsx` + guard recurring-pass check-in); migration `20260701120000_visitor_blacklist_recurring_passes`.
 - **Shipped:** lighter **delivery / e-hailing visitor passes** (fast-lane passes
   for couriers/rideshare); **guard on-site admit** for walk-ins (owner notified,

@@ -359,12 +359,13 @@ export class VisitorController {
 
   @Get(':id/qr')
   @CheckAbility({ action: 'read', subject: 'Visitor' })
-  qr(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.visitors.getQrPng(id);
+  qr(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.visitors.getQrPng(id, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @CheckAbility({ action: 'delete', subject: 'Visitor' })
   @Audit({ action: AuditAction.DELETE, resourceType: 'Visitor', resourceIdFrom: 'params.id' })
   cancel(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
     return this.visitors.cancel(id, user);

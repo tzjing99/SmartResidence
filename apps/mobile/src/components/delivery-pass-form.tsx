@@ -10,12 +10,14 @@ import { Button, Card, radius, useTheme } from '@smartresidence/ui-mobile';
 import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { useT } from '../i18n/locale-provider';
 import { api } from '../lib/api';
 import { useResidentStyles } from './resident-screen';
 
 type QuickPassKind = Exclude<VisitorPassKind, 'STANDARD'>;
 
 export function DeliveryPassForm({ unitId }: { unitId?: string }) {
+  const t = useT();
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useResidentStyles();
@@ -42,7 +44,7 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
 
   async function onSubmit() {
     if (!unitId) {
-      Alert.alert('No unit', 'Link a unit to your account before creating passes.');
+      Alert.alert(t('visitors.delivery.noUnitTitle'), t('visitors.delivery.noUnitBody'));
       return;
     }
     try {
@@ -59,7 +61,7 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
       setVehiclePlate('');
       router.push(`/(resident)/visitors/${created.id}` as Href);
     } catch (err) {
-      Alert.alert('Could not create pass', (err as Error).message);
+      Alert.alert(t('visitors.delivery.createFailedTitle'), (err as Error).message);
     }
   }
 

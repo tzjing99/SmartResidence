@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -15,6 +16,7 @@ import { Ban, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 export function VisitorBlacklistPanel() {
+  const t = useT();
   const condos = useMyCondos(api);
   const condo = condos.data?.[0];
   const list = useVisitorBlacklist(api, condo?.id ?? null);
@@ -32,7 +34,7 @@ export function VisitorBlacklistPanel() {
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!condo?.id || !reason.trim()) {
-      toast.error('Reason is required');
+      toast.error(t('visitors.blacklist.reasonRequiredToast'));
       return;
     }
     setBusy(true);
@@ -52,7 +54,7 @@ export function VisitorBlacklistPanel() {
       setVehiclePlate('');
       setIdNumber('');
       setReason('');
-      toast.success('Visitor added to block list');
+      toast.success(t('visitors.blacklist.addedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -78,7 +80,7 @@ export function VisitorBlacklistPanel() {
     if (!window.confirm('Remove this person from the block list?')) return;
     try {
       await remove.mutateAsync({ id: entry.id, condoId: condo.id });
-      toast.success('Removed');
+      toast.success(t('visitors.blacklist.removedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }

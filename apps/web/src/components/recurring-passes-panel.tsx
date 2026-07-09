@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -29,6 +30,7 @@ function toDateInput(d: Date): string {
 }
 
 export function RecurringPassesPanel({ unitId }: { unitId?: string }) {
+  const t = useT();
   const list = useUnitRecurringPasses(api, unitId ?? null);
   const create = useCreateRecurringPass(api);
   const update = useUpdateRecurringPass(api);
@@ -57,7 +59,7 @@ export function RecurringPassesPanel({ unitId }: { unitId?: string }) {
     e.preventDefault();
     if (!unitId || !guestName.trim()) return;
     if (days.length === 0) {
-      toast.error('Select at least one weekday');
+      toast.error(t('visitors.recurring.weekdayRequiredToast'));
       return;
     }
     setBusy(true);
@@ -75,7 +77,7 @@ export function RecurringPassesPanel({ unitId }: { unitId?: string }) {
       setGuestName('');
       setGuestPhone('');
       setVehiclePlate('');
-      toast.success('Recurring pass created');
+      toast.success(t('visitors.recurring.createdToast'));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -97,7 +99,7 @@ export function RecurringPassesPanel({ unitId }: { unitId?: string }) {
     if (!window.confirm('Delete this recurring pass?')) return;
     try {
       await remove.mutateAsync({ id: pass.id, unitId });
-      toast.success('Deleted');
+      toast.success(t('visitors.recurring.deletedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }

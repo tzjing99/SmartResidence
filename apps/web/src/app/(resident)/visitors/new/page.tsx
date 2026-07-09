@@ -151,7 +151,7 @@ export default function NewVisitorPage() {
     try {
       const key = await uploadPlatePhoto(file);
       setPlatePhotoKey(key);
-      toast.success('Plate photo uploaded');
+      toast.success(t('visitors.new.plateUploadedToast'));
     } catch (err) {
       toast.error((err as Error).message);
       setPlatePhotoKey(null);
@@ -164,7 +164,7 @@ export default function NewVisitorPage() {
   async function onSubmit(values: CreateVisitorInput) {
     if (!unit) return;
     if (slotsBlocked) {
-      toast.error('No overnight slots left tonight — contact management');
+      toast.error(t('visitors.new.noSlotsToast'));
       return;
     }
     const payload: CreateVisitorInput = {
@@ -174,15 +174,15 @@ export default function NewVisitorPage() {
       vehiclePlatePhotoUrl: values.overnight ? (platePhotoKey ?? undefined) : undefined,
     };
     if (values.overnight && !platePhotoKey) {
-      toast.error('Upload a plate photo that matches the typed plate number');
+      toast.error(t('visitors.new.platePhotoRequiredToast'));
       return;
     }
     try {
       const created = await create.mutateAsync(payload);
       if (created.status === 'PENDING_MANAGEMENT_APPROVAL') {
-        toast.success('Submitted for management approval');
+        toast.success(t('visitors.new.pendingApprovalToast'));
       } else {
-        toast.success('Visitor pass created');
+        toast.success(t('visitors.new.passCreatedToast'));
       }
       router.push(`/visitors/${created.id}`);
     } catch (err) {

@@ -63,9 +63,7 @@ export default function ResidentDefectDetailPage() {
   async function signOff(status: 'CLOSED' | 'REOPENED') {
     try {
       await transition.mutateAsync({ id: params.id, status });
-      toast.success(
-        status === 'CLOSED' ? 'Defect signed off and closed.' : 'Defect sent back for more work.',
-      );
+      toast.success(status === 'CLOSED' ? t('defects.signedOffToast') : t('defects.reopenedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }

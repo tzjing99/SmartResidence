@@ -69,6 +69,7 @@
     "choosePaymentMethod": "Choose a payment method",
     "enterAdvanceAmount": "Enter an advance payment amount",
     "advanceStartedToast": "Advance payment started. Complete the gateway prompt to add credit.",
+    "paymentStartedToast": "Pembayaran dimulakan. Ikuti arahan gateway untuk menyelesaikannya.",
     "maintenanceInvoicesTitle": "Maintenance fee invoices",
     "maintenanceInvoicesDesc": "These are invoices for your monthly maintenance charges and any other fee items. Open an invoice to pay online or view the full breakdown.",
     "noInvoicesTitle": "No invoices yet",
@@ -116,9 +117,15 @@
     "activity": "Activity",
     "commentPlaceholder": "Add a comment for the management team…",
     "statusTimeline": "Status timeline",
-    "commentAddedToast": "Comment added",
-    "signedOffToast": "Defect signed off and closed.",
-    "reopenedToast": "Defect sent back for more work."
+    "commentAddedToast": "Komen ditambah",
+    "signedOffToast": "Aduan ditandatangani dan ditutup.",
+    "reopenedToast": "Aduan dihantar semula untuk kerja lanjut.",
+    "submittedToast": "Aduan dihantar",
+    "pickElementToast": "Pilih elemen",
+    "addNoteToast": "Tambah nota yang menerangkan isu",
+    "bulkSubmittedToast": "{count} aduan dihantar",
+    "acceptedToast": "Aduan diterima dan ditutup.",
+    "bulkAcceptedToast": "{count} aduan diterima dan ditutup."
   },
   "announcements": {
     "eyebrow": "Notices",

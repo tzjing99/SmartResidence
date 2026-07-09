@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useCreateDeliveryPass, useMyUnits } from '@smartresidence/api-client';
@@ -19,6 +20,7 @@ import { useState } from 'react';
 type QuickPassKind = Exclude<VisitorPassKind, 'STANDARD'>;
 
 export function DeliveryPassQuickForm() {
+  const t = useT();
   const router = useRouter();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
@@ -33,7 +35,7 @@ export function DeliveryPassQuickForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!unit?.id) {
-      toast.error('Select a unit first');
+      toast.error(t('visitors.delivery.selectUnitToast'));
       return;
     }
     try {
@@ -45,7 +47,7 @@ export function DeliveryPassQuickForm() {
         vehiclePlate: vehiclePlate.trim() || undefined,
         expectedAt,
       });
-      toast.success('Pass ready — share the gate code with your rider');
+      toast.success(t('visitors.delivery.readyToast'));
       router.push(`/visitors/${created.id}`);
     } catch (err) {
       toast.error((err as Error).message);

@@ -29,6 +29,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+import { useT } from '../i18n/locale-provider';
 import { api } from '../lib/api';
 import { useTabletLayout } from '../lib/use-tablet-layout';
 
@@ -74,6 +75,7 @@ function SectionTitle({ title, description }: { title: string; description?: str
 }
 
 export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
+  const t = useT();
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
   const units = useMyUnits(api);
   const condos = useMyCondos(api);
@@ -142,15 +144,15 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   function onInvalid(errors: FieldErrors<CreateVisitorInput>) {
     const first = Object.values(errors).find((e) => e?.message);
     Alert.alert(
-      'Missing information',
-      first?.message ? String(first.message) : 'Please check the form and try again.',
+      t('visitors.new.missingInfoTitle'),
+      first?.message ? String(first.message) : t('visitors.new.formCheckToast'),
     );
   }
 
   async function capturePlatePhoto() {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Camera permission needed', 'Capture the vehicle plate for overnight visits.');
+      Alert.alert(t('visitors.new.cameraPermissionTitle'), t('visitors.new.cameraPermissionToast'));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -166,7 +168,7 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
       setPlatePhotoKey(key);
     } catch (err) {
       setPlatePhotoKey(null);
-      Alert.alert('Upload failed', (err as Error).message);
+      Alert.alert(t('visitors.new.uploadFailedTitle'), (err as Error).message);
     } finally {
       setUploadingPhoto(false);
     }
@@ -178,19 +180,17 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   async function onSubmit(values: CreateVisitorInput) {
     if (!unit) {
       Alert.alert(
-        'Unit not ready',
-        units.isPending
-          ? 'Still loading your unit — try again in a moment.'
-          : 'No unit is linked to your account. Contact management.',
+        t('visitors.new.unitNotReadyTitle'),
+        units.isPending ? t('visitors.new.unitLoadingToast') : t('visitors.new.noUnitToast'),
       );
       return;
     }
     if (slotsBlocked) {
-      Alert.alert('No slots', 'No overnight slots left tonight — contact management.');
+      Alert.alert(t('visitors.new.noSlotsTitle'), t('visitors.new.noSlotsToast'));
       return;
     }
     if (values.overnight && !platePhotoKey) {
-      Alert.alert('Plate photo required', 'Capture a photo that matches the typed plate number.');
+      Alert.alert(t('visitors.new.plateRequiredTitle'), t('visitors.new.plateRequiredBody'));
       return;
     }
     try {
@@ -201,13 +201,13 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
         vehiclePlatePhotoUrl: values.overnight ? (platePhotoKey ?? undefined) : undefined,
       });
       if (created.status === 'PENDING_MANAGEMENT_APPROVAL') {
-        Alert.alert('Submitted', 'Management will review this overnight visit.');
+        Alert.alert(t('visitors.new.submittedTitle'), t('visitors.new.pendingApprovalBody'));
       } else {
-        Alert.alert('Pass created', 'Your visitor can enter with the new access code.');
+        Alert.alert(t('visitors.new.passCreatedTitle'), t('visitors.new.passCreatedBody'));
       }
       onSuccess?.(created.id);
     } catch (err) {
-      Alert.alert('Could not create pass', (err as Error).message);
+      Alert.alert(t('visitors.new.createFailedTitle'), (err as Error).message);
     }
   }
 

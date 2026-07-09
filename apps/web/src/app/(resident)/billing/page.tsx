@@ -118,6 +118,7 @@ function AdvanceMaintenancePayment({
   unitId: string;
   condoId: string | null;
 }) {
+  const t = useT();
   const methods = usePayableMethods(api, condoId);
   const createAdvance = useCreateAdvancePayment(api);
   const [selected, setSelected] = React.useState<number | 'OTHER'>(100);
@@ -134,11 +135,11 @@ function AdvanceMaintenancePayment({
 
   async function startAdvancePayment() {
     if (!provider) {
-      toast.error('Choose a payment method');
+      toast.error(t('billing.chooseMethodToast'));
       return;
     }
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error('Enter an advance payment amount');
+      toast.error(t('billing.enterAmountToast'));
       return;
     }
     try {
@@ -188,7 +189,7 @@ function AdvanceMaintenancePayment({
         window.location.href = res.redirectUrl;
         return;
       }
-      toast.success('Advance payment started. Complete the gateway prompt to add credit.');
+      toast.success(t('billing.advanceStartedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }

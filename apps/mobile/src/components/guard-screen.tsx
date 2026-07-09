@@ -229,13 +229,22 @@ function createGuardStyles(colors: ThemeColors) {
     },
     header: {
       gap: spacing.md,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'flex-start',
     },
     headerCopy: {
       gap: 8,
       minWidth: 0,
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: '70%',
     },
     headerAction: {
-      width: '100%',
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: '100%',
+      minWidth: 0,
     },
     eyebrow: {
       color: colors.coral,
@@ -249,23 +258,28 @@ function createGuardStyles(colors: ThemeColors) {
       lineHeight: 38,
       fontWeight: '800',
       letterSpacing: -0.4,
+      flexShrink: 1,
     },
     subtitle: {
       color: colors.muted,
       fontSize: 14,
       lineHeight: 20,
       fontWeight: '500',
+      flexShrink: 1,
     },
     sectionHeader: {
       gap: 3,
       marginTop: spacing.xs,
+      minWidth: 0,
     },
     sectionTitle: {
       color: colors.fg,
+      flexShrink: 1,
     },
     sectionCopy: {
       color: colors.muted,
       lineHeight: 20,
+      flexShrink: 1,
     },
     card: {
       borderWidth: 1,

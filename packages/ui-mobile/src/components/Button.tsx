@@ -7,6 +7,7 @@ import {
   Text,
   type ViewStyle,
 } from 'react-native';
+import { FONT_SCALE, scaledLineHeight } from '../font-scaling';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../theme';
 import { radius, spring } from '../tokens';
@@ -36,8 +37,9 @@ export const Button: React.FC<ButtonProps> = ({
   const reduceMotion = useReducedMotion();
   const { colors } = useTheme();
   const [pressed, setPressed] = React.useState(false);
-  const heights = { sm: MIN_TOUCH_TARGET, md: MIN_TOUCH_TARGET, lg: 52 };
+  const minHeights = { sm: MIN_TOUCH_TARGET, md: MIN_TOUCH_TARGET, lg: 52 };
   const textVariants = { sm: typography.bodySm, md: typography.body, lg: typography.subheading };
+  const textVariant = textVariants[size];
 
   const palettes: Record<
     NonNullable<ButtonProps['variant']>,
@@ -80,8 +82,8 @@ export const Button: React.FC<ButtonProps> = ({
         animate={{ scale: !reduceMotion && pressed ? 0.97 : 1 }}
         transition={spring.snappy}
         style={{
-          minHeight: MIN_TOUCH_TARGET,
-          height: heights[size],
+          minHeight: minHeights[size],
+          paddingVertical: 10,
           paddingHorizontal: 20,
           borderRadius: radius.xl,
           backgroundColor: p.bg,
@@ -98,12 +100,16 @@ export const Button: React.FC<ButtonProps> = ({
           <ActivityIndicator size="small" color={p.fg} accessibilityLabel="Loading" />
         ) : null}
         <Text
+          allowFontScaling
+          maxFontSizeMultiplier={FONT_SCALE.control}
           style={{
             ...textBase,
-            ...textVariants[size],
+            ...textVariant,
+            lineHeight: scaledLineHeight(textVariant.lineHeight, FONT_SCALE.control),
             color: p.fg,
             fontWeight: '600',
             textAlign: 'center',
+            flexShrink: 1,
           }}
         >
           {title}

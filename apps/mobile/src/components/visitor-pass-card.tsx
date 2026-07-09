@@ -7,7 +7,16 @@ import {
   visitorStatusLabel,
   visitorStatusPillTone,
 } from '@smartresidence/shared-types';
-import { Button, Card, Pill, radius, spacing, useTheme } from '@smartresidence/ui-mobile';
+import {
+  Button,
+  Card,
+  FONT_SCALE,
+  Pill,
+  radius,
+  scaledLineHeight,
+  spacing,
+  useTheme,
+} from '@smartresidence/ui-mobile';
 import { Pressable, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { useResidentStyles } from './resident-screen';
@@ -68,7 +77,17 @@ export function VisitorPassCard({
           }}
         >
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-            <Text style={{ fontWeight: '700', color: colors.fg, fontSize: 16 }} numberOfLines={2}>
+            <Text
+              allowFontScaling
+              maxFontSizeMultiplier={FONT_SCALE.body}
+              style={{
+                fontWeight: '700',
+                color: colors.fg,
+                fontSize: 16,
+                lineHeight: scaledLineHeight(22, FONT_SCALE.body),
+              }}
+              numberOfLines={2}
+            >
               {visitor.name}
             </Text>
             {isQuickEntryPass(visitor) ? (
@@ -83,7 +102,14 @@ export function VisitorPassCard({
             ) : null}
           </View>
           <View
-            style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 6,
+              justifyContent: 'flex-end',
+              maxWidth: '45%',
+              flexShrink: 1,
+            }}
           >
             <Pill
               tone={visitorStatusPillTone(visitor.status)}
@@ -93,7 +119,16 @@ export function VisitorPassCard({
           </View>
         </View>
 
-        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 18 }} numberOfLines={2}>
+        <Text
+          allowFontScaling
+          maxFontSizeMultiplier={FONT_SCALE.body}
+          style={{
+            color: colors.muted,
+            fontSize: 12,
+            lineHeight: scaledLineHeight(18, FONT_SCALE.body),
+          }}
+          numberOfLines={3}
+        >
           {metaLine(visitor, tab)}
         </Text>
 
@@ -115,6 +150,8 @@ export function VisitorPassCard({
             {visitor.accessCode ? (
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
+                  allowFontScaling
+                  maxFontSizeMultiplier={FONT_SCALE.control}
                   style={{
                     fontSize: 10,
                     letterSpacing: 1.5,
@@ -126,15 +163,19 @@ export function VisitorPassCard({
                   Access code
                 </Text>
                 <Text
+                  allowFontScaling
+                  maxFontSizeMultiplier={FONT_SCALE.control}
                   style={{
                     fontSize: 22,
+                    lineHeight: scaledLineHeight(28, FONT_SCALE.control),
                     fontWeight: '700',
                     letterSpacing: 3,
                     marginTop: 4,
                     color: colors.fg,
                     fontVariant: ['tabular-nums'],
+                    flexShrink: 1,
                   }}
-                  numberOfLines={1}
+                  numberOfLines={2}
                 >
                   {visitor.accessCode}
                 </Text>
@@ -157,7 +198,13 @@ export function VisitorPassCard({
         ) : null}
 
         {showViewPassHint ? (
-          <Text style={{ fontSize: 13, color: colors.coral, fontWeight: '600' }}>View pass →</Text>
+          <Text
+            allowFontScaling
+            maxFontSizeMultiplier={FONT_SCALE.body}
+            style={{ fontSize: 13, color: colors.coral, fontWeight: '600' }}
+          >
+            View pass →
+          </Text>
         ) : null}
 
         {/* Footer actions */}
@@ -172,13 +219,18 @@ export function VisitorPassCard({
             }}
           >
             {showPendingActions ? (
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <Button title="Approve" size="sm" style={{ flex: 1 }} onPress={onApprove} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                <Button
+                  title="Approve"
+                  size="sm"
+                  style={{ flexGrow: 1, flexBasis: 120 }}
+                  onPress={onApprove}
+                />
                 <Button
                   title="Reject"
                   size="sm"
                   variant="secondary"
-                  style={{ flex: 1 }}
+                  style={{ flexGrow: 1, flexBasis: 120 }}
                   onPress={onReject}
                 />
               </View>

@@ -11,6 +11,7 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
 | **A1** | P2 | mobile + web | WCAG AA lite pass — tab bar labels, auth screen reader labels, 44pt touch targets, landmark headers, list row labels, IconButton for back controls. **Mobile partial done** (`feature/mobile-a11y-lite`); web partial done (`feature/a11y-wcag-lite`). |
+| **A2** | P2 | mobile | System Dynamic Type / Android font scale — follow OS text size with tiered `maxFontSizeMultiplier` (body 2.0 / control 1.5 / chrome 1.35); harden headers, tab bar, forms, visitor cards. **PR open** (`feature/mobile-dynamic-type`). |
 
 ## Recently completed
 

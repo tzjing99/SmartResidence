@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@smartresidence/ui-mobile';
+import { AppText, FONT_SCALE, useTheme } from '@smartresidence/ui-mobile';
 import type { ComponentProps, ReactNode } from 'react';
 import { useMemo } from 'react';
 import {
@@ -14,10 +14,11 @@ import { minTouchTargetStyle } from './accessibility';
 import { hapticLight } from './haptics';
 
 /**
- * Height of the active content area of the tab bar (excluding safe area).
- * 52px is the perfect height for a premium, compact bottom tab bar.
+ * Minimum height of the active content area of the tab bar (excluding safe area).
+ * Uses minHeight so Dynamic Type / Android font scale can grow labels without clipping.
+ * Labels use FONT_SCALE.chrome (1.35) via {@link TabBarLabel}.
  */
-const TAB_BAR_ACTIVE_HEIGHT = 52;
+const TAB_BAR_ACTIVE_MIN_HEIGHT = 52;
 const ICON_LABEL_GAP = 3;
 
 /** Wide props so the handler satisfies React Navigation's tabBarButton signature. */
@@ -48,17 +49,39 @@ export function TabBarIcon({ name, color }: { name: IoniconName; color: string }
   );
 }
 
+/** Tab label that follows OS font scale, capped at FONT_SCALE.chrome. */
+function TabBarLabel({
+  children,
+  color,
+}: {
+  children: string;
+  color: string;
+  focused?: boolean;
+  position?: string;
+}) {
+  return (
+    <AppText
+      allowFontScaling
+      maxFontSizeMultiplier={FONT_SCALE.chrome}
+      numberOfLines={1}
+      style={[styles.label, { color }]}
+    >
+      {children}
+    </AppText>
+  );
+}
+
 export function useModernTabBarOptions(bottomInset: number) {
   const { colors } = useTheme();
-  const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
+  const minTotalHeight = TAB_BAR_ACTIVE_MIN_HEIGHT + bottomInset;
 
   return useMemo(
     () => ({
       tabBarActiveTintColor: colors.coral,
       tabBarInactiveTintColor: colors.tabInactive,
-      tabBarAllowFontScaling: false,
+      tabBarAllowFontScaling: true,
       tabBarButton: ModernTabBarButton,
-      tabBarLabelStyle: styles.label,
+      tabBarLabel: TabBarLabel,
       tabBarIconStyle: styles.icon,
       tabBarItemStyle: styles.item,
       safeAreaInsets: { bottom: 0, top: 0, left: 0, right: 0 },
@@ -68,7 +91,7 @@ export function useModernTabBarOptions(bottomInset: number) {
       tabBarStyle: [
         styles.tabBar,
         {
-          height: totalHeight,
+          minHeight: minTotalHeight,
           paddingBottom: bottomInset,
           backgroundColor: colors.tabBar,
           borderTopColor: colors.tabBarBorder,
@@ -82,21 +105,21 @@ export function useModernTabBarOptions(bottomInset: number) {
       colors.tabBar,
       colors.tabBarBorder,
       colors.tabInactive,
-      totalHeight,
+      minTotalHeight,
     ],
   );
 }
 
 /** @deprecated Use `useModernTabBarOptions` for theme-aware tab styling. */
 export function createModernTabBarOptions(bottomInset: number) {
-  const totalHeight = TAB_BAR_ACTIVE_HEIGHT + bottomInset;
+  const minTotalHeight = TAB_BAR_ACTIVE_MIN_HEIGHT + bottomInset;
 
   return {
     tabBarActiveTintColor: '#FF5A5F',
     tabBarInactiveTintColor: '#717171',
-    tabBarAllowFontScaling: false,
+    tabBarAllowFontScaling: true,
     tabBarButton: ModernTabBarButton,
-    tabBarLabelStyle: styles.label,
+    tabBarLabel: TabBarLabel,
     tabBarIconStyle: styles.icon,
     tabBarItemStyle: styles.item,
     safeAreaInsets: { bottom: 0, top: 0, left: 0, right: 0 },
@@ -106,7 +129,7 @@ export function createModernTabBarOptions(bottomInset: number) {
     tabBarStyle: [
       styles.tabBar,
       {
-        height: totalHeight,
+        minHeight: minTotalHeight,
         paddingBottom: bottomInset,
       },
     ],
@@ -151,6 +174,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 9.5,
+    lineHeight: 12,
     fontWeight: '600',
     includeFontPadding: false,
     textAlign: 'center',

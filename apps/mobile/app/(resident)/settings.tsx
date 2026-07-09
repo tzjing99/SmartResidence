@@ -69,10 +69,10 @@ function MoreLink({
         <Ionicons name={icon} size={20} color={colors.coral} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={1}>
+        <AppText style={{ fontWeight: '700', color: colors.fg }} numberOfLines={2}>
           {title}
         </AppText>
-        <AppText variant="meta" style={{ color: colors.muted }} numberOfLines={1}>
+        <AppText variant="meta" style={{ color: colors.muted }} numberOfLines={2}>
           {subtitle}
         </AppText>
       </View>
@@ -269,7 +269,7 @@ export default function SettingsScreen() {
       />
 
       <Card style={residentStyles.card}>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {themeOptions.map((option) => {
             const active = preference === option.value;
             return (
@@ -277,8 +277,11 @@ export default function SettingsScreen() {
                 key={option.value}
                 onPress={() => setPreference(option.value)}
                 style={{
-                  flex: 1,
-                  minHeight: 40,
+                  flexGrow: 1,
+                  flexBasis: 96,
+                  minHeight: 44,
+                  paddingHorizontal: 8,
+                  paddingVertical: 10,
                   borderRadius: 12,
                   borderWidth: 1,
                   borderColor: active ? colors.coral : colors.border,
@@ -292,7 +295,9 @@ export default function SettingsScreen() {
                     fontWeight: '700',
                     color: active ? colors.coral : colors.fg,
                     fontSize: 13,
+                    textAlign: 'center',
                   }}
+                  numberOfLines={2}
                 >
                   {option.label}
                 </AppText>
@@ -300,6 +305,14 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+      </Card>
+
+      <Card style={residentStyles.card}>
+        <AppText variant="label">Text size</AppText>
+        <AppText variant="meta" style={{ marginTop: 4 }}>
+          Text size follows your phone Settings → Display (or Accessibility → Display & Text Size on
+          iOS).
+        </AppText>
       </Card>
 
       <ResidentSectionHeader

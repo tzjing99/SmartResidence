@@ -1,6 +1,7 @@
 import { MotiView } from 'moti';
 import * as React from 'react';
 import { Pressable, type PressableProps, Text } from 'react-native';
+import { FONT_SCALE, scaledLineHeight } from '../font-scaling';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { palette, radius, spring } from '../tokens';
 
@@ -29,7 +30,8 @@ export const Chip: React.FC<ChipProps> = ({ label, active = false, tone = 'coral
         transition={spring.snappy}
         style={{
           paddingHorizontal: 14,
-          height: 34,
+          paddingVertical: 8,
+          minHeight: 34,
           borderRadius: radius.full,
           backgroundColor: active ? activeBg : palette.surfaceLight,
           borderWidth: 1,
@@ -39,10 +41,15 @@ export const Chip: React.FC<ChipProps> = ({ label, active = false, tone = 'coral
         }}
       >
         <Text
+          allowFontScaling
+          maxFontSizeMultiplier={FONT_SCALE.control}
           style={{
             fontSize: 13,
+            lineHeight: scaledLineHeight(18, FONT_SCALE.control),
             fontWeight: '600',
             color: active ? '#FFFFFF' : palette.mutedLight,
+            textAlign: 'center',
+            flexShrink: 1,
           }}
         >
           {label}

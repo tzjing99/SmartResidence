@@ -169,13 +169,22 @@ function createResidentStyles(colors: ThemeColors) {
     },
     header: {
       gap: spacing.md,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'flex-start',
     },
     headerCopy: {
       gap: 8,
       minWidth: 0,
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: '70%',
     },
     headerAction: {
-      width: '100%',
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: '100%',
+      minWidth: 0,
     },
     eyebrow: {
       color: colors.coral,
@@ -186,23 +195,28 @@ function createResidentStyles(colors: ThemeColors) {
     title: {
       color: colors.fg,
       fontSize: 30,
+      // Design-token lineHeight; AppText scales it with FONT_SCALE.body.
       lineHeight: 38,
       fontWeight: '800',
       letterSpacing: -0.4,
+      flexShrink: 1,
     },
     subtitle: {
       color: colors.muted,
       fontSize: 14,
       lineHeight: 20,
       fontWeight: '500',
+      flexShrink: 1,
     },
     sectionHeader: {
       gap: 2,
       marginTop: spacing.xs,
+      minWidth: 0,
     },
     sectionCopy: {
       color: colors.muted,
       lineHeight: 20,
+      flexShrink: 1,
     },
     /** Border is applied by `Card`; keep empty so style merges do not override theme borders. */
     card: {},
@@ -219,6 +233,7 @@ function createResidentStyles(colors: ThemeColors) {
     },
     row: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'center',
       gap: spacing.sm,
     },

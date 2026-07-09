@@ -1,6 +1,7 @@
 import { MotiView } from 'moti';
 import type * as React from 'react';
 import { Text, View } from 'react-native';
+import { FONT_SCALE, scaledLineHeight } from '../font-scaling';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../theme';
 import { radius, spring } from '../tokens';
@@ -31,14 +32,28 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon
       }}
     >
       {icon ? <View>{icon}</View> : null}
-      <Text style={{ fontSize: 17, fontWeight: '600', color: colors.fg }}>{title}</Text>
+      <Text
+        allowFontScaling
+        maxFontSizeMultiplier={FONT_SCALE.body}
+        style={{
+          fontSize: 17,
+          lineHeight: scaledLineHeight(22, FONT_SCALE.body),
+          fontWeight: '600',
+          color: colors.fg,
+          textAlign: 'center',
+        }}
+      >
+        {title}
+      </Text>
       {description ? (
         <Text
+          allowFontScaling
+          maxFontSizeMultiplier={FONT_SCALE.body}
           style={{
             textAlign: 'center',
             color: colors.muted,
             fontSize: 14,
-            lineHeight: 20,
+            lineHeight: scaledLineHeight(20, FONT_SCALE.body),
           }}
         >
           {description}

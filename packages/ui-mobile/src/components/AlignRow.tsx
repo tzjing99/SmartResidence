@@ -13,6 +13,7 @@ export const AlignRow: React.FC<ViewProps & { minHeight?: number; gap?: number }
     style={[
       {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'center',
         minHeight,
         gap,

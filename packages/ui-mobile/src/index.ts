@@ -11,6 +11,7 @@ export * from './components/FadeInView';
 export * from './components/AnimatedPressable';
 export * from './components/Skeleton';
 export * from './hooks/useReducedMotion';
+export * from './font-scaling';
 export * from './typography';
 export * from './tokens';
 export * from './theme';

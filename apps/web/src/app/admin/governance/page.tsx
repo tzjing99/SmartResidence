@@ -16,6 +16,7 @@ import {
   useOpenResolutionVoting,
   usePublishMeetingMinutes,
   usePublishMeetingNotice,
+  useResolutionBallots,
   useUpdateMeeting,
 } from '@smartresidence/api-client';
 import type {
@@ -92,6 +93,49 @@ function FinancialSnapshotTable({
   );
 }
 
+function ResolutionBallotAudit({ resolutionId }: { resolutionId: string }) {
+  const [open, setOpen] = React.useState(false);
+  const ballotsQuery = useResolutionBallots(api, open ? resolutionId : null);
+
+  return (
+    <div className="mt-3 border-t border-[rgb(var(--sr-border))] pt-3">
+      <Button size="sm" variant="ghost" onClick={() => setOpen((v) => !v)}>
+        {open ? 'Hide ballot audit' : 'Show ballot audit'}
+      </Button>
+      {open ? (
+        ballotsQuery.isLoading ? (
+          <Skeleton className="h-16 w-full mt-2" />
+        ) : (
+          <div className="mt-2 space-y-2 text-xs">
+            {ballotsQuery.data?.quorum ? (
+              <p className="sr-muted">
+                Quorum: {ballotsQuery.data.quorum.castSharePercentOfEligible.toFixed(1)}% cast ·
+                threshold {ballotsQuery.data.quorum.quorumPercent}% ·{' '}
+                {ballotsQuery.data.quorum.met ? 'met' : 'not met'}
+              </p>
+            ) : null}
+            {(ballotsQuery.data?.ballots ?? []).length === 0 ? (
+              <p className="sr-muted">No ballots cast yet.</p>
+            ) : (
+              <ul className="space-y-1 max-h-48 overflow-y-auto">
+                {(ballotsQuery.data?.ballots ?? []).map((b) => (
+                  <li key={b.id} className="flex justify-between gap-2">
+                    <span>
+                      {b.unitIdentifier}: {b.optionLabel}
+                      {b.viaProxy ? ' (proxy)' : ''} · {b.weight}% · {b.castByName}
+                    </span>
+                    <span className="sr-muted shrink-0">{fmtDate(b.castAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )
+      ) : null}
+    </div>
+  );
+}
+
 function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose: () => void }) {
   const meetingQuery = useMeeting(api, meetingId);
   const proxiesQuery = useMeetingProxies(api, meetingId);
@@ -136,6 +180,9 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
           </div>
           <h2 className="text-xl font-semibold">{meeting.title}</h2>
           <p className="text-sm sr-muted mt-1">Scheduled {fmtDate(meeting.scheduledAt)}</p>
+          <p className="text-sm sr-muted mt-1">
+            Quorum threshold: {meeting.quorumPercent ?? 50}% of share weight
+          </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
           <X className="h-4 w-4" />
@@ -318,8 +365,47 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
                   weight
                   {res.resultsSnapshot ? ' (audited snapshot)' : ''}
                 </p>
+                {(
+                  res.resultsSnapshot as {
+                    quorum?: {
+                      met?: boolean;
+                      castSharePercentOfEligible?: number;
+                      quorumPercent?: number;
+                    };
+                  } | null
+                )?.quorum ? (
+                  <p className="text-xs sr-muted">
+                    Quorum:{' '}
+                    {(
+                      res.resultsSnapshot as {
+                        quorum: {
+                          castSharePercentOfEligible: number;
+                          quorumPercent: number;
+                          met: boolean;
+                        };
+                      }
+                    ).quorum.castSharePercentOfEligible.toFixed(1)}
+                    % cast · threshold{' '}
+                    {
+                      (
+                        res.resultsSnapshot as {
+                          quorum: { quorumPercent: number; met: boolean };
+                        }
+                      ).quorum.quorumPercent
+                    }
+                    % ·{' '}
+                    {(
+                      res.resultsSnapshot as {
+                        quorum: { met: boolean };
+                      }
+                    ).quorum.met
+                      ? 'met'
+                      : 'not met'}
+                  </p>
+                ) : null}
               </div>
             ) : null}
+            {res.pollId && res.id ? <ResolutionBallotAudit resolutionId={res.id} /> : null}
           </Card>
         ))}
       </div>
@@ -379,7 +465,7 @@ function MeetingDetailPanel({ meetingId, onClose }: { meetingId: string; onClose
           <p className="text-sm sr-muted">No proxy forms received yet.</p>
         ) : (
           <ul className="text-sm space-y-2">
-            {proxiesQuery.data!.map((p) => (
+            {(proxiesQuery.data ?? []).map((p) => (
               <li key={p.id} className="sr-muted">
                 <span className="font-medium text-[rgb(var(--sr-text))]">{p.unitIdentifier}</span> —{' '}
                 {p.ownerName} → {p.proxyHolderName}

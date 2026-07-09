@@ -81,6 +81,16 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
     const optionId = poll.options?.[0]?.id;
     expect(optionId).toBeTruthy();
 
+    const eligibilityRes = await supertest(server)
+      .get(`/api/governance/resolutions/${resolution.id}/eligibility`)
+      .set(ownerHeaders)
+      .expect(200);
+
+    const eligibility = eligibilityRes.body.data ?? eligibilityRes.body;
+    expect(eligibility.votingOpen).toBe(true);
+    expect(eligibility.quorum.quorumPercent).toBe(50);
+    expect(eligibility.castableUnitCount).toBeGreaterThan(0);
+
     const voteRes = await supertest(server)
       .post(`/api/governance/resolutions/${resolution.id}/vote`)
       .set(ownerHeaders)
@@ -91,6 +101,21 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
     expect(Array.isArray(votes)).toBe(true);
     expect(votes.length).toBeGreaterThan(0);
 
+    const ballotRow = await prisma.pollVote.findFirst({
+      where: { pollId: opened.pollId, unitId: fx.unitId },
+    });
+    expect(ballotRow?.viaProxy).toBe(false);
+    expect(ballotRow?.meetingId).toBe(meeting.id);
+    expect(ballotRow?.ownerUserId).toBeTruthy();
+
+    const ballotsRes = await supertest(server)
+      .get(`/api/governance/resolutions/${resolution.id}/ballots`)
+      .set(adminHeaders)
+      .expect(200);
+    const ballotsPage = ballotsRes.body.data ?? ballotsRes.body;
+    expect(ballotsPage.ballots.length).toBeGreaterThan(0);
+    expect(ballotsPage.ballots[0].immutable).toBe(true);
+
     const publishedMeeting = publishRes.body.data ?? publishRes.body;
     expect(publishedMeeting.financialSnapshot?.fundBalances).toEqual(
       expect.arrayContaining([
@@ -98,10 +123,13 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
       ]),
     );
 
-    await supertest(server)
+    const closeRes = await supertest(server)
       .post(`/api/governance/resolutions/${resolution.id}/close-voting`)
       .set(adminHeaders)
       .expect(201);
+    const closed = closeRes.body.data ?? closeRes.body;
+    expect(closed.resultsSnapshot?.quorum).toBeTruthy();
+    expect(typeof closed.resultsSnapshot.quorum.met).toBe('boolean');
 
     await supertest(server)
       .patch(`/api/governance/${meeting.id}`)
@@ -250,6 +278,13 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
       .send({ unitId: fx.unitId, optionId })
       .expect(201);
 
+    const proxyBallot = await prisma.pollVote.findFirst({
+      where: { pollId: opened.pollId, unitId: fx.unitId },
+    });
+    expect(proxyBallot?.viaProxy).toBe(true);
+    expect(proxyBallot?.meetingId).toBe(meeting.id);
+    expect(proxyBallot?.proxyId).toBeTruthy();
+
     const closeRes = await supertest(server)
       .post(`/api/governance/resolutions/${resolution.id}/close-voting`)
       .set(adminHeaders)
@@ -257,6 +292,10 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
 
     const closed = closeRes.body.data ?? closeRes.body;
     expect(closed.resultsSnapshot).toBeTruthy();
+    expect(closed.resultsSnapshot.quorum).toMatchObject({
+      quorumPercent: expect.any(Number),
+      met: expect.any(Boolean),
+    });
 
     const stored = await prisma.meetingResolution.findUnique({ where: { id: resolution.id } });
     expect(stored?.resultsSnapshot).toBeTruthy();
@@ -270,5 +309,19 @@ describe.skipIf(!integrationReady)('Integration: governance', () => {
       orderBy: { createdAt: 'desc' },
     });
     expect(audit?.metadata).toMatchObject({ event: 'governance.resolution.voting_closed' });
+
+    const ballotAudit = await prisma.auditLog.findFirst({
+      where: {
+        resourceType: 'PollVote',
+        resourceId: opened.pollId,
+        metadata: { path: ['event'], equals: 'governance.resolution.ballot_cast' },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(ballotAudit?.metadata).toMatchObject({
+      event: 'governance.resolution.ballot_cast',
+      viaProxy: true,
+      immutable: true,
+    });
   });
 });

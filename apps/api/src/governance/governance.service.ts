@@ -136,6 +136,7 @@ export class GovernanceService {
         title: dto.title.trim(),
         scheduledAt: dto.scheduledAt,
         noticeBody: dto.noticeBody?.trim() ?? '',
+        quorumPercent: dto.quorumPercent ?? 50,
         createdByUserId: user.id,
       },
       include: meetingInclude,
@@ -164,6 +165,15 @@ export class GovernanceService {
     if (dto.minutesBody !== undefined && existing.status === GeneralMeetingStatus.DRAFT) {
       throw new BadRequestException('Minutes can only be edited after the notice is published');
     }
+    if (
+      dto.quorumPercent !== undefined &&
+      existing.status !== GeneralMeetingStatus.DRAFT &&
+      existing.status !== GeneralMeetingStatus.NOTICE_PUBLISHED
+    ) {
+      throw new BadRequestException(
+        'Quorum can only be changed before voting is in progress or the meeting is closed',
+      );
+    }
 
     const row = await this.prisma.generalMeeting.update({
       where: { id },
@@ -174,6 +184,7 @@ export class GovernanceService {
         noticeBody: dto.noticeBody?.trim(),
         minutesBody: dto.minutesBody?.trim(),
         status: dto.status,
+        quorumPercent: dto.quorumPercent,
       },
       include: meetingInclude,
     });
@@ -363,6 +374,8 @@ export class GovernanceService {
       throw new BadRequestException('votingClosesAt must be after votingOpensAt');
     }
 
+    const eligibilitySnapshot = await this.buildEligibilitySnapshot(resolution.meeting.condoId);
+
     const updated = await this.prisma.$transaction(async (tx) => {
       const poll = await tx.poll.create({
         data: {
@@ -386,6 +399,7 @@ export class GovernanceService {
           pollId: poll.id,
           votingOpensAt: opensAt,
           votingClosesAt: closesAt,
+          eligibilitySnapshot: eligibilitySnapshot as Prisma.InputJsonValue,
         },
         include: {
           poll: {
@@ -430,8 +444,17 @@ export class GovernanceService {
     }
 
     const resultsSnapshot = await this.polls.computeResultsSnapshot(resolution.pollId, true);
+    const quorum = await this.computeQuorumForPoll(
+      resolution.meeting.condoId,
+      resolution.pollId,
+      Number(resolution.meeting.quorumPercent),
+    );
     const closedAt = new Date();
     const pollId = resolution.pollId;
+    const snapshotWithQuorum = {
+      ...resultsSnapshot,
+      quorum,
+    };
 
     await this.prisma.$transaction(async (tx) => {
       await tx.poll.update({
@@ -442,7 +465,7 @@ export class GovernanceService {
       await tx.meetingResolution.update({
         where: { id: resolutionId },
         data: {
-          resultsSnapshot: resultsSnapshot as Prisma.InputJsonValue,
+          resultsSnapshot: snapshotWithQuorum as Prisma.InputJsonValue,
           votingClosesAt: resolution.votingClosesAt ?? closedAt,
         },
       });
@@ -460,7 +483,8 @@ export class GovernanceService {
             meetingId: resolution.meetingId,
             pollId: resolution.pollId,
             closedAt: closedAt.toISOString(),
-            resultsSnapshot,
+            resultsSnapshot: snapshotWithQuorum,
+            quorumMet: quorum.met,
           },
         },
       });
@@ -482,6 +506,7 @@ export class GovernanceService {
       meetingId: resolution.meetingId,
       condoId: resolution.meeting.condoId,
       pollId: resolution.pollId,
+      quorumMet: quorum.met,
     });
 
     return this.serializeResolution(updated, user, {
@@ -530,12 +555,26 @@ export class GovernanceService {
   ) {
     const resolution = await this.prisma.meetingResolution.findUnique({
       where: { id: resolutionId },
-      include: { meeting: true },
+      include: { meeting: true, poll: { select: { id: true, status: true } } },
     });
     if (!resolution) throw new NotFoundException();
-    if (!resolution.pollId) {
+    if (!resolution.pollId || !resolution.poll) {
       throw new BadRequestException('Voting is not open for this resolution');
     }
+    if (resolution.poll.status !== PollStatus.OPEN) {
+      throw new BadRequestException('Voting is not open for this resolution');
+    }
+    if (
+      resolution.meeting.status !== GeneralMeetingStatus.IN_PROGRESS &&
+      resolution.meeting.status !== GeneralMeetingStatus.NOTICE_PUBLISHED
+    ) {
+      throw new BadRequestException('Meeting is not open for e-voting');
+    }
+
+    const ballotMeta = {
+      meetingId: resolution.meetingId,
+      resolutionId: resolution.id,
+    };
 
     const proxy = await this.prisma.meetingProxy.findUnique({
       where: {
@@ -576,11 +615,233 @@ export class GovernanceService {
         viaProxy: true,
         proxyId: proxy.id,
         ownerUserId: proxy.ownerUserId,
-        meetingId: resolution.meetingId,
+        ...ballotMeta,
       });
     }
 
-    return this.polls.castVote(user, resolution.pollId, dto);
+    // Direct owner vote — stamp meetingId on the immutable ballot via ownership path
+    const now = new Date();
+    const ownership = await this.prisma.ownership.findFirst({
+      where: {
+        userId: user.id,
+        unitId: dto.unitId,
+        status: 'ACTIVE',
+        OR: [{ endDate: null }, { endDate: { gt: now } }],
+      },
+      include: {
+        unit: { select: { id: true, condoId: true, blockId: true, identifier: true } },
+      },
+    });
+    if (!ownership) {
+      throw new ForbiddenException('You do not have active ownership on the selected unit');
+    }
+    if (ownership.unit.condoId !== resolution.meeting.condoId) {
+      throw new BadRequestException('Unit does not belong to this meeting');
+    }
+
+    return this.polls.castVoteWithOwnership(user, resolution.pollId, dto, ownership, {
+      viaProxy: false,
+      ownerUserId: user.id,
+      ...ballotMeta,
+    });
+  }
+
+  /**
+   * Units the caller may cast a ballot for on an open resolution
+   * (owned units without proxy, or units where they are the proxy holder).
+   */
+  async getVotingEligibility(user: AuthenticatedUser, resolutionId: string) {
+    const resolution = await this.prisma.meetingResolution.findUnique({
+      where: { id: resolutionId },
+      include: {
+        meeting: true,
+        poll: { select: { id: true, status: true, opensAt: true, closesAt: true } },
+      },
+    });
+    if (!resolution) throw new NotFoundException();
+    this.assertCondoAccess(user, resolution.meeting.condoId);
+
+    const manage = this.isManagementForCondo(user, resolution.meeting.condoId);
+    if (!manage && resolution.meeting.status === GeneralMeetingStatus.DRAFT) {
+      throw new NotFoundException();
+    }
+
+    const pollOpen = resolution.poll?.status === PollStatus.OPEN;
+    const meetingOpen =
+      resolution.meeting.status === GeneralMeetingStatus.IN_PROGRESS ||
+      resolution.meeting.status === GeneralMeetingStatus.NOTICE_PUBLISHED;
+
+    const now = new Date();
+    const ownerships = await this.prisma.ownership.findMany({
+      where: {
+        userId: user.id,
+        status: 'ACTIVE',
+        unit: { condoId: resolution.meeting.condoId },
+        OR: [{ endDate: null }, { endDate: { gt: now } }],
+      },
+      include: { unit: { select: { id: true, identifier: true } } },
+    });
+
+    const proxies = await this.prisma.meetingProxy.findMany({
+      where: { meetingId: resolution.meetingId },
+      include: {
+        unit: { select: { id: true, identifier: true } },
+        owner: { select: { id: true, name: true } },
+      },
+    });
+
+    const proxyByUnit = new Map(proxies.map((p) => [p.unitId, p]));
+    const heldProxies = proxies.filter((p) => this.isProxyHolder(user, p));
+
+    const votedUnitIds = new Set<string>();
+    if (resolution.pollId) {
+      const votes = await this.prisma.pollVote.findMany({
+        where: { pollId: resolution.pollId },
+        select: { unitId: true },
+      });
+      for (const v of votes) votedUnitIds.add(v.unitId);
+    }
+
+    const eligibleUnits: Array<{
+      unitId: string;
+      unitIdentifier: string;
+      sharePercent: number;
+      viaProxy: boolean;
+      ownerName?: string;
+      alreadyVoted: boolean;
+      blockedReason?: string;
+    }> = [];
+
+    for (const own of ownerships) {
+      const proxy = proxyByUnit.get(own.unitId);
+      if (proxy) {
+        eligibleUnits.push({
+          unitId: own.unitId,
+          unitIdentifier: own.unit.identifier,
+          sharePercent: Number(own.sharePercent),
+          viaProxy: false,
+          alreadyVoted: votedUnitIds.has(own.unitId),
+          blockedReason: 'Proxy submitted — only the proxy holder may vote for this unit',
+        });
+        continue;
+      }
+      eligibleUnits.push({
+        unitId: own.unitId,
+        unitIdentifier: own.unit.identifier,
+        sharePercent: Number(own.sharePercent),
+        viaProxy: false,
+        alreadyVoted: votedUnitIds.has(own.unitId),
+      });
+    }
+
+    for (const proxy of heldProxies) {
+      if (eligibleUnits.some((u) => u.unitId === proxy.unitId && !u.blockedReason)) continue;
+      const ownerOwn = await this.prisma.ownership.findFirst({
+        where: {
+          userId: proxy.ownerUserId,
+          unitId: proxy.unitId,
+          status: 'ACTIVE',
+          OR: [{ endDate: null }, { endDate: { gt: now } }],
+        },
+      });
+      eligibleUnits.push({
+        unitId: proxy.unitId,
+        unitIdentifier: proxy.unit.identifier,
+        sharePercent: ownerOwn ? Number(ownerOwn.sharePercent) : 0,
+        viaProxy: true,
+        ownerName: proxy.owner.name,
+        alreadyVoted: votedUnitIds.has(proxy.unitId),
+      });
+    }
+
+    const castable = eligibleUnits.filter((u) => !u.blockedReason && !u.alreadyVoted);
+    const quorum = resolution.pollId
+      ? await this.computeQuorumForPoll(
+          resolution.meeting.condoId,
+          resolution.pollId,
+          Number(resolution.meeting.quorumPercent),
+        )
+      : await this.computeQuorumBaseline(
+          resolution.meeting.condoId,
+          Number(resolution.meeting.quorumPercent),
+        );
+
+    return {
+      resolutionId: resolution.id,
+      meetingId: resolution.meetingId,
+      pollId: resolution.pollId,
+      pollStatus: resolution.poll?.status ?? null,
+      votingOpen: Boolean(pollOpen && meetingOpen),
+      quorum,
+      eligibleUnits,
+      castableUnitCount: castable.length,
+    };
+  }
+
+  /** Management-only immutable ballot ledger for a resolution. */
+  async listResolutionBallots(user: AuthenticatedUser, resolutionId: string) {
+    const resolution = await this.prisma.meetingResolution.findUnique({
+      where: { id: resolutionId },
+      include: { meeting: true },
+    });
+    if (!resolution) throw new NotFoundException();
+    this.assertManagement(user, resolution.meeting.condoId);
+    if (!resolution.pollId) {
+      throw new BadRequestException('Voting has not opened for this resolution');
+    }
+
+    const ballots = await this.prisma.pollVote.findMany({
+      where: { pollId: resolution.pollId },
+      include: {
+        option: { select: { id: true, label: true } },
+        unit: { select: { id: true, identifier: true } },
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const quorum = await this.computeQuorumForPoll(
+      resolution.meeting.condoId,
+      resolution.pollId,
+      Number(resolution.meeting.quorumPercent),
+    );
+
+    return {
+      resolutionId: resolution.id,
+      meetingId: resolution.meetingId,
+      pollId: resolution.pollId,
+      quorum,
+      ballots: ballots.map((b) => ({
+        id: b.id,
+        unitId: b.unitId,
+        unitIdentifier: b.unit.identifier,
+        optionId: b.optionId,
+        optionLabel: b.option.label,
+        weight: Number(b.weight),
+        viaProxy: b.viaProxy,
+        proxyId: b.proxyId,
+        ownerUserId: b.ownerUserId,
+        castByUserId: b.userId,
+        castByName: b.user.name,
+        castByEmail: b.user.email,
+        castAt: b.createdAt,
+        immutable: true,
+      })),
+    };
+  }
+
+  async getMeetingQuorum(user: AuthenticatedUser, meetingId: string) {
+    const meeting = await this.prisma.generalMeeting.findUnique({ where: { id: meetingId } });
+    if (!meeting) throw new NotFoundException();
+    this.assertCondoAccess(user, meeting.condoId);
+    if (
+      !this.isManagementForCondo(user, meeting.condoId) &&
+      meeting.status === GeneralMeetingStatus.DRAFT
+    ) {
+      throw new NotFoundException();
+    }
+
+    return this.computeQuorumBaseline(meeting.condoId, Number(meeting.quorumPercent));
   }
 
   async submitProxy(user: AuthenticatedUser, meetingId: string, dto: SubmitMeetingProxyDto) {
@@ -752,11 +1013,121 @@ export class GovernanceService {
     }));
   }
 
+  private async buildEligibilitySnapshot(condoId: string) {
+    const now = new Date();
+    const ownerships = await this.prisma.ownership.findMany({
+      where: {
+        status: 'ACTIVE',
+        unit: { condoId },
+        OR: [{ endDate: null }, { endDate: { gt: now } }],
+      },
+      include: {
+        unit: { select: { id: true, identifier: true } },
+        user: { select: { id: true, name: true } },
+      },
+      orderBy: [{ unit: { identifier: 'asc' } }, { sharePercent: 'desc' }],
+    });
+
+    const byUnit = new Map<
+      string,
+      {
+        unitId: string;
+        unitIdentifier: string;
+        sharePercent: number;
+        ownerUserId: string;
+        ownerName: string;
+      }
+    >();
+    for (const o of ownerships) {
+      const share = Number(o.sharePercent);
+      const existing = byUnit.get(o.unitId);
+      if (!existing || share > existing.sharePercent) {
+        byUnit.set(o.unitId, {
+          unitId: o.unitId,
+          unitIdentifier: o.unit.identifier,
+          sharePercent: share,
+          ownerUserId: o.userId,
+          ownerName: o.user.name,
+        });
+      }
+    }
+
+    const units = [...byUnit.values()];
+    const totalShareWeight = units.reduce((s, u) => s + u.sharePercent, 0);
+
+    return {
+      capturedAt: now.toISOString(),
+      unitCount: units.length,
+      totalShareWeight: Math.round(totalShareWeight * 1000) / 1000,
+      units,
+    };
+  }
+
+  private async computeQuorumBaseline(condoId: string, quorumPercent: number) {
+    const now = new Date();
+    const ownerships = await this.prisma.ownership.findMany({
+      where: {
+        status: 'ACTIVE',
+        unit: { condoId },
+        OR: [{ endDate: null }, { endDate: { gt: now } }],
+      },
+      select: { unitId: true, sharePercent: true },
+    });
+
+    // One share weight per unit (primary / max share if multiple owners)
+    const byUnit = new Map<string, number>();
+    for (const o of ownerships) {
+      const share = Number(o.sharePercent);
+      const prev = byUnit.get(o.unitId) ?? 0;
+      if (share > prev) byUnit.set(o.unitId, share);
+    }
+
+    const eligibleUnitCount = byUnit.size;
+    const eligibleShareWeight = [...byUnit.values()].reduce((s, w) => s + w, 0);
+
+    return {
+      quorumPercent,
+      eligibleUnitCount,
+      eligibleShareWeight: Math.round(eligibleShareWeight * 1000) / 1000,
+      castUnitCount: 0,
+      castShareWeight: 0,
+      castSharePercentOfEligible:
+        eligibleShareWeight > 0 ? 0 : eligibleShareWeight === 0 && quorumPercent === 0 ? 100 : 0,
+      met: quorumPercent <= 0,
+    };
+  }
+
+  private async computeQuorumForPoll(condoId: string, pollId: string, quorumPercent: number) {
+    const baseline = await this.computeQuorumBaseline(condoId, quorumPercent);
+    const votes = await this.prisma.pollVote.findMany({
+      where: { pollId },
+      select: { unitId: true, weight: true },
+    });
+
+    const castUnitCount = votes.length;
+    const castShareWeight = votes.reduce((s, v) => s + Number(v.weight), 0);
+    const castSharePercentOfEligible =
+      baseline.eligibleShareWeight > 0
+        ? Math.round((castShareWeight / baseline.eligibleShareWeight) * 100_000) / 1000
+        : castUnitCount > 0
+          ? 100
+          : 0;
+
+    return {
+      ...baseline,
+      castUnitCount,
+      castShareWeight: Math.round(castShareWeight * 1000) / 1000,
+      castSharePercentOfEligible,
+      met: castSharePercentOfEligible + 1e-9 >= quorumPercent,
+    };
+  }
+
   private serializeMeeting(
     row: Prisma.GeneralMeetingGetPayload<{ include: typeof meetingInclude }> & {
       minutesBody?: string;
       minutesPublishedAt?: Date | null;
       financialSnapshot?: unknown;
+      quorumPercent?: Prisma.Decimal | number;
     },
     _user: AuthenticatedUser,
     opts: { manage?: boolean },
@@ -776,6 +1147,7 @@ export class GovernanceService {
       financialSnapshot: showFinancial
         ? ((row.financialSnapshot as MeetingFinancialSnapshot | null) ?? null)
         : null,
+      quorumPercent: Number(row.quorumPercent ?? 50),
       status: row.status,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -794,6 +1166,7 @@ export class GovernanceService {
       pollId: string | null;
       votingOpensAt: Date | null;
       votingClosesAt: Date | null;
+      eligibilitySnapshot?: Prisma.JsonValue | null;
       resultsSnapshot?: Prisma.JsonValue | null;
       position: number;
       poll?: { id: string; status: PollStatus; opensAt: Date | null; closesAt: Date | null } | null;
@@ -842,6 +1215,10 @@ export class GovernanceService {
       votingClosesAt: row.votingClosesAt,
       position: row.position,
       poll: pollSummary,
+      eligibilitySnapshot:
+        opts.manage || pollOpen || pollClosed
+          ? ((row.eligibilitySnapshot as Record<string, unknown> | null | undefined) ?? undefined)
+          : undefined,
       resultsSnapshot: pollClosed && row.resultsSnapshot ? row.resultsSnapshot : undefined,
     };
   }

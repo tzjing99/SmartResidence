@@ -1696,6 +1696,37 @@ export function useCastResolutionVote(api: ApiClient) {
   });
 }
 
+export function useResolutionVotingEligibility(api: ApiClient, resolutionId: string | null) {
+  return useQuery({
+    queryKey: resolutionId
+      ? (['governance', 'resolution', resolutionId, 'eligibility'] as const)
+      : (['governance', 'eligibility', null] as const),
+    queryFn: () =>
+      resolutionId ? api.resolutionVotingEligibility(resolutionId) : Promise.resolve(null),
+    enabled: Boolean(resolutionId),
+  });
+}
+
+export function useResolutionBallots(api: ApiClient, resolutionId: string | null) {
+  return useQuery({
+    queryKey: resolutionId
+      ? (['governance', 'resolution', resolutionId, 'ballots'] as const)
+      : (['governance', 'ballots', null] as const),
+    queryFn: () => (resolutionId ? api.listResolutionBallots(resolutionId) : Promise.resolve(null)),
+    enabled: Boolean(resolutionId),
+  });
+}
+
+export function useMeetingQuorum(api: ApiClient, meetingId: string | null) {
+  return useQuery({
+    queryKey: meetingId
+      ? [...queryKeys.meeting(meetingId), 'quorum']
+      : ['governance', 'quorum', null],
+    queryFn: () => (meetingId ? api.meetingQuorum(meetingId) : Promise.resolve(null)),
+    enabled: Boolean(meetingId),
+  });
+}
+
 export function useSubmitMeetingProxy(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({

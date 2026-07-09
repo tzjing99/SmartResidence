@@ -59,6 +59,7 @@ function draftMeeting(overrides: Record<string, unknown> = {}) {
     title: '2026 AGM',
     scheduledAt: new Date('2026-06-01T10:00:00Z'),
     noticeBody: 'Notice text here.',
+    quorumPercent: 50,
     status: GeneralMeetingStatus.DRAFT,
     createdByUserId: MGR_ID,
     createdAt: new Date(),
@@ -131,9 +132,23 @@ function buildService() {
   const ownership = {
     findFirst: vi.fn(async () => ({
       id: 'own-1',
+      userId: OWNER_ID,
       sharePercent: 100,
       unit: { id: UNIT, condoId: CONDO, blockId: 'block-1', identifier: 'A-01-01' },
     })),
+    findMany: vi.fn(async () => [
+      {
+        unitId: UNIT,
+        sharePercent: 100,
+        userId: OWNER_ID,
+        unit: { id: UNIT, identifier: 'A-01-01' },
+        user: { id: OWNER_ID, name: 'Owner' },
+      },
+    ]),
+  };
+
+  const pollVote = {
+    findMany: vi.fn(async () => []),
   };
 
   const user = {
@@ -160,6 +175,7 @@ function buildService() {
     ownership,
     user,
     poll,
+    pollVote,
     auditLog,
     $transaction: vi.fn(async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
   } as unknown as PrismaService;
@@ -238,23 +254,32 @@ describe('GovernanceService', () => {
     );
   });
 
-  it('delegates resolution vote to PollsService when no proxy', async () => {
+  it('casts owner ballot with immutable meeting audit metadata when no proxy', async () => {
     const { service, polls, meetingResolution, meetingProxy } = buildService();
     meetingResolution.findUnique.mockResolvedValueOnce({
       id: 'res-1',
       pollId: 'poll-1',
       meetingId: MEETING_ID,
-      meeting: { condoId: CONDO },
+      meeting: { condoId: CONDO, status: GeneralMeetingStatus.IN_PROGRESS },
+      poll: { id: 'poll-1', status: PollStatus.OPEN },
     });
     meetingProxy.findUnique.mockResolvedValueOnce(null);
     await service.castResolutionVote(owner(), 'res-1', {
       unitId: UNIT,
       optionId: 'opt-1',
     });
-    expect(polls.castVote).toHaveBeenCalledWith(owner(), 'poll-1', {
-      unitId: UNIT,
-      optionId: 'opt-1',
-    });
+    expect(polls.castVoteWithOwnership).toHaveBeenCalledWith(
+      owner(),
+      'poll-1',
+      { unitId: UNIT, optionId: 'opt-1' },
+      expect.objectContaining({ id: 'own-1' }),
+      expect.objectContaining({
+        viaProxy: false,
+        meetingId: MEETING_ID,
+        resolutionId: 'res-1',
+        ownerUserId: OWNER_ID,
+      }),
+    );
   });
 
   it('blocks owner vote when proxy submitted and routes proxy holder vote', async () => {
@@ -263,7 +288,8 @@ describe('GovernanceService', () => {
       id: 'res-1',
       pollId: 'poll-1',
       meetingId: MEETING_ID,
-      meeting: { condoId: CONDO },
+      meeting: { condoId: CONDO, status: GeneralMeetingStatus.IN_PROGRESS },
+      poll: { id: 'poll-1', status: PollStatus.OPEN },
     });
     meetingProxy.findUnique.mockResolvedValueOnce({
       id: 'proxy-1',
@@ -282,7 +308,8 @@ describe('GovernanceService', () => {
       id: 'res-1',
       pollId: 'poll-1',
       meetingId: MEETING_ID,
-      meeting: { condoId: CONDO },
+      meeting: { condoId: CONDO, status: GeneralMeetingStatus.IN_PROGRESS },
+      poll: { id: 'poll-1', status: PollStatus.OPEN },
     });
     meetingProxy.findUnique.mockResolvedValueOnce({
       id: 'proxy-1',
@@ -298,10 +325,20 @@ describe('GovernanceService', () => {
       optionId: 'opt-1',
     });
 
-    expect(polls.castVoteWithOwnership).toHaveBeenCalled();
+    expect(polls.castVoteWithOwnership).toHaveBeenCalledWith(
+      proxyHolder(),
+      'poll-1',
+      { unitId: UNIT, optionId: 'opt-1' },
+      expect.any(Object),
+      expect.objectContaining({
+        viaProxy: true,
+        proxyId: 'proxy-1',
+        meetingId: MEETING_ID,
+      }),
+    );
   });
 
-  it('closes resolution voting with immutable snapshot and audit log', async () => {
+  it('closes resolution voting with immutable snapshot, quorum, and audit log', async () => {
     const { service, polls, meetingResolution, auditLog, events, prisma } = buildService();
     meetingResolution.findUnique
       .mockResolvedValueOnce({
@@ -309,7 +346,7 @@ describe('GovernanceService', () => {
         meetingId: MEETING_ID,
         pollId: 'poll-1',
         votingClosesAt: null,
-        meeting: { condoId: CONDO },
+        meeting: { condoId: CONDO, quorumPercent: 50 },
         poll: { id: 'poll-1', status: PollStatus.OPEN, options: [] },
       })
       .mockResolvedValueOnce({
@@ -317,7 +354,12 @@ describe('GovernanceService', () => {
         meetingId: MEETING_ID,
         pollId: 'poll-1',
         votingClosesAt: new Date(),
-        resultsSnapshot: { totalVotes: 1, totalWeight: 100, options: [] },
+        resultsSnapshot: {
+          totalVotes: 1,
+          totalWeight: 100,
+          options: [],
+          quorum: { met: true, quorumPercent: 50 },
+        },
         poll: {
           id: 'poll-1',
           status: PollStatus.CLOSED,
@@ -326,18 +368,64 @@ describe('GovernanceService', () => {
         },
       });
 
+    vi.mocked(prisma.pollVote.findMany).mockResolvedValueOnce([
+      { unitId: UNIT, weight: 100 },
+    ] as never);
+
     await service.closeResolutionVoting(manager(), 'res-1');
 
     expect(polls.computeResultsSnapshot).toHaveBeenCalledWith('poll-1', true);
-    expect(auditLog.create).toHaveBeenCalled();
+    expect(auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          metadata: expect.objectContaining({
+            event: 'governance.resolution.voting_closed',
+            quorumMet: true,
+          }),
+        }),
+      }),
+    );
     expect(events.emit).toHaveBeenCalledWith(
       'governance.resolution.closed',
-      expect.objectContaining({ resolutionId: 'res-1' }),
+      expect.objectContaining({ resolutionId: 'res-1', quorumMet: true }),
     );
     expect(prisma.poll.update).toHaveBeenCalled();
   });
 
-  it('opens resolution voting by creating a poll and emitting event', async () => {
+  it('returns voting eligibility with proxy-blocked owned units', async () => {
+    const { service, meetingResolution, meetingProxy, prisma } = buildService();
+    meetingResolution.findUnique.mockResolvedValueOnce({
+      id: 'res-1',
+      pollId: 'poll-1',
+      meetingId: MEETING_ID,
+      meeting: {
+        condoId: CONDO,
+        status: GeneralMeetingStatus.IN_PROGRESS,
+        quorumPercent: 50,
+      },
+      poll: { id: 'poll-1', status: PollStatus.OPEN, opensAt: new Date(), closesAt: null },
+    });
+    meetingProxy.findMany.mockResolvedValueOnce([
+      {
+        id: 'proxy-1',
+        unitId: UNIT,
+        ownerUserId: OWNER_ID,
+        proxyHolderUserId: PROXY_HOLDER_ID,
+        proxyHolderContact: '',
+        unit: { id: UNIT, identifier: 'A-01-01' },
+        owner: { id: OWNER_ID, name: 'Owner' },
+      },
+    ]);
+    vi.mocked(prisma.pollVote.findMany).mockResolvedValueOnce([]);
+
+    const result = await service.getVotingEligibility(owner(), 'res-1');
+    expect(result.votingOpen).toBe(true);
+    expect(result.eligibleUnits[0]?.blockedReason).toMatch(/proxy/i);
+    expect(result.castableUnitCount).toBe(0);
+    expect(result.quorum.quorumPercent).toBe(50);
+  });
+
+  it('opens resolution voting by creating a poll, freezing eligibility, and emitting event', async () => {
     const { service, events, meetingResolution, prisma } = buildService();
     meetingResolution.findUnique.mockResolvedValueOnce({
       id: 'res-1',
@@ -352,11 +440,19 @@ describe('GovernanceService', () => {
       pollId: 'poll-1',
       votingOpensAt: new Date(),
       votingClosesAt: null,
+      eligibilitySnapshot: { unitCount: 1, totalShareWeight: 100, units: [] },
       poll: { id: 'poll-1', status: 'OPEN', opensAt: new Date(), closesAt: null },
     } as never);
 
     const result = await service.openResolutionVoting(manager(), 'res-1', {});
     expect(result.poll?.id).toBe('poll-1');
+    expect(prisma.meetingResolution.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eligibilitySnapshot: expect.objectContaining({ unitCount: expect.any(Number) }),
+        }),
+      }),
+    );
     expect(events.emit).toHaveBeenCalledWith(
       'governance.resolution.opened',
       expect.objectContaining({ resolutionId: 'res-1', pollId: 'poll-1' }),

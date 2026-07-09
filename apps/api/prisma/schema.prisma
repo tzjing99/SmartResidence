@@ -1914,6 +1914,8 @@ model GeneralMeeting {
   minutesBody         String               @default("")
   minutesPublishedAt  DateTime?
   financialSnapshot   Json?
+  /// Share-weighted quorum threshold (0–100). Default 50% of condo ownership share.
+  quorumPercent       Decimal              @default(50) @db.Decimal(6, 3)
   status              GeneralMeetingStatus @default(DRAFT)
   createdByUserId     String               @db.Uuid
   createdBy       User                 @relation("meetingAuthor", fields: [createdByUserId], references: [id])
@@ -1960,6 +1962,8 @@ model MeetingResolution {
   poll           Poll?          @relation(fields: [pollId], references: [id], onDelete: SetNull)
   votingOpensAt  DateTime?
   votingClosesAt DateTime?
+  /// Active ownerships + share weights frozen when voting opens (eligibility audit).
+  eligibilitySnapshot Json?
   resultsSnapshot Json?
   position       Int            @default(0)
   createdAt      DateTime       @default(now())
@@ -1996,11 +2000,18 @@ model PollVote {
   ownership   Ownership @relation(fields: [ownershipId], references: [id], onDelete: Cascade)
   /// Snapshot of sharePercent at vote time for future weighted AGM results.
   weight      Decimal   @db.Decimal(6, 3)
+  /// AGM/EGM ballot audit: cast via MeetingProxy (immutable after create).
+  viaProxy      Boolean  @default(false)
+  proxyId       String?  @db.Uuid
+  meetingId     String?  @db.Uuid
+  /// Ownership holder whose share weight was applied (owner when viaProxy).
+  ownerUserId   String?  @db.Uuid
   createdAt   DateTime  @default(now())
 
   @@unique([pollId, unitId])
   @@index([pollId])
   @@index([userId])
+  @@index([meetingId])
   @@map("poll_votes")
 }
 

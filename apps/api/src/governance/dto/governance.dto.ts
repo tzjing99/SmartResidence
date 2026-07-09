@@ -7,10 +7,13 @@ import {
   IsBoolean,
   IsDate,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
+  Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -39,6 +42,18 @@ export class CreateGeneralMeetingDto {
   @IsOptional()
   @IsString()
   noticeBody?: string;
+
+  @ApiPropertyOptional({
+    description: 'Share-weighted quorum threshold (0–100). Defaults to 50.',
+    minimum: 0,
+    maximum: 100,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  quorumPercent?: number;
 }
 
 export class UpdateGeneralMeetingDto {
@@ -74,6 +89,18 @@ export class UpdateGeneralMeetingDto {
   @IsOptional()
   @IsEnum(GeneralMeetingStatus)
   status?: GeneralMeetingStatus;
+
+  @ApiPropertyOptional({
+    description: 'Share-weighted quorum threshold (0–100)',
+    minimum: 0,
+    maximum: 100,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  quorumPercent?: number;
 }
 
 export class CreateMeetingResolutionDto {

@@ -1,3 +1,8 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const apiOrigin = (() => {
   try {
     return new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').origin;
@@ -40,6 +45,8 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  // Monorepo: trace files from the repo root so standalone includes workspace pkgs.
+  outputFileTracingRoot: path.join(__dirname, '../..'),
   transpilePackages: [
     '@smartresidence/ui-web',
     '@smartresidence/api-client',

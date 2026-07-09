@@ -36,7 +36,7 @@ GitHub Actions still blocked until **2026-08-01**. Path C local verify used for 
 | `ci:test:api` | ✅ **81 files / 492 tests** (pre-#33; includes integration) |
 | `ci:test:regression` | ✅ **11 files / 40 tests** (post-#33, `--no-file-parallelism`) |
 | Self-host `compose config` | ✅ exit 0 with `deploy/.env.example` |
-| Self-host `up --build` | ❌ known gap — web image Next.js module resolution (use §7 dev bring-up) |
+| Self-host `up --build` | 🔧 web image build fixed (`fix/selfhost-web-docker`) — shared-types dist + build args |
 
 ### Release completeness
 
@@ -51,7 +51,7 @@ GitHub Actions still blocked until **2026-08-01**. Path C local verify used for 
 - ~~Visitor management RBAC correction (mgmt read-only approve) — ROADMAP §2.1~~ ✅ corrected on `fix/visitor-mgmt-rbac` (owners/tenants no longer get CASL `manage Visitor` / gate ops; management denied unit approve/reject + gate; integration coverage)
 - ~~Trained ML assignment (C6) — stub only~~ ✅ lightweight Naive Bayes artifact + train script on `feature/c6-ml-model` (not deep-learning infra)
 - Full AGM/EGM e-voting beyond proxy + minutes
-- Self-host Docker web image build failure
+- ~~Self-host Docker web image build failure~~ — fixed on `fix/selfhost-web-docker`
 - GHCR publish / hosted CI until **2026-08-01**
 - Homepage marketing copy approval (§6 of release checklist)
 

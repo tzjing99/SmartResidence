@@ -170,11 +170,13 @@ Reach it at:
 
 ### A note on `NEXT_PUBLIC_API_URL`
 
-Next.js **inlines `NEXT_PUBLIC_*` at build time**. If your browser reaches the
-API at something other than `http://localhost:4000` (e.g. a real domain), rebuild
-the web image with the correct value baked in, or terminate both web and API
-behind one reverse proxy so relative/`/api` paths work. See
-[`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) for the TLS + domain topology.
+Next.js **inlines `NEXT_PUBLIC_*` at build time**. The self-host compose file
+passes `API_PUBLIC_URL` into the web image as a **build arg**
+(`NEXT_PUBLIC_API_URL`). If your browser reaches the API at something other
+than `http://localhost:4000` (e.g. a real domain), set `API_PUBLIC_URL` in
+`deploy/.env` and **rebuild** the web image (`docker compose ... build web --no-cache`),
+or terminate both web and API behind one reverse proxy so relative/`/api` paths
+work. See [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) for the TLS + domain topology.
 
 ---
 
@@ -227,8 +229,6 @@ full-container stack has two supported paths instead:
 
 - The full-container `deploy/` compose is a **draft** — review, add a reverse
   proxy/TLS, and test before production (see `docs/DEPLOYMENT.md`).
-- Baking `NEXT_PUBLIC_API_URL` for non-localhost domains needs a build arg or a
-  single-origin reverse proxy.
 - Seeding inside the production image is not supported (use the wizard).
 - A Helm chart for Kubernetes is referenced in docs but **not present** in the
   repo yet (`infra/k8s/` is aspirational).

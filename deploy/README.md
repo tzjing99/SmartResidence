@@ -26,10 +26,13 @@ The app image builds reuse the Dockerfiles that already exist in the repo:
 
 - `infra/docker/Dockerfile.api` — multi-stage NestJS build, `EXPOSE 4000`, `HEALTHCHECK` on `/health`.
 - `infra/docker/Dockerfile.web` — multi-stage Next.js standalone build, `EXPOSE 3000`.
+  Builds `@smartresidence/shared-types` first (package exports `dist/`), and accepts
+  `NEXT_PUBLIC_API_URL` as a build arg (wired from `API_PUBLIC_URL` in compose).
 
 The build **context is the repo root** (`..` relative to this folder) because both
 Dockerfiles copy `pnpm-lock.yaml`, `packages/`, and the app source from the
-monorepo root.
+monorepo root. A root `.dockerignore` keeps mobile/docs/`node_modules` out of the
+context.
 
 ## Quick use (draft)
 

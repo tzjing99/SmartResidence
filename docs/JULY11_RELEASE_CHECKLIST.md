@@ -4,10 +4,10 @@
 > mechanics. **Do not merge PRs from this doc alone**; use it as the operator
 > runbook.
 >
-> **Last validated:** 2026-07-09 — Path C plan **COMPLETE**. Config OK on `main` @
-> `097cc07`; full stack `up --build` still **failed** (web image: Next.js module
-> not found). API + regression green locally (492 + 40 tests; #33 serializes
-> `@requires-db` file runs).
+> **Last validated:** 2026-07-09 — Path C plan **COMPLETE**. Config OK on `main`.
+> Web image build fixed on `fix/selfhost-web-docker` (shared-types `dist/` +
+> `NEXT_PUBLIC_API_URL` build arg + empty `public/`). API + regression green
+> locally (492 + 40 tests; #33 serializes `@requires-db` file runs).
 >
 > **Related docs:**
 > [`SELF_HOSTING.md`](./SELF_HOSTING.md) · [`DEPLOYMENT.md`](./DEPLOYMENT.md) ·
@@ -28,7 +28,7 @@
 | Path C merge train | ✅ Complete | #12, #20, #22, #24–#33; GH Actions off until 2026-08-01 |
 | Release PR [#1](https://github.com/tzjing99/SmartResidence/pull/1) | ✅ Merged | `@smartresidence/*@0.2.0` — tag [`v0.2.0`](https://github.com/tzjing99/SmartResidence/releases/tag/v0.2.0) |
 | Local API + regression | ✅ Pass | `ci:test:api` 492 tests; `ci:test:regression` 40 tests serial (2026-07-09, #33) |
-| Full stack smoke (`up --build`) | ❌ Fail | Web Dockerfile build: `Cannot find module .../next/dist/bin/next` — use dev bring-up (§7) until fixed |
+| Full stack smoke (`up --build`) | 🔧 Fixed (PR) | `docker compose ... build web` succeeds after shared-types prebuild; full `up` still needs secrets + infra |
 | GHCR images | ⏭ Blocked | Hosted Actions minutes exhausted until 2026-08-01 |
 
 ---
@@ -198,7 +198,7 @@ CI refuses merges without a changeset (docs-only/chore exempt).
 - [x] PR #1 updated and merged
 - [x] `v0.2.0` tag pushed; GitHub Release published
 - [ ] GHCR images published — blocked until Actions minutes reset **2026-08-01**
-- [x] Self-host config smoke (§3.1) passed; full `up --build` still fails (web image)
+- [x] Self-host config smoke (§3.1) passed; `build web` succeeds after Dockerfile fix (shared-types + public/)
 - [ ] Demo seeded or setup wizard verified (operator day-of)
 - [ ] Homepage copy reviewed (§6) — **do not edit live site until approved**
 

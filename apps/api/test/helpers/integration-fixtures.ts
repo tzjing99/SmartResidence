@@ -47,7 +47,11 @@ async function upsertWithRetry<T>(fn: () => Promise<T>, retries = 5): Promise<T>
  * and refresh-token rotation (global session scan) fail on dirty databases.
  */
 async function resetIntegrationCondoData(prisma: PrismaService, condoId: string): Promise<void> {
+  // Order matters: dependents before invoices (e-invoice / payments cascade, but
+  // ledger rows are keyed by condo and must go first).
   await prisma.ledgerEntry.deleteMany({ where: { condoId } });
+  await prisma.eInvoice.deleteMany({ where: { condoId } });
+  await prisma.receipt.deleteMany({ where: { condoId } });
   await prisma.invoice.deleteMany({ where: { condoId } });
   // Refresh rotation scans recent active sessions globally; stale rows slow auth tests.
   await prisma.session.deleteMany({});

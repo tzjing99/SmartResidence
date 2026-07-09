@@ -94,15 +94,17 @@ describe.skipIf(!integrationReady)('Integration: billing', () => {
       })
       .expect(200);
 
+    // Distinct far-future period so parallel @requires-db suites sharing the
+    // integration condo do not trip invoices_unitId_periodStart_active_key.
     const invoiceRes = await supertest(server)
       .post('/api/invoices')
       .set(adminHeaders)
       .send({
         unitId: fx.unitId,
-        periodStart: '2026-10-01T00:00:00.000Z',
-        periodEnd: '2026-10-31T23:59:59.000Z',
-        dueDate: '2026-10-15T00:00:00.000Z',
-        lines: [{ code: 'MAINT', description: 'Oct maintenance', unitPrice: 150, quantity: 1 }],
+        periodStart: '2031-01-01T00:00:00.000Z',
+        periodEnd: '2031-01-31T23:59:59.000Z',
+        dueDate: '2031-01-15T00:00:00.000Z',
+        lines: [{ code: 'MAINT', description: 'Jan maintenance', unitPrice: 150, quantity: 1 }],
       })
       .expect(201);
 
@@ -157,10 +159,10 @@ describe.skipIf(!integrationReady)('Integration: billing', () => {
       .set(adminHeaders)
       .send({
         unitId: fx.secondUnitId,
-        periodStart: '2026-10-01T00:00:00.000Z',
-        periodEnd: '2026-10-31T23:59:59.000Z',
-        dueDate: '2026-10-15T00:00:00.000Z',
-        lines: [{ code: 'MAINT', description: 'Oct maintenance', unitPrice: 150, quantity: 1 }],
+        periodStart: '2031-02-01T00:00:00.000Z',
+        periodEnd: '2031-02-28T23:59:59.000Z',
+        dueDate: '2031-02-15T00:00:00.000Z',
+        lines: [{ code: 'MAINT', description: 'Feb maintenance', unitPrice: 150, quantity: 1 }],
       })
       .expect(201);
 

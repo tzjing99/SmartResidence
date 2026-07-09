@@ -8,6 +8,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { useT } from '../i18n/locale-provider';
 import { api } from './api';
 
 export interface PhotoUploadItem {
@@ -28,6 +29,7 @@ export interface PhotoUploadItem {
  * multi-MB phone photo, then streams it to the API with progress + cancel.
  */
 export function usePhotoUpload(opts?: { maxFiles?: number }) {
+  const t = useT();
   const maxFiles = opts?.maxFiles ?? MAX_ATTACHMENTS_PER_MESSAGE;
   const [items, setItems] = useState<PhotoUploadItem[]>([]);
   const counter = useRef(0);
@@ -111,7 +113,7 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
     (uris: string[]) => {
       const remaining = maxFiles - itemsRef.current.length;
       if (remaining <= 0) {
-        Alert.alert('Limit reached', `You can attach up to ${maxFiles} photos.`);
+        Alert.alert(t('upload.limitReachedTitle'), t('upload.tooMany', { max: maxFiles }));
         return;
       }
       const accepted = uris.slice(0, remaining);
@@ -124,13 +126,13 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
       setItems((prev) => [...prev, ...created]);
       enqueue(created.map((i) => i.id));
     },
-    [enqueue, maxFiles],
+    [enqueue, maxFiles, t],
   );
 
   const pickFromLibrary = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow photo library access to attach images.');
+      Alert.alert(t('upload.permissionTitle'), t('upload.permissionPhotos'));
       return;
     }
     const remaining = maxFiles - itemsRef.current.length;
@@ -142,12 +144,12 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
     });
     if (result.canceled) return;
     addAssets(result.assets.map((a) => a.uri));
-  }, [addAssets, maxFiles]);
+  }, [addAssets, maxFiles, t]);
 
   const takePhoto = useCallback(async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow camera access to take a photo.');
+      Alert.alert(t('upload.permissionTitle'), t('upload.permissionCamera'));
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -156,7 +158,7 @@ export function usePhotoUpload(opts?: { maxFiles?: number }) {
     });
     if (result.canceled || !result.assets[0]?.uri) return;
     addAssets([result.assets[0].uri]);
-  }, [addAssets]);
+  }, [addAssets, t]);
 
   const remove = useCallback((id: string) => {
     setItems((prev) => {

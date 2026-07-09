@@ -69,6 +69,7 @@
     "choosePaymentMethod": "Choose a payment method",
     "enterAdvanceAmount": "Enter an advance payment amount",
     "advanceStartedToast": "Advance payment started. Complete the gateway prompt to add credit.",
+    "paymentStartedToast": "Payment started. Follow the gateway prompts to complete it.",
     "maintenanceInvoicesTitle": "Maintenance fee invoices",
     "maintenanceInvoicesDesc": "These are invoices for your monthly maintenance charges and any other fee items. Open an invoice to pay online or view the full breakdown.",
     "noInvoicesTitle": "No invoices yet",
@@ -118,7 +119,13 @@
     "statusTimeline": "Status timeline",
     "commentAddedToast": "Comment added",
     "signedOffToast": "Defect signed off and closed.",
-    "reopenedToast": "Defect sent back for more work."
+    "reopenedToast": "Defect sent back for more work.",
+    "submittedToast": "Defect submitted",
+    "pickElementToast": "Pick an element",
+    "addNoteToast": "Add a note describing the issue",
+    "bulkSubmittedToast": "{count} defect(s) submitted",
+    "acceptedToast": "Defect accepted and closed.",
+    "bulkAcceptedToast": "{count} defect(s) accepted and closed."
   },
   "announcements": {
     "eyebrow": "Notices",

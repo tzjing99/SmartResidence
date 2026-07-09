@@ -4,6 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, View } from 'react-native';
 import ViewShot, { captureRef } from 'react-native-view-shot';
+import { useT } from '../i18n/locale-provider';
 import { hapticSuccess } from '../lib/haptics';
 import { shareVisitorPassImage } from '../lib/visitor-pass-share';
 import { SharePassCard, type SharePassCardProps, formatSharePassValidity } from './share-pass-card';
@@ -23,6 +24,7 @@ export function SharePassSheet({
   qrPayload,
   passKind,
 }: SharePassSheetProps) {
+  const t = useT();
   const { colors } = useTheme();
   const cardRef = useRef<ViewShot>(null);
   const [sharing, setSharing] = useState(false);
@@ -58,7 +60,7 @@ export function SharePassSheet({
     } catch (err) {
       const message = (err as Error).message;
       if (message !== 'User did not share') {
-        Alert.alert('Could not share', message);
+        Alert.alert(t('visitors.pass.shareFailedTitle'), message);
       }
     } finally {
       setSharing(false);

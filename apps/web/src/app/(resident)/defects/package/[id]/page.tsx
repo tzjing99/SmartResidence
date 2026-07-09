@@ -2,6 +2,7 @@
 
 import { DefectBulkSignOffButton, DefectSignOffActions } from '@/components/defect-sign-off';
 import { DefectStatusBadge } from '@/components/defect-ui';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -19,6 +20,7 @@ import { useParams } from 'next/navigation';
 import * as React from 'react';
 
 export default function ResidentPackageDetailPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const report = useDefectReport(api, params.id);
   const detail = report.data;
@@ -32,9 +34,7 @@ export default function ResidentPackageDetailPage() {
     try {
       await transition.mutateAsync({ id: itemId, status });
       qc.invalidateQueries({ queryKey: queryKeys.defectReport(params.id) });
-      toast.success(
-        status === 'CLOSED' ? 'Defect accepted and closed.' : 'Defect sent back for more work.',
-      );
+      toast.success(status === 'CLOSED' ? t('defects.acceptedToast') : t('defects.reopenedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -55,7 +55,7 @@ export default function ResidentPackageDetailPage() {
         id: params.id,
         data: { defectIds: ids, status: 'CLOSED' },
       });
-      toast.success(`${res.updated} defect(s) accepted and closed.`);
+      toast.success(t('defects.bulkAcceptedToast', { count: res.updated }));
     } catch (err) {
       toast.error((err as Error).message);
     }

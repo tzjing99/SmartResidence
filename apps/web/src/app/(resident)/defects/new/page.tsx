@@ -1,6 +1,7 @@
 'use client';
 
 import { DefectSubmissionProgress } from '@/components/defect-submission-progress';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -83,6 +84,7 @@ export default function NewDefectPage() {
 }
 
 function SingleDefectForm({ unitId }: { unitId?: string }) {
+  const t = useT();
   const router = useRouter();
   const create = useCreateDefect(api);
   const [attachmentIds, setAttachmentIds] = React.useState<string[]>([]);
@@ -101,7 +103,7 @@ function SingleDefectForm({ unitId }: { unitId?: string }) {
         attachmentIds: attachmentIds.length ? attachmentIds : undefined,
       });
       photoRef.current?.reset();
-      toast.success('Defect submitted');
+      toast.success(t('defects.submittedToast'));
       router.push('/defects');
     } catch (err) {
       toast.error((err as Error).message);
@@ -171,6 +173,7 @@ interface DraftItem extends HandoverReportItemInput {
 const NO_ISSUE = '__none__';
 
 function HandoverForm({ unitId }: { unitId?: string }) {
+  const t = useT();
   const router = useRouter();
   const template = useUnitHandoverTemplate(api, unitId ?? null);
   const create = useCreateHandoverReport(api);
@@ -202,11 +205,11 @@ function HandoverForm({ unitId }: { unitId?: string }) {
   function addItem() {
     if (!room) return;
     if (elements.length > 0 && !elementId) {
-      toast.error('Pick an element');
+      toast.error(t('defects.pickElementToast'));
       return;
     }
     if (elements.length === 0 && !note.trim()) {
-      toast.error('Add a note describing the issue');
+      toast.error(t('defects.addNoteToast'));
       return;
     }
     const issue = issues.find((i) => i.id === issueId);
@@ -241,7 +244,7 @@ function HandoverForm({ unitId }: { unitId?: string }) {
       });
       setSubmitPhase('success');
       await new Promise((resolve) => setTimeout(resolve, 900));
-      toast.success(`${items.length} defect(s) submitted`);
+      toast.success(t('defects.bulkSubmittedToast', { count: items.length }));
       router.push('/defects');
     } catch (err) {
       setSubmitPhase('idle');

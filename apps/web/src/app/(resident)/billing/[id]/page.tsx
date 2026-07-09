@@ -2,6 +2,7 @@
 
 import { DuitNowQrPanel, type DuitNowQrSession } from '@/components/duitnow-qr-panel';
 import { PaymentMethodPayButtons } from '@/components/payment-method-picker';
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { queryKeys, usePayInvoice, usePayableMethods } from '@smartresidence/api-client';
@@ -40,6 +41,7 @@ function fmtDate(d: Date | string) {
 }
 
 export default function InvoiceDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const returnedFromGateway = searchParams.get('paid') === '1';
@@ -117,7 +119,7 @@ export default function InvoiceDetailPage() {
         window.location.href = res.redirectUrl;
         return;
       }
-      toast.success('Payment started. Follow the gateway prompts to complete it.');
+      toast.success(t('billing.paymentStartedToast'));
     } catch (err) {
       toast.error((err as Error).message);
     }

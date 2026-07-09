@@ -69,6 +69,7 @@
     "choosePaymentMethod": "Choose a payment method",
     "enterAdvanceAmount": "Enter an advance payment amount",
     "advanceStartedToast": "Advance payment started. Complete the gateway prompt to add credit.",
+    "paymentStartedToast": "付款已发起。请按支付网关提示完成付款。",
     "maintenanceInvoicesTitle": "Maintenance fee invoices",
     "maintenanceInvoicesDesc": "These are invoices for your monthly maintenance charges and any other fee items. Open an invoice to pay online or view the full breakdown.",
     "noInvoicesTitle": "No invoices yet",
@@ -116,9 +117,15 @@
     "activity": "Activity",
     "commentPlaceholder": "Add a comment for the management team…",
     "statusTimeline": "Status timeline",
-    "commentAddedToast": "Comment added",
-    "signedOffToast": "Defect signed off and closed.",
-    "reopenedToast": "Defect sent back for more work."
+    "commentAddedToast": "评论已添加",
+    "signedOffToast": "维修已签收并关闭。",
+    "reopenedToast": "维修已退回继续处理。",
+    "submittedToast": "维修已提交",
+    "pickElementToast": "请选择项目",
+    "addNoteToast": "请添加问题说明",
+    "bulkSubmittedToast": "已提交 {count} 项维修",
+    "acceptedToast": "维修已接受并关闭。",
+    "bulkAcceptedToast": "已接受并关闭 {count} 项维修。"
   },
   "announcements": {
     "eyebrow": "Notices",

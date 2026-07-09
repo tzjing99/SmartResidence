@@ -5,8 +5,9 @@
 > runbook.
 >
 > **Last validated:** 2026-07-09 — Path C plan **COMPLETE**. Config OK on `main` @
-> `f98dc92`; full stack `up --build` still **failed** (web image: Next.js module
-> not found). API + regression green locally (492 + 40 tests).
+> `097cc07`; full stack `up --build` still **failed** (web image: Next.js module
+> not found). API + regression green locally (492 + 40 tests; #33 serializes
+> `@requires-db` file runs).
 >
 > **Related docs:**
 > [`SELF_HOSTING.md`](./SELF_HOSTING.md) · [`DEPLOYMENT.md`](./DEPLOYMENT.md) ·
@@ -24,9 +25,9 @@
 | `deploy/` on `main` | ✅ Merged | Via PR #23 (`feature/mobile-ux`) |
 | Self-host / deployment docs on `main` | ✅ Merged | `SELF_HOSTING.md`, `DEPLOYMENT.md`, `BUSINESS_MODEL.md` via #23 + #24 |
 | `JULY11_CRITICAL_PATH.md` | ✅ On `main` | Updated Jul 9 — plan COMPLETE |
-| Path C merge train | ✅ Complete | #12, #20, #22, #24–#31; GH Actions off until 2026-08-01 |
+| Path C merge train | ✅ Complete | #12, #20, #22, #24–#33; GH Actions off until 2026-08-01 |
 | Release PR [#1](https://github.com/tzjing99/SmartResidence/pull/1) | ✅ Merged | `@smartresidence/*@0.2.0` — tag [`v0.2.0`](https://github.com/tzjing99/SmartResidence/releases/tag/v0.2.0) |
-| Local API + regression | ✅ Pass | `ci:test:api` 492 tests; `ci:test:regression` 40 tests (2026-07-09) |
+| Local API + regression | ✅ Pass | `ci:test:api` 492 tests; `ci:test:regression` 40 tests serial (2026-07-09, #33) |
 | Full stack smoke (`up --build`) | ❌ Fail | Web Dockerfile build: `Cannot find module .../next/dist/bin/next` — use dev bring-up (§7) until fixed |
 | GHCR images | ⏭ Blocked | Hosted Actions minutes exhausted until 2026-08-01 |
 

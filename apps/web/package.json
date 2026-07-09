@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-or-later",
   "description": "SmartResidence web app — resident portal + management dashboard.",
   "scripts": {
+    "prebuild": "corepack pnpm --filter @smartresidence/shared-types build",
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",

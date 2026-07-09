@@ -5,7 +5,7 @@ WORKDIR /repo
 
 # --- deps -----------------------------------------------------------------
 FROM base AS deps
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml turbo.json ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml turbo.json .npmrc ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages packages
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
@@ -15,6 +15,8 @@ RUN pnpm install --frozen-lockfile --filter @smartresidence/api...
 # --- build ----------------------------------------------------------------
 FROM deps AS build
 COPY apps/api apps/api
+# prebuild also builds shared-types; keep an explicit step for clearer Docker logs.
+RUN pnpm --filter @smartresidence/shared-types build
 RUN pnpm --filter @smartresidence/api exec prisma generate \
  && pnpm --filter @smartresidence/api build
 

@@ -1,0 +1,19 @@
+# Keep Docker build context small. Context is the repo root for both
+# Dockerfile.api and Dockerfile.web — do not exclude apps/api or packages.
+.git
+.github
+.cursor
+**/.turbo
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+apps/mobile
+apps/docs
+docs
+deploy/.env
+*.md
+!README.md

@@ -21,6 +21,8 @@ function service() {
       count: vi.fn(),
     },
     visitorCheckIn: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    recurringPass: { findUnique: vi.fn().mockResolvedValue(null) },
+    formSubmission: { findUnique: vi.fn().mockResolvedValue(null) },
     ownership: { findMany: vi.fn(), findFirst: vi.fn() },
     tenancy: { findMany: vi.fn() },
     unitVisitorPolicy: {

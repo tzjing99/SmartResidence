@@ -37,6 +37,7 @@ function service() {
       findFirst: vi.fn(),
     },
     visitor: { findUnique: vi.fn(), create: vi.fn() },
+    formSubmission: { findUnique: vi.fn().mockResolvedValue(null) },
     visitorCheckIn: { create: vi.fn() },
     auditLog: { create: vi.fn() },
     $transaction: vi.fn(async (fn: any) => fn(prisma)),

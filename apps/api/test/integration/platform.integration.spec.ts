@@ -61,7 +61,7 @@ describe.skipIf(!integrationReady)('Integration: platform console', () => {
   it('GET /api/platform/condos lists condos for SUPER_ADMIN (paginated)', async () => {
     const supertest = (await import('supertest')).default;
     const res = await supertest(app.getHttpServer())
-      .get('/api/platform/condos?limit=10&offset=0')
+      .get('/api/platform/condos?search=integration-test&limit=10&offset=0')
       .set(authHeaders(superAdminToken))
       .expect(200);
 

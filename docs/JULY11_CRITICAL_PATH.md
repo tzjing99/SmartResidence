@@ -1,6 +1,6 @@
 # SmartResidence — July 11, 2026 Ship-Ready Critical Path
 
-> **Last updated:** 2026-07-10 (OVERNIGHT FINALIZE COMPLETE) · **Target:** ship-ready by **2026-07-11**
+> **Last updated:** 2026-07-10 (RESUME FINALIZE PASS — confirmed GREEN) · **Target:** ship-ready by **2026-07-11**
 >
 > **Status: OVERNIGHT FINALIZE COMPLETE** — backlog PRs #35–#46 on `main`; tag **`v0.3.0`** pushed.
 > Hosted GitHub Actions remain blocked until **2026-08-01** (minutes exhausted); Path C local verify used.
@@ -15,6 +15,39 @@ Merged [#46](https://github.com/tzjing99/SmartResidence/pull/46) (`fix/visitor-c
 - Overnight holiday slot allocation: **Serializable** transaction + P2034 retry
 - Access codes: unique-constraint insert + **P2002** retry (visitor / recurring / form permit)
 - Tests: `access-code-concurrency.spec.ts` + visitor service race cases
+
+---
+
+## Jul 10 — Resume finalize pass ✅
+
+Path C re-verification on `main` after overnight merge train. Confirmed all backlog PRs merged, **`v0.3.0`** tag pushed, zero open PRs.
+
+### `main` tip (resume pass)
+
+**`76a3996`** — docs: sync handoff tip SHA to `321ddd4`. Tag **`v0.3.0`** remains on **`4338f3c`** (PR #45); `main` is ahead (#46 concurrency + forms test fix + handoff docs).
+
+### Resume pass local health gate (2026-07-10, Path C — `main` @ `76a3996`)
+
+| Gate | Result |
+| --- | --- |
+| `@smartresidence/api` typecheck | ✅ |
+| `@smartresidence/web` typecheck | ✅ |
+| `shared-types` tests | ✅ **30 tests** |
+| `web` tests | ✅ **47 tests** |
+| `api` vitest (no `DATABASE_URL`) | ✅ **478 passed** / 59 skipped (537 total) |
+| `api` vitest (with Postgres + `migrate deploy`) | ✅ **537 passed** / 0 failed (87 files) |
+| `pnpm lint` (errors only) | ✅ 0 errors |
+
+### PR disposition (resume pass order #43 → #40 → #36 → #35 → #38 → #39)
+
+| PR | Status | Notes |
+| --- | --- | --- |
+| **#43** | ✅ already merged | permit QR verify + PDF — on `main` before resume |
+| **#40** | ✅ merged | PDPA account deletion — rebase conflicts resolved in worktree |
+| **#36** | ✅ merged | AGM/EGM e-voting |
+| **#35** | ✅ merged | C6 ML assignment model |
+| **#38** | ✅ merged | self-host Docker web image |
+| **#39** | ✅ merged | SUPER_ADMIN feature flags |
 
 ---
 

@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   Clock,
   CreditCard,
   Download,
@@ -14,6 +15,7 @@ import {
   FileText,
   GitBranch,
   Landmark,
+  Languages,
   LayoutDashboard,
   Lock,
   MessagesSquare,
@@ -21,11 +23,14 @@ import {
   QrCode,
   Receipt,
   ScanLine,
+  Settings2,
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Trash2,
   TrendingUp,
   UserCheck,
+  Vote,
   Wallet,
   Wrench,
   Zap,
@@ -127,11 +132,50 @@ const residentFeatures = [
   },
 ];
 
+const latestFeatures = [
+  {
+    icon: Vote,
+    title: 'AGM & EGM e-voting',
+    body: 'Run eligible, auditable ballots with quorum tracking and a clear voting trail for residents and management.',
+    audience: 'Everyone' as Audience,
+  },
+  {
+    icon: ClipboardCheck,
+    title: 'Renovation permit verification',
+    body: 'Issue printable permits with QR verification, so guards can confirm an active approval at the gate in seconds.',
+    audience: 'Everyone' as Audience,
+  },
+  {
+    icon: Trash2,
+    title: 'Resident-controlled account deletion',
+    body: 'A guided PDPA-aligned request flow gives residents a clear way to request deletion while preserving required records.',
+    audience: 'Residents' as Audience,
+  },
+  {
+    icon: Languages,
+    title: 'English, Bahasa Melayu & 简体中文',
+    body: 'System-locale detection, an in-app language picker, and translated errors and confirmations across priority flows.',
+    audience: 'Residents' as Audience,
+  },
+  {
+    icon: Smartphone,
+    title: 'Accessible mobile experience',
+    body: 'System Dynamic Type, Android font scaling, dark mode, reduced-motion support, and purposeful haptics throughout key actions.',
+    audience: 'Residents' as Audience,
+  },
+  {
+    icon: Settings2,
+    title: 'Platform feature controls',
+    body: 'Super admins can manage condo-level feature flags, enabling a controlled rollout of capabilities across the platform.',
+    audience: 'Management' as Audience,
+  },
+];
+
 const stats = [
-  { value: '2 portals', label: 'Resident + management, kept separate' },
+  { value: '3 workspaces', label: 'Resident, management + guard' },
+  { value: '3 languages', label: 'English, Bahasa Melayu + 简体中文' },
   { value: '3 gateways', label: 'Fiuu, iPay88, Stripe' },
-  { value: 'Real-time', label: 'Live notifications & audit trail' },
-  { value: 'Audited', label: 'Every money action is logged' },
+  { value: 'Real-time', label: 'Notifications, gate board + audit trail' },
 ];
 
 const moneyFeatures = [
@@ -825,9 +869,9 @@ export default function HomePage() {
               like <span className="text-coral-500">a modern product.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg sr-muted">
-              SmartResidence brings billing, payments, deposits, visitors, defects, and resident
-              communication into one transparent platform — built for residents and management
-              alike.
+              SmartResidence brings billing, payments, visitors, permits, governance, defects,
+              documents, and resident communication into one transparent platform — built for
+              residents, guards, and management alike.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/sign-up">
@@ -1015,6 +1059,45 @@ export default function HomePage() {
               <div className="mt-1 text-xs sr-muted">{s.label}</div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Latest release */}
+      <section className="container-page">
+        <div className="rounded-3xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-card))] p-6 sm:p-10">
+          <div className="mb-8 max-w-3xl">
+            <Badge tone="success" className="h-7 px-3">
+              <CheckCircle2 className="size-3.5" />
+              Available in v0.3.0
+            </Badge>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              More of the building now runs in one place
+            </h2>
+            <p className="mt-2 sr-muted">
+              The latest release expands SmartResidence beyond daily operations with digital
+              governance, verifiable permits, resident privacy controls, multilingual mobile flows,
+              and safer platform-wide rollouts.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {latestFeatures.map((feature) => (
+              <Card
+                key={feature.title}
+                className="group relative h-full overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
+              >
+                <span className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-[rgb(var(--sr-coral))] transition-transform duration-200 group-hover:scale-x-100" />
+                <div className="flex items-start justify-between gap-3">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[rgb(var(--sr-coral)/0.1)] text-[rgb(var(--sr-coral))]">
+                    <feature.icon className="size-5" />
+                  </span>
+                  <Badge tone={audienceTone[feature.audience]}>{feature.audience}</Badge>
+                </div>
+                <h3 className="mt-4 text-lg font-semibold">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed sr-muted">{feature.body}</p>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 

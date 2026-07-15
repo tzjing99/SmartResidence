@@ -5,62 +5,57 @@ title: Self-hosting
 
 # Self-hosting SmartResidence
 
-SmartResidence is designed to run anywhere you can run Postgres, Redis and a
-Node container. The reference deployment is Docker Compose for small
-communities and Kubernetes for larger Joint Management Bodies (JMBs).
+SmartResidence provides a Docker Compose stack for local evaluation and as a
+starting point for a single-server deployment. The canonical, detailed guide is
+[`docs/SELF_HOSTING.md`](https://github.com/tzjing99/SmartResidence/blob/main/docs/SELF_HOSTING.md).
 
-## Requirements
+## Local Docker trial
 
-- Postgres 15+ with the `pgcrypto` extension
-- Redis 7+
-- S3-compatible object storage (AWS S3, Cloudflare R2, MinIO, Backblaze B2…)
-- An SMTP server (Resend, SES, or your own)
-- Optional: Stripe and/or a local payment gateway (FPX/iPay88/Razer)
+Install Git and Docker Desktop (or Docker Engine with Compose v2), then run:
 
-## Docker Compose (small community)
-
-```bash
-docker compose -f infra/docker/docker-compose.yml up -d
-docker compose run --rm api pnpm prisma migrate deploy
-docker compose run --rm api pnpm prisma db seed   # optional demo data
+```shell
+git clone https://github.com/tzjing99/SmartResidence.git
+cd SmartResidence
+cp deploy/.env.example deploy/.env
+docker compose up -d --build
+docker compose run --rm seed
 ```
 
-The compose file ships sane defaults and a generated `.env` so a community
-manager can be running in 10 minutes.
+On Windows PowerShell, use
+`Copy-Item deploy/.env.example deploy/.env` instead of `cp`.
 
-## Kubernetes (larger deployment)
+Open:
 
-Reference manifests live in `infra/k8s/` (Helm chart coming in v0.2). At a
-minimum you'll want:
+- Web app: http://localhost:3000
+- API health: http://localhost:4000/health
+- Development email: http://localhost:8025
+- MinIO console: http://localhost:9001
 
-- A managed Postgres (RDS, Cloud SQL, Neon)
-- ElastiCache or self-hosted Redis with persistence
-- Object storage with private bucket policies
-- Two replicas of the API pod, one of the web pod
-- A scheduled job for `prisma migrate deploy` on releases
+The demo password is `Demo!2026`; the sign-in page shows the local demo
+account when `SHOW_DEMO_CREDENTIALS=true`.
 
-## Required environment variables
+## What runs
 
-See `apps/api/.env.example` and `apps/web/.env.example`. The most important:
+The root `compose.yaml` starts PostgreSQL 16, Redis 7, MinIO, Mailpit, the
+NestJS API, the Next.js web app, and a one-shot Prisma migration job. Demo
+seeding is explicit and can be omitted for a clean installation.
 
-```env
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
-BETTER_AUTH_SECRET=change-me
-JWT_PRIVATE_KEY=...
-JWT_PUBLIC_KEY=...
-S3_ENDPOINT=...
-S3_BUCKET=smartresidence-prod
-STRIPE_SECRET_KEY=sk_live_...
-EXPO_PUSH_ACCESS_TOKEN=...
-```
+## Production warning
 
-## Backups
+The sample environment is for localhost only. Before exposing SmartResidence
+to a network or the internet:
 
-Run `pg_dump` daily to S3 with a 30-day rotation. The full schema is in
-`apps/api/prisma/schema.prisma`; restoring is a `pg_restore` away.
+- replace every placeholder secret in `deploy/.env`;
+- set public web/API URLs and disable demo credentials;
+- add TLS and a reverse proxy;
+- configure real email/object storage and backups;
+- review firewall, monitoring, and security requirements.
 
-## Upgrading
+There is currently no maintained Kubernetes/Helm deployment in this repository.
 
-Releases follow semver. Minor versions never break the API; major versions
-include a runnable `pnpm migrate:upgrade` script.
+## More information
+
+See the canonical
+[self-hosting guide](https://github.com/tzjing99/SmartResidence/blob/main/docs/SELF_HOSTING.md)
+and
+[deployment guide](https://github.com/tzjing99/SmartResidence/blob/main/docs/DEPLOYMENT.md).

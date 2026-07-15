@@ -97,7 +97,7 @@ function patchEn(data) {
     recordOnlyHint:
       'Walk-in visit — record only. Closes automatically at end of day; no manual checkout.',
   });
-  data.mobile = readJson('scripts/i18n-phase3-mobile.json');
+  data.mobile = readJson('scripts/archive/i18n-phase3/i18n-phase3-mobile.json');
   return data;
 }
 
@@ -154,7 +154,7 @@ Object.assign(ms.visitors.guard, {
   recordOnlyHint:
     'Lawatan walk-in — rekod sahaja. Ditutup automatik pada akhir hari; tiada daftar keluar manual.',
 });
-ms.mobile = readJson('scripts/i18n-phase3-mobile-ms.json');
+ms.mobile = readJson('scripts/archive/i18n-phase3/i18n-phase3-mobile-ms.json');
 writeJson('apps/web/src/i18n/locales/ms/common.json', ms);
 
 Object.assign(zh.actions, {
@@ -198,7 +198,7 @@ Object.assign(zh.visitors.guard, {
   checkedInToast: '{name} 已登记入场',
   recordOnlyHint: 'Walk-in 访问——仅作记录。当天结束自动关闭；无需手动离场登记。',
 });
-zh.mobile = readJson('scripts/i18n-phase3-mobile-zh.json');
+zh.mobile = readJson('scripts/archive/i18n-phase3/i18n-phase3-mobile-zh.json');
 writeJson('apps/web/src/i18n/locales/zh-Hans/common.json', zh);
 
 for (const locale of ['en', 'ms', 'zh-Hans']) {

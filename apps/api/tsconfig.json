@@ -3,7 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@smartresidence/shared-types": ["../../packages/shared-types/dist/index.d.ts"],
+      "@smartresidence/shared-types/*": ["../../packages/shared-types/dist/*"]
     },
     "outDir": "dist",
     "rootDir": "."

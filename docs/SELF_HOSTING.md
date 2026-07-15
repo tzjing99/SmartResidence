@@ -10,11 +10,10 @@
 This guide gets you from a clean machine to a working SmartResidence with demo
 data. There are two flavours:
 
-1. **Developer bring-up** (hot reload, seedable demo condo) — `infra` in Docker,
-   apps via `pnpm dev`. This is the canonical, fully-supported path today.
-2. **Full-container self-host** (everything in Docker, incl. API + web) — a
-   *proposed* topology drafted under [`deploy/`](../deploy/README.md). Use it as
-   the starting point for a single-VM deployment.
+1. **Full local Docker trial** (recommended for evaluation) — API, web, and all
+   infrastructure start from the root `compose.yaml`.
+2. **Developer bring-up** (hot reload + Expo mobile) — infrastructure in Docker,
+   apps on the host via `pnpm dev`.
 
 > **Malaysia / mobile note:** per corporate policy and
 > [`.cursor/rules/mobile-dev-network-security.mdc`](../.cursor/rules/mobile-dev-network-security.mdc),
@@ -56,7 +55,43 @@ corepack pnpm -v   # 9.12.0
 
 ---
 
-## 2. Developer bring-up (recommended, fully supported today)
+## 2. Full local Docker trial (recommended)
+
+Only Git and Docker Desktop / Docker Engine with Compose v2 are required:
+
+```bash
+git clone https://github.com/tzjing99/SmartResidence.git
+cd SmartResidence
+cp deploy/.env.example deploy/.env
+docker compose up -d --build
+docker compose run --rm seed
+```
+
+On Windows PowerShell, replace `cp` with:
+
+```powershell
+Copy-Item deploy/.env.example deploy/.env
+```
+
+Open http://localhost:3000 and sign in with one of the demo accounts below.
+Migrations run automatically. The explicit `seed` command loads demo data; omit
+it and use `/admin/setup` when starting a real clean installation.
+
+Useful commands:
+
+```bash
+docker compose ps
+docker compose logs -f api web
+docker compose down       # preserve data
+docker compose down -v    # delete all local data
+```
+
+> The sample `deploy/.env` values are only suitable for localhost. Replace all
+> placeholder credentials before allowing network access.
+
+---
+
+## 3. Developer bring-up (hot reload)
 
 ```bash
 # 1. Clone
@@ -117,7 +152,7 @@ for **all** demo users is `Demo!2026`:
 
 ---
 
-## 3. Mobile on a real device (LAN only)
+## 4. Mobile on a real device (LAN only)
 
 Testing on a physical phone uses your **local Wi‑Fi**, never a tunnel.
 
@@ -135,21 +170,18 @@ Full details: [`apps/mobile/README.md`](../apps/mobile/README.md).
 
 ---
 
-## 4. Full-container self-host (proposed — `deploy/` drafts)
+## 5. Internet-facing self-hosting
 
-For a single-VM deployment where you want *everything* in Docker (including the
-API and web images), use the **draft** topology in
-[`deploy/`](../deploy/README.md).
-
-> ⚠️ These files are drafts, not wired into CI. The canonical dev infra is still
-> `infra/docker/docker-compose.yml`. Review before production use.
+The same full-container topology can be a starting point for a single-VM
+deployment, but localhost success does not make it production-ready. Before
+exposing it publicly, configure strong secrets, TLS/reverse proxy, backups,
+email delivery, public URLs, firewall rules, and monitoring. Follow
+[`DEPLOYMENT.md`](./DEPLOYMENT.md).
 
 ```bash
 cp deploy/.env.example deploy/.env
-#   Edit deploy/.env — set BETTER_AUTH_SECRET, BILLING_ENCRYPTION_KEY,
-#   POSTGRES_PASSWORD, S3 keys, and your public URLs.
-
-docker compose -f deploy/docker-compose.selfhost.yml --env-file deploy/.env up -d --build
+# Edit deploy/.env — replace every placeholder and set your public URLs.
+docker compose up -d --build
 ```
 
 What the stack does:
@@ -180,18 +212,12 @@ work. See [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) for the TLS + domain topology.
 
 ---
 
-## 5. Seeding demo data
+## 6. Seeding demo data
 
-The **developer bring-up** seeds via `corepack pnpm db:seed` — this needs the
-TypeScript workspace (it runs `apps/api/prisma/seed.ts`).
-
-The **production API image** ships only compiled `dist/` (no `seed.ts`), so the
-full-container stack has two supported paths instead:
-
-- **Path A — Explore with demo data:** run the developer bring-up once against
-  the same database to seed it, or run the seed from a checkout of the repo
-  pointed at the container's `DATABASE_URL`.
-- **Path B — Start clean (recommended for real communities):** skip seeding and
+- **Explore with demo data:** `docker compose run --rm seed` loads Acacia
+  Residence and the demo accounts. The command uses the API image and the same
+  internal PostgreSQL database as the running stack.
+- **Start clean (recommended for real communities):** skip the seed command and
   use the built-in **First-time setup wizard** at `/admin/setup`. It walks the
   first admin through condo profile, blocks/units (incl. CSV import), unit-type
   fee rates, billing basics, a payment gateway (or cash/manual), residents, and
@@ -200,7 +226,7 @@ full-container stack has two supported paths instead:
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 | Symptom | Fix |
 | ------- | --- |
@@ -215,11 +241,12 @@ full-container stack has two supported paths instead:
 
 ---
 
-## 7. What's available now vs. requires work
+## 8. What's available now vs. requires work
 
 **Available now**
 
-- Dev infra compose (Postgres, Redis, MinIO, Mailpit) + one-command-ish bring-up.
+- Root full-stack compose (Postgres, Redis, MinIO, Mailpit, API, web, migrations)
+  plus an explicit demo seed job.
 - Existing `Dockerfile.api` / `Dockerfile.web` multi-stage production images.
 - `/health` liveness/readiness endpoint (checks DB + Redis).
 - Prisma migrations + rich demo seed; first-time setup wizard for clean installs.
@@ -227,9 +254,8 @@ full-container stack has two supported paths instead:
 
 **Requires work (drafts / not yet wired)**
 
-- The full-container `deploy/` compose is a **draft** — review, add a reverse
-  proxy/TLS, and test before production (see `docs/DEPLOYMENT.md`).
-- Seeding inside the production image is not supported (use the wizard).
+- Internet-facing self-hosting still needs reverse proxy/TLS, backups,
+  monitoring, strong secrets, and a security review (see `docs/DEPLOYMENT.md`).
 - A Helm chart for Kubernetes is referenced in docs but **not present** in the
   repo yet (`infra/k8s/` is aspirational).
 - No Prometheus `/metrics` endpoint yet (only `/health`) — see `docs/DEPLOYMENT.md`.

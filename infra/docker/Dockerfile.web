@@ -8,24 +8,23 @@ WORKDIR /repo
 FROM base AS deps
 # .npmrc carries node-linker=isolated + workspace link settings used by the lockfile.
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml turbo.json .npmrc ./
-COPY apps/web/package.json apps/web/package.json
+COPY apps/web apps/web
 COPY packages packages
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm fetch
-# Select web + its workspace graph, and select shared-types itself so its
-# build toolchain (typescript / config-tsconfig) is installed — the package
-# exports compiled dist/, not raw TypeScript.
-RUN pnpm install --frozen-lockfile \
-    --filter @smartresidence/web... \
-    --filter @smartresidence/shared-types
+# Only web and shared workspace packages are present in this reduced context.
+# Installing that complete workspace ensures pnpm creates every local link
+# needed by Next.js (shared-types, api-client, and ui-web).
+RUN pnpm install --frozen-lockfile --offline
 
 FROM deps AS build
-COPY apps/web apps/web
 # shared-types package.json points at ./dist — build it before Next resolves imports.
 RUN pnpm --filter @smartresidence/shared-types build
 # NEXT_PUBLIC_* is inlined at build time; pass via compose build.args.
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000
+ARG NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=false
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=$NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @smartresidence/web build
 

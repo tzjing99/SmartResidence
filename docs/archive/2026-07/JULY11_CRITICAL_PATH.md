@@ -4,7 +4,8 @@
 >
 > **Status: OVERNIGHT FINALIZE COMPLETE** — backlog PRs #35–#46 on `main`; tag **`v0.3.0`** pushed.
 > Hosted GitHub Actions remain blocked until **2026-08-01** (minutes exhausted); Path C local verify used.
-> Canonical next-AI handoff: [`HANDOFF_JULY10.md`](./HANDOFF_JULY10.md).
+> Historical release record. Current handoff:
+> [`HANDOFF.md`](../../HANDOFF.md).
 
 ---
 
@@ -116,14 +117,14 @@ User authorized merge-all + tag via Path C (local verify, no GitHub CI). All bac
 - ~~Overnight-slot + access-code concurrency~~ ✅ #46
 - GHCR publish / hosted CI until **2026-08-01**
 - Homepage marketing copy approval (§6 of release checklist)
-- Independent security pass on payments / PDPA (see [`HANDOFF_JULY10.md`](./HANDOFF_JULY10.md))
+- Independent security pass on payments / PDPA (see [`HANDOFF.md`](../../HANDOFF.md))
 
 ### Operator next step
 
 ```powershell
 git pull origin main
 # tip should be 2d11208 or newer
-# handoff: docs/HANDOFF_JULY10.md
+# handoff: docs/HANDOFF.md
 ```
 
 ---

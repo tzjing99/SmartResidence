@@ -12,7 +12,7 @@
 > **Related docs:**
 > [`SELF_HOSTING.md`](./SELF_HOSTING.md) · [`DEPLOYMENT.md`](./DEPLOYMENT.md) ·
 > [`BUSINESS_MODEL.md`](./BUSINESS_MODEL.md) · [`LOCAL_CI.md`](./LOCAL_CI.md) ·
-> [`deploy/`](../deploy/README.md)
+> [`deploy/`](../../../deploy/README.md)
 
 ---
 

@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import { Prisma } from '@prisma/client';
+import { describe, expect, it, vi } from 'vitest';
 import {
   AccessCodeConflictError,
   isAccessCodeConflict,

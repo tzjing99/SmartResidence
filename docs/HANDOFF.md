@@ -1,7 +1,8 @@
-# SmartResidence — July 10 handoff (Cursor expiry)
+# SmartResidence — current project handoff
 
 > **Canonical handoff for the next AI / human.** Read this first, then
-> [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) and [`LOCAL_CI.md`](./LOCAL_CI.md).
+> [`ROADMAP.md`](./ROADMAP.md), [`BACKLOG.md`](./BACKLOG.md), and
+> [`LOCAL_CI.md`](./LOCAL_CI.md).
 >
 > **Written:** 2026-07-10 (overnight finalize + Copilot concurrency fixes)  
 > **Honesty style:** ✅ done · 🟡 partial / blocked · ⬜ not done
@@ -15,8 +16,8 @@
 | Local path | `C:\dev\SmartResidence` |
 | GitHub | [`tzjing99/SmartResidence`](https://github.com/tzjing99/SmartResidence) |
 | Default branch | `main` |
-| **`main` tip** | Always run `git rev-parse origin/main` (docs tip **`321ddd4`**; substantive code tip **`1782ec4`** forms integration fix) |
-| Handoff content landed | **`85fc98e`** — Merge #47 · file `docs/HANDOFF_JULY10.md` |
+| **`main` tip** | Always run `git rev-parse origin/main` (tip at cleanup start: **`214a705`**) |
+| Handoff | `docs/HANDOFF.md` (rotated from the July 10 handoff) |
 | Prior tips | **`1202dfe`** #48 tip polish · **`2d11208`** #46 concurrency · **`e6cb82b`** docs follow-up · **`4338f3c`** release/`v0.3.0` |
 | Latest tags | **`v0.3.0`** → `4338f3c` (release merge #45) · **`v0.2.0`** → `0773c7a` / annotated `ae98ba7` |
 | Package versions | `@smartresidence/*@0.3.0` (changesets via #45) |
@@ -52,7 +53,9 @@ User authorized **Path C** (local verify instead of GitHub CI). Parallel finaliz
 | **#39** | SUPER_ADMIN feature flags (F2 extras) | ✅ Merged |
 | **#45** | `chore/release-v0.3.0` changeset version bump | ✅ Merged · tag **`v0.3.0`** |
 
-Recorded in [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) (Jul 10 FINALIZE COMPLETE section). Tip after release was `4338f3c` / docs follow-up `e6cb82b`; concurrency **#46** → `2d11208`; handoff **#47** → `85fc98e`; tip-SHA polish **#48** → `1202dfe`; forms fix **`1782ec4`**; current docs tip **`321ddd4`**.
+The full merge-train record is archived in
+[`archive/2026-07/JULY11_CRITICAL_PATH.md`](./archive/2026-07/JULY11_CRITICAL_PATH.md).
+The release tag is `4338f3c`; concurrency **#46** merged at `2d11208`.
 
 ### 2.2 Copilot / review concurrency fixes (#46)
 
@@ -88,14 +91,14 @@ api typecheck → pass
 
 - ✅ Substantial product surface shipped (visitor, billing core, helpdesk, governance, mobile parity, i18n, a11y lite)
 - 🟡 **Not** “Airbnb-grade everywhere” — ROADMAP aspirational UX vs uneven polish across admin/resident/guard
-- ⬜ Homepage / marketing copy still needs human approval ([`JULY11_RELEASE_CHECKLIST.md`](./JULY11_RELEASE_CHECKLIST.md) §6) — do not treat README/marketing as production truth
+- 🟡 Homepage copy now reflects v0.3.0, but marketing claims should still be reviewed against the UX audit before production use
 - 🟡 README / product docs can **oversell** (e.g. “trained ML” is a lightweight Naive Bayes + gate, not deep learning; FPX/e-wallet paths are adapter/scaffold + Fiuu-canonical policy, not full live bank certification)
 
 ### 2.5 Worktree / `SmartResidence-pr*` cleanup
 
-- Many external worktrees remain under `C:\dev\SmartResidence-*` (see §3.5) — **not** fully cleaned overnight
-- In-repo `SmartResidence-pr*` folders (if present) were historical PR worktrees; prefer deleting only after confirming no unique uncommitted work
-- Release worktree: `C:\dev\SmartResidence-release` may still hold `main` checked out (blocks `git checkout main` in primary clone) — use `git pull` on current branch or free that worktree
+- ✅ All stale worktrees were reviewed and removed; merged PR branches and
+  superseded follow-up commits were deleted locally and from GitHub.
+- `C:\dev\SmartResidence` is the canonical clone and holds `main`.
 
 ---
 
@@ -106,13 +109,13 @@ api typecheck → pass
 | Item | Status | Notes |
 | --- | --- | --- |
 | Hosted GitHub Actions / GHCR publish | 🟡 Blocked | Minutes until ~**2026-08-01**; Path C only |
-| GitHub Release UI for **v0.3.0** | 🟡 Tag exists | `v0.2.0` has a GitHub Release page; **v0.3.0 is a git tag** — may still need `gh release create v0.3.0` |
+| GitHub Release UI for **v0.3.0** | ✅ Published | Release and tag exist at `4338f3c` |
 | Independent **security audit** (payments / PDPA / webhooks) | ⬜ | Needs dedicated pass — do **not** invent a full audit from this overnight |
 | FPX / bank rails beyond scaffold + Fiuu policy | 🟡 | Stripe + Fiuu path documented; treat live FPX certification as unfinished |
 | README / marketing oversell vs alpha reality | 🟡 | Align copy with ROADMAP honesty |
-| Homepage messaging approval | ⬜ | Checklist §6 |
+| Homepage messaging review | 🟡 | Updated for v0.3.0; retain honest alpha positioning |
 | Remaining Copilot-style concurrency elsewhere | 🟡 | Spot-check found 2 bugs; billing/facility already use Serializable in places — more audit useful |
-| `docs/selfhost-hardening` branch | 🟡 | Historically ahead/behind; content largely merged via #24 — branch may be stale |
+| Async AVIF/WebP transcode experiment | 🟡 Archived | Closed PR #3 was superseded; its unique worker prototype is preserved at tag `archive/pr3-avif-transcode` |
 | Full AGM/EGM beyond shipped e-voting slice | 🟡 | Quorum/eligibility/audit shipped; deeper governance polish may remain |
 | Platform F2 plan/usage metrics / impersonation | ⬜ | Feature flags shipped; rest future |
 
@@ -128,14 +131,11 @@ api typecheck → pass
 
 ### 3.4 External worktrees (`C:\dev\SmartResidence-*`)
 
-Examples observed (may be stale; safe to prune after `git worktree list` + confirm clean):
-
-`SmartResidence-release`, `SmartResidence-main-verify`, `SmartResidence-main-validate`, `SmartResidence-docs-selfhost`, `SmartResidence-docker-web`, `SmartResidence-visitor-rbac`, `SmartResidence-ml-c6`, `SmartResidence-agm-voting`, `SmartResidence-pdpa-delete`, `SmartResidence-permit-qr`, `SmartResidence-platform-f2`, `SmartResidence-i18n-*`, `SmartResidence-wt-*`, `SmartResidence-pr*`, etc.
+No external worktrees remain. Only the canonical
+`C:\dev\SmartResidence` checkout is registered.
 
 ```powershell
 git -C C:\dev\SmartResidence worktree list
-# Remove only when clean and unused:
-# git worktree remove <path>
 ```
 
 ---
@@ -147,9 +147,9 @@ git -C C:\dev\SmartResidence worktree list
 ```powershell
 cd C:\dev\SmartResidence
 git fetch origin --tags --prune
-git checkout main   # if blocked by release worktree, pull inside that worktree or remove it
+git checkout main
 git pull origin main
-git rev-parse HEAD  # expect 321ddd4 or newer
+git rev-parse HEAD  # compare with origin/main
 ```
 
 ### 4.2 Local verify (Path C)
@@ -198,7 +198,7 @@ Canonical: [`apps/mobile/README.md`](../apps/mobile/README.md)
 2. Security pass: payments webhooks, PDPA export/delete, visitor gate RBAC regression  
 3. Align README/marketing with alpha reality  
 4. After Aug 1: restore Actions + GHCR  
-5. Prune stale worktrees  
+5. Keep feature work on short-lived branches and remove branches after merging
 
 ---
 
@@ -215,7 +215,7 @@ Canonical: [`apps/mobile/README.md`](../apps/mobile/README.md)
 | Payments / PDPA security | High | billing + `user-account-deletion` + export | ⬜ Independent audit |
 | Facility booking races | Mitigated | `apps/api/src/facility/booking.service.ts` (already Serializable) | ✅ Pattern exists |
 | Invoice period uniqueness | Mitigated | billing P2002 handling + test isolation #33 | ✅ Improved |
-| Homepage copy | Process | `JULY11_RELEASE_CHECKLIST.md` §6 | ⬜ |
+| Homepage copy | Process | `apps/web/src/app/page.tsx` | 🟡 Updated for v0.3.0; human review remains |
 
 ---
 
@@ -244,10 +244,9 @@ Architecture underneath is already there; the gap is verification under load + m
 
 | Doc | Role |
 | --- | --- |
-| [`docs/HANDOFF_JULY10.md`](./HANDOFF_JULY10.md) | **This file** — canonical next-AI handoff |
-| [`docs/JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) | Ship plan + Path C merge log (Jul 7–10) |
-| [`docs/JULY11_RELEASE_CHECKLIST.md`](./JULY11_RELEASE_CHECKLIST.md) | Release checklist + homepage §6 |
-| [`docs/JULY11_NO_CI_PLAN.md`](./JULY11_NO_CI_PLAN.md) | Paths A/B/C when Actions dead |
+| [`docs/README.md`](./README.md) | Documentation index |
+| [`docs/HANDOFF.md`](./HANDOFF.md) | **This file** — canonical next-AI handoff |
+| [`docs/archive/2026-07/`](./archive/2026-07/) | Historical July release plans and runbooks |
 | [`docs/LOCAL_CI.md`](./LOCAL_CI.md) | Exact local commands mirroring CI |
 | [`docs/ROADMAP.md`](./ROADMAP.md) | Phased product plan (source of truth for “shipped”) |
 | [`docs/BACKLOG.md`](./BACKLOG.md) | Defects / deferred / completed ledger |
@@ -265,14 +264,14 @@ Architecture underneath is already there; the gap is verification under load + m
 | --- | --- |
 | PRs merged (finalize) | **#35–#44** + release **#45** |
 | Concurrency | ✅ **#46** → `a2f2a0a` / merge `2d11208` |
-| Handoff | ✅ **#47** `85fc98e` (+ tip polish **#48** · docs tip **`321ddd4`**) · `docs/HANDOFF_JULY10.md` |
+| Handoff | ✅ `docs/HANDOFF.md` |
 | Tag | **`v0.3.0`** on `4338f3c` |
-| Blockers | Actions minutes until Aug 1 · security audit unpaid · marketing/README honesty · stale worktrees |
-| Do next | Pull `main`, Path C verify, optional `gh release create v0.3.0`, security pass |
+| Blockers | Actions minutes until Aug 1 · payments/PDPA security audit |
+| Do next | Pull `main`, Path C verify, security pass |
 
 ```powershell
 git pull origin main
 git log -1 --oneline
 git rev-parse origin/main
-# expect 321ddd4 or newer
+# compare local HEAD with origin/main
 ```

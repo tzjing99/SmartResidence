@@ -1,17 +1,16 @@
-# `deploy/` — PROPOSED self-host / cloud artifacts (DRAFT)
+# `deploy/` — local Docker and self-host artifacts
 
-> ⚠️ **DRAFT — not wired into CI, not the canonical dev stack.**
+> The root [`compose.yaml`](../compose.yaml) includes this stack to provide the
+> simplest local browser-based trial. It builds the API and web images locally;
+> published GHCR images are not required.
 >
-> These files are a *proposal* for a full self-hosted bring-up of SmartResidence
-> (infra **plus** the API and web app images), produced as part of the
-> planning deliverable in [`docs/SELF_HOSTING.md`](../docs/SELF_HOSTING.md) and
+> For an internet-facing deployment, replace all sample secrets, add TLS and a
+> reverse proxy, configure backups, and complete the production checklist in
 > [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
 >
 > The **canonical local development** stack remains
 > [`infra/docker/docker-compose.yml`](../infra/docker/docker-compose.yml)
-> (infra only: Postgres, Redis, MinIO, Mailpit) + `pnpm dev`. Nothing here
-> changes that. Review, adjust, and promote these files deliberately before
-> using them in production.
+> (infra only) + `pnpm dev` when hot reload or Expo mobile development is needed.
 
 ## What's here
 
@@ -34,19 +33,16 @@ Dockerfiles copy `pnpm-lock.yaml`, `packages/`, and the app source from the
 monorepo root. A root `.dockerignore` keeps mobile/docs/`node_modules` out of the
 context.
 
-## Quick use (draft)
+## Quick local use
 
 ```bash
 cp deploy/.env.example deploy/.env
-# edit deploy/.env — set strong secrets
-
-docker compose -f deploy/docker-compose.selfhost.yml --env-file deploy/.env up -d --build
-# the "migrate" service applies Prisma migrations on startup (runs once, then exits)
+docker compose up -d --build
+docker compose run --rm seed
 
 # App: http://localhost:3000   API: http://localhost:4000/health   Mail UI: http://localhost:8025
 ```
 
-Seeding demo data is a **separate, deliberate step** (the production API image
-ships only compiled `dist/`, not the TypeScript seed). See
-[`docs/SELF_HOSTING.md`](../docs/SELF_HOSTING.md#seeding-demo-data) for the two
-supported paths (dev-image seed vs. first-time setup wizard).
+The `migrate` service applies Prisma migrations automatically. The explicit
+`seed` command loads the Acacia Residence demo and can be omitted for a clean
+installation; use `/admin/setup` instead.

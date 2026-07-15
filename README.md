@@ -20,9 +20,9 @@ Repository: https://github.com/tzjing99/SmartResidence
 
 ## Status
 
-Alpha. The v0.1 milestone targets the core resident + management + guard flows
-(visitor pre-registration, maintenance fee viewing/payment, defect submission,
-announcements). See [`docs`](./docs) and the project roadmap.
+**v0.3.0 alpha.** Resident, management, and guard flows are available for local
+evaluation. See the [roadmap](./docs/ROADMAP.md) and
+[current handoff](./docs/HANDOFF.md) for shipped scope and known gaps.
 
 ## Stack
 
@@ -48,38 +48,117 @@ apps/
   api/          NestJS REST + WebSocket backend
   web/          Next.js (resident portal + /admin management dashboard)
   mobile/       Expo app (resident + guard mode)
+  docs/         Published Docusaurus documentation site
 packages/
   shared-types/ Zod schemas + inferred TS types shared across apps
   api-client/   Auto-generated typed client from OpenAPI spec
   ui-web/       Web component library (shadcn/Radix + Tailwind)
   ui-mobile/    Mobile component library (NativeWind + Reanimated/Moti)
-  config-*/     Shared tsconfig/Biome
+  config-tsconfig/ Shared TypeScript configuration
+deploy/         Full local/self-host Docker topology
 infra/
-  docker/       docker-compose.yml for local dev + self-hosting
-  k8s/          Helm chart for production
-  db/           Prisma schema lives in apps/api; this folder holds backups/ops
-docs/           Docusaurus documentation site
+  docker/       Dev infrastructure + API/web Dockerfiles
+docs/           Maintainer, operator, product, and engineering guides
+scripts/        Maintenance utilities and archived one-off migrations
 ```
 
-## Quick start (development)
+## Run locally with Docker (recommended)
 
-Requirements: **Node 22+**, **pnpm 9+**, **Docker** (for Postgres / Redis /
-MinIO / Mailpit).
+You only need **Git** and **Docker Desktop** (or Docker Engine with Compose v2).
+Node.js and pnpm are not required for this Docker path.
+
+### 1. Clone and prepare the local environment
+
+```powershell
+git clone https://github.com/tzjing99/SmartResidence.git
+cd SmartResidence
+Copy-Item deploy/.env.example deploy/.env
+```
+
+macOS/Linux:
 
 ```bash
 git clone https://github.com/tzjing99/SmartResidence.git
 cd SmartResidence
-pnpm install
+cp deploy/.env.example deploy/.env
+```
+
+The supplied values are for a **localhost-only demo**. Change the secrets in
+`deploy/.env` before exposing the system to a LAN, VPS, or the internet.
+
+### 2. Start the entire browser stack
+
+```bash
+docker compose up -d --build
+docker compose run --rm seed
+```
+
+That is all. Docker builds and starts:
+
+- PostgreSQL and Redis
+- MinIO object storage
+- Mailpit development email
+- the NestJS API
+- the Next.js web app
+- a one-shot database migration job
+
+The first build can take several minutes. Check progress with:
+
+```bash
+docker compose ps
+docker compose logs -f api web
+```
+
+### 3. Open SmartResidence
+
+| Service | URL |
+| ------- | --- |
+| Web app | http://localhost:3000 |
+| API health | http://localhost:4000/health |
+| Mailpit inbox | http://localhost:8025 |
+| MinIO console | http://localhost:9001 |
+
+The demo seed creates these accounts (password: **`Demo!2026`**):
+
+| Role | Email |
+| ---- | ----- |
+| Resident | `owner@acacia.demo` |
+| Management | `admin@acacia.demo` |
+| Guard | `guard@acacia.demo` |
+
+Sign in at http://localhost:3000/sign-in. Management and guard accounts are
+routed to their own workspaces after login. The local Docker login page shows
+the resident credentials and provides a one-click fill button. Set
+`SHOW_DEMO_CREDENTIALS=false` in `deploy/.env` for a real deployment.
+
+### Stop or reset
+
+```bash
+docker compose down       # stop; keep database and uploaded files
+docker compose down -v    # stop and permanently delete local demo data
+```
+
+The same commands are available as `corepack pnpm docker:up`, `docker:seed`,
+`docker:status`, `docker:logs`, and `docker:down` for contributors using pnpm.
+
+## Development mode (hot reload)
+
+For API/web/mobile development, install **Node.js 22+**, enable Corepack, and
+run the infrastructure in Docker while the apps run on the host:
+
+```bash
+corepack enable
+corepack pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 cp apps/mobile/.env.example apps/mobile/.env
-
-pnpm infra:up        # Postgres + Redis + MinIO + Mailpit on Docker
-pnpm db:migrate      # apply Prisma migrations
-pnpm db:seed         # load a demo condo (Acacia Heights, 3 blocks, 120 units)
-
-pnpm dev             # runs api + web + mobile in parallel
+corepack pnpm infra:up
+corepack pnpm db:migrate
+corepack pnpm db:seed
+corepack pnpm dev
 ```
+
+Windows PowerShell uses `Copy-Item` instead of `cp`.
 
 ### Mobile app (LAN only)
 

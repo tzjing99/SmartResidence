@@ -11,9 +11,8 @@ const config: Config = {
   projectName: 'SmartResidence',
   trailingSlash: false,
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
   i18n: { defaultLocale: 'en', locales: ['en', 'ms', 'zh-Hans'] },
-  markdown: { mermaid: true },
+  markdown: { mermaid: true, hooks: { onBrokenMarkdownLinks: 'warn' } },
   themes: ['@docusaurus/theme-mermaid', 'docusaurus-theme-openapi-docs'],
 
   presets: [
@@ -72,7 +71,6 @@ const config: Config = {
       items: [
         { type: 'docSidebar', sidebarId: 'guides', position: 'left', label: 'Guides' },
         { to: '/docs/architecture/overview', position: 'left', label: 'Architecture' },
-        { to: '/docs/api/reference', position: 'left', label: 'API' },
         {
           href: 'https://github.com/tzjing99/SmartResidence',
           label: 'GitHub',

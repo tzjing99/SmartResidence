@@ -2,20 +2,22 @@
 
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
+import { recommendQuickPass } from '@/lib/quick-pass-recommendation';
 import { toast } from '@/lib/toast';
-import { useCreateDeliveryPass, useMyUnits } from '@smartresidence/api-client';
-import type { DeliveryPlatform, VisitorPassKind } from '@smartresidence/shared-types';
+import { useCreateDeliveryPass, useMyUnits, useUnitVisitors } from '@smartresidence/api-client';
+import type { DeliveryPlatform, Visitor, VisitorPassKind } from '@smartresidence/shared-types';
 import {
   DELIVERY_PLATFORM_OPTIONS,
   QUICK_ENTRY_PASS_KIND_OPTIONS,
   defaultExpectedArrival,
   defaultQuickEntryDurationMins,
+  deliveryPlatformLabel,
   toDatetimeLocalValue,
 } from '@smartresidence/shared-types';
 import { Button, Card, Input, Label } from '@smartresidence/ui-web';
 import { Bike, ChevronDown, ChevronUp, Package, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type QuickPassKind = Exclude<VisitorPassKind, 'STANDARD'>;
 
@@ -24,13 +26,44 @@ export function DeliveryPassQuickForm() {
   const router = useRouter();
   const units = useMyUnits(api);
   const unit = units.data?.[0] as { id: string } | undefined;
+  const unitId = unit?.id;
   const create = useCreateDeliveryPass(api);
+  const history = useUnitVisitors(api, unitId ?? null, 'history', { limit: 20 });
   const [open, setOpen] = useState(false);
   const [passKind, setPassKind] = useState<QuickPassKind>('DELIVERY');
   const [platform, setPlatform] = useState<DeliveryPlatform>('GRABFOOD');
   const [name, setName] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
   const [expectedAt, setExpectedAt] = useState<Date>(() => defaultExpectedArrival());
+  const recommendationApplied = useRef(false);
+  const userChangedDefaults = useRef(false);
+
+  const recommendation = useMemo(
+    () => recommendQuickPass((history.data?.items ?? []) as Visitor[]),
+    [history.data?.items],
+  );
+
+  useEffect(() => {
+    if (!unitId) return;
+    recommendationApplied.current = false;
+    userChangedDefaults.current = false;
+    setPassKind('DELIVERY');
+    setPlatform('GRABFOOD');
+  }, [unitId]);
+
+  useEffect(() => {
+    if (
+      history.isPlaceholderData ||
+      !recommendation.personalized ||
+      recommendationApplied.current ||
+      userChangedDefaults.current
+    ) {
+      return;
+    }
+    setPassKind(recommendation.passKind);
+    setPlatform(recommendation.platform);
+    recommendationApplied.current = true;
+  }, [history.isPlaceholderData, recommendation]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,13 +104,22 @@ export function DeliveryPassQuickForm() {
           </span>
           <div className="min-w-0">
             <p className="font-semibold flex items-center gap-2 flex-wrap">
-              Expecting food or a rider?
+              {recommendation.personalized
+                ? t('visitors.delivery.headlineSuggested', {
+                    platform: deliveryPlatformLabel(recommendation.platform),
+                  })
+                : t('visitors.delivery.headline')}
               <span className="inline-flex items-center gap-1 text-xs font-normal text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                <Sparkles className="size-3" aria-hidden />~{durationHours}h pass
+                <Sparkles className="size-3" aria-hidden />
+                {t('visitors.delivery.durationBadge', { hours: durationHours })}
               </span>
             </p>
             <p className="text-sm sr-muted mt-0.5">
-              Create a quick gate pass — no need to fill in visitor details.
+              {recommendation.personalized
+                ? t('visitors.delivery.suggestedFromHistory', {
+                    count: recommendation.sampleSize,
+                  })
+                : t('visitors.delivery.subtitle')}
             </p>
           </div>
         </div>
@@ -94,7 +136,7 @@ export function DeliveryPassQuickForm() {
           onSubmit={onSubmit}
         >
           <div className="flex flex-col gap-2">
-            <Label>What kind of visit?</Label>
+            <Label>{t('visitors.delivery.kindLabel')}</Label>
             <div className="flex flex-wrap gap-2">
               {QUICK_ENTRY_PASS_KIND_OPTIONS.map((opt) => (
                 <Button
@@ -102,26 +144,36 @@ export function DeliveryPassQuickForm() {
                   type="button"
                   size="sm"
                   variant={passKind === opt.value ? 'primary' : 'secondary'}
-                  onClick={() => setPassKind(opt.value)}
+                  onClick={() => {
+                    userChangedDefaults.current = true;
+                    setPassKind(opt.value);
+                  }}
                 >
                   {opt.value === 'E_HAILING' ? (
                     <Bike className="size-4" aria-hidden />
                   ) : (
                     <Package className="size-4" aria-hidden />
                   )}
-                  {opt.label}
+                  {t(
+                    opt.value === 'E_HAILING'
+                      ? 'visitors.delivery.kindRide'
+                      : 'visitors.delivery.kindFood',
+                  )}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-platform">App or service</Label>
+            <Label htmlFor="delivery-platform">{t('visitors.delivery.platformLabel')}</Label>
             <select
               id="delivery-platform"
               className="sr-select"
               value={platform}
-              onChange={(e) => setPlatform(e.target.value as DeliveryPlatform)}
+              onChange={(e) => {
+                userChangedDefaults.current = true;
+                setPlatform(e.target.value as DeliveryPlatform);
+              }}
             >
               {DELIVERY_PLATFORM_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -129,32 +181,32 @@ export function DeliveryPassQuickForm() {
                 </option>
               ))}
             </select>
-            <p className="text-xs sr-muted">Helps guards know what to expect at the gate.</p>
+            <p className="text-xs sr-muted">{t('visitors.delivery.platformHint')}</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="delivery-name">Rider name (optional)</Label>
+              <Label htmlFor="delivery-name">{t('visitors.delivery.nameLabel')}</Label>
               <Input
                 id="delivery-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Skip if you don't know yet"
+                placeholder={t('visitors.delivery.namePlaceholder')}
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="delivery-plate">Car plate (optional)</Label>
+              <Label htmlFor="delivery-plate">{t('visitors.delivery.plateLabel')}</Label>
               <Input
                 id="delivery-plate"
                 value={vehiclePlate}
                 onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
-                placeholder="Only if driving in"
+                placeholder={t('visitors.delivery.platePlaceholder')}
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="delivery-expected-at">When are they arriving?</Label>
+            <Label htmlFor="delivery-expected-at">{t('visitors.delivery.arrivalLabel')}</Label>
             <Input
               id="delivery-expected-at"
               type="datetime-local"
@@ -165,21 +217,20 @@ export function DeliveryPassQuickForm() {
               }}
             />
             <p className="text-xs sr-muted">
-              The pass stays valid for about {durationMins} minutes after arrival, with a little
-              buffer for delays.
+              {t('visitors.delivery.validityHint', { minutes: durationMins })}
             </p>
           </div>
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
-              Cancel
+              {t('actions.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={create.isPending || !unit?.id}
               loading={create.isPending}
             >
-              Create pass
+              {t('visitors.delivery.createPass')}
             </Button>
           </div>
         </form>

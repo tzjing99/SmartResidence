@@ -36,6 +36,9 @@ export default function SignInPage() {
   const t = useT();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const showDemoCredentials =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === 'true';
   const schema = React.useMemo(
     () =>
       z.object({
@@ -136,10 +139,24 @@ export default function SignInPage() {
             {t('auth.signUp')}
           </Link>
         </p>
-        {process.env.NODE_ENV !== 'production' ? (
-          <p className="mt-2 text-xs sr-muted">
-            {t('auth.demoHint', { email: 'owner@acacia.demo', password: 'Demo!2026' })}
-          </p>
+        {showDemoCredentials ? (
+          <div className="mt-4 rounded-xl border border-[rgb(var(--sr-border))] bg-[rgb(var(--sr-bg))]/60 p-3">
+            <p className="text-xs sr-muted">
+              {t('auth.demoHint', { email: 'owner@acacia.demo', password: 'Demo!2026' })}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => {
+                form.setValue('email', 'owner@acacia.demo', { shouldValidate: true });
+                form.setValue('password', 'Demo!2026', { shouldValidate: true });
+              }}
+            >
+              {t('auth.useDemoAccount')}
+            </Button>
+          </div>
         ) : null}
       </Card>
     </div>

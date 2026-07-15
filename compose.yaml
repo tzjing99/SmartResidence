@@ -1,0 +1,11 @@
+# Local full-stack entry point.
+#
+# Quick start:
+#   Copy-Item deploy/.env.example deploy/.env   # Windows PowerShell
+#   docker compose up -d --build
+#   docker compose run --rm seed
+#
+# The included file remains the source of truth for the service definitions.
+include:
+  - path: ./deploy/docker-compose.selfhost.yml
+    env_file: ./deploy/.env

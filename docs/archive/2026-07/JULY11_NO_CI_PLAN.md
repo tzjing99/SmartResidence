@@ -4,7 +4,7 @@
 >
 > **`main` tip (2026-07-07):** `fa082ef` — Merge PR #26 (Path C merge record). Prior Path C merges: **#12**, **#20**, **#24** landed on `92e0249`.
 >
-> **Related:** [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) · [`JULY11_RELEASE_CHECKLIST.md`](./JULY11_RELEASE_CHECKLIST.md) · [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
+> **Related:** [`JULY11_CRITICAL_PATH.md`](./JULY11_CRITICAL_PATH.md) · [`JULY11_RELEASE_CHECKLIST.md`](./JULY11_RELEASE_CHECKLIST.md) · [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml)
 
 ---
 
@@ -46,7 +46,7 @@ Register your dev PC as a repository (or org) runner. Workflows use local CPU; *
 
 ### C) Local CI + manual merge — **Path C (in use)**
 
-Run the same commands as [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) locally in a worktree; merge with `gh pr merge` after green, **without** waiting for GitHub checks.
+Run the same commands as [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) locally in a worktree; merge with `gh pr merge` after green, **without** waiting for GitHub checks.
 
 - **Pros:** $0; already used to land **#12**, **#20**, **#24** on Jul 7.
 - **Cons:** Manual; easy to skip steps; no required-check enforcement; API/regression need Docker + Postgres locally.
@@ -63,7 +63,7 @@ Run the same commands as [`.github/workflows/ci.yml`](../.github/workflows/ci.ym
 
 ## Local CI checklist (CI parity)
 
-From [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) header and jobs. Run from repo root (or PR worktree) after `git fetch origin && git rebase origin/main`.
+From [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml) header and jobs. Run from repo root (or PR worktree) after `git fetch origin && git rebase origin/main`.
 
 ### Prerequisites
 

@@ -16,6 +16,7 @@ import {
   Prisma,
   RoleId,
   TenancyStatus,
+  type Visitor,
   VisitorEntryMode,
   VisitorPassKind,
   VisitorPurpose,
@@ -553,7 +554,7 @@ export class VisitorService {
       return db.visitor.update({ where: { id: visitor.id }, data: pass });
     };
 
-    let updated;
+    let updated: Visitor;
     try {
       if (overnight) {
         // Count + insert under Serializable so concurrent holiday auto-approvals
@@ -602,7 +603,7 @@ export class VisitorService {
     return updated;
   }
 
-    /** Quick-entry pass for food delivery riders or e-hailing drivers — shorter validity, no phone required. */
+  /** Quick-entry pass for food delivery riders or e-hailing drivers — shorter validity, no phone required. */
   async createDeliveryPass(user: AuthenticatedUser, dto: CreateDeliveryPassDto) {
     const unit = await this.prisma.unit.findUnique({
       where: { id: dto.unitId },
@@ -638,7 +639,9 @@ export class VisitorService {
           entryMode,
           vehiclePlate: plate,
           purpose:
-            passKind === VisitorPassKind.DELIVERY ? VisitorPurpose.DELIVERY : VisitorPurpose.VISITOR,
+            passKind === VisitorPassKind.DELIVERY
+              ? VisitorPurpose.DELIVERY
+              : VisitorPurpose.VISITOR,
           overnight: false,
           expectedAt: dto.expectedAt,
           expectedDurationMins: duration,

@@ -13,6 +13,7 @@
 import type {
   AccessRestrictionExportPayload,
   AccessRestrictionUnitList,
+  ResidentUnitAccessStatus,
   AddFeeSchedulePresetsInput,
   Announcement,
   AnnouncementCategory,
@@ -1105,6 +1106,12 @@ export class ApiClient {
     return this.request<ArrearsAging>('GET', `/api/billing/reports/condo/${condoId}/arrears`);
   }
 
+  unitAccessRestrictionStatus(unitId: string) {
+    return this.request<ResidentUnitAccessStatus>(
+      'GET',
+      `/api/access-restriction/units/${unitId}/status`,
+    );
+  }
   accessRestrictionSettings(condoId: string) {
     return this.request<CondoAccessRestrictionSettings>(
       'GET',

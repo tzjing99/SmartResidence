@@ -31,6 +31,7 @@ import {
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
+import { ArrearsAccessBanner } from '../../src/components/arrears-access-banner';
 import {
   ResidentScreen,
   ResidentSectionHeader,
@@ -123,6 +124,7 @@ export default function FacilitiesScreen() {
         ) : undefined
       }
     >
+      <ArrearsAccessBanner />
       {selected ? (
         <BookingPanel facility={selected} />
       ) : facilitiesQuery.isLoading ? (

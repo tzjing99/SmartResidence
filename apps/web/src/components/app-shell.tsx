@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrearsAccessBanner } from '@/components/arrears-access-banner';
 import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { NotificationBell } from '@/components/notification-bell';
 import { ResidentMobileMenu } from '@/components/resident-mobile-menu';
@@ -214,6 +215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="p-4 sm:p-6 md:p-10 max-w-5xl mx-auto w-full pb-20 md:pb-10">
+          <ArrearsAccessBanner />
           <PageFade>{children}</PageFade>
         </div>
       </main>

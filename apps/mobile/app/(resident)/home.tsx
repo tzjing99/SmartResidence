@@ -36,6 +36,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrearsAccessBanner } from '../../src/components/arrears-access-banner';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { api } from '../../src/lib/api';
 import { RESIDENT_THREAD_INBOX_PARAMS, countOpenThreads } from '../../src/lib/resident-threads';
@@ -131,6 +132,8 @@ export default function HomeScreen() {
           <Ionicons name="warning-outline" size={20} color="#DC2626" />
         </Pressable>
       </View>
+
+      <ArrearsAccessBanner />
 
       <Card style={styles.heroCard}>
         <View style={styles.heroTopRow}>

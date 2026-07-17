@@ -26,6 +26,15 @@ import {
 export class AccessRestrictionController {
   constructor(private readonly access: AccessRestrictionService) {}
 
+  @Get('units/:unitId/status')
+  @ApiOperation({ summary: 'Resident status: is this unit soft-blocked for arrears?' })
+  unitStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('unitId', new ParseUUIDPipe()) unitId: string,
+  ) {
+    return this.access.getResidentUnitStatus(user, unitId);
+  }
+
   @Get('condo/:condoId/settings')
   @CheckAbility({ action: 'manage', subject: 'AccessRestriction' })
   @ApiOperation({ summary: 'Get arrears access-restriction policy' })

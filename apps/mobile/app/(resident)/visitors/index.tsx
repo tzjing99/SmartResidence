@@ -30,6 +30,7 @@ import {
 import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { ArrearsAccessBanner } from '../../../src/components/arrears-access-banner';
 import { DeliveryPassForm } from '../../../src/components/delivery-pass-form';
 import {
   ResidentScreen,
@@ -126,6 +127,7 @@ export default function VisitorsScreen() {
         </View>
       }
     >
+      <ArrearsAccessBanner />
       <Card style={[styles.card, { padding: 8 }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {tabs.map((item) => {

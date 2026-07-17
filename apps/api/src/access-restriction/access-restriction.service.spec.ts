@@ -49,6 +49,74 @@ describe('verifyAccessRestrictionSignature', () => {
   });
 });
 
+describe('AccessRestrictionService.getResidentUnitStatus', () => {
+  it('returns restricted + blocked capabilities for an owner', async () => {
+    const prisma = {
+      unit: {
+        findUnique: vi.fn(async () => ({ id: UNIT, condoId: CONDO })),
+      },
+      condo: {
+        findUnique: vi.fn(async () => ({
+          settings: {
+            accessRestriction: {
+              enabled: true,
+              softBlockFacility: true,
+              softBlockVisitors: true,
+              softBlockDeliveryPasses: false,
+              softBlockRecurringPasses: true,
+            },
+          },
+        })),
+      },
+      unitAccessRestriction: {
+        findUnique: vi.fn(async () => ({
+          active: true,
+          outstandingAmount: 450,
+          reason: 'Unpaid maintenance',
+          zones: ['CAR_PARK', 'AMENITIES'],
+        })),
+      },
+      ownership: { findFirst: vi.fn() },
+      tenancy: { findFirst: vi.fn() },
+    };
+    const svc = new AccessRestrictionService(prisma as unknown as PrismaService);
+
+    await expect(svc.getResidentUnitStatus(owner(), UNIT)).resolves.toMatchObject({
+      unitId: UNIT,
+      condoId: CONDO,
+      restricted: true,
+      outstandingAmount: 450,
+      blocked: {
+        facility: true,
+        visitors: true,
+        deliveryPasses: false,
+        recurringPasses: true,
+      },
+    });
+    expect(prisma.ownership.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('forbids unrelated users', async () => {
+    const prisma = {
+      unit: {
+        findUnique: vi.fn(async () => ({ id: UNIT, condoId: CONDO })),
+      },
+      ownership: { findFirst: vi.fn(async () => null) },
+      tenancy: { findFirst: vi.fn(async () => null) },
+      condo: { findUnique: vi.fn() },
+      unitAccessRestriction: { findUnique: vi.fn() },
+    };
+    const svc = new AccessRestrictionService(prisma as unknown as PrismaService);
+    const stranger: AuthenticatedUser = {
+      ...owner(),
+      id: 'stranger',
+      roles: [{ roleId: RoleId.UNIT_OWNER, condoId: CONDO, unitId: '33333333-3333-4333-8333-333333333333', permissions: [] }],
+    };
+
+    await expect(svc.getResidentUnitStatus(stranger, UNIT)).rejects.toThrow(/not a resident/i);
+  });
+});
+
 describe('AccessRestrictionService.assertUnitNotAccessRestricted', () => {
   let prisma: {
     unit: { findUnique: ReturnType<typeof vi.fn> };

@@ -34,6 +34,7 @@ const authKeys = [
 const accessRestrictedKeys = [
   'billing.accessRestrictedTitle',
   'billing.accessRestrictedBody',
+  'billing.accessRestrictedBannerBody',
   'billing.accessRestrictedPay',
 ] as const;
 

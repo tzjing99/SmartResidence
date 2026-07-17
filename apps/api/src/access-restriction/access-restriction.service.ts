@@ -22,6 +22,7 @@ import {
   type AccessRestrictionExportRow,
   type AccessRestrictionZone,
   type CondoAccessRestrictionSettings,
+  type ResidentUnitAccessStatus,
   type UnitAccessRestrictionView,
   type UpdateCondoAccessRestrictionSettingsInput,
 } from '@smartresidence/shared-types';
@@ -461,6 +462,45 @@ export class AccessRestrictionService {
   }
 
   /**
+   * Resident-facing status for proactive “pay to unlock” UI.
+   * Only the unit’s owner/tenant (or condo management) may read it.
+   */
+  async getResidentUnitStatus(
+    user: AuthenticatedUser,
+    unitId: string,
+  ): Promise<ResidentUnitAccessStatus> {
+    const unit = await this.prisma.unit.findUnique({
+      where: { id: unitId },
+      select: { id: true, condoId: true },
+    });
+    if (!unit) throw new NotFoundException('Unit not found');
+    await this.assertResidentOrManagement(user, unit.id, unit.condoId);
+
+    const condo = await this.prisma.condo.findUnique({
+      where: { id: unit.condoId },
+      select: { settings: true },
+    });
+    const settings = parseAccessRestrictionSettings(condo?.settings);
+    const row = await this.prisma.unitAccessRestriction.findUnique({ where: { unitId } });
+    const restricted = Boolean(settings.enabled && row?.active);
+
+    return {
+      unitId: unit.id,
+      condoId: unit.condoId,
+      restricted,
+      outstandingAmount: row ? Number(row.outstandingAmount) : 0,
+      reason: restricted ? (row?.reason ?? null) : null,
+      zones: restricted ? this.parseZones(row?.zones) : [],
+      blocked: {
+        facility: restricted && settings.softBlockFacility,
+        visitors: restricted && settings.softBlockVisitors,
+        deliveryPasses: restricted && settings.softBlockDeliveryPasses,
+        recurringPasses: restricted && settings.softBlockRecurringPasses,
+      },
+    };
+  }
+
+  /**
    * Soft-block gate for resident self-serve flows.
    * Management / guard operators bypass.
    */
@@ -662,6 +702,24 @@ export class AccessRestrictionService {
       activatedAt: row.activatedAt?.toISOString() ?? null,
       reason: row.reason,
     };
+  }
+
+  private async assertResidentOrManagement(
+    user: AuthenticatedUser,
+    unitId: string,
+    condoId: string,
+  ): Promise<void> {
+    if (this.isOpsBypass(user) && user.roles.some((r) => r.condoId === condoId || r.roleId === RoleId.SUPER_ADMIN)) {
+      return;
+    }
+    if (user.roles.some((r) => r.unitId === unitId)) return;
+    const [ownership, tenancy] = await Promise.all([
+      this.prisma.ownership.findFirst({ where: { userId: user.id, unitId, status: 'ACTIVE' } }),
+      this.prisma.tenancy.findFirst({ where: { userId: user.id, unitId, status: 'ACTIVE' } }),
+    ]);
+    if (!ownership && !tenancy) {
+      throw new ForbiddenException('You are not a resident of this unit');
+    }
   }
 
   private async requireCondo(condoId: string) {

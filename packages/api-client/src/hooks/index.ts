@@ -123,6 +123,8 @@ export const queryKeys = {
   accessRestrictionSettings: (condoId: string) =>
     ['access-restriction', 'settings', condoId] as const,
   accessRestrictionUnits: (condoId: string) => ['access-restriction', 'units', condoId] as const,
+  unitAccessRestrictionStatus: (unitId: string) =>
+    ['access-restriction', 'unit-status', unitId] as const,
   cobTemplates: (condoId: string, from?: string, to?: string) =>
     ['cob', 'templates', condoId, from ?? '', to ?? ''] as const,
   paymentIssues: (condoId: string) => ['accounting', 'payment-issues', condoId] as const,
@@ -1162,6 +1164,17 @@ export function useArrearsAging(api: ApiClient, condoId: string | null) {
     queryFn: () => (condoId ? api.arrearsAging(condoId) : Promise.resolve(null)),
     enabled: Boolean(condoId),
     staleTime: REPORT_VIEW_MS,
+  });
+}
+
+export function useUnitAccessRestrictionStatus(api: ApiClient, unitId: string | null) {
+  return useQuery({
+    queryKey: unitId
+      ? queryKeys.unitAccessRestrictionStatus(unitId)
+      : ['access-restriction', 'unit-status', null],
+    queryFn: () => (unitId ? api.unitAccessRestrictionStatus(unitId) : Promise.resolve(null)),
+    enabled: Boolean(unitId),
+    staleTime: LIST_VIEW_MS,
   });
 }
 

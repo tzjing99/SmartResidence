@@ -106,6 +106,24 @@ export const ACCESS_RESTRICTION_ZONE_LABELS: Record<AccessRestrictionZone, strin
   COMMON_FACILITIES: 'Common facilities',
 };
 
+/** Resident-safe view of whether a unit is soft-blocked for self-serve flows. */
+export const ResidentUnitAccessStatusSchema = z.object({
+  unitId: z.string().uuid(),
+  condoId: z.string().uuid(),
+  /** Policy enabled and unit has an active restriction row. */
+  restricted: z.boolean(),
+  outstandingAmount: z.number(),
+  reason: z.string().nullable(),
+  zones: z.array(AccessRestrictionZone),
+  blocked: z.object({
+    facility: z.boolean(),
+    visitors: z.boolean(),
+    deliveryPasses: z.boolean(),
+    recurringPasses: z.boolean(),
+  }),
+});
+export type ResidentUnitAccessStatus = z.infer<typeof ResidentUnitAccessStatusSchema>;
+
 /** True when an API error / message is the arrears soft-block response. */
 export function isAccessRestrictedArrearsError(error: unknown): boolean {
   if (typeof error === 'string') {

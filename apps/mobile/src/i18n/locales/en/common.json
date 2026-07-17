@@ -206,6 +206,7 @@
     "payFpx": "Pay with FPX",
     "accessRestrictedTitle": "Pay maintenance to unlock",
     "accessRestrictedBody": "Your unit has unpaid charges, so this amenity or pass is paused. Settle outstanding invoices to restore access.",
+    "accessRestrictedBannerBody": "Facilities and visitor passes for your unit are paused until outstanding charges are settled.",
     "accessRestrictedPay": "Go to billing",
     "accessRestrictedDismiss": "Not now"
   },

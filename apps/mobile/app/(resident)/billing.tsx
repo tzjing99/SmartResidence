@@ -1,10 +1,12 @@
 import {
+  invalidateUnitAccessRestrictionStatus,
   useCreateAdvancePayment,
   useMyUnits,
   usePayInvoice,
   usePayableMethods,
   usePollDuitNowAdvanceStatus,
   usePollDuitNowInvoiceStatus,
+  useUnitAccessRestrictionStatus,
   useUnitInvoices,
   useUnitReceipts,
   useUnitStatement,
@@ -29,8 +31,9 @@ import {
   spacing,
   useTheme,
 } from '@smartresidence/ui-mobile';
+import { useQueryClient } from '@tanstack/react-query';
 import * as FileSystem from 'expo-file-system/legacy';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import {
@@ -101,11 +104,14 @@ type QrSession = {
 function DuitNowQrCard({
   session,
   onClose,
+  showAccessRestored,
 }: {
   session: QrSession;
   onClose: () => void;
+  showAccessRestored?: boolean;
 }) {
   const t = useT();
+  const qc = useQueryClient();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const invoicePoll = usePollDuitNowInvoiceStatus(
@@ -119,6 +125,17 @@ function DuitNowQrCard({
     Boolean(session.advancePaymentId),
   );
   const poll = session.paymentId ? invoicePoll : advancePoll;
+  const settledNotified = useRef(false);
+
+  useEffect(() => {
+    if (!poll.data?.settled || settledNotified.current) return;
+    settledNotified.current = true;
+    invalidateUnitAccessRestrictionStatus(qc);
+    void qc.invalidateQueries({ queryKey: ['invoices'] });
+    if (showAccessRestored) {
+      Alert.alert(t('billing.accessRestoredTitle'), t('billing.accessRestoredBody'));
+    }
+  }, [poll.data?.settled, qc, showAccessRestored, t]);
 
   return (
     <Card style={[styles.card, { alignItems: 'center', gap: spacing.md }]}>
@@ -146,7 +163,14 @@ function DuitNowQrCard({
         confirmed.
       </AppText>
       {poll.data?.settled ? (
-        <AppText style={{ color: '#059669', fontWeight: '600' }}>Payment confirmed!</AppText>
+        <View style={{ alignItems: 'center', gap: 4 }}>
+          <AppText style={{ color: '#059669', fontWeight: '600' }}>Payment confirmed!</AppText>
+          {showAccessRestored ? (
+            <AppText variant="bodySm" style={{ color: '#059669', textAlign: 'center' }}>
+              {t('billing.accessRestoredBody')}
+            </AppText>
+          ) : null}
+        </View>
       ) : null}
       <Button title={t('actions.close')} variant="secondary" size="sm" onPress={onClose} />
     </Card>
@@ -155,6 +179,7 @@ function DuitNowQrCard({
 
 export default function BillingScreen() {
   const t = useT();
+  const qc = useQueryClient();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const units = useMyUnits(api);
@@ -162,7 +187,13 @@ export default function BillingScreen() {
   const invoices = useUnitInvoices(api, unit?.id ?? null);
   const receipts = useUnitReceipts(api, unit?.id ?? null);
   const statement = useUnitStatement(api, unit?.id ?? null);
+  const accessStatus = useUnitAccessRestrictionStatus(api, unit?.id ?? null);
+  const wasRestrictedRef = useRef(false);
   const pay = usePayInvoice(api);
+
+  useEffect(() => {
+    if (accessStatus.data?.restricted) wasRestrictedRef.current = true;
+  }, [accessStatus.data?.restricted]);
   const items = (invoices.data?.items as any[]) ?? [];
   const receiptItems = (receipts.data?.items ?? []) as ReceiptListItem[];
   const [downloadingStatement, setDownloadingStatement] = useState(false);
@@ -240,16 +271,28 @@ export default function BillingScreen() {
       subtitle={t('mobile.billing.subtitle')}
       scrollProps={{ refreshControl }}
     >
-      {qrSession ? <DuitNowQrCard session={qrSession} onClose={() => setQrSession(null)} /> : null}
+      {qrSession ? (
+        <DuitNowQrCard
+          session={qrSession}
+          onClose={() => setQrSession(null)}
+          showAccessRestored={wasRestrictedRef.current}
+        />
+      ) : null}
       <HostedPaymentBrowser
         session={hostedSession}
         onClose={() => setHostedSession(null)}
         onComplete={() => {
           void invoices.refetch();
-          Alert.alert(
-            t('mobile.billing.paymentSubmitted'),
-            t('mobile.billing.paymentSubmittedBody'),
-          );
+          invalidateUnitAccessRestrictionStatus(qc);
+          if (wasRestrictedRef.current) {
+            Alert.alert(t('billing.accessRestoredTitle'), t('billing.accessRestoredBody'));
+            wasRestrictedRef.current = false;
+          } else {
+            Alert.alert(
+              t('mobile.billing.paymentSubmitted'),
+              t('mobile.billing.paymentSubmittedBody'),
+            );
+          }
         }}
       />
 

@@ -208,7 +208,9 @@
     "accessRestrictedBody": "您的单位有未付费用，设施预约或访客通行证已暂停。缴清欠费后即可恢复使用。",
     "accessRestrictedBannerBody": "在缴清欠费之前，您单位的设施预约与访客通行证已暂停。",
     "accessRestrictedPay": "前往账单",
-    "accessRestrictedDismiss": "稍后再说"
+    "accessRestrictedDismiss": "稍后再说",
+    "accessRestoredTitle": "权限已恢复",
+    "accessRestoredBody": "您的设施预约与访客通行证已可再次使用。"
   },
   "visitors": {
     "title": "访客",

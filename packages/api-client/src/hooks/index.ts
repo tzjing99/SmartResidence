@@ -41,7 +41,13 @@ import type {
   UpdateUnitTypeInput,
   UpdateUnitTypeSpaceInput,
 } from '@smartresidence/shared-types';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  type QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type {
   ApiClient,
   CreateThreadBody,
@@ -543,6 +549,12 @@ export function useUnitInvoices(
   });
 }
 
+/** Drop stale arrears soft-block banners after payments settle. */
+export function invalidateUnitAccessRestrictionStatus(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: ['access-restriction', 'unit-status'] });
+  void qc.invalidateQueries({ queryKey: ['access-restriction', 'units'] });
+}
+
 export function usePayInvoice(api: ApiClient) {
   const qc = useQueryClient();
   return useMutation({
@@ -551,6 +563,7 @@ export function usePayInvoice(api: ApiClient) {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.invoice(vars.id) });
       qc.invalidateQueries({ queryKey: ['invoices'] });
+      invalidateUnitAccessRestrictionStatus(qc);
     },
   });
 }
@@ -597,6 +610,7 @@ export function useCreateAdvancePayment(api: ApiClient) {
       qc.invalidateQueries({ queryKey: queryKeys.unitStatement(vars.unitId) });
       qc.invalidateQueries({ queryKey: ['accounting', 'statement'] });
       qc.invalidateQueries({ queryKey: ['receipts'] });
+      invalidateUnitAccessRestrictionStatus(qc);
     },
   });
 }
@@ -622,6 +636,7 @@ export function useRecordManualPayment(api: ApiClient) {
     }) => api.recordManualPayment(vars.id, vars.input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['invoices'] });
+      invalidateUnitAccessRestrictionStatus(qc);
     },
   });
 }

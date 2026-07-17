@@ -293,7 +293,9 @@
     "accessRestrictedTitle": "Bayar yuran untuk buka akses",
     "accessRestrictedBody": "Unit anda mempunyai tunggakan, jadi kemudahan atau pas ini digantung sementara. Jelaskan invois tertunggak untuk pulihkan akses.",
     "accessRestrictedBannerBody": "Kemudahan dan pas pelawat untuk unit anda digantung sehingga tunggakan dijelaskan.",
-    "accessRestrictedPay": "Ke bil"
+    "accessRestrictedPay": "Ke bil",
+    "accessRestoredTitle": "Akses dipulihkan",
+    "accessRestoredBody": "Kemudahan dan pas pelawat anda tersedia semula."
   },
   "visitors": {
     "title": "Pelawat",

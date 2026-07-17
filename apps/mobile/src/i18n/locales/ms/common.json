@@ -208,7 +208,9 @@
     "accessRestrictedBody": "Unit anda mempunyai tunggakan, jadi kemudahan atau pas ini digantung sementara. Jelaskan invois tertunggak untuk pulihkan akses.",
     "accessRestrictedBannerBody": "Kemudahan dan pas pelawat untuk unit anda digantung sehingga tunggakan dijelaskan.",
     "accessRestrictedPay": "Ke bil",
-    "accessRestrictedDismiss": "Nanti"
+    "accessRestrictedDismiss": "Nanti",
+    "accessRestoredTitle": "Akses dipulihkan",
+    "accessRestoredBody": "Kemudahan dan pas pelawat anda tersedia semula."
   },
   "visitors": {
     "title": "Pelawat",

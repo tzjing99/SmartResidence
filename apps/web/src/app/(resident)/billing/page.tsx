@@ -11,6 +11,7 @@ import {
   useCreateAdvancePayment,
   useMyUnits,
   usePayableMethods,
+  useUnitAccessRestrictionStatus,
   useUnitDeposits,
   useUnitInvoices,
   useUnitReceipts,
@@ -121,10 +122,16 @@ function AdvanceMaintenancePayment({
   const t = useT();
   const methods = usePayableMethods(api, condoId);
   const createAdvance = useCreateAdvancePayment(api);
+  const accessStatus = useUnitAccessRestrictionStatus(api, unitId);
+  const wasRestrictedRef = React.useRef(false);
   const [selected, setSelected] = React.useState<number | 'OTHER'>(100);
   const [customAmount, setCustomAmount] = React.useState('');
   const [provider, setProvider] = React.useState('');
   const [qrSession, setQrSession] = React.useState<DuitNowQrSession | null>(null);
+
+  React.useEffect(() => {
+    if (accessStatus.data?.restricted) wasRestrictedRef.current = true;
+  }, [accessStatus.data?.restricted]);
 
   React.useEffect(() => {
     const first = methods.data?.[0]?.provider;
@@ -245,7 +252,11 @@ function AdvanceMaintenancePayment({
 
       {qrSession ? (
         <div className="mt-5">
-          <DuitNowQrPanel session={qrSession} onClose={() => setQrSession(null)} />
+          <DuitNowQrPanel
+            session={qrSession}
+            onClose={() => setQrSession(null)}
+            showAccessRestored={wasRestrictedRef.current}
+          />
         </div>
       ) : (
         <div className="mt-4 flex flex-col gap-4">

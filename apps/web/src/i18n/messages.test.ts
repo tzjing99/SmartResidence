@@ -36,6 +36,8 @@ const accessRestrictedKeys = [
   'billing.accessRestrictedBody',
   'billing.accessRestrictedBannerBody',
   'billing.accessRestrictedPay',
+  'billing.accessRestoredTitle',
+  'billing.accessRestoredBody',
 ] as const;
 
 const deliveryKeys = [

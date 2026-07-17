@@ -5,7 +5,13 @@ import { PaymentMethodPayButtons } from '@/components/payment-method-picker';
 import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { queryKeys, usePayInvoice, usePayableMethods } from '@smartresidence/api-client';
+import {
+  invalidateUnitAccessRestrictionStatus,
+  queryKeys,
+  usePayInvoice,
+  usePayableMethods,
+  useUnitAccessRestrictionStatus,
+} from '@smartresidence/api-client';
 import type { Invoice, InvoiceStatus } from '@smartresidence/shared-types';
 import {
   GATEWAY_PROVIDER_SHORT_LABELS,
@@ -18,10 +24,10 @@ import {
   visibleInvoicePayments,
 } from '@smartresidence/shared-types';
 import { Badge, Card, Skeleton } from '@smartresidence/ui-web';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const STATUS_TONE: Record<InvoiceStatus, 'success' | 'neutral' | 'info' | 'warning' | 'danger'> = {
   DRAFT: 'neutral',
@@ -42,6 +48,7 @@ function fmtDate(d: Date | string) {
 
 export default function InvoiceDetailPage() {
   const t = useT();
+  const qc = useQueryClient();
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const returnedFromGateway = searchParams.get('paid') === '1';
@@ -56,13 +63,41 @@ export default function InvoiceDetailPage() {
   });
   const pay = usePayInvoice(api);
   const [qrSession, setQrSession] = useState<DuitNowQrSession | null>(null);
+  const [showAccessRestored, setShowAccessRestored] = useState(false);
+  const wasRestrictedRef = useRef(false);
+  const restoredToastRef = useRef(false);
   const condoId = (invoice.data as { condoId?: string } | undefined)?.condoId ?? null;
+  const unitId = (invoice.data as { unitId?: string } | undefined)?.unitId ?? null;
+  const accessStatus = useUnitAccessRestrictionStatus(api, unitId);
   const methods = usePayableMethods(api, condoId);
+
+  useEffect(() => {
+    if (accessStatus.data?.restricted) wasRestrictedRef.current = true;
+  }, [accessStatus.data?.restricted]);
+
+  useEffect(() => {
+    const inv = invoice.data as Invoice | undefined;
+    if (!inv || inv.status !== 'PAID' || !wasRestrictedRef.current) return;
+    invalidateUnitAccessRestrictionStatus(qc);
+    if (accessStatus.data && !accessStatus.data.restricted) {
+      setShowAccessRestored(true);
+      if (!restoredToastRef.current) {
+        restoredToastRef.current = true;
+        toast.success(t('billing.accessRestoredTitle'), {
+          description: t('billing.accessRestoredBody'),
+        });
+      }
+    }
+  }, [invoice.data, accessStatus.data, qc, t]);
 
   if (invoice.isLoading) return <Skeleton className="h-64" />;
   if (!invoice.data) return <p>Invoice not found.</p>;
 
-  const inv = invoice.data as Invoice & { unit?: { identifier?: string }; condoId: string };
+  const inv = invoice.data as Invoice & {
+    unit?: { identifier?: string };
+    condoId: string;
+    unitId: string;
+  };
   const outstanding = invoiceOutstanding(inv);
   const overdue = isInvoiceOverdue(inv);
   const paymentHistory = visibleInvoicePayments(inv.payments ?? []);
@@ -138,9 +173,16 @@ export default function InvoiceDetailPage() {
       </header>
 
       {inv.status === 'PAID' ? (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300">
-          <CheckCircle2 className="size-4 shrink-0" />
-          Paid in full{inv.paidAt ? ` on ${fmtDate(inv.paidAt)}` : ''}. Thank you!
+        <div className="flex flex-col gap-1 rounded-xl border border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 shrink-0" />
+            Paid in full{inv.paidAt ? ` on ${fmtDate(inv.paidAt)}` : ''}. Thank you!
+          </div>
+          {showAccessRestored ? (
+            <p className="pl-6 text-emerald-700 dark:text-emerald-300">
+              {t('billing.accessRestoredBody')}
+            </p>
+          ) : null}
         </div>
       ) : returnedFromGateway || pendingPayment ? (
         <div className="flex items-center gap-2 rounded-xl border border-amber-200/70 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
@@ -247,6 +289,7 @@ export default function InvoiceDetailPage() {
             <DuitNowQrPanel
               session={qrSession}
               onClose={() => setQrSession(null)}
+              showAccessRestored={wasRestrictedRef.current}
               onSettled={() => {
                 void invoice.refetch();
                 setQrSession(null);

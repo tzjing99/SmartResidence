@@ -1,11 +1,14 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
 import { api } from '@/lib/api';
 import {
+  invalidateUnitAccessRestrictionStatus,
   usePollDuitNowAdvanceStatus,
   usePollDuitNowInvoiceStatus,
 } from '@smartresidence/api-client';
 import { Button, Card } from '@smartresidence/ui-web';
+import { useQueryClient } from '@tanstack/react-query';
 import { Smartphone } from 'lucide-react';
 import * as React from 'react';
 
@@ -21,11 +24,16 @@ export function DuitNowQrPanel({
   session,
   onClose,
   onSettled,
+  showAccessRestored = false,
 }: {
   session: DuitNowQrSession;
   onClose: () => void;
   onSettled?: () => void;
+  /** When true, append access-restored copy after settle (caller tracked prior restriction). */
+  showAccessRestored?: boolean;
 }) {
+  const t = useT();
+  const qc = useQueryClient();
   const invoicePoll = usePollDuitNowInvoiceStatus(
     api,
     session.paymentId ?? null,
@@ -37,10 +45,15 @@ export function DuitNowQrPanel({
     Boolean(session.advancePaymentId),
   );
   const poll = session.paymentId ? invoicePoll : advancePoll;
+  const settledNotified = React.useRef(false);
 
   React.useEffect(() => {
-    if (poll.data?.settled) onSettled?.();
-  }, [poll.data?.settled, onSettled]);
+    if (!poll.data?.settled || settledNotified.current) return;
+    settledNotified.current = true;
+    invalidateUnitAccessRestrictionStatus(qc);
+    void qc.invalidateQueries({ queryKey: ['invoices'] });
+    onSettled?.();
+  }, [poll.data?.settled, onSettled, qc]);
 
   return (
     <Card className="border-[rgb(var(--sr-coral))]/30 bg-[rgb(var(--sr-bg))]">
@@ -67,9 +80,16 @@ export function DuitNowQrPanel({
           confirmation may take a minute — keep this page open.
         </p>
         {poll.data?.settled ? (
-          <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-            Payment confirmed. Thank you!
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+              Payment confirmed. Thank you!
+            </p>
+            {showAccessRestored ? (
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                {t('billing.accessRestoredBody')}
+              </p>
+            ) : null}
+          </div>
         ) : poll.isFetching ? (
           <p className="text-xs sr-muted">Checking payment status…</p>
         ) : null}

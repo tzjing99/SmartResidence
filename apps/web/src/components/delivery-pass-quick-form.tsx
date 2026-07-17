@@ -1,6 +1,7 @@
 'use client';
 
 import { useT } from '@/i18n/locale-provider';
+import { toastResidentMutationError } from '@/lib/access-restriction-error';
 import { api } from '@/lib/api';
 import { recommendQuickPass } from '@/lib/quick-pass-recommendation';
 import { toast } from '@/lib/toast';
@@ -83,7 +84,12 @@ export function DeliveryPassQuickForm() {
       toast.success(t('visitors.delivery.readyToast'));
       router.push(`/visitors/${created.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toastResidentMutationError(err, {
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        onPay: () => router.push('/billing'),
+      });
     }
   }
 

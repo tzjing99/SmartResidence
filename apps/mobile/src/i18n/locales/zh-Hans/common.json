@@ -203,7 +203,11 @@
     "formula": "计算公式",
     "amount": "金额",
     "payCard": "用银行卡支付",
-    "payFpx": "用 FPX 支付"
+    "payFpx": "用 FPX 支付",
+    "accessRestrictedTitle": "缴清管理费以恢复权限",
+    "accessRestrictedBody": "您的单位有未付费用，设施预约或访客通行证已暂停。缴清欠费后即可恢复使用。",
+    "accessRestrictedPay": "前往账单",
+    "accessRestrictedDismiss": "稍后再说"
   },
   "visitors": {
     "title": "访客",

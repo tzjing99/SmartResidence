@@ -11,6 +11,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { useT } from '../i18n/locale-provider';
+import { alertResidentMutationError } from '../lib/access-restriction-error';
 import { api } from '../lib/api';
 import { useResidentStyles } from './resident-screen';
 
@@ -61,7 +62,14 @@ export function DeliveryPassForm({ unitId }: { unitId?: string }) {
       setVehiclePlate('');
       router.push(`/(resident)/visitors/${created.id}` as Href);
     } catch (err) {
-      Alert.alert(t('visitors.delivery.createFailedTitle'), (err as Error).message);
+      alertResidentMutationError(err, {
+        title: t('visitors.delivery.createFailedTitle'),
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        dismissLabel: t('billing.accessRestrictedDismiss'),
+        onPay: () => router.push('/(resident)/billing' as Href),
+      });
     }
   }
 

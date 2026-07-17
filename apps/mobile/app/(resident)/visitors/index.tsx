@@ -40,6 +40,7 @@ import {
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { VisitorPassCard } from '../../../src/components/visitor-pass-card';
 import { useT } from '../../../src/i18n/locale-provider';
+import { alertResidentMutationError, isArrearsAccessError } from '../../../src/lib/access-restriction-error';
 import { api } from '../../../src/lib/api';
 import { hapticError, hapticSuccess } from '../../../src/lib/haptics';
 import { useTabletLayout } from '../../../src/lib/use-tablet-layout';
@@ -234,10 +235,19 @@ function VisitorsTab({
       setInviteAgainVisitor(null);
       router.push(`/(resident)/visitors/${created.id}` as Href);
     } catch (err) {
-      Alert.alert(t('mobile.visitors.couldNotInvite'), (err as Error).message);
+      alertResidentMutationError(err, {
+        title: t('mobile.visitors.couldNotInvite'),
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        dismissLabel: t('billing.accessRestrictedDismiss'),
+        onPay: () => router.push('/(resident)/billing' as Href),
+      });
       const qs = new URLSearchParams(visitorToPreRegParams(inviteAgainVisitor)).toString();
       setInviteAgainVisitor(null);
-      router.push(`/(resident)/visitors/new?${qs}` as Href);
+      if (!isArrearsAccessError(err)) {
+        router.push(`/(resident)/visitors/new?${qs}` as Href);
+      }
     }
   }
 

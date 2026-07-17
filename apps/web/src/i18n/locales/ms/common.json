@@ -289,7 +289,10 @@
     "advanceSubmittedBody": "Kami sedang mengesahkan bayaran pendahuluan anda dengan bank.",
     "downloadReadyTitle": "Muat turun sedia",
     "downloadReadyBody": "{filename} disimpan ke cache peranti anda.",
-    "paymentStartedToast": "Pembayaran dimulakan. Ikuti arahan gateway untuk menyelesaikannya."
+    "paymentStartedToast": "Pembayaran dimulakan. Ikuti arahan gateway untuk menyelesaikannya.",
+    "accessRestrictedTitle": "Bayar yuran untuk buka akses",
+    "accessRestrictedBody": "Unit anda mempunyai tunggakan, jadi kemudahan atau pas ini digantung sementara. Jelaskan invois tertunggak untuk pulihkan akses.",
+    "accessRestrictedPay": "Ke bil"
   },
   "visitors": {
     "title": "Pelawat",

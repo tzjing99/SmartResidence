@@ -16,6 +16,7 @@ import {
 } from '@smartresidence/shared-types';
 import { Button, Card, palette, radius } from '@smartresidence/ui-mobile';
 import * as ImagePicker from 'expo-image-picker';
+import { type Href, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
@@ -30,6 +31,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useT } from '../i18n/locale-provider';
+import { alertResidentMutationError } from '../lib/access-restriction-error';
 import { api } from '../lib/api';
 import { useTabletLayout } from '../lib/use-tablet-layout';
 
@@ -76,6 +78,7 @@ function SectionTitle({ title, description }: { title: string; description?: str
 
 export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
   const t = useT();
+  const router = useRouter();
   const { contentMaxWidth, horizontalPadding, twoColumn } = useTabletLayout();
   const units = useMyUnits(api);
   const condos = useMyCondos(api);
@@ -207,7 +210,14 @@ export function PreRegForm({ prefill, onSuccess }: PreRegFormProps) {
       }
       onSuccess?.(created.id);
     } catch (err) {
-      Alert.alert(t('visitors.new.createFailedTitle'), (err as Error).message);
+      alertResidentMutationError(err, {
+        title: t('visitors.new.createFailedTitle'),
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        dismissLabel: t('billing.accessRestrictedDismiss'),
+        onPay: () => router.push('/(resident)/billing' as Href),
+      });
     }
   }
 

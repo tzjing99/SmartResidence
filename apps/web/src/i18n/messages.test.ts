@@ -31,6 +31,12 @@ const authKeys = [
   'auth.alreadyHaveAccount',
 ] as const;
 
+const accessRestrictedKeys = [
+  'billing.accessRestrictedTitle',
+  'billing.accessRestrictedBody',
+  'billing.accessRestrictedPay',
+] as const;
+
 const deliveryKeys = [
   'visitors.delivery.headline',
   'visitors.delivery.headlineSuggested',
@@ -71,6 +77,14 @@ describe('authentication translations', () => {
 describe('delivery quick-pass translations', () => {
   it.each(locales)('defines every quick-pass key for %s', (locale) => {
     for (const key of deliveryKeys) {
+      expect(translate(locale, key), `${locale} is missing ${key}`).not.toBe(key);
+    }
+  });
+});
+
+describe('arrears access-restricted translations', () => {
+  it.each(locales)('defines pay-to-unlock keys for %s', (locale) => {
+    for (const key of accessRestrictedKeys) {
       expect(translate(locale, key), `${locale} is missing ${key}`).not.toBe(key);
     }
   });

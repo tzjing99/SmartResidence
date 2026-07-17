@@ -16,6 +16,7 @@ import {
   radius,
   useTheme,
 } from '@smartresidence/ui-mobile';
+import { type Href, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import {
@@ -25,6 +26,7 @@ import {
 } from '../../../src/components/resident-screen';
 import { usePullToRefresh } from '../../../src/components/smart-refresh-control';
 import { useT } from '../../../src/i18n/locale-provider';
+import { alertResidentMutationError } from '../../../src/lib/access-restriction-error';
 import { api } from '../../../src/lib/api';
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
@@ -37,6 +39,7 @@ function isoDate(offsetDays = 0): string {
 
 export default function RecurringPassesScreen() {
   const t = useT();
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = useResidentStyles();
   const units = useMyUnits(api);
@@ -106,7 +109,14 @@ export default function RecurringPassesScreen() {
       setShowForm(false);
       Alert.alert(t('mobile.visitors.passCreated'), t('mobile.visitors.passCreatedBody'));
     } catch (err) {
-      Alert.alert(t('mobile.visitors.couldNotCreatePass'), (err as Error).message);
+      alertResidentMutationError(err, {
+        title: t('mobile.visitors.couldNotCreatePass'),
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        dismissLabel: t('billing.accessRestrictedDismiss'),
+        onPay: () => router.push('/(resident)/billing' as Href),
+      });
     }
   }
 

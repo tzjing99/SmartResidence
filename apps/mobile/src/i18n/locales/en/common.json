@@ -203,7 +203,11 @@
     "formula": "Formula",
     "amount": "Amount",
     "payCard": "Pay with card",
-    "payFpx": "Pay with FPX"
+    "payFpx": "Pay with FPX",
+    "accessRestrictedTitle": "Pay maintenance to unlock",
+    "accessRestrictedBody": "Your unit has unpaid charges, so this amenity or pass is paused. Settle outstanding invoices to restore access.",
+    "accessRestrictedPay": "Go to billing",
+    "accessRestrictedDismiss": "Not now"
   },
   "visitors": {
     "title": "Visitors",

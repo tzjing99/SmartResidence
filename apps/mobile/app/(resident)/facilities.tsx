@@ -28,6 +28,7 @@ import {
   radius,
   useTheme,
 } from '@smartresidence/ui-mobile';
+import { type Href, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import {
@@ -37,6 +38,7 @@ import {
 } from '../../src/components/resident-screen';
 import { usePullToRefresh } from '../../src/components/smart-refresh-control';
 import { useT } from '../../src/i18n/locale-provider';
+import { alertResidentMutationError } from '../../src/lib/access-restriction-error';
 import { api } from '../../src/lib/api';
 import { hapticError, hapticSelection, hapticSuccess } from '../../src/lib/haptics';
 
@@ -183,6 +185,8 @@ function FacilityListItem({ facility, onSelect }: { facility: Facility; onSelect
 }
 
 function BookingPanel({ facility }: { facility: Facility }) {
+  const t = useT();
+  const router = useRouter();
   const { colors } = useTheme();
   const days = useMemo(next7Days, []);
   const [date, setDate] = useState(days[0]?.iso ?? isoDate(new Date()));
@@ -228,7 +232,14 @@ function BookingPanel({ facility }: { facility: Facility }) {
             availability.refetch();
           } catch (err) {
             hapticError();
-            Alert.alert('Could not book', (err as Error).message);
+            alertResidentMutationError(err, {
+              title: 'Could not book',
+              arrearsTitle: t('billing.accessRestrictedTitle'),
+              arrearsBody: t('billing.accessRestrictedBody'),
+              payLabel: t('billing.accessRestrictedPay'),
+              dismissLabel: t('billing.accessRestrictedDismiss'),
+              onPay: () => router.push('/(resident)/billing' as Href),
+            });
           }
         },
       },

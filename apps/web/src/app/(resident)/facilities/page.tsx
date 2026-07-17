@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from '@/i18n/locale-provider';
+import { toastResidentMutationError } from '@/lib/access-restriction-error';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useRoleGuard } from '@/lib/use-role-guard';
@@ -21,6 +23,7 @@ import type {
 import { BOOKING_STATUS_LABELS } from '@smartresidence/shared-types';
 import { Badge, Button, Card, EmptyState, Label, Skeleton } from '@smartresidence/ui-web';
 import { CalendarDays, ChevronRight, Clock, Users, Wallet } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 const STATUS_TONE: Record<BookingStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
@@ -70,6 +73,8 @@ function useOwnedUnits(): OwnedUnit[] {
 }
 
 function BookingPanel({ facility, units }: { facility: Facility; units: OwnedUnit[] }) {
+  const t = useT();
+  const router = useRouter();
   const [date, setDate] = React.useState(todayIso());
   const [unitId, setUnitId] = React.useState('');
   const availability = useFacilityAvailability(api, facility.id, date);
@@ -101,7 +106,12 @@ function BookingPanel({ facility, units }: { facility: Facility; units: OwnedUni
       );
       availability.refetch();
     } catch (err) {
-      toast.error((err as Error).message);
+      toastResidentMutationError(err, {
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        onPay: () => router.push('/billing'),
+      });
     }
   };
 

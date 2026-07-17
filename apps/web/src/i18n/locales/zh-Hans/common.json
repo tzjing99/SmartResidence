@@ -289,7 +289,10 @@
     "advanceSubmittedBody": "我们正在与银行确认您的预付款。",
     "downloadReadyTitle": "下载完成",
     "downloadReadyBody": "{filename} 已保存到设备缓存。",
-    "paymentStartedToast": "付款已发起。请按支付网关提示完成付款。"
+    "paymentStartedToast": "付款已发起。请按支付网关提示完成付款。",
+    "accessRestrictedTitle": "缴清管理费以恢复权限",
+    "accessRestrictedBody": "您的单位有未付费用，设施预约或访客通行证已暂停。缴清欠费后即可恢复使用。",
+    "accessRestrictedPay": "前往账单"
   },
   "visitors": {
     "title": "访客",

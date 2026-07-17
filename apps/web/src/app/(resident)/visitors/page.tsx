@@ -5,6 +5,10 @@ import { PillTabs } from '@/components/pill-tabs';
 import { RecurringPassesPanel } from '@/components/recurring-passes-panel';
 import { ResidentConfirmDialog } from '@/components/resident-confirm-dialog';
 import { useT } from '@/i18n/locale-provider';
+import {
+  isArrearsAccessError,
+  toastResidentMutationError,
+} from '@/lib/access-restriction-error';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { visitorStatusLabelKey, visitorStatusTone } from '@/lib/visitor-status';
@@ -172,10 +176,18 @@ function VisitorListPanel({
       toast.success(t('visitors.inviteAgainSuccess'));
       router.push(`/visitors/${created.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toastResidentMutationError(err, {
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        onPay: () => router.push('/billing'),
+      });
       const params = new URLSearchParams(visitorToPreRegParams(inviteAgainVisitor));
       setInviteAgainVisitor(null);
-      router.push(`/visitors/new?${params.toString()}`);
+      // Don't bounce to the form when the unit is arrears-blocked — billing is the fix.
+      if (!isArrearsAccessError(err)) {
+        router.push(`/visitors/new?${params.toString()}`);
+      }
     }
   }
 

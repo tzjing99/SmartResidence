@@ -1,6 +1,7 @@
 'use client';
 
 import { useT } from '@/i18n/locale-provider';
+import { toastResidentMutationError } from '@/lib/access-restriction-error';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -186,7 +187,12 @@ export default function NewVisitorPage() {
       }
       router.push(`/visitors/${created.id}`);
     } catch (err) {
-      toast.error((err as Error).message);
+      toastResidentMutationError(err, {
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        onPay: () => router.push('/billing'),
+      });
     }
   }
 

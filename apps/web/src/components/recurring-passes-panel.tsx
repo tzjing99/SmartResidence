@@ -1,6 +1,7 @@
 'use client';
 
 import { useT } from '@/i18n/locale-provider';
+import { toastResidentMutationError } from '@/lib/access-restriction-error';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -13,6 +14,7 @@ import type { RecurringPass } from '@smartresidence/shared-types';
 import { formatRecurringScheduleSummary } from '@smartresidence/shared-types';
 import { Badge, Button, Card, Input, Label } from '@smartresidence/ui-web';
 import { CalendarDays, Plus, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 const WEEKDAY_OPTIONS = [
@@ -31,6 +33,7 @@ function toDateInput(d: Date): string {
 
 export function RecurringPassesPanel({ unitId }: { unitId?: string }) {
   const t = useT();
+  const router = useRouter();
   const list = useUnitRecurringPasses(api, unitId ?? null);
   const create = useCreateRecurringPass(api);
   const update = useUpdateRecurringPass(api);
@@ -79,7 +82,12 @@ export function RecurringPassesPanel({ unitId }: { unitId?: string }) {
       setVehiclePlate('');
       toast.success(t('visitors.recurring.createdToast'));
     } catch (err) {
-      toast.error((err as Error).message);
+      toastResidentMutationError(err, {
+        arrearsTitle: t('billing.accessRestrictedTitle'),
+        arrearsBody: t('billing.accessRestrictedBody'),
+        payLabel: t('billing.accessRestrictedPay'),
+        onPay: () => router.push('/billing'),
+      });
     } finally {
       setBusy(false);
     }

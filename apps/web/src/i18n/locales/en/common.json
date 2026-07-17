@@ -289,7 +289,10 @@
     "advanceSubmittedBody": "We are confirming your advance payment with the bank.",
     "downloadReadyTitle": "Download ready",
     "downloadReadyBody": "{filename} saved to your device cache.",
-    "paymentStartedToast": "Payment started. Follow the gateway prompts to complete it."
+    "paymentStartedToast": "Payment started. Follow the gateway prompts to complete it.",
+    "accessRestrictedTitle": "Pay maintenance to unlock",
+    "accessRestrictedBody": "Your unit has unpaid charges, so this amenity or pass is paused. Settle outstanding invoices to restore access.",
+    "accessRestrictedPay": "Go to billing"
   },
   "visitors": {
     "title": "Visitors",

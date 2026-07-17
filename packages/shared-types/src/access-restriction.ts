@@ -106,6 +106,19 @@ export const ACCESS_RESTRICTION_ZONE_LABELS: Record<AccessRestrictionZone, strin
   COMMON_FACILITIES: 'Common facilities',
 };
 
-export function isAccessRestrictedArrearsError(message: string): boolean {
-  return message.includes(ACCESS_RESTRICTION_ERROR_CODE) || /access restricted/i.test(message);
+/** True when an API error / message is the arrears soft-block response. */
+export function isAccessRestrictedArrearsError(error: unknown): boolean {
+  if (typeof error === 'string') {
+    return (
+      error.includes(ACCESS_RESTRICTION_ERROR_CODE) || /access restricted/i.test(error)
+    );
+  }
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: unknown; message?: unknown; body?: unknown };
+  if (e.code === ACCESS_RESTRICTION_ERROR_CODE) return true;
+  if (typeof e.message === 'string' && isAccessRestrictedArrearsError(e.message)) return true;
+  if (e.body && typeof e.body === 'object') {
+    return isAccessRestrictedArrearsError(e.body);
+  }
+  return false;
 }

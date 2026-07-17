@@ -203,7 +203,11 @@
     "formula": "Formula",
     "amount": "Jumlah",
     "payCard": "Bayar dengan kad",
-    "payFpx": "Bayar dengan FPX"
+    "payFpx": "Bayar dengan FPX",
+    "accessRestrictedTitle": "Bayar yuran untuk buka akses",
+    "accessRestrictedBody": "Unit anda mempunyai tunggakan, jadi kemudahan atau pas ini digantung sementara. Jelaskan invois tertunggak untuk pulihkan akses.",
+    "accessRestrictedPay": "Ke bil",
+    "accessRestrictedDismiss": "Nanti"
   },
   "visitors": {
     "title": "Pelawat",

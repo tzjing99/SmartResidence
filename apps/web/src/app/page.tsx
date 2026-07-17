@@ -63,8 +63,8 @@ const proFeatures: Array<{
   },
   {
     icon: BrainCircuit,
-    title: 'Smart request prioritization',
-    body: 'The system learns from requests your team has already resolved, so new complaints are ranked by urgency and sent to the right people automatically.',
+    title: 'Helpdesk assignment assist',
+    body: 'Opt-in Naive Bayes suggestions (with a closed-thread volume gate) help route tickets to the right people. Deterministic rules remain the fallback — not deep learning.',
     audience: 'Management',
   },
   {
@@ -103,7 +103,7 @@ const residentFeatures = [
   {
     icon: CreditCard,
     title: 'Pay in a few taps',
-    body: 'See exactly what is owed with a clear breakdown, then pay online — FPX, e-wallet, or card — and get an official receipt instantly.',
+    body: 'See exactly what is owed with a clear breakdown, then pay online via configured gateways. Fiuu is the canonical Malaysian e-wallet / FPX / card path (hosted checkout); live bank certification is operator-side, not bundled.',
   },
   {
     icon: Wallet,
@@ -174,7 +174,7 @@ const latestFeatures = [
 const stats = [
   { value: '3 workspaces', label: 'Resident, management + guard' },
   { value: '3 languages', label: 'English, Bahasa Melayu + 简体中文' },
-  { value: '3 gateways', label: 'Fiuu, iPay88, Stripe' },
+  { value: 'Fiuu + Stripe', label: 'Canonical MY path · iPay88 scaffold' },
   { value: 'Real-time', label: 'Notifications, gate board + audit trail' },
 ];
 
@@ -202,7 +202,7 @@ const moneyFeatures = [
   {
     icon: CreditCard,
     title: 'Secure gateway payments',
-    body: 'Signed callbacks, amount-mismatch review, and encrypted per-condo credentials. Credit is only granted after the gateway confirms.',
+    body: 'Signed callbacks, amount-mismatch review, and encrypted per-condo credentials. Fiuu is the canonical MY path; adapters are sandbox-ready — credit only after the gateway confirms.',
   },
   {
     icon: FileText,
@@ -636,7 +636,7 @@ function GateMockup() {
         <div className="mt-2 text-sm font-medium">Water leak — lobby ceiling, Block A</div>
         <div className="mt-1 flex items-center gap-1.5 text-xs sr-muted">
           <BrainCircuit className="size-3.5 text-[rgb(var(--sr-coral))]" />
-          Auto-routed → Plumbing team · ranked from past requests
+          Suggested → Plumbing · Naive Bayes + rules fallback
         </div>
         <div className="mt-3 flex items-center gap-1.5">
           <Badge tone="success">
@@ -861,7 +861,7 @@ export default function HomePage() {
           <div>
             <Badge tone="primary" className="h-7 px-3">
               <Sparkles className="size-3.5" />
-              Condo management, finally on your side
+              v0.3.0 alpha · self-host first
             </Badge>
             <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">
               Run your building
@@ -869,9 +869,10 @@ export default function HomePage() {
               like <span className="text-coral-500">a modern product.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg sr-muted">
-              SmartResidence brings billing, payments, visitors, permits, governance, defects,
-              documents, and resident communication into one transparent platform — built for
-              residents, guards, and management alike.
+              Open-source condo software for billing, visitors, permits, governance, defects, and
+              resident communication — one stack for residents, guards, and management. Ship it on
+              Docker for local demo or a small VPS; evaluate against your JMB before production money
+              rails.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/sign-up">
@@ -1014,13 +1015,13 @@ export default function HomePage() {
               </div>
             </Card>
 
-            {/* Floating: smart triage */}
+            {/* Floating: helpdesk assignment assist */}
             <Card className="absolute -top-6 -right-4 z-20 hidden w-60 -rotate-2 shadow-xl sm:block">
               <div className="flex items-center gap-2">
                 <span className="grid size-8 place-items-center rounded-xl bg-[rgb(var(--sr-coral)/0.1)] text-[rgb(var(--sr-coral))]">
                   <BrainCircuit className="size-4" />
                 </span>
-                <span className="text-sm font-semibold">Smart triage</span>
+                <span className="text-sm font-semibold">Assignment assist</span>
               </div>
               <div className="mt-2 text-sm font-medium">Water leak — lobby</div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -1028,7 +1029,7 @@ export default function HomePage() {
                   <AlertTriangle className="size-3" />
                   High priority
                 </Badge>
-                <Badge tone="neutral">Auto-routed → Plumbing</Badge>
+                <Badge tone="neutral">Suggested → Plumbing</Badge>
               </div>
             </Card>
 
@@ -1204,11 +1205,11 @@ export default function HomePage() {
               Made for residents
             </Badge>
             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-              An app residents actually enjoy using
+              A resident app built for daily use
             </h2>
             <p className="mt-2 sr-muted">
-              The people who live in your building get a fast, friendly experience — pay, prepay,
-              invite guests, report issues, and stay informed, all from their phone.
+              Pay, prepay, invite guests, report issues, and stay informed from phone or web —
+              with clear flows and real-time alerts where they matter most.
             </p>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {residentFeatures.map((f) => (
@@ -1315,9 +1316,10 @@ export default function HomePage() {
               A finance stack built for JMB / MC realities
             </h2>
             <p className="mt-2 sr-muted">
-              From monthly maintenance fees to sinking-fund accounting, everything is auditable,
-              duplicate-safe, and easy for a non-accountant to run. Residents pay online or prepay
-              in advance, and the credit offsets their next invoice automatically.
+              From monthly maintenance fees to sinking-fund accounting, core billing is auditable
+              and duplicate-safe. Residents pay online or prepay when a gateway is configured —
+              Fiuu for the Malaysian e-wallet / FPX path — and confirmed credit offsets the next
+              invoice.
             </p>
           </div>
           <div className="lg:order-1">
@@ -1369,9 +1371,9 @@ export default function HomePage() {
               Everyday building life, sorted
             </h2>
             <p className="mt-2 sr-muted">
-              The daily interactions between residents, guards, and management — fast, tracked, and
-              friendly. Guests scan in at the gate, defects are ranked by urgency and routed to the
-              right team, and owners always know who arrived and when.
+              The daily interactions between residents, guards, and management — tracked and
+              auditable. Guests scan in at the gate, helpdesk can suggest assignees from past
+              tickets, and owners always know who arrived and when.
             </p>
           </div>
         </div>

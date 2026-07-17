@@ -11,18 +11,25 @@ eCommunity. It is designed around three principles:
 1. **Owner empowerment & radical transparency.** If something happens on your
    unit — a fee adjustment, a visitor approval, an admin opening your record —
    you see it. No hidden charges. No silent admin actions.
-2. **AirBnB-grade UX.** Fluid animations, generous whitespace, friendly
-   empty-states, dark mode, real haptics on mobile.
-3. **Self-hostable from day one.** `make dev` boots the whole stack against
-   Docker. A condo's JMB can run it on a $5 VPS.
+2. **Clear, modern UX.** Fluid motion where it helps, generous whitespace,
+   friendly empty-states, dark mode, and real haptics on mobile — polish is
+   uneven across admin/resident/guard surfaces in alpha.
+3. **Self-hostable from day one.** Docker Compose boots the whole stack for
+   local demo or a small VPS. Aimed at JMBs/MCs that want to run their own
+   instance.
 
 Repository: https://github.com/tzjing99/SmartResidence
 
 ## Status
 
-**v0.3.0 alpha.** Resident, management, and guard flows are available for local
-evaluation. See the [roadmap](./docs/ROADMAP.md) and
+**v0.3.0 alpha** — self-host / local evaluation first. Resident, management, and
+guard flows are usable for demos; treat production money rails and hosted CI as
+incomplete. See the [roadmap](./docs/ROADMAP.md) and
 [current handoff](./docs/HANDOFF.md) for shipped scope and known gaps.
+
+Hosted **GitHub Actions minutes are exhausted until ~2026-08-01**. Merges use
+**Path C** (local verify) — see [`docs/LOCAL_CI.md`](./docs/LOCAL_CI.md). Do not
+assume live Actions / GHCR publish is green.
 
 ## Stack
 
@@ -34,7 +41,7 @@ evaluation. See the [roadmap](./docs/ROADMAP.md) and
 | Database     | PostgreSQL 16 with Row-Level Security, Prisma 5               |
 | Cache/queue  | Redis + BullMQ                                                |
 | Auth         | Better Auth (email/OTP, passkeys, 2FA)                        |
-| Payments     | Stripe + pluggable adapters (iPay88, Razer, FPX)              |
+| Payments     | Stripe + Fiuu (canonical MY e-wallet/FPX path); iPay88 scaffold |
 | Storage      | S3-compatible (MinIO in dev, AWS S3 in prod)                  |
 | Notifications| Expo Push, Web Push, Resend (email), Twilio (SMS/WhatsApp)    |
 | Realtime     | Socket.IO                                                     |

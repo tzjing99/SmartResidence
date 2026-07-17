@@ -16,9 +16,9 @@
 | Local path | `C:\dev\SmartResidence` |
 | GitHub | [`tzjing99/SmartResidence`](https://github.com/tzjing99/SmartResidence) |
 | Default branch | `main` |
-| **`main` tip** | Always run `git rev-parse origin/main` (tip at cleanup start: **`214a705`**) |
+| **`main` tip** | Always run `git rev-parse origin/main` (pre-honesty-pass tip: **`0d638aa`**) |
 | Handoff | `docs/HANDOFF.md` (rotated from the July 10 handoff) |
-| Prior tips | **`1202dfe`** #48 tip polish · **`2d11208`** #46 concurrency · **`e6cb82b`** docs follow-up · **`4338f3c`** release/`v0.3.0` |
+| Prior tips | **`2f77150`** honesty / de-AI marketing pass · **`0d638aa`** Docker one-command launch · **`1202dfe`** #48 tip polish · **`2d11208`** #46 concurrency · **`4338f3c`** release/`v0.3.0` |
 | Latest tags | **`v0.3.0`** → `4338f3c` (release merge #45) · **`v0.2.0`** → `0773c7a` / annotated `ae98ba7` |
 | Package versions | `@smartresidence/*@0.3.0` (changesets via #45) |
 | Open PRs | **None** after #46–#48 (confirm with `gh pr list --state open`) |
@@ -91,8 +91,8 @@ api typecheck → pass
 
 - ✅ Substantial product surface shipped (visitor, billing core, helpdesk, governance, mobile parity, i18n, a11y lite)
 - 🟡 **Not** “Airbnb-grade everywhere” — ROADMAP aspirational UX vs uneven polish across admin/resident/guard
-- 🟡 Homepage copy now reflects v0.3.0, but marketing claims should still be reviewed against the UX audit before production use
-- 🟡 README / product docs can **oversell** (e.g. “trained ML” is a lightweight Naive Bayes + gate, not deep learning; FPX/e-wallet paths are adapter/scaffold + Fiuu-canonical policy, not full live bank certification)
+- ✅ README + homepage marketing aligned with alpha reality (Naive Bayes + gate for helpdesk assignment; Fiuu canonical MY path / not live bank cert; self-host first; Path C until ~2026-08-01)
+- 🟡 UX polish still uneven across admin/resident/guard — keep evaluating against this audit before production use
 
 ### 2.5 Worktree / `SmartResidence-pr*` cleanup
 
@@ -112,8 +112,8 @@ api typecheck → pass
 | GitHub Release UI for **v0.3.0** | ✅ Published | Release and tag exist at `4338f3c` |
 | Independent **security audit** (payments / PDPA / webhooks) | ⬜ | Needs dedicated pass — do **not** invent a full audit from this overnight |
 | FPX / bank rails beyond scaffold + Fiuu policy | 🟡 | Stripe + Fiuu path documented; treat live FPX certification as unfinished |
-| README / marketing oversell vs alpha reality | 🟡 | Align copy with ROADMAP honesty |
-| Homepage messaging review | 🟡 | Updated for v0.3.0; retain honest alpha positioning |
+| README / marketing oversell vs alpha reality | ✅ | Honesty pass on `docs/honesty-de-ai-pass` — see §2.4 |
+| Homepage messaging review | ✅ | Hero + feature copy softened for alpha / Fiuu / Naive Bayes |
 | Remaining Copilot-style concurrency elsewhere | 🟡 | Spot-check found 2 bugs; billing/facility already use Serializable in places — more audit useful |
 | Async AVIF/WebP transcode experiment | 🟡 Archived | Closed PR #3 was superseded; its unique worker prototype is preserved at tag `archive/pr3-avif-transcode` |
 | Full AGM/EGM beyond shipped e-voting slice | 🟡 | Quorum/eligibility/audit shipped; deeper governance polish may remain |

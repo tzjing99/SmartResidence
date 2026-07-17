@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import type {
   PaymentIntentOptions,
@@ -107,10 +107,17 @@ export class FiuuAdapter implements PaymentProviderAdapter {
     //            key1 = md5(paydate+domain+key0+appcode+secretKey)
     const key0 = md5(`${tranID}${orderid}${status}${domain}${amount}${currency}`);
     const key1 = md5(`${paydate}${domain}${key0}${appcode}${creds.secretKey}`);
-    if (skey !== key1) {
+    if (!safeEqual(skey, key1)) {
       this.logger.warn(`Fiuu skey mismatch for order ${orderid}`);
       return null;
     }
     return { providerRef: orderid, succeeded: status === '00', raw: body };
   }
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
 }

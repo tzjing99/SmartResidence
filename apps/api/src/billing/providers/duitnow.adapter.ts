@@ -192,8 +192,15 @@ export class DuitNowAdapter implements PaymentProviderAdapter {
     const status = String(body.status ?? body.Status ?? '').toUpperCase();
     if (!billRef) return null;
 
-    // Dev/sandbox seam: unsigned settle when explicitly flagged and no webhook secret stored.
+    // Dev/sandbox seam: unsigned settle when explicitly flagged, no webhook secret,
+    // and the caller opted in (never in production).
     if (body.sandbox === true && !creds?.webhookSecret) {
+      if (!opts.allowUnsignedSandbox) {
+        this.logger.warn(
+          `[SANDBOX] Rejecting unsigned DuitNow settle for ${billRef} (not allowed in this environment)`,
+        );
+        return null;
+      }
       this.logger.warn(`[SANDBOX] Accepting unsigned DuitNow settle for ${billRef}`);
       return {
         providerRef: billRef,

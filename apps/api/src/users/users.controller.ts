@@ -47,6 +47,7 @@ export class UsersController {
 
   @Get('me/export/:id')
   @CheckAbility({ action: 'export', subject: 'User' })
+  @Audit({ action: AuditAction.EXPORT, resourceType: 'User', resourceIdFrom: 'params.id' })
   @ApiOperation({ summary: 'Download a completed personal data export' })
   async downloadExport(
     @CurrentUser() user: AuthenticatedUser,

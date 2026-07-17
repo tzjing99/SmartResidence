@@ -107,6 +107,12 @@ export class TngAdapter implements PaymentProviderAdapter {
     if (!orderid) return null;
 
     if (body.sandbox === true && !creds?.webhookSecret) {
+      if (!opts.allowUnsignedSandbox) {
+        this.logger.warn(
+          `[SANDBOX] Rejecting unsigned TNG settle for ${orderid} (not allowed in this environment)`,
+        );
+        return null;
+      }
       this.logger.warn(`[SANDBOX] Accepting unsigned TNG settle for ${orderid}`);
       return { providerRef: orderid, succeeded: isSuccessStatus(status), raw: body };
     }

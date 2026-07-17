@@ -125,26 +125,16 @@ export class UserDataExportService {
               orderBy: { dueDate: 'desc' },
             })
           : Promise.resolve([]),
-        unitIds.length > 0
-          ? this.prisma.payment.findMany({
-              where: {
-                OR: [{ userId: user.id }, { invoice: { unitId: { in: unitIds } } }],
-              },
-              include: {
-                invoice: { select: { id: true, number: true, unitId: true } },
-                receipt: { select: { id: true, number: true, issuedAt: true } },
-              },
-              orderBy: { createdAt: 'desc' },
-            })
-          : this.prisma.payment.findMany({
-              where: { userId: user.id },
-              include: {
-                invoice: { select: { id: true, number: true, unitId: true } },
-                receipt: { select: { id: true, number: true, issuedAt: true } },
-              },
-              orderBy: { createdAt: 'desc' },
-            }),
-        this.loadVisitors(user.id, unitIds),
+        // Only the subject's own payments — never co-residents' payment rows on shared units.
+        this.prisma.payment.findMany({
+          where: { userId: user.id },
+          include: {
+            invoice: { select: { id: true, number: true, unitId: true } },
+            receipt: { select: { id: true, number: true, issuedAt: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.loadVisitors(user.id),
       ]);
 
     if (!profileRow) throw new NotFoundException('User not found');
@@ -213,13 +203,10 @@ export class UserDataExportService {
     });
   }
 
-  private async loadVisitors(userId: string, unitIds: string[]) {
-    const orConditions: Array<Record<string, unknown>> = [{ hostUserId: userId }];
-    if (unitIds.length > 0) {
-      orConditions.push({ unitId: { in: unitIds } });
-    }
+  /** Only visitors hosted by the subject — not every visitor on their units. */
+  private async loadVisitors(userId: string) {
     return this.prisma.visitor.findMany({
-      where: { OR: orConditions },
+      where: { hostUserId: userId },
       include: {
         checkIns: {
           select: {

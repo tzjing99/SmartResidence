@@ -520,6 +520,19 @@ export class BillingService {
     const payment = await this.findPaymentByProviderRef(ref);
     const advancePayment = payment ? null : await this.findAdvancePaymentByProviderRef(ref);
     if (!payment && !advancePayment) return { received: true };
+    // Reject cross-provider callbacks (e.g. unsigned TNG sandbox settling a DuitNow row).
+    if (payment && payment.provider !== provider) {
+      this.logger.warn(
+        `Gateway provider mismatch for ${ref}: callback=${provider}, payment=${payment.provider}`,
+      );
+      return { received: true };
+    }
+    if (advancePayment && advancePayment.provider !== provider) {
+      this.logger.warn(
+        `Gateway provider mismatch for advance ${ref}: callback=${provider}, payment=${advancePayment.provider}`,
+      );
+      return { received: true };
+    }
     const adapter = this.providers.get(provider);
     if (!adapter) return { received: true };
     const condoId = payment?.invoice.condoId ?? advancePayment?.condoId;
@@ -530,6 +543,7 @@ export class BillingService {
       headers,
       body,
       credentials: resolved?.credentials,
+      allowUnsignedSandbox: this.allowUnsignedSandbox(),
     });
     if (!verified) return { received: true };
 
@@ -662,6 +676,19 @@ export class BillingService {
     const adapter = this.providers.get(PaymentProvider.STRIPE);
     if (!adapter) return { received: true };
 
+    if (payment && payment.provider !== PaymentProvider.STRIPE) {
+      this.logger.warn(
+        `Stripe webhook provider mismatch for ${providerRef}: payment=${payment.provider}`,
+      );
+      return { received: true };
+    }
+    if (advancePayment && advancePayment.provider !== PaymentProvider.STRIPE) {
+      this.logger.warn(
+        `Stripe webhook provider mismatch for advance ${providerRef}: payment=${advancePayment.provider}`,
+      );
+      return { received: true };
+    }
+
     const resolved = await this.gateways.resolveCredentials(
       payment?.invoice.condoId ?? advancePayment?.condoId ?? '',
       PaymentProvider.STRIPE,
@@ -670,6 +697,7 @@ export class BillingService {
       payload,
       headers,
       credentials: resolved?.credentials,
+      allowUnsignedSandbox: this.allowUnsignedSandbox(),
     });
     if (!verified) return { received: true };
 
@@ -1623,6 +1651,11 @@ export class BillingService {
         (r.roleId === RoleId.UNIT_OWNER && r.unitId === unitId),
     );
     if (!allowed) throw new ForbiddenException('You cannot make an advance payment for this unit');
+  }
+
+  /** Unsigned sandbox settles are only for local/test — never production. */
+  private allowUnsignedSandbox(): boolean {
+    return process.env.NODE_ENV !== 'production';
   }
 
   private canReadUnitMoney(user: AuthenticatedUser, condoId: string, unitId: string): boolean {

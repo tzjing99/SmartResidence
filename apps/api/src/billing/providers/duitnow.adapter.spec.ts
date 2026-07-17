@@ -93,14 +93,26 @@ describe('DuitNowAdapter.verifyWebhook', () => {
     expect(verified).toBeNull();
   });
 
-  it('accepts sandbox settle without webhook secret', async () => {
+  it('accepts sandbox settle without webhook secret when allowUnsignedSandbox', async () => {
     const verified = await adapter.verifyWebhook({
       payload: '',
       headers: {},
       body: { billRef: 'payref1', status: 'SUCCESS', sandbox: true },
       credentials: {},
+      allowUnsignedSandbox: true,
     });
     expect(verified).toMatchObject({ providerRef: 'payref1', succeeded: true });
+  });
+
+  it('rejects unsigned sandbox settle when allowUnsignedSandbox is false', async () => {
+    const verified = await adapter.verifyWebhook({
+      payload: '',
+      headers: {},
+      body: { billRef: 'payref1', status: 'SUCCESS', sandbox: true },
+      credentials: {},
+      allowUnsignedSandbox: false,
+    });
+    expect(verified).toBeNull();
   });
 });
 

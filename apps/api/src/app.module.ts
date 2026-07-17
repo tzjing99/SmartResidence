@@ -10,6 +10,7 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 
+import { AccessRestrictionModule } from './access-restriction/access-restriction.module';
 import { AccountingModule } from './accounting/accounting.module';
 import { AnnouncementModule } from './announcement/announcement.module';
 import { AuditModule } from './audit/audit.module';
@@ -66,6 +67,7 @@ import { VisitorModule } from './visitor/visitor.module';
     UsersModule,
     TenantModule,
     VisitorModule,
+    AccessRestrictionModule,
     BillingModule,
     EInvoiceModule,
     DefectModule,

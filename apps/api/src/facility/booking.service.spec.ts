@@ -1,3 +1,4 @@
+import type { AccessRestrictionService } from '@/access-restriction/access-restriction.service';
 import type { BillingService } from '@/billing/billing.service';
 import type { DepositService } from '@/billing/deposit.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
@@ -83,7 +84,10 @@ function makeService(overlappingCount: number, maxConcurrent = 1) {
     voidUnpaidInvoiceInTx: vi.fn(),
   } as unknown as BillingService;
   const deposits = { recordInTx: vi.fn(), refundHeldInTx: vi.fn() } as unknown as DepositService;
-  const svc = new BookingService(prisma, events, billing, deposits);
+  const accessRestriction = {
+    assertUnitNotAccessRestricted: vi.fn(async () => undefined),
+  } as unknown as AccessRestrictionService;
+  const svc = new BookingService(prisma, events, billing, deposits, accessRestriction);
   return { svc, tx, events };
 }
 

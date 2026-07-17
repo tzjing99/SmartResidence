@@ -11,11 +11,14 @@
  * `@smartresidence/shared-types`.
  */
 import type {
+  AccessRestrictionExportPayload,
+  AccessRestrictionUnitList,
   AddFeeSchedulePresetsInput,
   Announcement,
   AnnouncementCategory,
   AnnouncementReadStats,
   ArrearsAging,
+  CondoAccessRestrictionSettings,
   AutomationStatusResponse,
   BalanceSheetReport,
   BankReconciliationWorksheet,
@@ -155,7 +158,9 @@ import type {
   UpdateUnitTypeSpaceInput,
   UpdateVendorBillInput,
   UpdateVendorInput,
+  UpdateCondoAccessRestrictionSettingsInput,
   UpdateVisitorBlacklistInput,
+  UnitAccessRestrictionView,
   UploadResponse,
   UploadedAttachment,
   UpsertFeeRateInput,
@@ -1099,6 +1104,61 @@ export class ApiClient {
   arrearsAging(condoId: string) {
     return this.request<ArrearsAging>('GET', `/api/billing/reports/condo/${condoId}/arrears`);
   }
+
+  accessRestrictionSettings(condoId: string) {
+    return this.request<CondoAccessRestrictionSettings>(
+      'GET',
+      `/api/access-restriction/condo/${condoId}/settings`,
+    );
+  }
+  updateAccessRestrictionSettings(
+    condoId: string,
+    body: UpdateCondoAccessRestrictionSettingsInput,
+  ) {
+    return this.request<CondoAccessRestrictionSettings>(
+      'PATCH',
+      `/api/access-restriction/condo/${condoId}/settings`,
+      body,
+    );
+  }
+  accessRestrictionUnits(condoId: string) {
+    return this.request<AccessRestrictionUnitList>(
+      'GET',
+      `/api/access-restriction/condo/${condoId}/units`,
+    );
+  }
+  restrictAccessUnit(condoId: string, unitId: string, reason?: string) {
+    return this.request<UnitAccessRestrictionView>(
+      'POST',
+      `/api/access-restriction/condo/${condoId}/units/${unitId}/restrict`,
+      reason ? { reason } : {},
+    );
+  }
+  clearAccessUnit(condoId: string, unitId: string) {
+    return this.request<UnitAccessRestrictionView>(
+      'POST',
+      `/api/access-restriction/condo/${condoId}/units/${unitId}/clear`,
+    );
+  }
+  recomputeAccessRestrictions(condoId: string) {
+    return this.request<{ activated: number; cleared: number; skipped: number }>(
+      'POST',
+      `/api/access-restriction/condo/${condoId}/recompute`,
+    );
+  }
+  exportAccessRestrictionsJson(condoId: string) {
+    return this.request<AccessRestrictionExportPayload>(
+      'GET',
+      `/api/access-restriction/condo/${condoId}/export.json`,
+    );
+  }
+  downloadAccessRestrictionsCsv(condoId: string): Promise<Blob> {
+    return this.downloadBillingBlob(
+      `/api/access-restriction/condo/${condoId}/export.csv`,
+      'text/csv',
+    );
+  }
+
   fundSummary(condoId: string, params: { from?: string; to?: string } = {}) {
     const qs = new URLSearchParams();
     if (params.from) qs.set('from', params.from);

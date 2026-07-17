@@ -1,3 +1,4 @@
+import { AccessRestrictionService } from '@/access-restriction/access-restriction.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
@@ -39,6 +40,7 @@ export class RecurringPassService {
     private readonly prisma: PrismaService,
     private readonly blacklist: VisitorBlacklistService,
     private readonly events: EventEmitter2,
+    private readonly accessRestriction: AccessRestrictionService,
   ) {}
 
   async listForUnit(user: AuthenticatedUser, unitId: string) {
@@ -81,6 +83,7 @@ export class RecurringPassService {
     if (!this.userCanManageUnit(user, unit.id)) {
       throw new ForbiddenException('You can only create recurring passes for your unit');
     }
+    await this.accessRestriction.assertUnitNotAccessRestricted(user, unit.id, 'recurringPasses');
 
     const guestPhone = dto.guestPhone ? this.normalizePhone(dto.guestPhone) : null;
 

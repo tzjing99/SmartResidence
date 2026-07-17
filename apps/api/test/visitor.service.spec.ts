@@ -41,7 +41,15 @@ function service() {
   };
   const events: any = { emit: vi.fn() };
   const notifications: any = { dispatch: vi.fn().mockResolvedValue(undefined) };
-  return { svc: new VisitorService(prisma, events, notifications), prisma, events, notifications };
+  const accessRestriction = {
+    assertUnitNotAccessRestricted: vi.fn(async () => undefined),
+  };
+  return {
+    svc: new VisitorService(prisma, events, notifications, accessRestriction as never),
+    prisma,
+    events,
+    notifications,
+  };
 }
 
 function mockOvernightEligibility(prisma: any) {

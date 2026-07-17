@@ -1,3 +1,4 @@
+import { AccessRestrictionService } from '@/access-restriction/access-restriction.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
 import { NotificationService } from '@/notification/notification.service';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -130,6 +131,7 @@ export class VisitorService {
     private readonly prisma: PrismaService,
     private readonly events: EventEmitter2,
     private readonly notifications: NotificationService,
+    private readonly accessRestriction: AccessRestrictionService,
   ) {}
 
   private addMinutes(date: Date, mins: number): Date {
@@ -467,6 +469,7 @@ export class VisitorService {
     if (!this.userCanManageUnit(user, unit.id)) {
       throw new ForbiddenException('You can only pre-register visitors for your own units');
     }
+    await this.accessRestriction.assertUnitNotAccessRestricted(user, unit.id, 'visitors');
 
     await this.validatePreRegDto(dto, unit);
 
@@ -613,6 +616,7 @@ export class VisitorService {
     if (!this.userCanManageUnit(user, unit.id)) {
       throw new ForbiddenException('You can only create passes for your own units');
     }
+    await this.accessRestriction.assertUnitNotAccessRestricted(user, unit.id, 'deliveryPasses');
 
     const passKind = dto.passKind as Exclude<VisitorPassKind, 'STANDARD'>;
     const duration = this.quickEntryDurationMins(passKind, dto.expectedDurationMins);

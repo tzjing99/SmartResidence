@@ -1,5 +1,6 @@
 import type { SettingsNavItem } from '@/components/settings-sub-nav';
 import {
+  Ban,
   Bell,
   Building2,
   FileCheck2,
@@ -76,6 +77,16 @@ export const SETTINGS_AREAS: SettingsArea[] = [
     icon: FileCheck2,
     group: 'Money',
     can: { action: 'manage', subject: 'EInvoice' },
+  },
+  {
+    href: '/admin/settings/access-restriction',
+    label: 'Arrears access',
+    description:
+      'Soft-block facility booking and visitor passes for units in arrears; export for ZKTeco/MAG.',
+    audience: 'Finance & security admins',
+    icon: Ban,
+    group: 'Money',
+    can: { action: 'manage', subject: 'AccessRestriction' },
   },
   {
     href: '/admin/settings/helpdesk',

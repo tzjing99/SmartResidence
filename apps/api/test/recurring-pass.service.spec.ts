@@ -46,7 +46,15 @@ function service() {
     assertNotBlacklisted: vi.fn().mockResolvedValue(undefined),
   };
   const events: any = { emit: vi.fn() };
-  return { svc: new RecurringPassService(prisma, blacklist, events), prisma, blacklist, events };
+  const accessRestriction: any = {
+    assertUnitNotAccessRestricted: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    svc: new RecurringPassService(prisma, blacklist, events, accessRestriction),
+    prisma,
+    blacklist,
+    events,
+  };
 }
 
 const owner: any = {

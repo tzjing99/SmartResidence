@@ -335,9 +335,7 @@ export class PaymentWebhookController {
   @Post('duitnow-qr/sandbox/settle')
   @ApiOperation({ summary: '[SANDBOX] Simulate DuitNow QR payment success (non-production only)' })
   async duitnowSandboxSettle(@Body() body: Record<string, unknown>) {
-    if (this.config.get('NODE_ENV', { infer: true }) === 'production') {
-      throw new NotFoundException();
-    }
+    this.assertSandboxSettleAllowed();
     return this.billing.handleGatewayCallback(
       PaymentProvider.DUITNOW_QR,
       {
@@ -375,14 +373,20 @@ export class PaymentWebhookController {
   @Post('tng/sandbox/settle')
   @ApiOperation({ summary: '[SANDBOX] Simulate TNG payment success (non-production only)' })
   async tngSandboxSettle(@Body() body: Record<string, unknown>) {
-    if (this.config.get('NODE_ENV', { infer: true }) === 'production') {
-      throw new NotFoundException();
-    }
+    this.assertSandboxSettleAllowed();
     return this.billing.handleGatewayCallback(
       PaymentProvider.TNG,
       { ...body, status: body.status ?? 'SUCCESS', sandbox: true },
       {},
     );
+  }
+
+  /** Sandbox settle seams are development/test only — not staging or production. */
+  private assertSandboxSettleAllowed(): void {
+    const env = this.config.get('NODE_ENV', { infer: true });
+    if (env !== 'development' && env !== 'test') {
+      throw new NotFoundException();
+    }
   }
 
   /**

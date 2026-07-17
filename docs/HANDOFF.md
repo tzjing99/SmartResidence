@@ -121,8 +121,28 @@ api typecheck → pass
 
 ### 3.2 Security (explicit)
 
-> **Needs independent security pass on payments / PDPA / webhook replay / IDOR regressions.**  
-> Overnight work fixed the two Copilot concurrency findings only. Do not claim production-ready money posture.
+> **Bounded security pass (2026-07-17) completed; residual risk remains — not a full third-party audit.**  
+> Do not claim production-ready money posture.
+
+**Checked / hardened this pass:**
+
+| Target | Result |
+| --- | --- |
+| Gateway settle without amount | ✅ Fixed — missing `amount`/`Amount` no longer settles (sandbox may use expected amount only in development/test) |
+| Unsigned sandbox settle env gate | ✅ Tightened — development/test only (not `!== production`) |
+| Sandbox settle HTTP seams | ✅ Same development/test gate on DuitNow/TNG sandbox routes |
+| Browser return `?next=` open redirect | ✅ Already allow-listed (`CORS_ORIGINS` + `smartresidence://`) |
+| Cross-provider webhook mismatch | ✅ Already rejected (`97290fd`) |
+| FPX stub settle | ✅ `verifyWebhook` returns null; FPX webhook ignored |
+| Visitor gate RBAC | ✅ `assertGateOperator` is guard/SUPER_ADMIN only |
+| PDPA export/delete “me” routes | ✅ Controllers use `CurrentUser` only (no target user id param) |
+
+**Residual (honest):**
+
+- No durable webhook event-id replay ledger beyond idempotent `SUCCEEDED` settle
+- PDPA export may still include unit-scoped co-resident context (threads/invoices) by design of shared unit data
+- Account deletion retains some operational history (visitors, audit FKs) — not full cryptographic erasure
+- Live FPX/bank certification still unfinished
 
 ### 3.3 CI minutes / Path C
 
@@ -212,7 +232,7 @@ Canonical: [`apps/mobile/README.md`](../apps/mobile/README.md)
 | Self-host web Docker build | High (ops) | `deploy/` / Dockerfiles | ✅ Fixed #38 |
 | ML “trained” oversell | Docs | `apps/api/src/threads/ml/**`, ROADMAP C6 | 🟡 Honest in backlog; watch marketing |
 | FPX stub vs production rails | Product | `apps/api/src/billing/**` | 🟡 Scaffold + Fiuu policy |
-| Payments / PDPA security | High | billing + `user-account-deletion` + export | ⬜ Independent audit |
+| Payments / PDPA security | High | billing + `user-account-deletion` + export | 🟡 Bounded pass 2026-07-17; residual in §3.2 |
 | Facility booking races | Mitigated | `apps/api/src/facility/booking.service.ts` (already Serializable) | ✅ Pattern exists |
 | Invoice period uniqueness | Mitigated | billing P2002 handling + test isolation #33 | ✅ Improved |
 | Homepage copy | Process | `apps/web/src/app/page.tsx` | 🟡 Updated for v0.3.0; human review remains |

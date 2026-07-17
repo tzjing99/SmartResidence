@@ -11,7 +11,7 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 | ID | Priority | Area | Description |
 | --- | --- | --- | --- |
 | **AR1** | ✅ Done (v1) | api + web | Arrears access policy: auto after grace days + manual override, soft blocks (facility / visitors / delivery / recurring), CSV/JSON export + signed webhook for integrators. See [`docs/rfcs/access-restriction-integrators.md`](./rfcs/access-restriction-integrators.md). |
-| **AR2** | P3 | api | Native ZKTeco Eco / BioTime or MAG barrier adapters (site-specific; prefer integrator sync via AR1 export/webhook). |
+| **AR2** | P3 · deferred | api | Native ZKTeco Eco / BioTime or MAG barrier adapters — **deferred** until a real site asks; prefer integrator sync via AR1 export/webhook ([`docs/rfcs/access-restriction-integrators.md`](./rfcs/access-restriction-integrators.md)). |
 
 ## Accessibility
 

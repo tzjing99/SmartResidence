@@ -556,12 +556,26 @@ export class BillingService {
       return { received: true };
     }
 
-    // Defense in depth: only settle when the gateway-reported amount matches the
-    // pending payment. The signature already covers `amount`, but this guards
-    // against a correctly-signed partial/altered amount settling the full invoice.
-    const reportedAmount = Number(body.amount ?? body.Amount ?? Number.NaN);
+    // Defense in depth: require a gateway-reported amount and only settle when it
+    // matches the pending payment. Missing amount previously skipped this guard
+    // and still settled — refuse those callbacks so a signed-but-amountless
+    // replay cannot clear an invoice. Local sandbox settle may omit amount.
     const expected = Number(payment?.amount ?? advancePayment?.amount ?? 0);
-    if (Number.isFinite(reportedAmount) && Math.abs(reportedAmount - expected) > 0.01) {
+    let reportedAmount = Number(body.amount ?? body.Amount ?? Number.NaN);
+    if (
+      !Number.isFinite(reportedAmount) &&
+      body.sandbox === true &&
+      this.allowUnsignedSandbox()
+    ) {
+      reportedAmount = expected;
+    }
+    if (!Number.isFinite(reportedAmount)) {
+      this.logger.warn(
+        `Gateway callback missing amount for ${verified.providerRef}. Holding for review.`,
+      );
+      return { received: true };
+    }
+    if (Math.abs(reportedAmount - expected) > 0.01) {
       this.logger.warn(
         `Gateway amount mismatch for ${verified.providerRef}: reported ${reportedAmount}, expected ${expected}. Holding for review.`,
       );
@@ -712,7 +726,13 @@ export class BillingService {
 
     const reportedAmount = this.extractStripeAmount(verified.raw);
     const expected = Number(payment?.amount ?? advancePayment?.amount ?? 0);
-    if (Number.isFinite(reportedAmount) && Math.abs(reportedAmount - expected) > 0.01) {
+    if (!Number.isFinite(reportedAmount)) {
+      this.logger.warn(
+        `Stripe webhook missing amount for ${verified.providerRef}. Holding for review.`,
+      );
+      return { received: true };
+    }
+    if (Math.abs(reportedAmount - expected) > 0.01) {
       this.logger.warn(
         `Stripe amount mismatch for ${verified.providerRef}: reported ${reportedAmount}, expected ${expected}. Holding for review.`,
       );
@@ -1653,9 +1673,13 @@ export class BillingService {
     if (!allowed) throw new ForbiddenException('You cannot make an advance payment for this unit');
   }
 
-  /** Unsigned sandbox settles are only for local/test — never production. */
+  /**
+   * Unsigned sandbox settles are only for local/unit-test. Staging and any
+   * non-development deploy must require real signatures (never `!== production`).
+   */
   private allowUnsignedSandbox(): boolean {
-    return process.env.NODE_ENV !== 'production';
+    const env = process.env.NODE_ENV;
+    return env === 'development' || env === 'test';
   }
 
   private canReadUnitMoney(user: AuthenticatedUser, condoId: string, unitId: string): boolean {

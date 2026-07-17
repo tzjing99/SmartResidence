@@ -269,6 +269,47 @@ describe('BillingService.handleGatewayCallback', () => {
     );
   });
 
+  it('refuses to settle when a verified callback omits amount', async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    const prisma = {
+      payment: {
+        findFirst: vi.fn(async () => ({
+          id: 'pay-1',
+          invoiceId: 'inv-1',
+          provider: PaymentProvider.RAZER,
+          status: PaymentStatus.PENDING,
+          amount: 150,
+          metadata: {},
+          invoice: { condoId: CONDO },
+        })),
+        updateMany,
+      },
+      advancePayment: { findFirst: vi.fn(async () => null) },
+    } as unknown as PrismaService;
+    const fiuu = {
+      verifyWebhook: vi.fn(async () => ({ providerRef: 'order-1', succeeded: true, raw: {} })),
+    };
+    const svc = makeService(prisma, { emit: vi.fn() });
+    (svc as unknown as { providers: Map<unknown, unknown> }).providers.set('RAZER' as never, fiuu);
+    const gateways = (
+      svc as unknown as { gateways: { resolveCredentials: ReturnType<typeof vi.fn> } }
+    ).gateways;
+    gateways.resolveCredentials = vi.fn(async () => ({
+      credentials: { secretKey: 'sk' },
+      mode: 'TEST',
+      publicConfig: {},
+    }));
+
+    const res = await svc.handleGatewayCallback(
+      'RAZER' as never,
+      { orderid: 'order-1', status: '00' },
+      {},
+    );
+
+    expect(res).toEqual({ received: true });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
   it('ignores callbacks when the payment provider does not match the webhook route', async () => {
     const updateMany = vi.fn(async () => ({ count: 1 }));
     const prisma = {

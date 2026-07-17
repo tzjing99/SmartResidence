@@ -36,6 +36,12 @@ export interface WebhookVerifyOptions {
   headers: Record<string, string | string[] | undefined>;
   body?: Record<string, unknown>;
   credentials?: GatewayCredentials;
+  /**
+   * When true, adapters may accept an explicit `sandbox: true` unsigned settle
+   * (dev/test only). Must never be set in production — otherwise a missing
+   * webhook secret would let anyone forge payment success.
+   */
+  allowUnsignedSandbox?: boolean;
 }
 
 export interface PaymentProviderAdapter {

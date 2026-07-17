@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import type {
   PaymentIntentOptions,
@@ -91,10 +91,17 @@ export class IPay88Adapter implements PaymentProviderAdapter {
       currency,
       status,
     ]);
-    if (signature !== expected) {
+    if (!safeEqual(signature, expected)) {
       this.logger.warn(`iPay88 signature mismatch for ref ${refNo}`);
       return null;
     }
     return { providerRef: refNo, succeeded: status === '1', raw: body };
   }
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
 }

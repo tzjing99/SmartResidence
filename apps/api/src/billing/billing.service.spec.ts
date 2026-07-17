@@ -237,6 +237,7 @@ describe('BillingService.handleGatewayCallback', () => {
         findFirst: vi.fn(async () => ({
           id: 'pay-1',
           invoiceId: 'inv-1',
+          provider: PaymentProvider.RAZER,
           status: PaymentStatus.PENDING,
           metadata: {},
           invoice: { condoId: CONDO },
@@ -266,6 +267,40 @@ describe('BillingService.handleGatewayCallback', () => {
         data: expect.objectContaining({ status: PaymentStatus.FAILED }),
       }),
     );
+  });
+
+  it('ignores callbacks when the payment provider does not match the webhook route', async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    const prisma = {
+      payment: {
+        findFirst: vi.fn(async () => ({
+          id: 'pay-1',
+          invoiceId: 'inv-1',
+          provider: PaymentProvider.DUITNOW_QR,
+          status: PaymentStatus.PENDING,
+          amount: 100,
+          metadata: {},
+          invoice: { condoId: CONDO },
+        })),
+        updateMany,
+      },
+      advancePayment: { findFirst: vi.fn(async () => null) },
+    } as unknown as PrismaService;
+    const tng = {
+      verifyWebhook: vi.fn(async () => ({ providerRef: 'order-1', succeeded: true, raw: {} })),
+    };
+    const svc = makeService(prisma, { emit: vi.fn() });
+    (svc as unknown as { providers: Map<unknown, unknown> }).providers.set('TNG' as never, tng);
+
+    const res = await svc.handleGatewayCallback(
+      'TNG' as never,
+      { orderid: 'order-1', status: 'SUCCESS', sandbox: true },
+      {},
+    );
+
+    expect(res).toEqual({ received: true });
+    expect(tng.verifyWebhook).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 });
 

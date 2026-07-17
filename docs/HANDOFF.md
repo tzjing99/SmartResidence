@@ -16,9 +16,9 @@
 | Local path | `C:\dev\SmartResidence` |
 | GitHub | [`tzjing99/SmartResidence`](https://github.com/tzjing99/SmartResidence) |
 | Default branch | `main` |
-| **`main` tip** | Always run `git rev-parse origin/main` (tip at cleanup start: **`214a705`**) |
+| **`main` tip** | Always run `git rev-parse origin/main` (pre-honesty-pass tip: **`0d638aa`**) |
 | Handoff | `docs/HANDOFF.md` (rotated from the July 10 handoff) |
-| Prior tips | **`1202dfe`** #48 tip polish · **`2d11208`** #46 concurrency · **`e6cb82b`** docs follow-up · **`4338f3c`** release/`v0.3.0` |
+| Prior tips | **`2f77150`** honesty / de-AI marketing pass · **`0d638aa`** Docker one-command launch · **`1202dfe`** #48 tip polish · **`2d11208`** #46 concurrency · **`4338f3c`** release/`v0.3.0` |
 | Latest tags | **`v0.3.0`** → `4338f3c` (release merge #45) · **`v0.2.0`** → `0773c7a` / annotated `ae98ba7` |
 | Package versions | `@smartresidence/*@0.3.0` (changesets via #45) |
 | Open PRs | **None** after #46–#48 (confirm with `gh pr list --state open`) |

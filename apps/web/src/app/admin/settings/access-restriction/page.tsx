@@ -1,5 +1,6 @@
 'use client';
 
+import { type UnitSearchItem, UnitSearchPicker } from '@/components/unit-search-picker';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import {
@@ -14,6 +15,7 @@ import {
 import type {
   AccessRestrictionZone,
   CondoAccessRestrictionSettings,
+  UnitAccessRestrictionView,
   UpdateCondoAccessRestrictionSettingsInput,
 } from '@smartresidence/shared-types';
 import {
@@ -32,6 +34,37 @@ import {
 } from '@smartresidence/ui-web';
 import { Download, RefreshCw, Save, ShieldOff } from 'lucide-react';
 import * as React from 'react';
+
+type OpsFilter = 'active' | 'cleared' | 'all';
+
+function fmtDate(value: string | null) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function matchesOpsFilter(row: UnitAccessRestrictionView, filter: OpsFilter) {
+  if (filter === 'active') return row.active;
+  if (filter === 'cleared') return !row.active || row.manualExempt;
+  return true;
+}
+
+function matchesOpsSearch(row: UnitAccessRestrictionView, q: string) {
+  if (!q) return true;
+  const hay = [
+    row.unitIdentifier,
+    row.blockName ?? '',
+    row.reason ?? '',
+    row.source,
+    ...row.zones,
+  ]
+    .join(' ')
+    .toLowerCase();
+  return hay.includes(q);
+}
 
 const ALL_ZONES: AccessRestrictionZone[] = ['CAR_PARK', 'AMENITIES', 'COMMON_FACILITIES'];
 
@@ -86,12 +119,20 @@ export default function AccessRestrictionSettingsPage() {
   const clear = useClearAccessUnit(api);
 
   const [form, setForm] = React.useState<Editable | null>(null);
-  const [manualUnitId, setManualUnitId] = React.useState('');
+  const [manualUnit, setManualUnit] = React.useState<UnitSearchItem | null>(null);
   const [manualReason, setManualReason] = React.useState('');
+  const [opsFilter, setOpsFilter] = React.useState<OpsFilter>('active');
+  const [opsSearch, setOpsSearch] = React.useState('');
 
   React.useEffect(() => {
     if (settingsQ.data) setForm(toEditable(settingsQ.data));
   }, [settingsQ.data]);
+
+  const filteredRows = React.useMemo(() => {
+    const items = unitsQ.data?.items ?? [];
+    const q = opsSearch.trim().toLowerCase();
+    return items.filter((row) => matchesOpsFilter(row, opsFilter) && matchesOpsSearch(row, q));
+  }, [unitsQ.data?.items, opsFilter, opsSearch]);
 
   const dirty = React.useMemo(() => {
     if (!form || !settingsQ.data) return false;
@@ -154,7 +195,7 @@ export default function AccessRestrictionSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 p-6">
+    <div className="mx-auto max-w-5xl space-y-8 p-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Arrears access</h1>
         <p className="text-sm text-muted-foreground">
@@ -375,29 +416,37 @@ export default function AccessRestrictionSettingsPage() {
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-          <Input
-            placeholder="Unit UUID to restrict"
-            value={manualUnitId}
-            onChange={(e) => setManualUnitId(e.target.value)}
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end">
+          <UnitSearchPicker
+            condoId={condoId}
+            value={manualUnit}
+            onChange={setManualUnit}
+            label="Unit to restrict"
+            placeholder="Search block or unit number…"
           />
-          <Input
-            placeholder="Reason (optional)"
-            value={manualReason}
-            onChange={(e) => setManualReason(e.target.value)}
-          />
+          <div className="space-y-1.5">
+            <Label htmlFor="manualReason">Reason (optional)</Label>
+            <Input
+              id="manualReason"
+              placeholder="e.g. Manual hold pending dispute"
+              value={manualReason}
+              onChange={(e) => setManualReason(e.target.value)}
+            />
+          </div>
           <Button
             type="button"
-            disabled={!manualUnitId.trim() || restrict.isPending}
+            className="lg:mb-0.5"
+            disabled={!manualUnit || restrict.isPending}
             onClick={async () => {
+              if (!manualUnit) return;
               try {
                 await restrict.mutateAsync({
                   condoId,
-                  unitId: manualUnitId.trim(),
+                  unitId: manualUnit.id,
                   reason: manualReason.trim() || undefined,
                 });
                 toast.success('Unit restricted');
-                setManualUnitId('');
+                setManualUnit(null);
                 setManualReason('');
               } catch (err) {
                 toast.error(err instanceof Error ? err.message : 'Restrict failed');
@@ -408,6 +457,34 @@ export default function AccessRestrictionSettingsPage() {
           </Button>
         </div>
 
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ['active', 'Active'],
+                ['cleared', 'Cleared / exempt'],
+                ['all', 'All'],
+              ] as const
+            ).map(([id, label]) => (
+              <Button
+                key={id}
+                type="button"
+                size="sm"
+                variant={opsFilter === id ? 'primary' : 'secondary'}
+                onClick={() => setOpsFilter(id)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+          <Input
+            className="sm:max-w-xs"
+            placeholder="Filter by unit, reason, zone…"
+            value={opsSearch}
+            onChange={(e) => setOpsSearch(e.target.value)}
+          />
+        </div>
+
         {unitsQ.isLoading ? (
           <Skeleton className="h-24 w-full" />
         ) : !unitsQ.data?.items.length ? (
@@ -415,74 +492,107 @@ export default function AccessRestrictionSettingsPage() {
             title="No restriction rows yet"
             description="Enable the policy and recompute, or restrict a unit manually."
           />
+        ) : filteredRows.length === 0 ? (
+          <EmptyState
+            title="No matching units"
+            description="Try a different filter or search term."
+          />
         ) : (
-          <ul className="divide-y rounded-md border">
-            {unitsQ.data.items.map((row) => (
-              <li
-                key={row.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-3 py-3 text-sm"
-              >
-                <div className="min-w-0 space-y-0.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">
-                      {row.blockName ? `${row.blockName} · ` : ''}
-                      {row.unitIdentifier}
-                    </span>
-                    {row.active ? (
-                      <Badge tone="danger">Active</Badge>
-                    ) : row.manualExempt ? (
-                      <Badge tone="warning">Exempt</Badge>
-                    ) : (
-                      <Badge tone="neutral">Inactive</Badge>
-                    )}
-                    <Badge tone="neutral">{row.source}</Badge>
-                  </div>
-                  <p className="text-muted-foreground">
-                    {formatMoney(row.outstandingAmount)} outstanding
-                    {row.reason ? ` · ${row.reason}` : ''}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {!row.active ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      disabled={restrict.isPending}
-                      onClick={async () => {
-                        try {
-                          await restrict.mutateAsync({ condoId, unitId: row.unitId });
-                          toast.success('Unit restricted');
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Failed');
-                        }
-                      }}
-                    >
-                      Restrict
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      disabled={clear.isPending}
-                      onClick={async () => {
-                        try {
-                          await clear.mutateAsync({ condoId, unitId: row.unitId });
-                          toast.success('Unit cleared / exempted');
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Failed');
-                        }
-                      }}
-                    >
-                      <ShieldOff className="mr-1 h-3.5 w-3.5" />
-                      Clear
-                    </Button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="border-b bg-[rgb(var(--sr-border))]/20 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Unit</th>
+                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">Outstanding</th>
+                  <th className="px-3 py-2 font-medium">Oldest due</th>
+                  <th className="px-3 py-2 font-medium">Activated</th>
+                  <th className="px-3 py-2 font-medium">Zones</th>
+                  <th className="px-3 py-2 font-medium">Reason</th>
+                  <th className="px-3 py-2 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filteredRows.map((row) => (
+                  <tr key={row.id} className="align-top">
+                    <td className="px-3 py-3">
+                      <div className="font-medium">
+                        {row.blockName ? `${row.blockName} · ` : ''}
+                        {row.unitIdentifier}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{row.source}</div>
+                    </td>
+                    <td className="px-3 py-3">
+                      {row.active ? (
+                        <Badge tone="danger">Active</Badge>
+                      ) : row.manualExempt ? (
+                        <Badge tone="warning">Exempt</Badge>
+                      ) : (
+                        <Badge tone="neutral">Cleared</Badge>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {formatMoney(row.outstandingAmount)}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap">{fmtDate(row.oldestDueDate)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{fmtDate(row.activatedAt)}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {row.zones.length
+                          ? row.zones.map((z) => (
+                              <Badge key={z} tone="neutral">
+                                {ACCESS_RESTRICTION_ZONE_LABELS[z]}
+                              </Badge>
+                            ))
+                          : '—'}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 max-w-[14rem] text-muted-foreground">
+                      {row.reason ?? '—'}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      {!row.active ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={restrict.isPending}
+                          onClick={async () => {
+                            try {
+                              await restrict.mutateAsync({ condoId, unitId: row.unitId });
+                              toast.success('Unit restricted');
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : 'Failed');
+                            }
+                          }}
+                        >
+                          Restrict
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={clear.isPending}
+                          onClick={async () => {
+                            try {
+                              await clear.mutateAsync({ condoId, unitId: row.unitId });
+                              toast.success('Unit cleared / exempted');
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : 'Failed');
+                            }
+                          }}
+                        >
+                          <ShieldOff className="mr-1 h-3.5 w-3.5" />
+                          Clear
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>

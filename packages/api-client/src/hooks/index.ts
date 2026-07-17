@@ -120,6 +120,9 @@ export const queryKeys = {
   collections: (condoId: string, from?: string, to?: string) =>
     ['accounting', 'collections', condoId, from ?? '', to ?? ''] as const,
   arrears: (condoId: string) => ['accounting', 'arrears', condoId] as const,
+  accessRestrictionSettings: (condoId: string) =>
+    ['access-restriction', 'settings', condoId] as const,
+  accessRestrictionUnits: (condoId: string) => ['access-restriction', 'units', condoId] as const,
   cobTemplates: (condoId: string, from?: string, to?: string) =>
     ['cob', 'templates', condoId, from ?? '', to ?? ''] as const,
   paymentIssues: (condoId: string) => ['accounting', 'payment-issues', condoId] as const,
@@ -1159,6 +1162,77 @@ export function useArrearsAging(api: ApiClient, condoId: string | null) {
     queryFn: () => (condoId ? api.arrearsAging(condoId) : Promise.resolve(null)),
     enabled: Boolean(condoId),
     staleTime: REPORT_VIEW_MS,
+  });
+}
+
+export function useAccessRestrictionSettings(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.accessRestrictionSettings(condoId)
+      : ['access-restriction', 'settings', null],
+    queryFn: () => (condoId ? api.accessRestrictionSettings(condoId) : Promise.resolve(null)),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useUpdateAccessRestrictionSettings(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      condoId: string;
+      data: import('@smartresidence/shared-types').UpdateCondoAccessRestrictionSettingsInput;
+    }) => api.updateAccessRestrictionSettings(vars.condoId, vars.data),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.accessRestrictionSettings(vars.condoId) });
+      qc.invalidateQueries({ queryKey: queryKeys.accessRestrictionUnits(vars.condoId) });
+    },
+  });
+}
+
+export function useAccessRestrictionUnits(api: ApiClient, condoId: string | null) {
+  return useQuery({
+    queryKey: condoId
+      ? queryKeys.accessRestrictionUnits(condoId)
+      : ['access-restriction', 'units', null],
+    queryFn: () =>
+      condoId
+        ? api.accessRestrictionUnits(condoId)
+        : Promise.resolve({ items: [], total: 0, eligibleArrearsCount: 0 }),
+    enabled: Boolean(condoId),
+    staleTime: LIST_VIEW_MS,
+  });
+}
+
+export function useRestrictAccessUnit(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; unitId: string; reason?: string }) =>
+      api.restrictAccessUnit(vars.condoId, vars.unitId, vars.reason),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.accessRestrictionUnits(vars.condoId) });
+    },
+  });
+}
+
+export function useClearAccessUnit(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { condoId: string; unitId: string }) =>
+      api.clearAccessUnit(vars.condoId, vars.unitId),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.accessRestrictionUnits(vars.condoId) });
+    },
+  });
+}
+
+export function useRecomputeAccessRestrictions(api: ApiClient) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (condoId: string) => api.recomputeAccessRestrictions(condoId),
+    onSuccess: (_d, condoId) => {
+      qc.invalidateQueries({ queryKey: queryKeys.accessRestrictionUnits(condoId) });
+    },
   });
 }
 

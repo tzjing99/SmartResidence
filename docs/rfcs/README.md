@@ -13,3 +13,9 @@ migration.
 4. Record the final decision in the RFC before merging.
 
 Small, reversible implementation changes do not require an RFC.
+
+## Active notes
+
+| Doc | Topic |
+| --- | --- |
+| [access-restriction-integrators.md](./access-restriction-integrators.md) | Arrears soft blocks + CSV/JSON/webhook seam for ZKTeco/MAG (no native drivers in v1) |

@@ -1,3 +1,4 @@
+import { AccessRestrictionService } from '@/access-restriction/access-restriction.service';
 import { BillingService } from '@/billing/billing.service';
 import { DepositService } from '@/billing/deposit.service';
 import type { AuthenticatedUser } from '@/common/types/request-context';
@@ -36,6 +37,7 @@ export class BookingService {
     private readonly events: EventEmitter2,
     private readonly billing: BillingService,
     private readonly deposits: DepositService,
+    private readonly accessRestriction: AccessRestrictionService,
   ) {}
 
   async create(actor: AuthenticatedUser, dto: CreateBookingDto) {
@@ -48,7 +50,10 @@ export class BookingService {
     const end = new Date(dto.endAt);
     this.validateInterval(facility, start, end);
 
-    if (dto.unitId) await this.assertActsForUnit(actor, dto.unitId, facility.condoId);
+    if (dto.unitId) {
+      await this.assertActsForUnit(actor, dto.unitId, facility.condoId);
+      await this.accessRestriction.assertUnitNotAccessRestricted(actor, dto.unitId, 'facility');
+    }
 
     const autoConfirm = !facility.requiresApproval;
     const fee = autoConfirm ? Number(facility.bookingFee ?? 0) : 0;

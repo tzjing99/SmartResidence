@@ -6,6 +6,7 @@ export * from './phone';
 export * from './walk-in-owner';
 export * from './unit-search';
 export * from './billing';
+export * from './access-restriction';
 export * from './einvoice';
 export * from './defect';
 export * from './handover';

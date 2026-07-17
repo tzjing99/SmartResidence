@@ -98,6 +98,7 @@ model User {
   glJournalEntriesPosted GlJournalEntry[]    @relation("glJournalPoster")
   bankStatementImports   BankStatementImport[] @relation("bankStatementImporter")
   vendorBillsApproved    VendorBill[]        @relation("vendorBillApprover")
+  accessRestrictionsUpdated UnitAccessRestriction[] @relation("accessRestrictionUpdatedBy")
 
   @@index([email])
   @@index([phone])
@@ -236,6 +237,7 @@ model Condo {
   bankStatementImports BankStatementImport[]
   vendors          Vendor[]
   vendorBills      VendorBill[]
+  unitAccessRestrictions UnitAccessRestriction[]
 
   @@map("condos")
 }
@@ -308,11 +310,45 @@ model Unit {
   parcels          Parcel[]
   formSubmissions  FormSubmission[]
   lostFoundPosts   LostFoundPost[]
+  accessRestriction UnitAccessRestriction?
 
   @@unique([condoId, identifier])
   @@index([blockId])
   @@index([unitTypeId])
   @@map("units")
+}
+
+enum AccessRestrictionSource {
+  AUTO
+  MANUAL
+}
+
+/// Per-unit arrears / policy access restriction for soft blocks + hardware export.
+/// Does not control unit-door locks; zones default to car park / amenities.
+model UnitAccessRestriction {
+  id                String                   @id @default(uuid()) @db.Uuid
+  condoId           String                   @db.Uuid
+  condo             Condo                    @relation(fields: [condoId], references: [id], onDelete: Cascade)
+  unitId            String                   @unique @db.Uuid
+  unit              Unit                     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  active            Boolean                  @default(false)
+  source            AccessRestrictionSource  @default(AUTO)
+  /// Admin cleared while still in arrears — auto engine skips until arrears hit zero or force-restrict.
+  manualExempt      Boolean                  @default(false)
+  /// Zones for integrator export, e.g. ["CAR_PARK","AMENITIES"]. Never HOME in v1.
+  zones             Json                     @default("[\"CAR_PARK\",\"AMENITIES\"]")
+  reason            String?
+  outstandingAmount Decimal                  @default(0) @db.Decimal(14, 2)
+  oldestDueDate     DateTime?
+  activatedAt       DateTime?
+  clearedAt         DateTime?
+  updatedByUserId   String?                  @db.Uuid
+  updatedBy         User?                    @relation("accessRestrictionUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([condoId, active])
+  @@map("unit_access_restrictions")
 }
 
 enum OwnershipStatus {

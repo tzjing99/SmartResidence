@@ -6,6 +6,13 @@ Tracked defects and deferred refinements not yet scheduled into a milestone; see
 
 Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
+## Access control / arrears
+
+| ID | Priority | Area | Description |
+| --- | --- | --- | --- |
+| **AR1** | ✅ Done (v1) | api + web | Arrears access policy: auto after grace days + manual override, soft blocks (facility / visitors / delivery / recurring), CSV/JSON export + signed webhook for integrators. See [`docs/rfcs/access-restriction-integrators.md`](./rfcs/access-restriction-integrators.md). |
+| **AR2** | P3 | api | Native ZKTeco Eco / BioTime or MAG barrier adapters (site-specific; prefer integrator sync via AR1 export/webhook). |
+
 ## Accessibility
 
 | ID | Priority | Area | Description |
@@ -15,6 +22,7 @@ Priority legend: **P1** (high) · **P2** (medium) · **P3** (low).
 
 ## Recently completed
 
+- ✅ **AR1 — Arrears access restrictions (v1)** — `UnitAccessRestriction` + condo settings policy; soft blocks on booking / visitor / delivery / recurring; admin Settings → Arrears access; integrator CSV/JSON + HMAC webhook. Native ZKTeco/MAG deferred (AR2).
 - ✅ **A1 — Mobile accessibility lite pass** — tab bar labels and roles, auth/loading screen reader support, 44pt touch targets, landmark headers, list row labels, IconButton back controls, ui-mobile Button/Field/AnimatedPressable defaults.
 - ✅ **GV1 — Governance core (v0.6 partial)** — `GovernanceModule` (`apps/api/src/governance/**`): `GeneralMeeting` (AGM/EGM), notice workflow, `MeetingProxy`, `MeetingResolution` with share-weighted e-voting via linked `Poll` (For/Against/Abstain); admin `/admin/governance`, resident `/(resident)/governance`, mobile `(resident)/governance`; migration `20260702170000_governance`; e2e `governance.spec.ts`. Minutes + financial snapshot shipped; **AGM e-voting slice:** quorum, eligibility API, immutable ballot audit (`feature/governance-agm-evoting`).
 - ✅ **LF1 — Lost & found board** — `LostFoundModule` (`apps/api/src/lost-found/**`): `LostFoundPost` with kind/status + photo attachments; admin `/admin/lost-found`, resident `/(resident)/lost-found`, mobile `(resident)/lost-found`; migration `20260702160000_lost_found`; e2e `lost-found.spec.ts`.

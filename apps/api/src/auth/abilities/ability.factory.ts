@@ -30,6 +30,7 @@ export type Subject =
   | 'FavouriteVisitor'
   | 'VisitorBlacklist'
   | 'RecurringPass'
+  | 'AccessRestriction'
   | 'Invoice'
   | 'Payment'
   | 'Deposit'
@@ -166,6 +167,8 @@ export class AbilityFactory {
         cannot('create-walk-in', 'Visitor');
         can('manage', 'VisitorBlacklist', { condoId: scope.condoId ?? '' });
         can('read', 'RecurringPass', { condoId: scope.condoId ?? '' });
+        can('manage', 'AccessRestriction', { condoId: scope.condoId ?? '' });
+        can('export', 'AccessRestriction', { condoId: scope.condoId ?? '' });
         can('manage', 'Invoice', { condoId: scope.condoId ?? '' });
         can('manage', 'Payment', { condoId: scope.condoId ?? '' });
         can('manage', 'Deposit', { condoId: scope.condoId ?? '' });

@@ -1,3 +1,4 @@
+import { AccessRestrictionModule } from '@/access-restriction/access-restriction.module';
 import { NotificationModule } from '@/notification/notification.module';
 import { Module } from '@nestjs/common';
 import { CondoVisitorSettingsController } from './condo-visitor-settings.controller';
@@ -10,7 +11,7 @@ import { VisitorController } from './visitor.controller';
 import { VisitorService } from './visitor.service';
 
 @Module({
-  imports: [NotificationModule],
+  imports: [NotificationModule, AccessRestrictionModule],
   providers: [
     VisitorService,
     VisitorAutoCloseService,
